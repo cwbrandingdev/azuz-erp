@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Download,
   FileIcon,
   Loader2,
-  MessageSquareWarning,
   RotateCcw,
   X,
   ZoomIn,
@@ -77,10 +75,7 @@ export function MediaLightbox({
   onClose,
   onIndexChange,
   onDownload,
-  onRequestAdjustment,
-  onApprove,
   downloading,
-  approving,
 }: MediaLightboxProps) {
   const [mounted, setMounted] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -319,35 +314,6 @@ export function MediaLightbox({
                 )}
                 Baixar
               </Button>
-
-              {canActOnItem && onApprove && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="gap-2 border border-emerald-300/40 bg-emerald-500/20 text-emerald-50 hover:bg-emerald-500/30"
-                  disabled={approving || item.status === "approved"}
-                  onClick={() => void onApprove(item)}
-                >
-                  {approving ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="size-4" />
-                  )}
-                  Aprovar
-                </Button>
-              )}
-
-              {canActOnItem && onRequestAdjustment && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="gap-2 border border-amber-300/40 bg-amber-500/20 text-amber-50 hover:bg-amber-500/30"
-                  onClick={() => onRequestAdjustment(item)}
-                >
-                  <MessageSquareWarning className="size-4" />
-                  Solicitar Ajuste
-                </Button>
-              )}
             </div>
           </div>
         </motion.div>
