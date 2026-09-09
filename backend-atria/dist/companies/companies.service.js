@@ -13,6 +13,8 @@ exports.CompaniesService = void 0;
 const common_1 = require("@nestjs/common");
 const finance_category_defaults_1 = require("../finance/finance-category-defaults");
 const prisma_service_1 = require("../prisma/prisma.service");
+const tenant_constants_1 = require("../tenancy/domain/tenant.constants");
+const tenant_context_1 = require("../tenancy/domain/tenant-context");
 let CompaniesService = class CompaniesService {
     prisma;
     constructor(prisma) {
@@ -55,6 +57,7 @@ let CompaniesService = class CompaniesService {
                     data: {
                         name: dto.name.trim(),
                         subdomain: dto.subdomain.trim().toLowerCase(),
+                        tenantId: (0, tenant_context_1.getCurrentTenantId)() ?? tenant_constants_1.DEFAULT_TENANT_ID,
                     },
                 });
                 await (0, finance_category_defaults_1.seedDefaultFinancialCategories)(tx, created.id);

@@ -4,6 +4,11 @@ import {
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/auth-cookies";
 import { resolveApiBaseUrl } from "@/lib/api-url";
+import { withTenantHeaders } from "@/lib/tenancy/tenant-headers";
+import {
+  FORWARDED_HOST_HEADER,
+  TENANT_SLUG_HEADER,
+} from "@/lib/tenancy/tenant-host";
 
 function getApiBaseUrl(): string {
   const candidate = resolveApiBaseUrl();
@@ -71,11 +76,19 @@ export async function proxyAuthRequest(
           }
         : incomingBody;
 
+    const incomingHost =
+      request.headers.get(FORWARDED_HOST_HEADER) ?? request.headers.get("host");
+    const tenantSlug = request.headers.get(TENANT_SLUG_HEADER);
+
     const upstream = await fetch(`${apiBaseUrl}${backendPath}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: withTenantHeaders(
+        {
+          "Content-Type": "application/json",
+          ...(tenantSlug ? { [TENANT_SLUG_HEADER]: tenantSlug } : {}),
+        },
+        incomingHost,
+      ),
       body: JSON.stringify(body),
       cache: "no-store",
     });

@@ -55,6 +55,7 @@ const crm_scope_service_1 = require("../leads/crm-scope.service");
 const prisma_service_1 = require("../prisma/prisma.service");
 const supabase_storage_service_1 = require("../supabase/supabase-storage.service");
 const company_constants_1 = require("../company/company.constants");
+const tenant_constants_1 = require("../tenancy/domain/tenant.constants");
 const LOCAL_AVATAR_DIR = (0, path_1.join)(process.cwd(), 'uploads', 'avatars');
 const SALT_ROUNDS = 12;
 const userGroupSelect = {
@@ -180,6 +181,11 @@ let UsersService = class UsersService {
         });
     }
     async provision(dto, createdByUserId) {
+        const creator = await this.prisma.user.findUnique({
+            where: { id: createdByUserId },
+            select: { tenantId: true },
+        });
+        const tenantId = creator?.tenantId ?? tenant_constants_1.DEFAULT_TENANT_ID;
         const role = await this.prisma.role.findUnique({
             where: { name: dto.role },
         });
@@ -248,6 +254,7 @@ let UsersService = class UsersService {
                 roleId: role.id,
                 category,
                 clientId,
+                tenantId,
                 avatarUrl: dto.avatarUrl?.trim() || null,
                 userGroupId: groupIds[0] ?? null,
                 monthlySalary,

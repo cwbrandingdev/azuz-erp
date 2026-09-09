@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PrismaService = exports.PRISMA_TRANSACTION_OPTIONS = void 0;
 const client_1 = require("@prisma/client");
 const common_1 = require("@nestjs/common");
+const tenant_isolation_extension_1 = require("../tenancy/infrastructure/tenant-isolation.extension");
 exports.PRISMA_TRANSACTION_OPTIONS = {
     maxWait: 10_000,
     timeout: 20_000,
@@ -33,10 +34,26 @@ function resolvePrismaDatabaseUrl(url) {
 }
 let PrismaService = class PrismaService extends client_1.PrismaClient {
     constructor() {
-        const url = resolvePrismaDatabaseUrl(process.env.DATABASE_URL);
         super({
-            ...(url ? { datasources: { db: { url } } } : {}),
+            datasources: process.env.DATABASE_URL
+                ? {
+                    db: {
+                        url: resolvePrismaDatabaseUrl(process.env.DATABASE_URL),
+                    },
+                }
+                : undefined,
             transactionOptions: exports.PRISMA_TRANSACTION_OPTIONS,
+        });
+        const extended = this.$extends((0, tenant_isolation_extension_1.createTenantIsolationExtension)(this));
+        return new Proxy(this, {
+            get(target, prop, receiver) {
+                if (prop === 'onModuleInit' ||
+                    prop === 'onModuleDestroy' ||
+                    prop === 'constructor') {
+                    return Reflect.get(target, prop, receiver);
+                }
+                return Reflect.get(extended, prop, extended);
+            },
         });
     }
     async onModuleInit() {

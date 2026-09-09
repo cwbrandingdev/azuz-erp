@@ -8,20 +8,29 @@ import { useBranding } from "@/contexts/branding-context";
 
 const BOOT_MIN_MS = 1000;
 
-export function AppBootGate({ children }: { children: React.ReactNode }) {
+export function AppBootGate({
+  children,
+  skip = false,
+}: {
+  children: React.ReactNode;
+  skip?: boolean;
+}) {
   const { isLoading: authLoading } = useAuth();
   const { isLoading: appearanceLoading } = useAppearance();
   const { isLoading: brandingLoading } = useBranding();
-  const [minDelayDone, setMinDelayDone] = useState(false);
+  const [minDelayDone, setMinDelayDone] = useState(skip);
 
   useEffect(() => {
+    if (skip) {
+      return;
+    }
     const timer = window.setTimeout(() => setMinDelayDone(true), BOOT_MIN_MS);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [skip]);
 
   const themeReady =
     !authLoading && !brandingLoading && !appearanceLoading;
-  const showSplash = !themeReady || !minDelayDone;
+  const showSplash = !skip && (!themeReady || !minDelayDone);
 
   if (showSplash) {
     return (

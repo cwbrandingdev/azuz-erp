@@ -19,6 +19,7 @@ export interface UserResponse {
     avatarUrl: string | null;
     clientId?: string | null;
     companyId?: string | null;
+    tenantId?: string | null;
     mustChangePassword?: boolean;
     isActive?: boolean;
     permissions?: string[];

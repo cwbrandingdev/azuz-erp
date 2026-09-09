@@ -14,38 +14,39 @@ export declare class DeliverablesService {
             id: string;
             companyName: string;
         } | null;
-        items: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: import("@prisma/client").$Enums.DeliverableItemStatus;
-            fileName: string | null;
-            fileSize: number | null;
-            deliverableId: string;
-            mediaUrl: string;
-            mediaType: import("@prisma/client").$Enums.DeliverableMediaType;
-            adjustmentNotes: string | null;
-            storageBucket: string | null;
-            storagePath: string | null;
-            sourceAssetId: string | null;
-            sortOrder: number;
-        }[];
         approvedBy: {
             id: string;
             name: string;
             avatarUrl: string | null;
         } | null;
+        items: {
+            id: string;
+            status: import("@prisma/client").$Enums.DeliverableItemStatus;
+            createdAt: Date;
+            updatedAt: Date;
+            fileName: string | null;
+            fileSize: number | null;
+            storageBucket: string | null;
+            storagePath: string | null;
+            sortOrder: number;
+            deliverableId: string;
+            mediaUrl: string;
+            mediaType: import("@prisma/client").$Enums.DeliverableMediaType;
+            adjustmentNotes: string | null;
+            sourceAssetId: string | null;
+        }[];
     } & {
+        tenantId: string;
         id: string;
-        title: string;
         createdAt: Date;
         updatedAt: Date;
-        companyId: string;
         clientId: string | null;
+        companyId: string;
+        title: string;
         contentPostId: string | null;
+        approvedAt: Date | null;
         kanbanTaskId: string | null;
         approvalStatus: import("@prisma/client").$Enums.DeliverableApprovalStatus;
-        approvedAt: Date | null;
         approvedById: string | null;
     }>;
     findAllForClient(clientId: string, query?: QueryClientDeliverablesDto): Promise<{

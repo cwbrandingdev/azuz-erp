@@ -2,6 +2,7 @@ import { copyFileSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import type { NextConfig } from "next";
+import { getAllowedDevOrigins } from "./lib/tenancy/tenant-host";
 
 const require = createRequire(import.meta.url);
 
@@ -19,6 +20,7 @@ function copyPdfWorker() {
 copyPdfWorker();
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: getAllowedDevOrigins(),
   serverExternalPackages: ["pdfjs-dist"],
   transpilePackages: ["react-pdf"],
   turbopack: {

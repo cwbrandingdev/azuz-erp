@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { PlatformFilter } from "@/app/(main)/resumos/components/PlatformFilter";
-import { SummaryCard } from "@/app/(main)/resumos/components/SumaryCard";
-import type { Platform } from "@/app/(main)/resumos/components/types";
+import { PlatformFilter } from "@/app/[tenant]/(main)/resumos/components/PlatformFilter";
+import { SummaryCard } from "@/app/[tenant]/(main)/resumos/components/SumaryCard";
+import type { Platform } from "@/app/[tenant]/(main)/resumos/components/types";
 import type { PerformanceSummary } from "@/services/types";
 
 interface PerformanceDashboardProps {

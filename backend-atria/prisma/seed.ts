@@ -25,6 +25,7 @@ import {
   LEAD_STATUS_COLORS,
   LEAD_STATUS_LABELS,
 } from '../src/leads/lead-kanban.constants';
+import { seedDevTenant } from '../src/tenancy/infrastructure/dev-tenant-seed';
 
 const prisma = new PrismaClient();
 
@@ -102,14 +103,17 @@ const ROLE_DEFINITIONS: Array<{ name: RoleName; description: string }> = [
 ];
 
 async function main() {
+  const { tenant } = await seedDevTenant(prisma);
+
   const company = await prisma.company.upsert({
     where: { subdomain: 'default' },
-    update: { name: 'Atria', status: 'ACTIVE' },
+    update: { name: 'Atria', status: 'ACTIVE', tenantId: tenant.id },
     create: {
       id: '00000000-0000-4000-8000-000000000001',
       name: 'Atria',
       subdomain: 'default',
       status: 'ACTIVE',
+      tenantId: tenant.id,
     },
   });
 

@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { seedDefaultFinancialCategories } from '../finance/finance-category-defaults';
 import { PrismaService } from '../prisma/prisma.service';
+import { DEFAULT_TENANT_ID } from '../tenancy/domain/tenant.constants';
+import { getCurrentTenantId } from '../tenancy/domain/tenant-context';
 import { CreateCompanyDto, UpdateCompanyDto } from './dto/company.dto';
 
 @Injectable()
@@ -53,6 +55,7 @@ export class CompaniesService {
           data: {
             name: dto.name.trim(),
             subdomain: dto.subdomain.trim().toLowerCase(),
+            tenantId: getCurrentTenantId() ?? DEFAULT_TENANT_ID,
           },
         });
         await seedDefaultFinancialCategories(tx, created.id);

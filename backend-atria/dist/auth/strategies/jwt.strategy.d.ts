@@ -9,6 +9,7 @@ export interface JwtPayload {
     category?: 'MEMBER' | 'CLIENT';
     clientId?: string | null;
     companyId?: string | null;
+    tenantId?: string | null;
 }
 declare const JwtStrategy_base: new (...args: [opt: import("passport-jwt").StrategyOptionsWithRequest] | [opt: import("passport-jwt").StrategyOptionsWithoutRequest]) => Strategy & {
     validate(...args: any[]): unknown;
@@ -16,6 +17,8 @@ declare const JwtStrategy_base: new (...args: [opt: import("passport-jwt").Strat
 export declare class JwtStrategy extends JwtStrategy_base {
     private readonly prisma;
     constructor(configService: ConfigService, prisma: PrismaService);
-    validate(payload: JwtPayload): Promise<AuthenticatedUser>;
+    validate(request: {
+        tenantId?: string;
+    }, payload: JwtPayload): Promise<AuthenticatedUser>;
 }
 export {};

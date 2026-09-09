@@ -10,6 +10,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const path_1 = require("path");
 const app_module_1 = require("./app.module");
 const global_exception_filter_1 = require("./common/filters/global-exception.filter");
+const tenant_host_1 = require("./tenancy/domain/tenant-host");
 if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
     process.env.DIRECT_URL = process.env.DATABASE_URL;
 }
@@ -21,6 +22,7 @@ const DEFAULT_CORS_ORIGINS = [
     'http://localhost:3002',
     'http://127.0.0.1:3000',
 ];
+const LOCALHOST_SUBDOMAIN_REGEX = /^http:\/\/([a-zA-Z0-9-]+\.)?localhost:(3000|3002)$/;
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const configService = app.get(config_1.ConfigService);
@@ -36,9 +38,12 @@ async function bootstrap() {
     const allowedOrigins = [
         ...new Set([...DEFAULT_CORS_ORIGINS, ...configuredOrigins]),
     ];
+    const tenantBaseDomains = (0, tenant_host_1.parseBaseDomains)(configService.get('TENANT_BASE_DOMAINS') ?? '');
     app.enableCors({
         origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
+            if (!origin ||
+                LOCALHOST_SUBDOMAIN_REGEX.test(origin) ||
+                (0, tenant_host_1.isAllowedCorsOrigin)(origin, allowedOrigins, tenantBaseDomains)) {
                 callback(null, true);
                 return;
             }
@@ -52,6 +57,8 @@ async function bootstrap() {
             'X-Requested-With',
             'Accept',
             'Origin',
+            tenant_host_1.TENANT_SLUG_HEADER,
+            tenant_host_1.FORWARDED_HOST_HEADER,
         ],
         exposedHeaders: ['Authorization'],
         credentials: true,

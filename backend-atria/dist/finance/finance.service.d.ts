@@ -14,29 +14,32 @@ export declare class FinanceService {
     private activeTransactionWhere;
     private activeTransactionScope;
     getCategories(type?: TransactionType): Promise<{
+        tenantId: string;
         id: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
-        name: string;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
     }[]>;
     createCategory(dto: CreateCategoryDto): Promise<{
+        tenantId: string;
         id: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
-        name: string;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
     }>;
     updateCategory(id: string, dto: UpdateCategoryDto): Promise<{
+        tenantId: string;
         id: string;
+        name: string;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
-        name: string;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
     }>;

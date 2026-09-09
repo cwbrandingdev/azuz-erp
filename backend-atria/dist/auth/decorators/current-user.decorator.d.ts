@@ -5,6 +5,7 @@ export interface AuthenticatedUser {
     category: 'MEMBER' | 'CLIENT';
     clientId: string | null;
     companyId: string | null;
+    tenantId: string | null;
     permissions: string[];
     isActive: boolean;
 }

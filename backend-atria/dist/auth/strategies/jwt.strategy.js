@@ -15,6 +15,7 @@ const config_1 = require("@nestjs/config");
 const passport_1 = require("@nestjs/passport");
 const passport_jwt_1 = require("passport-jwt");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const tenant_context_1 = require("../../tenancy/domain/tenant-context");
 const permissions_1 = require("../constants/permissions");
 let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
     prisma;
@@ -23,10 +24,11 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
             jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
             secretOrKey: configService.getOrThrow('JWT_ACCESS_SECRET'),
+            passReqToCallback: true,
         });
         this.prisma = prisma;
     }
-    async validate(payload) {
+    async validate(request, payload) {
         const user = await this.prisma.user.findUnique({
             where: { id: payload.sub },
             select: {
@@ -35,6 +37,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
                 category: true,
                 clientId: true,
                 companyId: true,
+                tenantId: true,
                 isActive: true,
                 company: { select: { status: true } },
                 role: { select: { name: true } },
@@ -49,6 +52,10 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         if (user.company.status === 'SUSPENDED') {
             throw new common_1.UnauthorizedException('Company is suspended');
         }
+        const activeTenantId = (0, tenant_context_1.getCurrentTenantId)() ?? request.tenantId;
+        if (activeTenantId && user.tenantId !== activeTenantId) {
+            throw new common_1.UnauthorizedException('User not found');
+        }
         return {
             userId: user.id,
             email: user.email,
@@ -56,6 +63,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
             category: user.category,
             clientId: user.clientId,
             companyId: user.companyId,
+            tenantId: user.tenantId,
             permissions: (0, permissions_1.resolvePermissions)(user.role.name),
             isActive: user.isActive,
         };

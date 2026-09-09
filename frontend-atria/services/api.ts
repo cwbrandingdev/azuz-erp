@@ -6,6 +6,7 @@ import {
   setStoredUser,
 } from "@/lib/auth-storage";
 import { resolveApiBaseUrl } from "@/lib/api-url";
+import { withTenantHeaders } from "@/lib/tenancy/tenant-headers";
 import { showApiError, shouldShowApiErrorToast } from "@/lib/toast";
 import type { AuthResponse } from "@/services/types";
 
@@ -77,9 +78,9 @@ export async function refreshAuthSession(): Promise<AuthResponse | null> {
         const response = await fetchWithTimeout(resolveRequestUrl("/auth/refresh"), {
           method: "POST",
           credentials: "include",
-          headers: {
+          headers: withTenantHeaders({
             "Content-Type": "application/json",
-          },
+          }),
           body: JSON.stringify({}),
         });
 
@@ -116,11 +117,11 @@ export async function apiRequest<T>(
     return fetchWithTimeout(resolveRequestUrl(endpoint), {
       ...rest,
       credentials: "include",
-      headers: {
+      headers: withTenantHeaders({
         "Content-Type": "application/json",
         ...(token && !skipAuth ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
-      },
+      }),
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   };
@@ -173,10 +174,10 @@ export async function apiRequestBlob(
     return fetch(`${API_BASE_URL}${endpoint}`, {
       ...rest,
       credentials: "include",
-      headers: {
+      headers: withTenantHeaders({
         ...(token && !skipAuth ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
-      },
+      }),
     });
   };
 
@@ -222,9 +223,9 @@ export async function uploadFile<T>(
     return fetch(`${API_BASE_URL}${endpoint}`, {
       method: "POST",
       credentials: "include",
-      headers: {
+      headers: withTenantHeaders({
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      }),
       body: formData,
     });
   };

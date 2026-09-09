@@ -1,4 +1,5 @@
 import { API_BASE_URL, ApiError } from "./api";
+import { withTenantHeaders } from "@/lib/tenancy/tenant-headers";
 import {
   clearPortalAuthStorage,
   getPortalAccessToken,
@@ -33,10 +34,10 @@ async function portalRequest<T>(
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: options.method ?? "GET",
-    headers: {
+    headers: withTenantHeaders({
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    }),
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
@@ -67,7 +68,7 @@ async function refreshPortalSession() {
   try {
     const response = await fetch(`${API_BASE_URL}/portal/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: withTenantHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ refreshToken }),
     });
     if (!response.ok) return false;
@@ -85,7 +86,7 @@ async function refreshPortalSession() {
 export async function login(email: string, password: string) {
   const response = await fetch(`${API_BASE_URL}/portal/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: withTenantHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ email, password }),
   });
   const data = await response.json().catch(() => null);
@@ -109,7 +110,7 @@ export async function logout() {
   if (!refreshToken) return;
   await fetch(`${API_BASE_URL}/portal/auth/logout`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: withTenantHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ refreshToken }),
   }).catch(() => undefined);
   clearPortalAuthStorage();
@@ -215,7 +216,9 @@ export async function uploadPortalAsset(file: File, fileType?: string) {
     `${API_BASE_URL}/portal/session/assets/upload${query}`,
     {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: withTenantHeaders(
+        token ? { Authorization: `Bearer ${token}` } : {},
+      ),
       body: formData,
     },
   );
@@ -336,7 +339,9 @@ export async function uploadFinanceDocument(
     `${API_BASE_URL}/portal/session/financial/attachments`,
     {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: withTenantHeaders(
+        token ? { Authorization: `Bearer ${token}` } : {},
+      ),
       body: formData,
     },
   );

@@ -41,6 +41,7 @@ import { SettingsModule } from './settings/settings.module';
 import { SlaModule } from './sla/sla.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
 import { SupabaseModule } from './supabase/supabase.module';
+import { TenancyModule } from './tenancy/tenancy.module';
 import { UserGroupsModule } from './user-groups/user-groups.module';
 import { UsersModule } from './users/users.module';
 import { LeadMinerModule } from './leadminer/leadminer.module';
@@ -53,6 +54,7 @@ import { LeadMinerModule } from './leadminer/leadminer.module';
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    TenancyModule,
     SupabaseModule,
     HealthModule,
     AgendaModule,

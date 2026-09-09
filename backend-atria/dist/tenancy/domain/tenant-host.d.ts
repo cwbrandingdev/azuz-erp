@@ -1,0 +1,10 @@
+export declare const TENANT_SLUG_HEADER = "x-tenant-slug";
+export declare const FORWARDED_HOST_HEADER = "x-forwarded-host";
+export declare function parseBaseDomains(raw: string | undefined): string[];
+export declare function normalizeBaseDomain(value: string): string | null;
+export declare function readHostHeader(headers: Record<string, string | string[] | undefined>): string | undefined;
+export declare function readExplicitTenantSlug(headers: Record<string, string | string[] | undefined>): string | null;
+export declare function isTenantAwareCorsOrigin(origin: string, baseDomains: readonly string[]): boolean;
+export declare function isAllowedCorsOrigin(origin: string | undefined, allowedOrigins: readonly string[], baseDomains: readonly string[]): boolean;
+export declare function extractTenantSlug(hostHeader: string | undefined, baseDomains: readonly string[]): string | null;
+export declare function isTenantSlug(slug: string): boolean;

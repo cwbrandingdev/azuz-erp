@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Inter } from "next/font/google";
+import { headers } from "next/headers";
 import { AuthProvider } from "@/contexts/auth-context";
 import { AppearanceProvider } from "@/contexts/appearance-context";
 import { BrandingProvider } from "@/contexts/branding-context";
@@ -11,6 +12,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { AppBootGate } from "@/components/layout/app-boot-gate";
 import { Toaster } from "@/components/ui/sonner";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/theme-utils";
+import { PUBLIC_SURFACE_HEADER } from "@/lib/tenancy/tenant-host";
 import "./globals.css";
 
 const inter = Inter({
@@ -32,11 +34,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headerStore = await headers();
+  const skipBootGate = headerStore.get(PUBLIC_SURFACE_HEADER) === "1";
+
   return (
     <html
       lang="pt-BR"
@@ -58,7 +63,7 @@ export default function RootLayout({
                 <QueryProvider>
                   <AppearanceProvider>
                     <ConfirmProvider>
-                      <AppBootGate>{children}</AppBootGate>
+                      <AppBootGate skip={skipBootGate}>{children}</AppBootGate>
                       <Toaster />
                     </ConfirmProvider>
                   </AppearanceProvider>

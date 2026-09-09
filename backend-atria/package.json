@@ -24,7 +24,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "seed:master": "ts-node prisma/scripts/create-master-user.ts"
+    "seed:master": "ts-node prisma/scripts/create-master-user.ts",
+    "seed:dev-tenant": "ts-node prisma/scripts/seed-dev-tenant.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

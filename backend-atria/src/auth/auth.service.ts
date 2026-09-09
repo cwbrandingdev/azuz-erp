@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { DEFAULT_COMPANY_ID } from '../company/company.constants';
+import { DEFAULT_TENANT_ID } from '../tenancy/domain/tenant.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -35,6 +36,7 @@ export interface UserResponse {
   avatarUrl: string | null;
   clientId?: string | null;
   companyId?: string | null;
+  tenantId?: string | null;
   mustChangePassword?: boolean;
   isActive?: boolean;
   permissions?: string[];
@@ -58,7 +60,7 @@ export class AuthService {
   async signupWithToken(dto: SignupWithTokenDto) {
     const invitation = await this.prisma.invitationToken.findUnique({
       where: { token: dto.token },
-      include: { company: { select: { id: true, status: true } } },
+      include: { company: { select: { id: true, status: true, tenantId: true } } },
     });
 
     if (!invitation || invitation.used) {
@@ -74,6 +76,7 @@ export class AuthService {
     }
 
     const companyId = invitation.companyId;
+    const tenantId = invitation.tenantId ?? invitation.company.tenantId;
 
     const existing = await this.prisma.user.findFirst({
       where: { email: dto.email },
@@ -103,6 +106,7 @@ export class AuthService {
           roleId: role.id,
           category,
           companyId,
+          tenantId,
           mustChangePassword: false,
           isActive: true,
         },
@@ -144,6 +148,7 @@ export class AuthService {
       user.category,
       user.clientId,
       user.companyId,
+      user.tenantId,
     );
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
@@ -186,9 +191,10 @@ export class AuthService {
   ) {
     const creator = await this.prisma.user.findUnique({
       where: { id: createdByUserId },
-      select: { companyId: true },
+      select: { companyId: true, tenantId: true },
     });
     const companyId = creator?.companyId ?? DEFAULT_COMPANY_ID;
+    const tenantId = creator?.tenantId ?? DEFAULT_TENANT_ID;
 
     const expiresInDays = dto.expiresInDays ?? 7;
     const expiresAt = new Date();
@@ -201,6 +207,7 @@ export class AuthService {
         token,
         role: dto.role,
         companyId,
+        tenantId,
         expiresAt,
         createdById: createdByUserId,
       },
@@ -269,6 +276,7 @@ export class AuthService {
       user.category,
       user.clientId,
       user.companyId,
+      user.tenantId,
     );
     await this.prisma.authToken.deleteMany({ where: { userId: user.id } });
     await this.storeRefreshToken(user.id, tokens.refreshToken);
@@ -325,6 +333,7 @@ export class AuthService {
       user.category,
       user.clientId,
       user.companyId,
+      user.tenantId,
     );
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
@@ -397,6 +406,7 @@ export class AuthService {
     category: 'MEMBER' | 'CLIENT' = 'MEMBER',
     clientId: string | null = null,
     companyId: string | null = null,
+    tenantId: string | null = null,
   ): Promise<AuthTokens> {
     const payload: JwtPayload = {
       sub: userId,
@@ -405,6 +415,7 @@ export class AuthService {
       category,
       clientId,
       companyId,
+      tenantId,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -470,6 +481,7 @@ export class AuthService {
     category?: 'MEMBER' | 'CLIENT';
     clientId?: string | null;
     companyId?: string | null;
+    tenantId?: string | null;
     mustChangePassword?: boolean;
     isActive?: boolean;
     role: { name: string };
@@ -487,6 +499,7 @@ export class AuthService {
       avatarUrl: user.avatarUrl,
       clientId: user.clientId ?? null,
       companyId: user.companyId ?? null,
+      tenantId: user.tenantId ?? null,
       mustChangePassword: user.mustChangePassword ?? false,
       isActive: user.isActive ?? true,
       permissions: resolvePermissions(user.role.name),

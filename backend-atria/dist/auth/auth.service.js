@@ -49,6 +49,7 @@ const jwt_1 = require("@nestjs/jwt");
 const bcrypt = __importStar(require("bcrypt"));
 const crypto_1 = require("crypto");
 const company_constants_1 = require("../company/company.constants");
+const tenant_constants_1 = require("../tenancy/domain/tenant.constants");
 const prisma_service_1 = require("../prisma/prisma.service");
 const permissions_1 = require("./constants/permissions");
 const SALT_ROUNDS = 12;
@@ -67,7 +68,7 @@ let AuthService = class AuthService {
     async signupWithToken(dto) {
         const invitation = await this.prisma.invitationToken.findUnique({
             where: { token: dto.token },
-            include: { company: { select: { id: true, status: true } } },
+            include: { company: { select: { id: true, status: true, tenantId: true } } },
         });
         if (!invitation || invitation.used) {
             throw new common_1.UnauthorizedException('Invalid invitation token');
@@ -79,6 +80,7 @@ let AuthService = class AuthService {
             throw new common_1.ForbiddenException('Company is suspended');
         }
         const companyId = invitation.companyId;
+        const tenantId = invitation.tenantId ?? invitation.company.tenantId;
         const existing = await this.prisma.user.findFirst({
             where: { email: dto.email },
         });
@@ -102,6 +104,7 @@ let AuthService = class AuthService {
                     roleId: role.id,
                     category,
                     companyId,
+                    tenantId,
                     mustChangePassword: false,
                     isActive: true,
                 },
@@ -130,7 +133,7 @@ let AuthService = class AuthService {
             }
             return created;
         });
-        const tokens = await this.generateTokens(user.id, user.email, user.role.name, user.category, user.clientId, user.companyId);
+        const tokens = await this.generateTokens(user.id, user.email, user.role.name, user.category, user.clientId, user.companyId, user.tenantId);
         await this.storeRefreshToken(user.id, tokens.refreshToken);
         return {
             user: this.toUserResponse(user),
@@ -162,9 +165,10 @@ let AuthService = class AuthService {
     async createInvitationToken(createdByUserId, dto) {
         const creator = await this.prisma.user.findUnique({
             where: { id: createdByUserId },
-            select: { companyId: true },
+            select: { companyId: true, tenantId: true },
         });
         const companyId = creator?.companyId ?? company_constants_1.DEFAULT_COMPANY_ID;
+        const tenantId = creator?.tenantId ?? tenant_constants_1.DEFAULT_TENANT_ID;
         const expiresInDays = dto.expiresInDays ?? 7;
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + expiresInDays);
@@ -174,6 +178,7 @@ let AuthService = class AuthService {
                 token,
                 role: dto.role,
                 companyId,
+                tenantId,
                 expiresAt,
                 createdById: createdByUserId,
             },
@@ -220,7 +225,7 @@ let AuthService = class AuthService {
         if (user.role.name === 'CLIENT' && !user.clientId) {
             throw new common_1.UnauthorizedException('Conta de cliente sem empresa vinculada. Contate o administrador.');
         }
-        const tokens = await this.generateTokens(user.id, user.email, user.role.name, user.category, user.clientId, user.companyId);
+        const tokens = await this.generateTokens(user.id, user.email, user.role.name, user.category, user.clientId, user.companyId, user.tenantId);
         await this.prisma.authToken.deleteMany({ where: { userId: user.id } });
         await this.storeRefreshToken(user.id, tokens.refreshToken);
         return {
@@ -259,7 +264,7 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException('Company is suspended');
         }
         await this.assertUserIsActive(user);
-        const tokens = await this.generateTokens(user.id, user.email, user.role.name, user.category, user.clientId, user.companyId);
+        const tokens = await this.generateTokens(user.id, user.email, user.role.name, user.category, user.clientId, user.companyId, user.tenantId);
         await this.storeRefreshToken(user.id, tokens.refreshToken);
         return {
             user: this.toUserResponse(user),
@@ -307,7 +312,7 @@ let AuthService = class AuthService {
         });
         return { success: true };
     }
-    async generateTokens(userId, email, role, category = 'MEMBER', clientId = null, companyId = null) {
+    async generateTokens(userId, email, role, category = 'MEMBER', clientId = null, companyId = null, tenantId = null) {
         const payload = {
             sub: userId,
             email,
@@ -315,6 +320,7 @@ let AuthService = class AuthService {
             category,
             clientId,
             companyId,
+            tenantId,
         };
         const [accessToken, refreshToken] = await Promise.all([
             this.jwtService.signAsync(payload, {
@@ -370,6 +376,7 @@ let AuthService = class AuthService {
             avatarUrl: user.avatarUrl,
             clientId: user.clientId ?? null,
             companyId: user.companyId ?? null,
+            tenantId: user.tenantId ?? null,
             mustChangePassword: user.mustChangePassword ?? false,
             isActive: user.isActive ?? true,
             permissions: (0, permissions_1.resolvePermissions)(user.role.name),

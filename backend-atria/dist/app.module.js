@@ -50,6 +50,7 @@ const settings_module_1 = require("./settings/settings.module");
 const sla_module_1 = require("./sla/sla.module");
 const suggestions_module_1 = require("./suggestions/suggestions.module");
 const supabase_module_1 = require("./supabase/supabase.module");
+const tenancy_module_1 = require("./tenancy/tenancy.module");
 const user_groups_module_1 = require("./user-groups/user-groups.module");
 const users_module_1 = require("./users/users.module");
 const leadminer_module_1 = require("./leadminer/leadminer.module");
@@ -65,6 +66,7 @@ exports.AppModule = AppModule = __decorate([
             }),
             schedule_1.ScheduleModule.forRoot(),
             prisma_module_1.PrismaModule,
+            tenancy_module_1.TenancyModule,
             supabase_module_1.SupabaseModule,
             health_module_1.HealthModule,
             agenda_module_1.AgendaModule,

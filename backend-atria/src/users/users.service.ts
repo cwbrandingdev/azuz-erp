@@ -14,6 +14,7 @@ import { CrmScopeService } from '../leads/crm-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SupabaseStorageService } from '../supabase/supabase-storage.service';
 import { DEFAULT_COMPANY_ID } from '../company/company.constants';
+import { DEFAULT_TENANT_ID } from '../tenancy/domain/tenant.constants';
 import { ProvisionUserDto, UpdateUserDto } from './dto/user.dto';
 
 const LOCAL_AVATAR_DIR = join(process.cwd(), 'uploads', 'avatars');
@@ -167,6 +168,12 @@ export class UsersService {
   }
 
   async provision(dto: ProvisionUserDto, createdByUserId: string) {
+    const creator = await this.prisma.user.findUnique({
+      where: { id: createdByUserId },
+      select: { tenantId: true },
+    });
+    const tenantId = creator?.tenantId ?? DEFAULT_TENANT_ID;
+
     const role = await this.prisma.role.findUnique({
       where: { name: dto.role },
     });
@@ -255,6 +262,7 @@ export class UsersService {
         roleId: role.id,
         category,
         clientId,
+        tenantId,
         avatarUrl: dto.avatarUrl?.trim() || null,
         userGroupId: groupIds[0] ?? null,
         monthlySalary,

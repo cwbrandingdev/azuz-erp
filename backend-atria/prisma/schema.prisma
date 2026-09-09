@@ -6,10 +6,56 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  schemas   = ["dev"]
+}
+
+model Tenant {
+  id                         String                      @id @default(uuid())
+  name                       String
+  slug                       String                      @unique
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  companies                  Company[]
+  users                      User[]
+  invitationTokens           InvitationToken[]
+  messages                   Message[]
+  financialCategories        FinancialCategory[]
+  financialTransactions      FinancialTransaction[]
+  kanbanColumns              KanbanColumn[]
+  kanbanTasks                KanbanTask[]
+  calendarEvents             CalendarEvent[]
+  clients                    Client[]
+  userGroups                 UserGroup[]
+  clientGroups               ClientGroup[]
+  clientReports              ClientReport[]
+  clientBriefs               ClientBrief[]
+  contentPosts               ContentPost[]
+  contracts                  Contract[]
+  proposals                  Proposal[]
+  assets                     Asset[]
+  notifications              Notification[]
+  agencySettings             AgencySettings[]
+  artTypePricing             ArtTypePricing[]
+  calendarEntries            CalendarEntry[]
+  agendaEvents               AgendaEvent[]
+  clientRequests             ClientRequest[]
+  clientFinancialAttachments ClientFinancialAttachment[]
+  tasks                      Task[]
+  clientReportFiles          ClientReportFile[]
+  leadStages                 LeadStage[]
+  crmReminderTasks           CrmReminderTask[]
+  leads                      Lead[]
+  deletionHistory            DeletionHistory[]
+  deliverables               Deliverable[]
+  systemSuggestions          SystemSuggestion[]
+  appUpdates                 AppUpdate[]
+
+  @@schema("dev")
 }
 
 model Company {
   id                         String                      @id @default(uuid())
+  tenantId                   String                      @default("00000000-0000-4000-8000-000000000010")
   name                       String
   subdomain                  String                      @unique
   status                     CompanyStatus               @default(ACTIVE)
@@ -56,6 +102,11 @@ model Company {
   systemSuggestions          SystemSuggestion[]
   appUpdates                 AppUpdate[]
   tasks                      Task[]
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
+  @@schema("dev")
 }
 
 model Role {
@@ -66,10 +117,13 @@ model Role {
   updatedAt   DateTime @updatedAt
   permissions String[] @default([])
   users       User[]
+
+  @@schema("dev")
 }
 
 model User {
   id                           String                  @id @default(uuid())
+  tenantId                     String                  @default("00000000-0000-4000-8000-000000000010")
   email                        String
   passwordHash                 String
   name                         String
@@ -125,16 +179,21 @@ model User {
   systemSuggestions            SystemSuggestion[]
   appUpdatesCreated            AppUpdate[]
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
   @@unique([companyId, email])
+  @@index([tenantId, id])
   @@index([clientId])
   @@index([category])
   @@index([companyId, category])
   @@index([companyId])
   @@index([isActive])
+  @@schema("dev")
 }
 
 model InvitationToken {
   id          String   @id @default(uuid())
+  tenantId    String   @default("00000000-0000-4000-8000-000000000010")
   token       String   @unique
   role        RoleName
   companyId   String   @default("00000000-0000-4000-8000-000000000001")
@@ -145,10 +204,14 @@ model InvitationToken {
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdBy   User?    @relation("InvitationCreatedBy", fields: [createdById], references: [id])
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyId])
   @@index([token])
   @@index([expiresAt])
   @@map("invitation_tokens")
+  @@schema("dev")
 }
 
 model CompanyRepresentative {
@@ -166,6 +229,7 @@ model CompanyRepresentative {
   @@index([companyId])
   @@index([userId])
   @@map("company_representatives")
+  @@schema("dev")
 }
 
 model AuthToken {
@@ -177,21 +241,28 @@ model AuthToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@schema("dev")
 }
 
 model Message {
   id        String   @id @default(uuid())
+  tenantId  String   @default("00000000-0000-4000-8000-000000000010")
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   companyId String   @default("00000000-0000-4000-8000-000000000001")
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model FinancialCategory {
   id           String                 @id @default(uuid())
+  tenantId     String                 @default("00000000-0000-4000-8000-000000000010")
   name         String
   type         TransactionType
   color        String                 @default("#004949")
@@ -201,12 +272,17 @@ model FinancialCategory {
   company      Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
   transactions FinancialTransaction[]
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
   @@unique([companyId, name, type])
+  @@index([tenantId, id])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model FinancialTransaction {
   id          String            @id @default(uuid())
+  tenantId    String            @default("00000000-0000-4000-8000-000000000010")
   description String
   amount      Decimal           @db.Decimal(12, 2)
   type        TransactionType
@@ -230,6 +306,9 @@ model FinancialTransaction {
   deletedBy   User?             @relation("FinancialTransactionDeletedBy", fields: [deletedById], references: [id])
   user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([userId, date])
   @@index([userId, type])
   @@index([userId, status])
@@ -239,10 +318,12 @@ model FinancialTransaction {
   @@index([contractId])
   @@index([deletedAt])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model KanbanColumn {
   id        String            @id @default(uuid())
+  tenantId  String            @default("00000000-0000-4000-8000-000000000010")
   title     String
   order     Int               @default(0)
   color     String            @default("#004949")
@@ -254,56 +335,64 @@ model KanbanColumn {
   company   Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   tasks     KanbanTask[]
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([order])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model KanbanTask {
-  id                        String               @id @default(uuid())
+  id                        String                @id @default(uuid())
+  tenantId                  String                @default("00000000-0000-4000-8000-000000000010")
   title                     String
   description               String?
   postCaption               String?
-  priority                  KanbanTaskPriority   @default(MEDIUM)
-  order                     Int                  @default(0)
+  priority                  KanbanTaskPriority    @default(MEDIUM)
+  order                     Int                   @default(0)
   dueDate                   DateTime?
   columnId                  String
   createdById               String
-  createdAt                 DateTime             @default(now())
-  updatedAt                 DateTime             @updatedAt
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
   clientId                  String?
   referenceUrl              String?
-  internalReviewStatus      InternalReviewStatus @default(NOT_REQUIRED)
+  internalReviewStatus      InternalReviewStatus  @default(NOT_REQUIRED)
   internalReviewNote        String?
-  contentPostId             String?              @unique
-  calendarEventId           String?              @unique
+  contentPostId             String?               @unique
+  calendarEventId           String?               @unique
   slaResponseDueAt          DateTime?
   slaResolutionDueAt        DateTime?
   firstResponseAt           DateTime?
   resolvedAt                DateTime?
-  companyId                 String               @default("00000000-0000-4000-8000-000000000001")
-  status                    KanbanTaskStatus     @default(FALTA_GRAVAR)
+  companyId                 String                @default("00000000-0000-4000-8000-000000000001")
+  status                    KanbanTaskStatus      @default(FALTA_GRAVAR)
   productionPhase           ProductionPhase?
   assignedGroupId           String?
   deletedAt                 DateTime?
   deletedById               String?
-  isBypassingInternalReview Boolean              @default(false)
+  isBypassingInternalReview Boolean               @default(false)
   publicationDate           DateTime?
   deliveryDate              DateTime?
   contentType               KanbanTaskContentType @default(VIDEO_WITH_SCRIPT)
-  assignedGroup             UserGroup?           @relation(fields: [assignedGroupId], references: [id])
-  calendarEvent             CalendarEvent?       @relation(fields: [calendarEventId], references: [id])
-  client                    Client?              @relation(fields: [clientId], references: [id])
-  column                    KanbanColumn         @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  company                   Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  contentPost               ContentPost?         @relation(fields: [contentPostId], references: [id])
-  createdBy                 User                 @relation("KanbanTaskCreator", fields: [createdById], references: [id])
-  deletedBy                 User?                @relation("KanbanTaskDeletedBy", fields: [deletedById], references: [id])
+  assignedGroup             UserGroup?            @relation(fields: [assignedGroupId], references: [id])
+  calendarEvent             CalendarEvent?        @relation(fields: [calendarEventId], references: [id])
+  client                    Client?               @relation(fields: [clientId], references: [id])
+  column                    KanbanColumn          @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  company                   Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contentPost               ContentPost?          @relation(fields: [contentPostId], references: [id])
+  createdBy                 User                  @relation("KanbanTaskCreator", fields: [createdById], references: [id])
+  deletedBy                 User?                 @relation("KanbanTaskDeletedBy", fields: [deletedById], references: [id])
   assets                    KanbanTaskAsset[]
   assignees                 KanbanTaskAssignee[]
   comments                  TaskComment[]
   history                   TaskHistory[]
   deliverable               Deliverable?
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([columnId, order])
   @@index([clientId])
   @@index([assignedGroupId])
@@ -311,6 +400,7 @@ model KanbanTask {
   @@index([companyId])
   @@index([publicationDate])
   @@index([deliveryDate])
+  @@schema("dev")
 }
 
 model KanbanTaskAsset {
@@ -327,6 +417,7 @@ model KanbanTaskAsset {
   uploadedBy   User       @relation("KanbanTaskAssetUploader", fields: [uploadedById], references: [id])
 
   @@index([taskId, uploadedAt])
+  @@schema("dev")
 }
 
 model KanbanTaskAssignee {
@@ -337,6 +428,7 @@ model KanbanTaskAssignee {
 
   @@id([taskId, userId])
   @@index([userId])
+  @@schema("dev")
 }
 
 model TaskComment {
@@ -349,6 +441,7 @@ model TaskComment {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([taskId, createdAt])
+  @@schema("dev")
 }
 
 model TaskHistory {
@@ -361,10 +454,12 @@ model TaskHistory {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([taskId, createdAt])
+  @@schema("dev")
 }
 
 model CalendarEvent {
   id              String        @id @default(uuid())
+  tenantId        String        @default("00000000-0000-4000-8000-000000000010")
   title           String
   description     String?
   startAt         DateTime
@@ -389,15 +484,20 @@ model CalendarEvent {
   createdBy       User          @relation("EventCreator", fields: [createdById], references: [id])
   kanbanTask      KanbanTask?
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([startAt])
   @@index([assigneeId])
   @@index([assignedGroupId])
   @@index([clientId])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model Client {
   id                    String                      @id @default(uuid())
+  tenantId              String                      @default("00000000-0000-4000-8000-000000000010")
   companyName           String
   contactName           String?
   email                 String?
@@ -443,9 +543,13 @@ model Client {
   tasks                 Task[]
   crmScopes             UserCrmScope[]
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyName])
   @@index([clientGroupId])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model UserCrmScope {
@@ -461,6 +565,7 @@ model UserCrmScope {
   @@index([userId])
   @@index([clientId])
   @@map("user_crm_scopes")
+  @@schema("dev")
 }
 
 model CrmSdrAssignment {
@@ -475,10 +580,12 @@ model CrmSdrAssignment {
   @@index([organizationId])
   @@index([userId])
   @@map("crm_sdr_assignments")
+  @@schema("dev")
 }
 
 model UserGroup {
   id             String            @id @default(uuid())
+  tenantId       String            @default("00000000-0000-4000-8000-000000000010")
   name           String
   description    String?
   color          String            @default("#E8C39E")
@@ -491,8 +598,12 @@ model UserGroup {
   company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   members        UserGroupMember[]
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
   @@unique([companyId, name])
+  @@index([tenantId, id])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model UserGroupMember {
@@ -504,10 +615,12 @@ model UserGroupMember {
 
   @@id([userId, userGroupId])
   @@index([userGroupId])
+  @@schema("dev")
 }
 
 model ClientGroup {
   id          String   @id @default(uuid())
+  tenantId    String   @default("00000000-0000-4000-8000-000000000010")
   name        String
   description String?
   color       String   @default("#E8C39E")
@@ -517,12 +630,17 @@ model ClientGroup {
   clients     Client[]
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
   @@unique([companyId, name])
+  @@index([tenantId, id])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model ClientReport {
   id            String   @id @default(uuid())
+  tenantId      String   @default("00000000-0000-4000-8000-000000000010")
   clientId      String
   month         Int
   year          Int
@@ -535,9 +653,13 @@ model ClientReport {
   company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   generatedBy   User     @relation("ReportGenerator", fields: [generatedById], references: [id])
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
   @@unique([clientId, month, year])
+  @@index([tenantId, id])
   @@index([clientId])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model ClientPortalToken {
@@ -550,6 +672,8 @@ model ClientPortalToken {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@schema("dev")
 }
 
 model ClientPortalUser {
@@ -563,6 +687,8 @@ model ClientPortalUser {
   updatedAt          DateTime                @updatedAt
   authTokens         ClientPortalAuthToken[]
   client             Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@schema("dev")
 }
 
 model ClientPortalAuthToken {
@@ -574,10 +700,12 @@ model ClientPortalAuthToken {
   portalUser   ClientPortalUser @relation(fields: [portalUserId], references: [id], onDelete: Cascade)
 
   @@index([portalUserId])
+  @@schema("dev")
 }
 
 model ClientBrief {
   id                 String             @id @default(uuid())
+  tenantId           String             @default("00000000-0000-4000-8000-000000000010")
   clientId           String
   title              String
   content            String
@@ -596,14 +724,19 @@ model ClientBrief {
   client             Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
   company            Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([clientId, createdAt])
   @@index([status])
   @@index([assignedToId])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model ContentPost {
   id                   String               @id @default(uuid())
+  tenantId             String               @default("00000000-0000-4000-8000-000000000010")
   title                String
   platform             ContentPlatform
   scheduledDate        DateTime?
@@ -630,6 +763,9 @@ model ContentPost {
   versions             PostVersion[]
   deliverable          Deliverable?
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([platform])
   @@index([status])
   @@index([internalReviewStatus])
@@ -637,6 +773,7 @@ model ContentPost {
   @@index([userId])
   @@index([clientId])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model PostVersion {
@@ -655,6 +792,7 @@ model PostVersion {
   @@unique([postId, versionNumber])
   @@index([postId])
   @@index([createdById])
+  @@schema("dev")
 }
 
 model PostFeedback {
@@ -672,6 +810,7 @@ model PostFeedback {
   @@index([postId])
   @@index([versionId])
   @@index([userId])
+  @@schema("dev")
 }
 
 model ContentAttachment {
@@ -684,10 +823,12 @@ model ContentAttachment {
   post      ContentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
+  @@schema("dev")
 }
 
 model Contract {
   id               String                 @id @default(uuid())
+  tenantId         String                 @default("00000000-0000-4000-8000-000000000010")
   clientId         String
   title            String
   status           ContractStatus         @default(DRAFT)
@@ -706,14 +847,19 @@ model Contract {
   createdBy        User                   @relation("ContractCreator", fields: [createdById], references: [id])
   transactions     FinancialTransaction[]
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([clientId])
   @@index([status])
   @@index([startDate])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model Proposal {
   id                 String            @id @default(uuid())
+  tenantId           String            @default("00000000-0000-4000-8000-000000000010")
   clientId           String
   title              String
   status             ProposalStatus    @default(DRAFT)
@@ -735,10 +881,14 @@ model Proposal {
   items              ProposalItem[]
   projects           ProposalProject[]
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([clientId])
   @@index([status])
   @@index([validUntil])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model ProposalItem {
@@ -754,6 +904,7 @@ model ProposalItem {
   proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 
   @@index([proposalId])
+  @@schema("dev")
 }
 
 model ProposalProject {
@@ -769,10 +920,12 @@ model ProposalProject {
   proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 
   @@index([proposalId])
+  @@schema("dev")
 }
 
 model Asset {
   id           String        @id @default(uuid())
+  tenantId     String        @default("00000000-0000-4000-8000-000000000010")
   clientId     String
   fileName     String
   fileType     AssetFileType @default(DOCUMENT)
@@ -785,31 +938,40 @@ model Asset {
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   uploadedBy   User?         @relation("AssetUploader", fields: [uploadedById], references: [id])
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([clientId])
   @@index([fileType])
   @@index([companyId])
+  @@schema("dev")
 }
 
 model Notification {
-  id        String           @id @default(uuid())
-  userId    String
-  title     String
-  message   String
-  type      NotificationType
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  companyId String           @default("00000000-0000-4000-8000-000000000001")
-  taskId    String?
-  appUpdateId String?        @map("app_update_id")
-  company   Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String           @id @default(uuid())
+  tenantId    String           @default("00000000-0000-4000-8000-000000000010")
+  userId      String
+  title       String
+  message     String
+  type        NotificationType
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  companyId   String           @default("00000000-0000-4000-8000-000000000001")
+  taskId      String?
+  appUpdateId String?          @map("app_update_id")
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([userId, isRead])
   @@index([userId, createdAt])
   @@index([companyId])
   @@index([type, taskId, createdAt])
   @@index([appUpdateId])
   @@map("notifications")
+  @@schema("dev")
 }
 
 model UserSettings {
@@ -823,10 +985,13 @@ model UserSettings {
   updatedAt       DateTime @updatedAt
   sidebarColor    String   @default("#004949")
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("dev")
 }
 
 model AgencySettings {
   id                         String   @id @default(uuid())
+  tenantId                   String   @default("00000000-0000-4000-8000-000000000010")
   agencyName                 String   @default("ATRIA ERP")
   logoUrl                    String?
   faviconUrl                 String?
@@ -849,10 +1014,16 @@ model AgencySettings {
   slaResolutionPlannedHours  Int      @default(336)
   companyId                  String   @unique @default("00000000-0000-4000-8000-000000000001")
   company                    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
+  @@schema("dev")
 }
 
 model ArtTypePricing {
   id            String   @id @default(uuid())
+  tenantId      String   @default("00000000-0000-4000-8000-000000000010")
   artType       String   @map("art_type")
   pricePerPiece Decimal  @map("price_per_piece") @db.Decimal(12, 2)
   description   String?
@@ -861,13 +1032,18 @@ model ArtTypePricing {
   companyId     String   @default("00000000-0000-4000-8000-000000000001")
   company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
   @@unique([companyId, artType])
+  @@index([tenantId, id])
   @@index([companyId])
   @@map("art_type_pricing")
+  @@schema("dev")
 }
 
 model CalendarEntry {
   id                 String   @id @default(uuid())
+  tenantId           String   @default("00000000-0000-4000-8000-000000000010")
   month              Int
   year               Int
   clientId           String   @map("client_id")
@@ -885,15 +1061,20 @@ model CalendarEntry {
   client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   company            Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([clientId])
   @@index([year, month])
   @@index([designerId])
   @@index([companyId])
   @@map("calendar_entries")
+  @@schema("dev")
 }
 
 model AgendaEvent {
   id            String               @id @default(uuid())
+  tenantId      String               @default("00000000-0000-4000-8000-000000000010")
   title         String
   description   String?
   eventDate     String               @map("event_date")
@@ -913,10 +1094,14 @@ model AgendaEvent {
   confirmations AgendaConfirmation[]
   company       Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([eventDate])
   @@index([createdBy])
   @@index([companyId])
   @@map("agenda_events")
+  @@schema("dev")
 }
 
 model AgendaConfirmation {
@@ -931,10 +1116,12 @@ model AgendaConfirmation {
   @@unique([eventId, userId])
   @@index([userId])
   @@map("agenda_confirmations")
+  @@schema("dev")
 }
 
 model ClientRequest {
   id              String                   @id @default(uuid())
+  tenantId        String                   @default("00000000-0000-4000-8000-000000000010")
   clientId        String                   @map("client_id")
   title           String
   description     String?
@@ -951,15 +1138,20 @@ model ClientRequest {
   client          Client                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   company         Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([clientId])
   @@index([status])
   @@index([companyId])
   @@index([contentType])
   @@map("client_requests")
+  @@schema("dev")
 }
 
 model ClientFinancialAttachment {
   id             String                        @id @default(uuid())
+  tenantId       String                        @default("00000000-0000-4000-8000-000000000010")
   clientId       String                        @map("client_id")
   organizationId String                        @map("organization_id")
   fileUrl        String                        @map("file_url")
@@ -971,9 +1163,13 @@ model ClientFinancialAttachment {
   client         Client                        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   company        Company                       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([clientId, uploadedAt])
   @@index([organizationId])
   @@map("client_financial_attachments")
+  @@schema("dev")
 }
 
 model ClientRequestComment {
@@ -993,10 +1189,12 @@ model ClientRequestComment {
   @@index([authorId])
   @@index([parentId])
   @@map("client_request_comments")
+  @@schema("dev")
 }
 
 model Task {
   id                 String   @id @default(uuid())
+  tenantId           String   @default("00000000-0000-4000-8000-000000000010")
   companyId          String   @default("00000000-0000-4000-8000-000000000001") @map("company_id")
   title              String
   description        String?  @default("")
@@ -1031,15 +1229,20 @@ model Task {
   client             Client?  @relation(fields: [clientId], references: [id])
   company            Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyId])
   @@index([clientId])
   @@index([assignedDesignerId])
   @@index([status])
   @@map("tasks")
+  @@schema("dev")
 }
 
 model ClientReportFile {
   id         String    @id @default(uuid())
+  tenantId   String    @default("00000000-0000-4000-8000-000000000010")
   clientId   String    @map("client_id")
   title      String
   fileUrl    String    @map("file_url")
@@ -1054,14 +1257,19 @@ model ClientReportFile {
   client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([clientId])
   @@index([status])
   @@index([companyId])
   @@map("client_reports")
+  @@schema("dev")
 }
 
 model LeadStage {
   id        String   @id @default(uuid())
+  tenantId  String   @default("00000000-0000-4000-8000-000000000010")
   companyId String   @default("00000000-0000-4000-8000-000000000001") @map("tenant_id")
   name      String
   order     Int      @default(0)
@@ -1072,13 +1280,18 @@ model LeadStage {
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   leads     Lead[]
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
   @@unique([companyId, name])
+  @@index([tenantId, id])
   @@index([companyId, order])
   @@map("lead_stages")
+  @@schema("dev")
 }
 
 model CrmReminderTask {
   id          String                @id @default(uuid())
+  tenantId    String                @default("00000000-0000-4000-8000-000000000010")
   companyId   String                @default("00000000-0000-4000-8000-000000000001") @map("company_id")
   leadId      String                @map("lead_id")
   title       String
@@ -1090,13 +1303,18 @@ model CrmReminderTask {
   company     Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
   lead        Lead                  @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyId, status, dueDate])
   @@index([leadId])
   @@map("crm_reminder_tasks")
+  @@schema("dev")
 }
 
 model Lead {
   id             String            @id @default(uuid())
+  tenantId       String            @default("00000000-0000-4000-8000-000000000010")
   companyId      String            @default("00000000-0000-4000-8000-000000000001")
   name           String
   phone          String?
@@ -1133,6 +1351,9 @@ model Lead {
   organization   Client?           @relation(fields: [organizationId], references: [id])
   stage          LeadStage?        @relation(fields: [stageId], references: [id])
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyId])
   @@index([organizationId])
   @@index([placeId])
@@ -1142,6 +1363,7 @@ model Lead {
   @@index([city])
   @@index([deletedAt])
   @@map("leads")
+  @@schema("dev")
 }
 
 model LeadComment {
@@ -1157,10 +1379,12 @@ model LeadComment {
   @@index([leadId, createdAt])
   @@index([userId])
   @@map("lead_comments")
+  @@schema("dev")
 }
 
 model DeletionHistory {
   id          String             @id @default(uuid())
+  tenantId    String             @default("00000000-0000-4000-8000-000000000010")
   companyId   String             @default("00000000-0000-4000-8000-000000000001")
   entityType  DeletionEntityType
   entityId    String
@@ -1171,14 +1395,19 @@ model DeletionHistory {
   company     Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deletedBy   User               @relation("DeletionHistoryActor", fields: [deletedById], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyId, deletedAt])
   @@index([entityType, deletedAt])
   @@index([deletedById])
   @@map("deletion_history")
+  @@schema("dev")
 }
 
 model Deliverable {
   id             String                    @id @default(uuid())
+  tenantId       String                    @default("00000000-0000-4000-8000-000000000010")
   companyId      String                    @default("00000000-0000-4000-8000-000000000001")
   title          String
   clientId       String?
@@ -1196,10 +1425,14 @@ model Deliverable {
   contentPost    ContentPost?              @relation(fields: [contentPostId], references: [id])
   kanbanTask     KanbanTask?               @relation(fields: [kanbanTaskId], references: [id])
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyId])
   @@index([clientId])
   @@index([approvalStatus])
   @@map("deliverables")
+  @@schema("dev")
 }
 
 model DeliverableItem {
@@ -1223,11 +1456,14 @@ model DeliverableItem {
   @@index([status])
   @@index([sourceAssetId])
   @@map("deliverable_items")
+  @@schema("dev")
 }
 
 enum CompanyStatus {
   ACTIVE
   SUSPENDED
+
+  @@schema("dev")
 }
 
 enum RoleName {
@@ -1241,11 +1477,15 @@ enum RoleName {
   CRM
   EXTERNAL_CLIENT_CRM
   CLIENT
+
+  @@schema("dev")
 }
 
 enum UserCategory {
   MEMBER
   CLIENT
+
+  @@schema("dev")
 }
 
 enum NotificationType {
@@ -1257,17 +1497,23 @@ enum NotificationType {
   NEW_REQUEST
   SYSTEM
   APP_UPDATE
+
+  @@schema("dev")
 }
 
 enum TransactionType {
   INCOME
   EXPENSE
+
+  @@schema("dev")
 }
 
 enum TransactionStatus {
   PAID
   PENDING
   OVERDUE
+
+  @@schema("dev")
 }
 
 enum EventCategory {
@@ -1275,6 +1521,8 @@ enum EventCategory {
   DEADLINE
   PUBLISH
   OTHER
+
+  @@schema("dev")
 }
 
 enum KanbanTaskPriority {
@@ -1283,6 +1531,8 @@ enum KanbanTaskPriority {
   MEDIUM
   LOW
   PLANNED
+
+  @@schema("dev")
 }
 
 enum KanbanColumnType {
@@ -1290,6 +1540,8 @@ enum KanbanColumnType {
   IN_PROGRESS
   DONE
   CUSTOM
+
+  @@schema("dev")
 }
 
 enum KanbanTaskStatus {
@@ -1299,11 +1551,15 @@ enum KanbanTaskStatus {
   JHONATAN_REPROVA
   CLIENTE_REPROVOU
   JHONATAN_APROVOU
+
+  @@schema("dev")
 }
 
 enum ProductionPhase {
   ROTEIRO
   EM_GRAVACAO
+
+  @@schema("dev")
 }
 
 enum KanbanTaskContentType {
@@ -1311,6 +1567,8 @@ enum KanbanTaskContentType {
   STATIC
   CAROUSEL
   STORIES_NO_SCRIPT
+
+  @@schema("dev")
 }
 
 enum InternalReviewStatus {
@@ -1318,6 +1576,8 @@ enum InternalReviewStatus {
   PENDING
   APPROVED
   REJECTED
+
+  @@schema("dev")
 }
 
 enum ContentPlatform {
@@ -1325,6 +1585,8 @@ enum ContentPlatform {
   TIKTOK
   YOUTUBE
   LINKEDIN
+
+  @@schema("dev")
 }
 
 enum ContentPostStatus {
@@ -1334,11 +1596,15 @@ enum ContentPostStatus {
   PENDING_APPROVAL
   APPROVED
   REJECTED
+
+  @@schema("dev")
 }
 
 enum PostFeedbackType {
   REJECTION_REASON
   GENERAL_NOTE
+
+  @@schema("dev")
 }
 
 enum ContentPostFormat {
@@ -1346,6 +1612,8 @@ enum ContentPostFormat {
   REELS
   STATIC
   STORY
+
+  @@schema("dev")
 }
 
 enum ClientBriefStatus {
@@ -1353,6 +1621,8 @@ enum ClientBriefStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+
+  @@schema("dev")
 }
 
 enum ContractStatus {
@@ -1361,11 +1631,15 @@ enum ContractStatus {
   SIGNED
   EXPIRED
   CANCELLED
+
+  @@schema("dev")
 }
 
 enum PaymentFrequency {
   MONTHLY
   ONE_TIME
+
+  @@schema("dev")
 }
 
 enum ProposalStatus {
@@ -1373,6 +1647,8 @@ enum ProposalStatus {
   PUBLISHED
   EXPIRED
   ARCHIVED
+
+  @@schema("dev")
 }
 
 enum AssetFileType {
@@ -1380,6 +1656,8 @@ enum AssetFileType {
   LOGO
   BRAND_GUIDE
   DOCUMENT
+
+  @@schema("dev")
 }
 
 enum ClientRequestContentType {
@@ -1389,17 +1667,23 @@ enum ClientRequestContentType {
   BANNER
   OUTRO
   ENSAIO_FOTOGRAFICO
+
+  @@schema("dev")
 }
 
 enum ClientFinancialAttachmentType {
   INVOICE
   RECEIPT
+
+  @@schema("dev")
 }
 
 enum ClientRequestStatus {
   PENDING
   CONVERTED_TO_TASK
   REJECTED
+
+  @@schema("dev")
 }
 
 enum LeadStatus {
@@ -1411,35 +1695,47 @@ enum LeadStatus {
   POS_VENDA
   NAO_TEM_INTERESSE
   AGUARDANDO_RESPOSTA
+
+  @@schema("dev")
 }
 
 enum CrmLeadStatus {
   ACTIVE
   FINISHED
   NO_INTEREST
+
+  @@schema("dev")
 }
 
 enum CrmReminderTaskStatus {
   PENDING
   DONE
   CANCELLED
+
+  @@schema("dev")
 }
 
 enum DeletionEntityType {
   KANBAN_TASK
   LEAD
+
+  @@schema("dev")
 }
 
 enum DeliverableItemStatus {
   PENDING
   APPROVED
   REQUIRES_ADJUSTMENT
+
+  @@schema("dev")
 }
 
 enum DeliverableMediaType {
   IMAGE
   VIDEO
   OTHER
+
+  @@schema("dev")
 }
 
 enum DeliverableApprovalStatus {
@@ -1448,11 +1744,15 @@ enum DeliverableApprovalStatus {
   APPROVED
   REQUIRES_ADJUSTMENT
   WAITING_CLIENT_APPROVAL
+
+  @@schema("dev")
 }
 
 enum SystemSuggestionType {
   BUG
   SUGGESTION
+
+  @@schema("dev")
 }
 
 enum SystemSuggestionStatus {
@@ -1460,10 +1760,13 @@ enum SystemSuggestionStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+
+  @@schema("dev")
 }
 
 model SystemSuggestion {
   id            String                 @id @default(uuid())
+  tenantId      String                 @default("00000000-0000-4000-8000-000000000010")
   type          SystemSuggestionType
   title         String
   description   String
@@ -1475,14 +1778,19 @@ model SystemSuggestion {
   submittedBy   User                   @relation(fields: [submittedById], references: [id], onDelete: Cascade)
   company       Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyId])
   @@index([submittedById])
   @@index([status])
   @@map("system_suggestions")
+  @@schema("dev")
 }
 
 model AppUpdate {
   id           String     @id @default(uuid())
+  tenantId     String     @default("00000000-0000-4000-8000-000000000010")
   title        String
   body         String
   visibleRoles RoleName[]
@@ -1494,8 +1802,12 @@ model AppUpdate {
   createdBy    User       @relation(fields: [createdById], references: [id], onDelete: Cascade)
   company      Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, id])
   @@index([companyId])
   @@index([createdById])
   @@index([isPublished])
   @@map("app_updates")
+  @@schema("dev")
 }

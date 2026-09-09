@@ -6,6 +6,7 @@ import {
   refreshAuthSession,
 } from "./api";
 import { clearAuthStorage, getAccessToken } from "@/lib/auth-storage";
+import { withTenantHeaders } from "@/lib/tenancy/tenant-headers";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
   fileNameFromContentDisposition,
@@ -70,9 +71,9 @@ async function fetchDownloadResponse(itemId: string): Promise<Response> {
     fetch(`${API_BASE_URL}/deliverables/items/${itemId}/download`, {
       method: "GET",
       credentials: "include",
-      headers: {
+      headers: withTenantHeaders({
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      }),
     });
 
   let token = getAccessToken();

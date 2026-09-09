@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { createTenantIsolationExtension } from '../tenancy/infrastructure/tenant-isolation.extension';
 
 export const PRISMA_TRANSACTION_OPTIONS = {
   maxWait: 10_000,
@@ -26,10 +27,29 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    const url = resolvePrismaDatabaseUrl(process.env.DATABASE_URL);
     super({
-      ...(url ? { datasources: { db: { url } } } : {}),
+      datasources: process.env.DATABASE_URL
+        ? {
+            db: {
+              url: resolvePrismaDatabaseUrl(process.env.DATABASE_URL) as string,
+            },
+          }
+        : undefined,
       transactionOptions: PRISMA_TRANSACTION_OPTIONS,
+    });
+
+    const extended = this.$extends(createTenantIsolationExtension(this));
+    return new Proxy(this, {
+      get(target, prop, receiver) {
+        if (
+          prop === 'onModuleInit' ||
+          prop === 'onModuleDestroy' ||
+          prop === 'constructor'
+        ) {
+          return Reflect.get(target, prop, receiver);
+        }
+        return Reflect.get(extended, prop, extended);
+      },
     });
   }
 

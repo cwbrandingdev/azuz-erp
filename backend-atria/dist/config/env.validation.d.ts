@@ -12,8 +12,8 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     SUPABASE_ANON_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     SUPABASE_SERVICE_ROLE_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     SUPABASE_DB_SCHEMA: z.ZodDefault<z.ZodEnum<{
-        public: "public";
         dev: "dev";
+        public: "public";
     }>>;
     SUPABASE_STORAGE_BUCKET: z.ZodOptional<z.ZodString>;
     SUPABASE_DELIVERABLES_BUCKET: z.ZodOptional<z.ZodString>;
@@ -25,6 +25,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COMPANY_EMAIL_DOMAIN: z.ZodOptional<z.ZodString>;
     COOKIE_DOMAIN: z.ZodOptional<z.ZodString>;
     TENANT_SECRETS_KEY: z.ZodOptional<z.ZodString>;
+    TENANT_BASE_DOMAINS: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     APP_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     FRONTEND_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     ADMIN_EMAIL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
@@ -47,7 +48,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     SUPABASE_URL: string | undefined;
     SUPABASE_ANON_KEY: string | undefined;
     SUPABASE_SERVICE_ROLE_KEY: string | undefined;
-    SUPABASE_DB_SCHEMA: "public" | "dev";
+    SUPABASE_DB_SCHEMA: "dev" | "public";
     NODE_ENV: "production" | "development" | "test";
     PORT: number;
     DATABASE_URL: string;
@@ -61,6 +62,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COMPANY_EMAIL_DOMAIN?: string | undefined;
     COOKIE_DOMAIN?: string | undefined;
     TENANT_SECRETS_KEY?: string | undefined;
+    TENANT_BASE_DOMAINS?: string | undefined;
     APP_URL?: string | undefined;
     FRONTEND_URL?: string | undefined;
     ADMIN_EMAIL?: string | undefined;
@@ -82,7 +84,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     NODE_ENV: "production" | "development" | "test";
     PORT: number;
     DATABASE_URL: string;
-    SUPABASE_DB_SCHEMA: "public" | "dev";
+    SUPABASE_DB_SCHEMA: "dev" | "public";
     JWT_ACCESS_SECRET: string;
     JWT_REFRESH_SECRET: string;
     JWT_ACCESS_EXPIRATION: string;
@@ -97,6 +99,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COMPANY_EMAIL_DOMAIN?: string | undefined;
     COOKIE_DOMAIN?: string | undefined;
     TENANT_SECRETS_KEY?: string | undefined;
+    TENANT_BASE_DOMAINS?: string | undefined;
     APP_URL?: string | undefined;
     FRONTEND_URL?: string | undefined;
     ADMIN_EMAIL?: string | undefined;

@@ -1,5 +1,6 @@
 import { apiRequest, API_BASE_URL, ApiError } from "./api";
 import { getAccessToken } from "@/lib/auth-storage";
+import { withTenantHeaders } from "@/lib/tenancy/tenant-headers";
 import type {
   ClientPortalFinances,
   ClientReport,
@@ -116,7 +117,9 @@ export async function uploadPortalAsset(file: File, fileType?: string) {
     `${API_BASE_URL}/client-portal/assets/upload${query}`,
     {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: withTenantHeaders(
+        token ? { Authorization: `Bearer ${token}` } : {},
+      ),
       body: formData,
     },
   );
@@ -168,7 +171,9 @@ export async function uploadFinanceDocument(
     `${API_BASE_URL}/client-portal/financial/attachments`,
     {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: withTenantHeaders(
+        token ? { Authorization: `Bearer ${token}` } : {},
+      ),
       body: formData,
     },
   );

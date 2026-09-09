@@ -21,7 +21,7 @@ export declare class Client360Service {
             title: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             scheduledDate: string | null;
             copy: string;
             referenceUrl: string | null;
@@ -93,7 +93,7 @@ export declare class Client360Service {
             id: string;
             type: "event";
             title: string;
-            category: "meeting" | "deadline" | "publish" | "other";
+            category: "other" | "meeting" | "deadline" | "publish";
             startAt: string;
             endAt: string;
             referenceUrl: string | null;
@@ -116,14 +116,14 @@ export declare class Client360Service {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             assignee: null;
         })[];
         meetings: ({
             id: string;
             type: "event";
             title: string;
-            category: "meeting" | "deadline" | "publish" | "other";
+            category: "other" | "meeting" | "deadline" | "publish";
             startAt: string;
             endAt: string;
             referenceUrl: string | null;
@@ -146,14 +146,14 @@ export declare class Client360Service {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             assignee: null;
         })[];
         releases: ({
             id: string;
             type: "event";
             title: string;
-            category: "meeting" | "deadline" | "publish" | "other";
+            category: "other" | "meeting" | "deadline" | "publish";
             startAt: string;
             endAt: string;
             referenceUrl: string | null;
@@ -176,7 +176,7 @@ export declare class Client360Service {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             assignee: null;
         })[];
     } | {
