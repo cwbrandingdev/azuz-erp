@@ -12,7 +12,7 @@ import { KanbanService } from '../kanban/kanban.service';
 import { MetaInsightsService } from '../meta-insights/meta-insights.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { isClientFacingRole } from '../auth/constants/permissions';
-import { assertMasterRole } from '../auth/utils/rbac';
+import { assertCanPerformInternalApproval } from '../auth/utils/rbac';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateContentPostDto,
@@ -291,7 +291,7 @@ export class ContentService {
       status === InternalReviewStatus.APPROVED ||
       status === InternalReviewStatus.REJECTED
     ) {
-      assertMasterRole(role);
+      assertCanPerformInternalApproval(role);
     }
 
     if (status === InternalReviewStatus.APPROVED) {

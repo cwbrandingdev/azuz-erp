@@ -94,7 +94,7 @@ __decorate([
 exports.InternalApprovalsController = InternalApprovalsController = __decorate([
     (0, common_1.Controller)('internal-approvals'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER),
+    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.DESIGNER_MASTER),
     __metadata("design:paramtypes", [internal_approvals_service_1.InternalApprovalsService])
 ], InternalApprovalsController);
 //# sourceMappingURL=internal-approvals.controller.js.map

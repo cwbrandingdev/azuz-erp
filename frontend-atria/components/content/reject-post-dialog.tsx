@@ -49,7 +49,9 @@ export function RejectPostDialog({
 
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="rejection-reason">Observações do ajuste</FieldLabel>
+            <FieldLabel htmlFor="rejection-reason">
+              Observações do ajuste
+            </FieldLabel>
             <textarea
               id="rejection-reason"
               value={reason}

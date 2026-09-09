@@ -47,7 +47,7 @@ export function CreationDashboard() {
     parseAnchor(searchParams.get("date")),
   );
   const { openTaskById } = useTaskDetail();
-  const { isMaster } = usePermissions();
+  const { canPerformInternalApproval } = usePermissions();
   const [createOpen, setCreateOpen] = useState(
     searchParams.get("create") === "1",
   );
@@ -168,7 +168,7 @@ export function CreationDashboard() {
   }
 
   const items = optimisticItems ?? pipeline?.items ?? [];
-  const handlePipelineInternalReview = isMaster()
+  const handlePipelineInternalReview = canPerformInternalApproval()
     ? (item: CreationPipelineItem, status: "pending" | "approved" | "rejected") =>
         void handleInternalReview(item, status)
     : undefined;

@@ -111,7 +111,8 @@ export function ContentReviewPanel({
     const total = deliverableItems.length;
     return {
       total,
-      pending: deliverableItems.filter((item) => item.status === "pending").length,
+      pending: deliverableItems.filter((item) => item.status === "pending")
+        .length,
       approved: deliverableItems.filter((item) => item.status === "approved")
         .length,
       requiresAdjustment: deliverableItems.filter(
@@ -276,7 +277,9 @@ export function ContentReviewPanel({
                 <p className="text-xs font-medium uppercase tracking-wide text-[var(--atria-primary)]/40">
                   {stat.label}
                 </p>
-                <p className={cn("mt-1 text-2xl font-semibold", stat.className)}>
+                <p
+                  className={cn("mt-1 text-2xl font-semibold", stat.className)}
+                >
                   {stat.value}
                 </p>
               </div>

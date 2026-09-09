@@ -159,9 +159,9 @@ export declare class LeadsController {
         updatedAt: string;
         user: {
             id: string;
-            name: string;
             email: string;
             avatarUrl: string | null;
+            name: string;
         };
     }[]>;
     createComment(user: AuthenticatedUser, id: string, dto: CreateLeadCommentDto): Promise<{
@@ -171,9 +171,9 @@ export declare class LeadsController {
         updatedAt: string;
         user: {
             id: string;
-            name: string;
             email: string;
             avatarUrl: string | null;
+            name: string;
         };
     }>;
     updateStatus(user: AuthenticatedUser, id: string, dto: UpdateLeadStatusDto): Promise<{

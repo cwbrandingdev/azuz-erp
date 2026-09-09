@@ -44,7 +44,7 @@ let InternalApprovalsService = class InternalApprovalsService {
         this.deliverablesService = deliverablesService;
     }
     async listPending(role) {
-        (0, rbac_1.assertMasterRole)(role);
+        (0, rbac_1.assertCanPerformInternalApproval)(role);
         const tasks = await this.prisma.kanbanTask.findMany({
             where: {
                 deletedAt: null,
@@ -64,15 +64,15 @@ let InternalApprovalsService = class InternalApprovalsService {
         return tasks.map((task) => this.toPendingResponse(task));
     }
     async approve(id, userId, role, dto = {}) {
-        (0, rbac_1.assertMasterRole)(role);
+        (0, rbac_1.assertCanPerformInternalApproval)(role);
         return this.deliverablesService.approveInternal(id, userId, role, dto.note);
     }
     async submitDelivery(id, userId, role, file, caption) {
-        (0, rbac_1.assertMasterRole)(role);
+        (0, rbac_1.assertCanPerformInternalApproval)(role);
         return this.deliverablesService.submit(id, userId, role, file, caption);
     }
     async requestAdjustment(id, userId, role, dto) {
-        (0, rbac_1.assertMasterRole)(role);
+        (0, rbac_1.assertCanPerformInternalApproval)(role);
         return this.deliverablesService.requestInternalAdjustment(id, userId, role, dto.note);
     }
     toPendingResponse(task) {

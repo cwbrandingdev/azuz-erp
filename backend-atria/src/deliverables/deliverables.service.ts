@@ -19,7 +19,7 @@ import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
 import { KanbanService } from '../kanban/kanban.service';
 import { InternalReviewAction } from '../kanban/dto/internal-review.dto';
-import { assertMasterRole } from '../auth/utils/rbac';
+import { assertCanPerformInternalApproval } from '../auth/utils/rbac';
 import { PrismaService } from '../prisma/prisma.service';
 import { SupabaseStorageService } from '../supabase/supabase-storage.service';
 import { RejectClientDeliverableDto } from './dto/client-review.dto';
@@ -196,7 +196,7 @@ export class DeliverablesService {
     role: string,
     note?: string,
   ) {
-    assertMasterRole(role);
+    assertCanPerformInternalApproval(role);
     const deliverable = await this.requireDeliverableWithTask(deliverableId);
     await this.kanbanService.applyInternalApproval(
       deliverable.kanbanTaskId!,
@@ -213,7 +213,7 @@ export class DeliverablesService {
     role: string,
     note: string,
   ) {
-    assertMasterRole(role);
+    assertCanPerformInternalApproval(role);
     const deliverable = await this.requireDeliverableWithTask(deliverableId);
     await this.kanbanService.updateInternalReview(
       userId,

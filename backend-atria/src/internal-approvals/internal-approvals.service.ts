@@ -5,7 +5,7 @@ import {
   InternalReviewStatus,
   Prisma,
 } from '@prisma/client';
-import { assertMasterRole } from '../auth/utils/rbac';
+import { assertCanPerformInternalApproval } from '../auth/utils/rbac';
 import { DeliverablesService } from '../deliverables/deliverables.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ApproveInternalApprovalDto } from './dto/approve-internal-approval.dto';
@@ -41,7 +41,7 @@ export class InternalApprovalsService {
   ) {}
 
   async listPending(role: string) {
-    assertMasterRole(role);
+    assertCanPerformInternalApproval(role);
 
     const tasks = await this.prisma.kanbanTask.findMany({
       where: {
@@ -69,7 +69,7 @@ export class InternalApprovalsService {
     role: string,
     dto: ApproveInternalApprovalDto = {},
   ) {
-    assertMasterRole(role);
+    assertCanPerformInternalApproval(role);
     return this.deliverablesService.approveInternal(
       id,
       userId,
@@ -85,7 +85,7 @@ export class InternalApprovalsService {
     file: Express.Multer.File,
     caption?: string,
   ) {
-    assertMasterRole(role);
+    assertCanPerformInternalApproval(role);
     return this.deliverablesService.submit(id, userId, role, file, caption);
   }
 
@@ -95,7 +95,7 @@ export class InternalApprovalsService {
     role: string,
     dto: RequestAdjustmentDto,
   ) {
-    assertMasterRole(role);
+    assertCanPerformInternalApproval(role);
     return this.deliverablesService.requestInternalAdjustment(
       id,
       userId,

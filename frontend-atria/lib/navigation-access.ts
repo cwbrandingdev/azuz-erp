@@ -1,14 +1,14 @@
 import {
+  canPerformInternalApproval,
   hasAnyPermission,
   isMasterOrAdmin,
-  isMasterRole,
   Permission,
   type PermissionKey,
 } from "./permissions";
 import { canAccessClientDirectory } from "./roles";
 
 const ADMIN_ONLY_ROUTES = new Set(["/dashboard", "/dashboard/tv", "/insights"]);
-const MASTER_ONLY_ROUTES = new Set(["/internal-approvals"]);
+const INTERNAL_APPROVAL_ROUTES = new Set(["/internal-approvals"]);
 
 const ROUTE_PERMISSIONS: Record<string, PermissionKey[]> = {
   "/kanban": [Permission.KANBAN_ALL_EDIT, Permission.KANBAN_OWN_EDIT],
@@ -57,8 +57,8 @@ export function canAccessRoute(
     return isMasterOrAdmin(role);
   }
 
-  if (MASTER_ONLY_ROUTES.has(routeKey)) {
-    return isMasterRole(role);
+  if (INTERNAL_APPROVAL_ROUTES.has(routeKey)) {
+    return canPerformInternalApproval(role);
   }
 
   if (routeKey === "/clients") {

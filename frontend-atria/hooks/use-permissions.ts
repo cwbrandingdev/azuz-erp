@@ -6,6 +6,7 @@ import {
   canEditAllKanban,
   canEditKanbanTask,
   canEditOwnKanbanOnly,
+  canPerformInternalApproval,
   hasAnyPermission,
   hasPermission,
   isMasterOrAdmin,
@@ -42,6 +43,7 @@ export function usePermissions() {
         hasPermission(role, "users:manage", explicitPermissions),
       isMaster: () => isMasterRole(role),
       isMasterOrAdmin: () => isMasterOrAdmin(role),
+      canPerformInternalApproval: () => canPerformInternalApproval(role),
       canAccessClientDirectory: () => canAccessClientDirectory(role),
     };
   }, [user?.id, user?.permissions, user?.role]);

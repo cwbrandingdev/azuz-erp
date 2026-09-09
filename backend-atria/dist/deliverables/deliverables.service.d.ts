@@ -16,9 +16,9 @@ export declare class DeliverablesService {
         } | null;
         items: {
             id: string;
-            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             createdAt: Date;
             updatedAt: Date;
+            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             fileName: string | null;
             fileSize: number | null;
             deliverableId: string;

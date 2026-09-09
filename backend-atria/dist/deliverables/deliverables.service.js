@@ -166,13 +166,13 @@ let DeliverablesService = class DeliverablesService {
         return deliverables.map((deliverable) => this.toClientListResponse(deliverable));
     }
     async approveInternal(deliverableId, userId, role, note) {
-        (0, rbac_1.assertMasterRole)(role);
+        (0, rbac_1.assertCanPerformInternalApproval)(role);
         const deliverable = await this.requireDeliverableWithTask(deliverableId);
         await this.kanbanService.applyInternalApproval(deliverable.kanbanTaskId, userId, role, note);
         return this.getFullView(deliverable.id);
     }
     async requestInternalAdjustment(deliverableId, userId, role, note) {
-        (0, rbac_1.assertMasterRole)(role);
+        (0, rbac_1.assertCanPerformInternalApproval)(role);
         const deliverable = await this.requireDeliverableWithTask(deliverableId);
         await this.kanbanService.updateInternalReview(userId, role, deliverable.kanbanTaskId, {
             status: internal_review_dto_1.InternalReviewAction.REJECTED,

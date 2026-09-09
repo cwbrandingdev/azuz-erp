@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.canEditAllKanban = canEditAllKanban;
 exports.canEditOwnKanbanOnly = canEditOwnKanbanOnly;
 exports.isTaskAssignedToUser = isTaskAssignedToUser;
+exports.canPerformInternalApproval = canPerformInternalApproval;
+exports.assertCanPerformInternalApproval = assertCanPerformInternalApproval;
 exports.assertMasterRole = assertMasterRole;
 exports.canEditAllCalendar = canEditAllCalendar;
 exports.canEditOwnCalendarOnly = canEditOwnCalendarOnly;
@@ -29,9 +31,18 @@ function isTaskAssignedToUser(userId, task) {
     return (task.createdById === userId ||
         task.assignees.some((assignee) => assignee.userId === userId));
 }
+function canPerformInternalApproval(role) {
+    const roleName = (0, permissions_1.normalizeRoleName)(role);
+    return (roleName === client_1.RoleName.MASTER || roleName === client_1.RoleName.DESIGNER_MASTER);
+}
+function assertCanPerformInternalApproval(role) {
+    if (!canPerformInternalApproval(role)) {
+        throw new common_1.ForbiddenException('Only MASTER and senior designer users can perform internal approval');
+    }
+}
 function assertMasterRole(role) {
     if ((0, permissions_1.normalizeRoleName)(role) !== client_1.RoleName.MASTER) {
-        throw new common_1.ForbiddenException('Only MASTER users can perform internal approval');
+        throw new common_1.ForbiddenException('Only MASTER users can perform this action');
     }
 }
 function canEditAllCalendar(role) {
