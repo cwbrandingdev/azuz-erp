@@ -101,6 +101,13 @@ export function isMasterRole(role: string | null | undefined): boolean {
   return normalizeAppRole(role) === "master";
 }
 
+export function canPerformInternalApproval(
+  role: string | null | undefined,
+): boolean {
+  const normalized = normalizeAppRole(role);
+  return normalized === "master" || normalized === "designer_master";
+}
+
 export function canEditAllKanban(
   role: string | null | undefined,
   explicitPermissions?: string[] | null,

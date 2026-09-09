@@ -118,9 +118,9 @@ export function TaskDetailDialog({
 }: TaskDetailDialogProps) {
   const confirm = useConfirm();
   const updateTaskMutation = useUpdateTaskMutation();
-  const { canEditKanbanTask, isMaster } = usePermissions();
+  const { canEditKanbanTask, canPerformInternalApproval } = usePermissions();
   const canEdit = task ? canEditKanbanTask(task) : false;
-  const showInternalApproval = isMaster();
+  const showInternalApproval = canPerformInternalApproval();
   const [tab, setTab] = useState<DetailTab>("deliverables");
   const [loading, setLoading] = useState(false);
   const [assetUploading, setAssetUploading] = useState(false);

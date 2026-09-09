@@ -560,7 +560,7 @@ let KanbanService = class KanbanService {
             throw new common_1.BadRequestException('Motivo da rejeição é obrigatório para revisão interna');
         }
         if (status === client_1.InternalReviewStatus.REJECTED) {
-            (0, rbac_1.assertMasterRole)(role);
+            (0, rbac_1.assertCanPerformInternalApproval)(role);
         }
         const existing = await this.prisma.kanbanTask.findUnique({
             where: { id: taskId },
@@ -592,7 +592,7 @@ let KanbanService = class KanbanService {
         return this.toTaskResponse(await this.ensureTaskExists(taskId));
     }
     async applyInternalApproval(taskId, userId, role, note) {
-        (0, rbac_1.assertMasterRole)(role);
+        (0, rbac_1.assertCanPerformInternalApproval)(role);
         const existing = await this.prisma.kanbanTask.findUnique({
             where: { id: taskId, deletedAt: null },
             select: {

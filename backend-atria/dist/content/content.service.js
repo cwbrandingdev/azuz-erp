@@ -244,7 +244,7 @@ let ContentService = class ContentService {
         }
         if (status === client_1.InternalReviewStatus.APPROVED ||
             status === client_1.InternalReviewStatus.REJECTED) {
-            (0, rbac_1.assertMasterRole)(role);
+            (0, rbac_1.assertCanPerformInternalApproval)(role);
         }
         if (status === client_1.InternalReviewStatus.APPROVED) {
             const hasDeliverables = await this.postHasDeliverables(id);

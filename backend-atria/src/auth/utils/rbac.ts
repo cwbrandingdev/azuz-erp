@@ -34,10 +34,25 @@ export function isTaskAssignedToUser(
   );
 }
 
+export function canPerformInternalApproval(role: string): boolean {
+  const roleName = normalizeRoleName(role);
+  return (
+    roleName === RoleName.MASTER || roleName === RoleName.DESIGNER_MASTER
+  );
+}
+
+export function assertCanPerformInternalApproval(role: string): void {
+  if (!canPerformInternalApproval(role)) {
+    throw new ForbiddenException(
+      'Only MASTER and senior designer users can perform internal approval',
+    );
+  }
+}
+
 export function assertMasterRole(role: string): void {
   if (normalizeRoleName(role) !== RoleName.MASTER) {
     throw new ForbiddenException(
-      'Only MASTER users can perform internal approval',
+      'Only MASTER users can perform this action',
     );
   }
 }

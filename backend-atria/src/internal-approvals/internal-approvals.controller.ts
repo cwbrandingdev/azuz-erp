@@ -26,7 +26,7 @@ import { InternalApprovalsService } from './internal-approvals.service';
 
 @Controller('internal-approvals')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleName.MASTER)
+@Roles(RoleName.MASTER, RoleName.DESIGNER_MASTER)
 export class InternalApprovalsController {
   constructor(
     private readonly internalApprovalsService: InternalApprovalsService,

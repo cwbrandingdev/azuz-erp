@@ -380,7 +380,7 @@ async function main() {
     );
   }
 
-  // --- Internal approval: MASTER only (requires deliverable asset) ---
+  // --- Internal approval: MASTER + DESIGNER_MASTER (requires deliverable asset) ---
   if (unassignedTaskId && admin.token) {
     const form = new FormData();
     form.append('file', new Blob([Buffer.from('qa-deliverable')], { type: 'image/png' }), 'qa.png');
@@ -403,8 +403,8 @@ async function main() {
   if (unassignedTaskId) {
     for (const [role, expectStatus] of [
       ['MASTER', 200],
+      ['DESIGNER_MASTER', 200],
       ['ADMIN', 403],
-      ['DESIGNER_MASTER', 403],
     ]) {
       const u = roleUsers[role];
       if (!u) {
@@ -426,7 +426,9 @@ async function main() {
       });
       record(
         'RBAC/Kanban',
-        role === 'MASTER' ? 'MASTER can internal-approve task' : `${role} cannot internal-approve`,
+        expectStatus === 200
+          ? `${role} can internal-approve task`
+          : `${role} cannot internal-approve`,
         role,
         `PATCH /kanban/tasks/:id/internal-review APPROVED`,
         res.status === expectStatus,

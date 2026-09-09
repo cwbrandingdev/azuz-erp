@@ -11,8 +11,10 @@ import { clientsService } from "@/services";
 import type { Client } from "@/services/types";
 
 export function InternalApprovalsBoard() {
-  const { isMaster } = usePermissions();
-  const { data: items = [], isLoading } = useInternalApprovals(isMaster());
+  const { canPerformInternalApproval } = usePermissions();
+  const { data: items = [], isLoading } = useInternalApprovals(
+    canPerformInternalApproval(),
+  );
   const [clientFilter, setClientFilter] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);

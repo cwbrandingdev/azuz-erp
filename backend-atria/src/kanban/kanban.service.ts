@@ -27,7 +27,11 @@ import { readFileSync, unlinkSync } from 'fs';
 import { extname } from 'path';
 import { DeliverablesService } from '../deliverables/deliverables.service';
 import { SupabaseStorageService } from '../supabase/supabase-storage.service';
-import { assertKanbanTaskEditAccess, assertMasterRole, canEditAllKanban } from '../auth/utils/rbac';
+import {
+  assertCanPerformInternalApproval,
+  assertKanbanTaskEditAccess,
+  canEditAllKanban,
+} from '../auth/utils/rbac';
 import { PrismaService, PRISMA_TRANSACTION_OPTIONS } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SlaService } from '../sla/sla.service';
@@ -815,7 +819,7 @@ export class KanbanService {
     }
 
     if (status === InternalReviewStatus.REJECTED) {
-      assertMasterRole(role);
+      assertCanPerformInternalApproval(role);
     }
 
     const existing = await this.prisma.kanbanTask.findUnique({
@@ -864,7 +868,7 @@ export class KanbanService {
     role: string,
     note?: string | null,
   ) {
-    assertMasterRole(role);
+    assertCanPerformInternalApproval(role);
 
     const existing = await this.prisma.kanbanTask.findUnique({
       where: { id: taskId, deletedAt: null },
