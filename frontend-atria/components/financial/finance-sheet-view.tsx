@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
+  ArrowUpAZ,
+  CalendarClock,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -38,11 +38,14 @@ import {
 import { CategoryBadge } from "@/components/financial/category-badge";
 import { TransactionDialog } from "@/components/financial/transaction-dialog";
 import {
+  applySheetSort,
   formatCurrency,
   formatDate,
   formatPeriodLabel,
   getDueDateKey,
   getDueSheetBuckets,
+  getMonthBounds,
+  getMonthSheetRows,
   getTransactionLabel,
   MONTH_NAMES_LONG,
   STATUS_LABELS,
@@ -50,6 +53,7 @@ import {
   TYPE_LABELS,
   type FinancePeriod,
   type FinanceSheetFocus,
+  type FinanceSheetSort,
 } from "@/lib/financial-utils";
 import { cn } from "@/lib/utils";
 import { financeService, ApiError } from "@/services";
@@ -66,33 +70,49 @@ interface FinanceSheetViewProps {
   onDelete?: (transaction: FinanceTransaction) => void;
 }
 
-const SHEET_FOCUSES: {
+const FILTER_BUTTONS: {
   id: FinanceSheetFocus;
-  title: string;
+  label: string;
   subtitle: (period: FinancePeriod) => string;
   empty: (period: FinancePeriod) => string;
-  accent: string;
 }[] = [
   {
+    id: "all",
+    label: "Tudo",
+    subtitle: (period) =>
+      `Todas as contas de ${formatPeriodLabel(period).toLowerCase()}, sem filtro de vencimento`,
+    empty: (period) =>
+      `Nenhuma transação em ${formatPeriodLabel(period).toLowerCase()}`,
+  },
+  {
     id: "due",
-    title: "Já está para vencer",
-    subtitle: () => "Vencidas ou com vencimento até hoje, por ordem alfabética",
+    label: "Já está para vencer",
+    subtitle: () => "Vencidas ou com vencimento até hoje",
     empty: () => "Nenhuma conta vencida ou a vencer hoje",
-    accent: "from-amber-500 to-orange-500",
   },
   {
     id: "month-end",
-    title: "Vence no fim do mês",
+    label: "Fim do mês",
     subtitle: (period) =>
-      `A vencer até ${MONTH_NAMES_LONG[period.month - 1]} ${period.year}, por ordem alfabética`,
+      `A vencer até o fim de ${MONTH_NAMES_LONG[period.month - 1]}`,
     empty: (period) =>
       `Nenhuma conta a vencer até o fim de ${formatPeriodLabel(period).toLowerCase()}`,
-    accent: "from-violet-500 to-purple-600",
   },
 ];
 
+const SORT_BUTTONS: {
+  id: FinanceSheetSort;
+  label: string;
+  icon: typeof CalendarClock;
+}[] = [
+  { id: "due", label: "Vencimento", icon: CalendarClock },
+  { id: "alpha", label: "A–Z", icon: ArrowUpAZ },
+];
+
 async function fetchAllTransactions(params: {
-  status?: "pending" | "overdue";
+  status?: "paid" | "pending" | "overdue";
+  startDate?: string;
+  endDate?: string;
 }) {
   const limit = 100;
   const first = await financeService.getTransactions({
@@ -123,7 +143,8 @@ export function FinanceSheetView({
   onMarkAsPaid,
   onDelete,
 }: FinanceSheetViewProps) {
-  const [focus, setFocus] = useState<FinanceSheetFocus>("due");
+  const [focus, setFocus] = useState<FinanceSheetFocus>("all");
+  const [sort, setSort] = useState<FinanceSheetSort>("due");
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -137,13 +158,15 @@ export function FinanceSheetView({
     if (!silent) setLoading(true);
 
     try {
-      const [pending, overdue] = await Promise.all([
+      const { startDate, endDate } = getMonthBounds(period);
+      const [pending, overdue, paid] = await Promise.all([
         fetchAllTransactions({ status: "pending" }),
         fetchAllTransactions({ status: "overdue" }),
+        fetchAllTransactions({ status: "paid", startDate, endDate }),
       ]);
 
       const byId = new Map<string, FinanceTransaction>();
-      for (const transaction of [...pending, ...overdue]) {
+      for (const transaction of [...pending, ...overdue, ...paid]) {
         byId.set(transaction.id, transaction);
       }
 
@@ -153,7 +176,7 @@ export function FinanceSheetView({
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [period]);
 
   useEffect(() => {
     void loadTransactions();
@@ -169,40 +192,44 @@ export function FinanceSheetView({
     [period, transactions],
   );
 
-  const focusIndex = SHEET_FOCUSES.findIndex((item) => item.id === focus);
-  const currentFocus = SHEET_FOCUSES[focusIndex] ?? SHEET_FOCUSES[0];
+  const currentFilter =
+    FILTER_BUTTONS.find((item) => item.id === focus) ?? FILTER_BUTTONS[0];
 
   const visibleRows = useMemo(() => {
-    const source = focus === "due" ? buckets.dueNow : buckets.monthEnd;
-    const query = search.trim().toLowerCase();
-    if (!query) return source;
+    const source =
+      focus === "all"
+        ? getMonthSheetRows(transactions, period)
+        : focus === "due"
+          ? buckets.dueNow
+          : buckets.monthEnd;
 
-    return source.filter((transaction) => {
-      const label = getTransactionLabel(transaction).toLowerCase();
-      const category = transaction.category.toLowerCase();
-      return label.includes(query) || category.includes(query);
-    });
-  }, [buckets.dueNow, buckets.monthEnd, focus, search]);
+    const query = search.trim().toLowerCase();
+    const filtered = query
+      ? source.filter((transaction) => {
+          const label = getTransactionLabel(transaction).toLowerCase();
+          const category = transaction.category.toLowerCase();
+          return label.includes(query) || category.includes(query);
+        })
+      : source;
+
+    return applySheetSort(filtered, sort);
+  }, [buckets.dueNow, buckets.monthEnd, focus, period, search, sort, transactions]);
 
   const totals = useMemo(() => {
     return visibleRows.reduce(
       (acc, transaction) => {
-        if (transaction.type === "income") {
+        if (transaction.status === "paid") {
+          acc.paid += transaction.amount;
+        } else if (transaction.type === "income") {
           acc.income += transaction.amount;
         } else {
           acc.expense += transaction.amount;
         }
         return acc;
       },
-      { income: 0, expense: 0 },
+      { income: 0, expense: 0, paid: 0 },
     );
   }, [visibleRows]);
-
-  function shiftFocus(delta: number) {
-    const nextIndex =
-      (focusIndex + delta + SHEET_FOCUSES.length) % SHEET_FOCUSES.length;
-    setFocus(SHEET_FOCUSES[nextIndex].id);
-  }
 
   function handleMarkAsPaid(transaction: FinanceTransaction) {
     setTransactions((current) =>
@@ -255,59 +282,85 @@ export function FinanceSheetView({
       <Card className="overflow-hidden rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-0">
         <div className="border-b border-[var(--atria-primary)]/10 bg-gradient-to-br from-white via-white to-[#f7fafa] p-4">
           <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  className="rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50"
-                  onClick={() => shiftFocus(-1)}
-                  aria-label="Lista anterior"
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-
-                <div
-                  className={cn(
-                    "min-w-[240px] rounded-xl bg-gradient-to-r px-4 py-2 text-center text-white shadow-[0_8px_24px_rgba(139,92,246,0.28)]",
-                    currentFocus.accent,
-                  )}
-                >
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">
-                    Vencimento
-                  </p>
-                  <p className="text-sm font-bold">{currentFocus.title}</p>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  className="rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50"
-                  onClick={() => shiftFocus(1)}
-                  aria-label="Próxima lista"
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-                  {visibleRows.length}{" "}
-                  {visibleRows.length === 1 ? "conta" : "contas"}
-                </span>
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                  Receber {formatCurrency(totals.income)}
-                </span>
-                <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-                  Pagar {formatCurrency(totals.expense)}
-                </span>
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--atria-primary)]/45">
+                Filtro
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {FILTER_BUTTONS.map((item) => (
+                  <Button
+                    key={item.id}
+                    type="button"
+                    variant={focus === item.id ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                      "rounded-xl",
+                      focus === item.id
+                        ? "bg-[var(--atria-primary)] text-white"
+                        : "border-[var(--atria-primary)]/15 text-[var(--atria-primary)]",
+                    )}
+                    onClick={() => setFocus(item.id)}
+                    aria-pressed={focus === item.id}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
               </div>
             </div>
 
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--atria-primary)]/45">
+                Ordenar
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {SORT_BUTTONS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Button
+                      key={item.id}
+                      type="button"
+                      variant={sort === item.id ? "default" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "rounded-xl",
+                        sort === item.id
+                          ? "bg-violet-600 text-white hover:bg-violet-600"
+                          : "border-violet-200 text-violet-800 hover:bg-violet-50",
+                      )}
+                      onClick={() => setSort(item.id)}
+                      aria-pressed={sort === item.id}
+                    >
+                      <Icon className="size-4" />
+                      {item.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-800">
+                {visibleRows.length}{" "}
+                {visibleRows.length === 1 ? "conta" : "contas"}
+              </span>
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                Receber {formatCurrency(totals.income)}
+              </span>
+              <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                Pagar {formatCurrency(totals.expense)}
+              </span>
+              {focus === "all" && (
+                <span className="rounded-full border border-emerald-300 bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                  Pago {formatCurrency(totals.paid)}
+                </span>
+              )}
+            </div>
+
             <p className="text-sm text-[var(--atria-primary)]/55">
-              {currentFocus.subtitle(period)}
+              {currentFilter.subtitle(period)}
+              {sort === "due"
+                ? ", por data de vencimento"
+                : ", em ordem alfabética"}
             </p>
 
             <Input
@@ -363,35 +416,65 @@ export function FinanceSheetView({
                     colSpan={8}
                     className="py-10 text-center text-sm text-muted-foreground"
                   >
-                    {currentFocus.empty(period)}
+                    {currentFilter.empty(period)}
                   </TableCell>
                 </TableRow>
               ) : (
                 visibleRows.map((transaction, index) => {
                   const dueKey = getDueDateKey(transaction);
+                  const isPaid = transaction.status === "paid";
 
                   return (
-                    <TableRow key={transaction.id} className="hover:bg-violet-50/40">
-                      <TableCell className="font-mono text-xs text-[var(--atria-primary)]/40">
+                    <TableRow
+                      key={transaction.id}
+                      className={cn(
+                        isPaid
+                          ? "bg-emerald-100 hover:bg-emerald-200/80"
+                          : "hover:bg-violet-50/40",
+                      )}
+                    >
+                      <TableCell
+                        className={cn(
+                          "font-mono text-xs",
+                          isPaid
+                            ? "text-emerald-700/70"
+                            : "text-[var(--atria-primary)]/40",
+                        )}
+                      >
                         {index + 1}
                       </TableCell>
-                      <TableCell className="max-w-[280px] truncate font-medium text-[var(--atria-primary)]">
+                      <TableCell
+                        className={cn(
+                          "max-w-[280px] truncate font-medium",
+                          isPaid
+                            ? "text-emerald-900"
+                            : "text-[var(--atria-primary)]",
+                        )}
+                      >
                         {getTransactionLabel(transaction)}
                       </TableCell>
                       <TableCell>
                         <span
                           className={cn(
                             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
-                            focus === "due"
-                              ? "bg-amber-50 text-amber-800"
-                              : "bg-violet-50 text-violet-800",
+                            isPaid
+                              ? "bg-emerald-200 text-emerald-900"
+                              : focus === "due"
+                                ? "bg-amber-50 text-amber-800"
+                                : "bg-violet-50 text-violet-800",
                           )}
                         >
                           <ArrowRight className="size-3" />
                           {formatDate(dueKey)}
                         </span>
                       </TableCell>
-                      <TableCell className="text-[var(--atria-primary)]/70">
+                      <TableCell
+                        className={cn(
+                          isPaid
+                            ? "text-emerald-800"
+                            : "text-[var(--atria-primary)]/70",
+                        )}
+                      >
                         {TYPE_LABELS[transaction.type]}
                       </TableCell>
                       <TableCell>
@@ -405,9 +488,11 @@ export function FinanceSheetView({
                       <TableCell
                         className={cn(
                           "text-right font-bold",
-                          transaction.type === "income"
-                            ? "text-emerald-600"
-                            : "text-red-600",
+                          isPaid
+                            ? "text-emerald-800"
+                            : transaction.type === "income"
+                              ? "text-emerald-600"
+                              : "text-red-600",
                         )}
                       >
                         {transaction.type === "expense" ? "−" : "+"}
