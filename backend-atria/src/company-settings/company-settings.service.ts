@@ -11,7 +11,6 @@ import {
 } from '../common/crypto/secret-crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DEFAULT_COMPANY_ID } from '../company/company.constants';
-import { getCurrentTenantId } from '../tenancy/domain/tenant-context';
 import { UpdateCompanyIntegrationsDto } from './dto/update-company-integrations.dto';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto';
 
@@ -67,7 +66,6 @@ export interface CompanyIntegrationCredentials {
 
 type CompanyRecord = {
   id: string;
-  tenantId: string;
   name: string;
   subdomain: string;
   hasCrmModuleEnabled: boolean;
@@ -252,29 +250,14 @@ export class CompanySettingsService {
   }
 
   private async loadCurrentCompany(): Promise<CompanyRecord> {
-    const tenantId = getCurrentTenantId();
-    if (tenantId) {
-      const company = await this.prisma.company.findFirst({
+    const company =
+      (await this.prisma.company.findUnique({
+        where: { id: DEFAULT_COMPANY_ID },
+      })) ??
+      (await this.prisma.company.findFirst({
         where: { status: 'ACTIVE' },
         orderBy: { createdAt: 'asc' },
-      });
-      if (!company) {
-        throw new NotFoundException('Company not found');
-      }
-      return company;
-    }
-
-    const byDefault = await this.prisma.company.findUnique({
-      where: { id: DEFAULT_COMPANY_ID },
-    });
-    if (byDefault) {
-      return byDefault;
-    }
-
-    const company = await this.prisma.company.findFirst({
-      where: { status: 'ACTIVE' },
-      orderBy: { createdAt: 'asc' },
-    });
+      }));
 
     if (!company) {
       throw new NotFoundException('Company not found');
