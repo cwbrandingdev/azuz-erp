@@ -1,0 +1,3 @@
+ALTER TABLE "dev"."Client"
+ADD COLUMN IF NOT EXISTS "instagramUserId" TEXT,
+ADD COLUMN IF NOT EXISTS "metaAccessToken" TEXT;

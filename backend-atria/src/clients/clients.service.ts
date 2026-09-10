@@ -1,11 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ClientRequestStatus } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { ClientRequestStatus, Prisma } from '@prisma/client';
+import {
+  encryptSecret,
+  shouldPreserveMaskedSecret,
+} from '../common/crypto/secret-crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
 
 @Injectable()
 export class ClientsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   async findAll(clientGroupId?: string, activeOnly = false) {
     const clients = await this.prisma.client.findMany({
@@ -41,7 +49,7 @@ export class ClientsService {
     }
 
     const client = await this.prisma.client.create({
-      data: dto,
+      data: this.toPersistence(dto) as Prisma.ClientUncheckedCreateInput,
       include: {
         clientGroup: true,
         _count: { select: { posts: true } },
@@ -60,7 +68,7 @@ export class ClientsService {
 
     const client = await this.prisma.client.update({
       where: { id },
-      data: dto,
+      data: this.toPersistence(dto) as Prisma.ClientUncheckedUpdateInput,
       include: {
         clientGroup: true,
         _count: { select: { posts: true } },
@@ -196,6 +204,8 @@ export class ClientsService {
     email: string | null;
     phone: string | null;
     instagram: string | null;
+    instagramUserId?: string | null;
+    metaAccessToken?: string | null;
     website: string | null;
     street: string | null;
     number: string | null;
@@ -236,6 +246,8 @@ export class ClientsService {
       email: client.email,
       phone: client.phone,
       instagram: client.instagram,
+      instagramUserId: client.instagramUserId ?? null,
+      hasMetaAccessToken: Boolean(client.metaAccessToken),
       website: client.website,
       street: client.street,
       number: client.number,
@@ -293,5 +305,37 @@ export class ClientsService {
     }
 
     return map;
+  }
+
+  private toPersistence(dto: CreateClientDto | UpdateClientDto) {
+    const { metaAccessToken, instagramUserId, ...rest } = dto;
+    const data: Record<string, unknown> = { ...rest };
+
+    if (instagramUserId !== undefined) {
+      const trimmed = instagramUserId.trim();
+      data.instagramUserId = trimmed.length > 0 ? trimmed : null;
+    }
+
+    if (metaAccessToken !== undefined) {
+      if (!shouldPreserveMaskedSecret(metaAccessToken)) {
+        data.metaAccessToken = this.encryptOptionalToken(metaAccessToken);
+      }
+    }
+
+    return data;
+  }
+
+  private encryptOptionalToken(value?: string | null) {
+    if (value == null) {
+      return null;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const secret =
+      this.config.get<string>('TENANT_SECRETS_KEY')?.trim() ||
+      this.config.getOrThrow<string>('JWT_ACCESS_SECRET');
+    return encryptSecret(trimmed, secret);
   }
 }
