@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 interface MonthSwitcherProps {
   period: FinancePeriod;
   onChange: (period: FinancePeriod) => void;
+  compact?: boolean;
 }
 
 const YEAR_OPTIONS = Array.from({ length: 7 }, (_, index) => {
@@ -22,11 +23,54 @@ const YEAR_OPTIONS = Array.from({ length: 7 }, (_, index) => {
   return year;
 });
 
-export function MonthSwitcher({ period, onChange }: MonthSwitcherProps) {
+export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps) {
   const pills = buildMonthPills(period, 2);
   const isCurrentMonth =
     period.month === getCurrentPeriod().month &&
     period.year === getCurrentPeriod().year;
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          className="rounded-lg border-violet-200 text-violet-700 hover:bg-violet-50"
+          onClick={() => onChange(shiftPeriod(period, -1))}
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft className="size-4" />
+        </Button>
+        <div className="min-w-[140px] rounded-lg border border-violet-200/60 bg-violet-50/70 px-2 py-1 text-center">
+          <p className="text-xs font-bold capitalize text-violet-900">
+            {formatPeriodLabel(period)}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          className="rounded-lg border-violet-200 text-violet-700 hover:bg-violet-50"
+          onClick={() => onChange(shiftPeriod(period, 1))}
+          aria-label="Próximo mês"
+        >
+          <ChevronRight className="size-4" />
+        </Button>
+        {!isCurrentMonth && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-lg border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+            onClick={() => onChange(getCurrentPeriod())}
+          >
+            Hoje
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-[var(--atria-primary)]/10 bg-gradient-to-br from-white via-white to-[#f7fafa] p-4 shadow-sm">

@@ -518,10 +518,98 @@ export default function FinancialPage() {
     setPage(1);
   }
 
+  useEffect(() => {
+    if (viewMode !== "sheet") return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setViewMode("dashboard");
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [viewMode]);
+
   if (loadingOverview && !overview) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  const viewToggle = (
+    <div className="flex gap-1 rounded-xl border border-[var(--atria-primary)]/15 bg-white p-0.5">
+      <Button
+        type="button"
+        variant={viewMode === "dashboard" ? "default" : "ghost"}
+        size="sm"
+        className={
+          viewMode === "dashboard"
+            ? "rounded-lg bg-[var(--atria-primary)] text-white"
+            : "rounded-lg text-[var(--atria-primary)]"
+        }
+        onClick={() => setViewMode("dashboard")}
+        aria-pressed={viewMode === "dashboard"}
+      >
+        <LayoutDashboard className="size-4" />
+        Visão geral
+      </Button>
+      <Button
+        type="button"
+        variant={viewMode === "sheet" ? "default" : "ghost"}
+        size="sm"
+        className={
+          viewMode === "sheet"
+            ? "rounded-lg bg-[var(--atria-primary)] text-white"
+            : "rounded-lg text-[var(--atria-primary)]"
+        }
+        onClick={() => setViewMode("sheet")}
+        aria-pressed={viewMode === "sheet"}
+      >
+        <Table2 className="size-4" />
+        Planilha
+      </Button>
+    </div>
+  );
+
+  if (viewMode === "sheet") {
+    return (
+      <div className="fixed inset-0 z-40 flex flex-col bg-[var(--atria-base)]">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--atria-primary)]/10 bg-white px-3 py-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h1 className="text-base font-bold text-[var(--atria-primary)]">
+              Financeiro
+            </h1>
+            <MonthSwitcher
+              period={period}
+              onChange={handlePeriodChange}
+              compact
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {viewToggle}
+            <CategoryManagementDrawer onCategoriesChange={handleRefresh} />
+            <TransactionsImportDialog onSuccess={handleRefresh} />
+            <TransactionDialog onSuccess={handleTransactionSaved} />
+          </div>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <FinanceSheetView
+            period={period}
+            reloadSignal={sheetEpoch}
+            onTransactionSaved={handleTransactionSaved}
+            onMarkAsPaid={handleOptimisticMarkPaid}
+            onDelete={handleOptimisticDelete}
+          />
+        </div>
       </div>
     );
   }
@@ -538,38 +626,7 @@ export default function FinancialPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <div className="flex gap-1 rounded-xl border border-[var(--atria-primary)]/15 bg-white p-0.5">
-            <Button
-              type="button"
-              variant={viewMode === "dashboard" ? "default" : "ghost"}
-              size="sm"
-              className={
-                viewMode === "dashboard"
-                  ? "rounded-lg bg-[var(--atria-primary)] text-white"
-                  : "rounded-lg text-[var(--atria-primary)]"
-              }
-              onClick={() => setViewMode("dashboard")}
-              aria-pressed={viewMode === "dashboard"}
-            >
-              <LayoutDashboard className="size-4" />
-              Visão geral
-            </Button>
-            <Button
-              type="button"
-              variant={viewMode === "sheet" ? "default" : "ghost"}
-              size="sm"
-              className={
-                viewMode === "sheet"
-                  ? "rounded-lg bg-[var(--atria-primary)] text-white"
-                  : "rounded-lg text-[var(--atria-primary)]"
-              }
-              onClick={() => setViewMode("sheet")}
-              aria-pressed={viewMode === "sheet"}
-            >
-              <Table2 className="size-4" />
-              Planilha
-            </Button>
-          </div>
+          {viewToggle}
           <CategoryManagementDrawer onCategoriesChange={handleRefresh} />
           <TransactionsImportDialog onSuccess={handleRefresh} />
           <TransactionDialog onSuccess={handleTransactionSaved} />
@@ -578,53 +635,41 @@ export default function FinancialPage() {
 
       <MonthSwitcher period={period} onChange={handlePeriodChange} />
 
-      {viewMode === "sheet" ? (
-        <FinanceSheetView
-          period={period}
-          reloadSignal={sheetEpoch}
-          onTransactionSaved={handleTransactionSaved}
-          onMarkAsPaid={handleOptimisticMarkPaid}
-          onDelete={handleOptimisticDelete}
-        />
-      ) : (
-        <>
-          {overview && <KpiCards overview={overview} />}
+      {overview && <KpiCards overview={overview} />}
 
-          {overview && (
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <CashFlowChart
-                key={overview.monthlyCashFlow
-                  .map((item) => `${item.month}:${item.income}:${item.expense}`)
-                  .join("|")}
-                data={overview.monthlyCashFlow}
-                period={period}
-              />
-              <ExpenseDistributionChart data={overview.expenseByCategory} />
-            </div>
-          )}
-
-          <FiltersToolbar
-            filters={filters}
-            categories={categories}
-            onChange={handleFiltersChange}
-            onClear={handleClearFilters}
+      {overview && (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <CashFlowChart
+            key={overview.monthlyCashFlow
+              .map((item) => `${item.month}:${item.income}:${item.expense}`)
+              .join("|")}
+            data={overview.monthlyCashFlow}
+            period={period}
           />
-
-          <TransactionsTable
-            transactions={transactions}
-            filters={filters}
-            onSortChange={(sortBy, sortOrder) =>
-              handleFiltersChange({ ...filters, sortBy, sortOrder })
-            }
-            onPageChange={setPage}
-            onRefresh={handleRefresh}
-            onTransactionSaved={handleTransactionSaved}
-            onMarkAsPaid={handleOptimisticMarkPaid}
-            onDelete={handleOptimisticDelete}
-            loading={loadingTransactions && transactions.data.length === 0}
-          />
-        </>
+          <ExpenseDistributionChart data={overview.expenseByCategory} />
+        </div>
       )}
+
+      <FiltersToolbar
+        filters={filters}
+        categories={categories}
+        onChange={handleFiltersChange}
+        onClear={handleClearFilters}
+      />
+
+      <TransactionsTable
+        transactions={transactions}
+        filters={filters}
+        onSortChange={(sortBy, sortOrder) =>
+          handleFiltersChange({ ...filters, sortBy, sortOrder })
+        }
+        onPageChange={setPage}
+        onRefresh={handleRefresh}
+        onTransactionSaved={handleTransactionSaved}
+        onMarkAsPaid={handleOptimisticMarkPaid}
+        onDelete={handleOptimisticDelete}
+        loading={loadingTransactions && transactions.data.length === 0}
+      />
     </div>
   );
 }
