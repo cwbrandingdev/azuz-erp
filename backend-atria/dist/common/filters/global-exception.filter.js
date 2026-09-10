@@ -17,6 +17,7 @@ let GlobalExceptionFilter = GlobalExceptionFilter_1 = class GlobalExceptionFilte
         let status = common_1.HttpStatus.INTERNAL_SERVER_ERROR;
         let message = 'Internal server error';
         let errors;
+        let code;
         if (exception instanceof common_1.HttpException) {
             status = exception.getStatus();
             const exceptionResponse = exception.getResponse();
@@ -30,6 +31,9 @@ let GlobalExceptionFilter = GlobalExceptionFilter_1 = class GlobalExceptionFilte
                     errors = body.message;
                     message = 'Validation failed';
                 }
+                if (typeof body.code === 'string') {
+                    code = body.code;
+                }
             }
         }
         else if (exception instanceof Error) {
@@ -39,6 +43,7 @@ let GlobalExceptionFilter = GlobalExceptionFilter_1 = class GlobalExceptionFilte
             statusCode: status,
             message,
             ...(errors ? { errors } : {}),
+            ...(code ? { code } : {}),
             timestamp: new Date().toISOString(),
         });
     }

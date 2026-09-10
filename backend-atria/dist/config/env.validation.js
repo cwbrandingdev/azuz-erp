@@ -24,6 +24,7 @@ const envSchema = zod_1.z
     COMPANY_EMAIL_DOMAIN: zod_1.z.string().optional(),
     COOKIE_DOMAIN: zod_1.z.string().optional(),
     TENANT_SECRETS_KEY: zod_1.z.string().optional(),
+    META_API_VERSION: zod_1.z.string().optional().or(zod_1.z.literal('')),
     APP_URL: zod_1.z.string().optional().or(zod_1.z.literal('')),
     FRONTEND_URL: zod_1.z.string().optional().or(zod_1.z.literal('')),
     ADMIN_EMAIL: zod_1.z.string().optional().or(zod_1.z.literal('')),

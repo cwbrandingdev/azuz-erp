@@ -15,10 +15,10 @@ export declare class DeliverablesService {
             companyName: string;
         } | null;
         items: {
+            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             fileName: string | null;
             fileSize: number | null;
             deliverableId: string;
@@ -36,8 +36,9 @@ export declare class DeliverablesService {
             avatarUrl: string | null;
         } | null;
     } & {
-        id: string;
         title: string;
+        id: string;
+        tenantId: string;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;

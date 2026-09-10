@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { LayoutDashboard, Table2 } from "lucide-react";
 import { KpiCards } from "@/components/financial/kpi-cards";
 import { CashFlowChart } from "@/components/financial/cash-flow-chart";
 import { ExpenseDistributionChart } from "@/components/financial/expense-distribution-chart";
@@ -9,7 +10,9 @@ import { TransactionDialog } from "@/components/financial/transaction-dialog";
 import { TransactionsImportDialog } from "@/components/financial/transactions-import-dialog";
 import { CategoryManagementDrawer } from "@/components/financial/category-management-drawer";
 import { FiltersToolbar } from "@/components/financial/filters-toolbar";
+import { FinanceSheetView } from "@/components/financial/finance-sheet-view";
 import { MonthSwitcher } from "@/components/financial/month-switcher";
+import { Button } from "@/components/ui/button";
 import { financeService } from "@/services";
 import {
   getCurrentPeriod,
@@ -327,6 +330,8 @@ export default function FinancialPage() {
     buildDefaultFilters(getCurrentPeriod()),
   );
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"dashboard" | "sheet">("dashboard");
+  const [sheetEpoch, setSheetEpoch] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -415,6 +420,7 @@ export default function FinancialPage() {
     void loadCategories();
     void loadOverview(true);
     void loadTransactions(true);
+    setSheetEpoch((current) => current + 1);
   }
 
   function handleTransactionSaved(
@@ -445,6 +451,7 @@ export default function FinancialPage() {
 
     void loadOverview(true);
     void loadTransactions(true);
+    setSheetEpoch((current) => current + 1);
   }
 
   function handleOptimisticMarkPaid(transaction: FinanceTransaction) {
@@ -464,10 +471,12 @@ export default function FinancialPage() {
       .then(() => {
         void loadOverview(true);
         void loadTransactions(true);
+        setSheetEpoch((current) => current + 1);
       })
       .catch(() => {
         void loadOverview(true);
         void loadTransactions(true);
+        setSheetEpoch((current) => current + 1);
       });
   }
 
@@ -490,10 +499,12 @@ export default function FinancialPage() {
       .then(() => {
         void loadOverview(true);
         void loadTransactions(true);
+        setSheetEpoch((current) => current + 1);
       })
       .catch(() => {
         void loadTransactions(true);
         void loadOverview(true);
+        setSheetEpoch((current) => current + 1);
       });
   }
 
@@ -527,6 +538,38 @@ export default function FinancialPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <div className="flex gap-1 rounded-xl border border-[var(--atria-primary)]/15 bg-white p-0.5">
+            <Button
+              type="button"
+              variant={viewMode === "dashboard" ? "default" : "ghost"}
+              size="sm"
+              className={
+                viewMode === "dashboard"
+                  ? "rounded-lg bg-[var(--atria-primary)] text-white"
+                  : "rounded-lg text-[var(--atria-primary)]"
+              }
+              onClick={() => setViewMode("dashboard")}
+              aria-pressed={viewMode === "dashboard"}
+            >
+              <LayoutDashboard className="size-4" />
+              Visão geral
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "sheet" ? "default" : "ghost"}
+              size="sm"
+              className={
+                viewMode === "sheet"
+                  ? "rounded-lg bg-[var(--atria-primary)] text-white"
+                  : "rounded-lg text-[var(--atria-primary)]"
+              }
+              onClick={() => setViewMode("sheet")}
+              aria-pressed={viewMode === "sheet"}
+            >
+              <Table2 className="size-4" />
+              Planilha
+            </Button>
+          </div>
           <CategoryManagementDrawer onCategoriesChange={handleRefresh} />
           <TransactionsImportDialog onSuccess={handleRefresh} />
           <TransactionDialog onSuccess={handleTransactionSaved} />
@@ -535,41 +578,53 @@ export default function FinancialPage() {
 
       <MonthSwitcher period={period} onChange={handlePeriodChange} />
 
-      {overview && <KpiCards overview={overview} />}
+      {viewMode === "sheet" ? (
+        <FinanceSheetView
+          period={period}
+          reloadSignal={sheetEpoch}
+          onTransactionSaved={handleTransactionSaved}
+          onMarkAsPaid={handleOptimisticMarkPaid}
+          onDelete={handleOptimisticDelete}
+        />
+      ) : (
+        <>
+          {overview && <KpiCards overview={overview} />}
 
-      {overview && (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <CashFlowChart
-            key={overview.monthlyCashFlow
-              .map((item) => `${item.month}:${item.income}:${item.expense}`)
-              .join("|")}
-            data={overview.monthlyCashFlow}
-            period={period}
+          {overview && (
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+              <CashFlowChart
+                key={overview.monthlyCashFlow
+                  .map((item) => `${item.month}:${item.income}:${item.expense}`)
+                  .join("|")}
+                data={overview.monthlyCashFlow}
+                period={period}
+              />
+              <ExpenseDistributionChart data={overview.expenseByCategory} />
+            </div>
+          )}
+
+          <FiltersToolbar
+            filters={filters}
+            categories={categories}
+            onChange={handleFiltersChange}
+            onClear={handleClearFilters}
           />
-          <ExpenseDistributionChart data={overview.expenseByCategory} />
-        </div>
+
+          <TransactionsTable
+            transactions={transactions}
+            filters={filters}
+            onSortChange={(sortBy, sortOrder) =>
+              handleFiltersChange({ ...filters, sortBy, sortOrder })
+            }
+            onPageChange={setPage}
+            onRefresh={handleRefresh}
+            onTransactionSaved={handleTransactionSaved}
+            onMarkAsPaid={handleOptimisticMarkPaid}
+            onDelete={handleOptimisticDelete}
+            loading={loadingTransactions && transactions.data.length === 0}
+          />
+        </>
       )}
-
-      <FiltersToolbar
-        filters={filters}
-        categories={categories}
-        onChange={handleFiltersChange}
-        onClear={handleClearFilters}
-      />
-
-      <TransactionsTable
-        transactions={transactions}
-        filters={filters}
-        onSortChange={(sortBy, sortOrder) =>
-          handleFiltersChange({ ...filters, sortBy, sortOrder })
-        }
-        onPageChange={setPage}
-        onRefresh={handleRefresh}
-        onTransactionSaved={handleTransactionSaved}
-        onMarkAsPaid={handleOptimisticMarkPaid}
-        onDelete={handleOptimisticDelete}
-        loading={loadingTransactions && transactions.data.length === 0}
-      />
     </div>
   );
 }

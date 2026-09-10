@@ -25,6 +25,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COMPANY_EMAIL_DOMAIN: z.ZodOptional<z.ZodString>;
     COOKIE_DOMAIN: z.ZodOptional<z.ZodString>;
     TENANT_SECRETS_KEY: z.ZodOptional<z.ZodString>;
+    META_API_VERSION: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     APP_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     FRONTEND_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     ADMIN_EMAIL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
@@ -61,6 +62,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COMPANY_EMAIL_DOMAIN?: string | undefined;
     COOKIE_DOMAIN?: string | undefined;
     TENANT_SECRETS_KEY?: string | undefined;
+    META_API_VERSION?: string | undefined;
     APP_URL?: string | undefined;
     FRONTEND_URL?: string | undefined;
     ADMIN_EMAIL?: string | undefined;
@@ -97,6 +99,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COMPANY_EMAIL_DOMAIN?: string | undefined;
     COOKIE_DOMAIN?: string | undefined;
     TENANT_SECRETS_KEY?: string | undefined;
+    META_API_VERSION?: string | undefined;
     APP_URL?: string | undefined;
     FRONTEND_URL?: string | undefined;
     ADMIN_EMAIL?: string | undefined;

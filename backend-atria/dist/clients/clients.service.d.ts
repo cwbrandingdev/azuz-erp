@@ -1,8 +1,10 @@
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
 export declare class ClientsService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly config;
+    constructor(prisma: PrismaService, config: ConfigService);
     findAll(clientGroupId?: string, activeOnly?: boolean): Promise<{
         id: string;
         companyName: string;
@@ -11,6 +13,8 @@ export declare class ClientsService {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -44,6 +48,8 @@ export declare class ClientsService {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -77,6 +83,8 @@ export declare class ClientsService {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -110,6 +118,8 @@ export declare class ClientsService {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -143,6 +153,8 @@ export declare class ClientsService {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -176,6 +188,8 @@ export declare class ClientsService {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -215,4 +229,6 @@ export declare class ClientsService {
     private ensureClientGroupExists;
     private toClientResponse;
     private getRequestCountsByClient;
+    private toPersistence;
+    private encryptOptionalToken;
 }

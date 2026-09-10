@@ -11,11 +11,11 @@ export declare class ReportsController {
         clientId: string;
         client: {
             id: string;
+            email: string | null;
+            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
-            email: string | null;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         month: number;
         year: number;
@@ -33,11 +33,11 @@ export declare class ReportsController {
         clientId: string;
         client: {
             id: string;
+            email: string | null;
+            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
-            email: string | null;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         month: number;
         year: number;
@@ -55,11 +55,11 @@ export declare class ReportsController {
         clientId: string;
         client: {
             id: string;
+            email: string | null;
+            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
-            email: string | null;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         month: number;
         year: number;
