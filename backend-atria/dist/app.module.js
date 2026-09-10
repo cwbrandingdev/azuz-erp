@@ -35,6 +35,7 @@ const portal_module_1 = require("./portal/portal.module");
 const finance_module_1 = require("./finance/finance.module");
 const health_module_1 = require("./health/health.module");
 const meta_analytics_module_1 = require("./integrations/meta-analytics/meta-analytics.module");
+const instagram_insights_module_1 = require("./integrations/instagram-insights/instagram-insights.module");
 const integrations_module_1 = require("./integrations/integrations.module");
 const internal_approvals_module_1 = require("./internal-approvals/internal-approvals.module");
 const kanban_module_1 = require("./kanban/kanban.module");
@@ -91,6 +92,7 @@ exports.AppModule = AppModule = __decorate([
             integrations_module_1.IntegrationsModule,
             internal_approvals_module_1.InternalApprovalsModule,
             meta_analytics_module_1.MetaAnalyticsModule,
+            instagram_insights_module_1.InstagramInsightsModule,
             kanban_module_1.KanbanModule,
             leads_module_1.LeadsModule,
             organizations_module_1.OrganizationsModule,

@@ -34,9 +34,9 @@ export declare class ContentController {
             clientId: string;
             client: {
                 id: string;
+                avatarUrl: string | null;
                 companyName: string;
                 instagram: string | null;
-                avatarUrl: string | null;
             };
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "carousel" | "reels" | "static" | "story";
@@ -47,11 +47,11 @@ export declare class ContentController {
             copy: string;
             referenceUrl: string | null;
             attachments: {
+                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 postId: string;
-                url: string;
                 mimeType: string | null;
             }[];
             author: {
@@ -91,9 +91,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
+            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -104,11 +104,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
+            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
-            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -210,9 +210,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
+            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -223,11 +223,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
+            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
-            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -250,9 +250,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
+            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -263,11 +263,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
+            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
-            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -290,9 +290,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
+            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -303,11 +303,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
+            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
-            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -345,9 +345,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
+            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -358,11 +358,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
+            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
-            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -385,9 +385,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
+            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -398,11 +398,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
+            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
-            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -425,9 +425,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
+            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
-            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -438,11 +438,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
+            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
-            url: string;
             mimeType: string | null;
         }[];
         author: {

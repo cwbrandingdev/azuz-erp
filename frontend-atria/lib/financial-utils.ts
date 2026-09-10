@@ -251,3 +251,81 @@ export function getContrastColor(hex: string) {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.6 ? "#1E293B" : "#FFFFFF";
 }
+
+export type FinanceSheetFocus = "due" | "month-end";
+
+export interface FinanceDueLike {
+  title?: string;
+  description: string;
+  date: string;
+  dueDate: string | null;
+  status: string;
+}
+
+export function getDateKey(value: string) {
+  return value.slice(0, 10);
+}
+
+export function getTransactionLabel(item: {
+  title?: string;
+  description: string;
+}) {
+  return (item.title || item.description).trim();
+}
+
+export function getDueDateKey(item: FinanceDueLike) {
+  return getDateKey(item.dueDate ?? item.date);
+}
+
+export function isUnpaidTransaction(item: { status: string }) {
+  return item.status !== "paid";
+}
+
+export function sortAlphabetically<
+  T extends { title?: string; description: string },
+>(items: T[]): T[] {
+  return [...items].sort((left, right) =>
+    getTransactionLabel(left).localeCompare(
+      getTransactionLabel(right),
+      "pt-BR",
+      { sensitivity: "base" },
+    ),
+  );
+}
+
+export function getDueSheetBuckets<T extends FinanceDueLike>(
+  transactions: T[],
+  period: FinancePeriod,
+  today = formatLocalDate(new Date()),
+) {
+  const { startDate, endDate } = getMonthBounds(period);
+  const current = getCurrentPeriod();
+  const isCurrentPeriod =
+    period.month === current.month && period.year === current.year;
+
+  const dueNow: T[] = [];
+  const monthEnd: T[] = [];
+
+  for (const transaction of transactions) {
+    if (!isUnpaidTransaction(transaction)) continue;
+
+    const dueKey = getDueDateKey(transaction);
+    const inSelectedMonth = dueKey >= startDate && dueKey <= endDate;
+
+    if (dueKey <= today) {
+      if (inSelectedMonth || (isCurrentPeriod && dueKey < startDate)) {
+        dueNow.push(transaction);
+      }
+      continue;
+    }
+
+    if (inSelectedMonth) {
+      monthEnd.push(transaction);
+    }
+  }
+
+  return {
+    dueNow: sortAlphabetically(dueNow),
+    monthEnd: sortAlphabetically(monthEnd),
+  };
+}

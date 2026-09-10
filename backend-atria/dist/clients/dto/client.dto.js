@@ -18,6 +18,8 @@ class CreateClientDto {
     email;
     phone;
     instagram;
+    instagramUserId;
+    metaAccessToken;
     website;
     street;
     number;
@@ -65,6 +67,18 @@ __decorate([
     (0, class_validator_1.MaxLength)(100),
     __metadata("design:type", String)
 ], CreateClientDto.prototype, "instagram", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.MaxLength)(120),
+    __metadata("design:type", String)
+], CreateClientDto.prototype, "instagramUserId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.MaxLength)(2000),
+    __metadata("design:type", String)
+], CreateClientDto.prototype, "metaAccessToken", void 0);
 __decorate([
     (0, class_validator_1.IsUrl)(),
     (0, class_validator_1.IsOptional)(),
@@ -129,6 +143,8 @@ class UpdateClientDto {
     email;
     phone;
     instagram;
+    instagramUserId;
+    metaAccessToken;
     website;
     street;
     number;
@@ -176,6 +192,18 @@ __decorate([
     (0, class_validator_1.MaxLength)(100),
     __metadata("design:type", String)
 ], UpdateClientDto.prototype, "instagram", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.MaxLength)(120),
+    __metadata("design:type", String)
+], UpdateClientDto.prototype, "instagramUserId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.MaxLength)(2000),
+    __metadata("design:type", String)
+], UpdateClientDto.prototype, "metaAccessToken", void 0);
 __decorate([
     (0, class_validator_1.IsUrl)(),
     (0, class_validator_1.IsOptional)(),

@@ -11,12 +11,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClientsService = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
+const secret_crypto_1 = require("../common/crypto/secret-crypto");
 const prisma_service_1 = require("../prisma/prisma.service");
 let ClientsService = class ClientsService {
     prisma;
-    constructor(prisma) {
+    config;
+    constructor(prisma, config) {
         this.prisma = prisma;
+        this.config = config;
     }
     async findAll(clientGroupId, activeOnly = false) {
         const clients = await this.prisma.client.findMany({
@@ -43,7 +47,7 @@ let ClientsService = class ClientsService {
             await this.ensureClientGroupExists(dto.clientGroupId);
         }
         const client = await this.prisma.client.create({
-            data: dto,
+            data: this.toPersistence(dto),
             include: {
                 clientGroup: true,
                 _count: { select: { posts: true } },
@@ -59,7 +63,7 @@ let ClientsService = class ClientsService {
         }
         const client = await this.prisma.client.update({
             where: { id },
-            data: dto,
+            data: this.toPersistence(dto),
             include: {
                 clientGroup: true,
                 _count: { select: { posts: true } },
@@ -191,6 +195,8 @@ let ClientsService = class ClientsService {
             email: client.email,
             phone: client.phone,
             instagram: client.instagram,
+            instagramUserId: client.instagramUserId ?? null,
+            hasMetaAccessToken: Boolean(client.metaAccessToken),
             website: client.website,
             street: client.street,
             number: client.number,
@@ -247,10 +253,37 @@ let ClientsService = class ClientsService {
         }
         return map;
     }
+    toPersistence(dto) {
+        const { metaAccessToken, instagramUserId, ...rest } = dto;
+        const data = { ...rest };
+        if (instagramUserId !== undefined) {
+            const trimmed = instagramUserId.trim();
+            data.instagramUserId = trimmed.length > 0 ? trimmed : null;
+        }
+        if (metaAccessToken !== undefined) {
+            if (!(0, secret_crypto_1.shouldPreserveMaskedSecret)(metaAccessToken)) {
+                data.metaAccessToken = this.encryptOptionalToken(metaAccessToken);
+            }
+        }
+        return data;
+    }
+    encryptOptionalToken(value) {
+        if (value == null) {
+            return null;
+        }
+        const trimmed = value.trim();
+        if (!trimmed) {
+            return null;
+        }
+        const secret = this.config.get('TENANT_SECRETS_KEY')?.trim() ||
+            this.config.getOrThrow('JWT_ACCESS_SECRET');
+        return (0, secret_crypto_1.encryptSecret)(trimmed, secret);
+    }
 };
 exports.ClientsService = ClientsService;
 exports.ClientsService = ClientsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        config_1.ConfigService])
 ], ClientsService);
 //# sourceMappingURL=clients.service.js.map

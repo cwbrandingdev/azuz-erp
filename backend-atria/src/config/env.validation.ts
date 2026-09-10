@@ -23,7 +23,6 @@ const envSchema = z
     COOKIE_DOMAIN: z.string().optional(),
     TENANT_SECRETS_KEY: z.string().optional(),
     META_API_VERSION: z.string().optional().or(z.literal('')),
-    TENANT_BASE_DOMAINS: z.string().optional().or(z.literal('')),
     APP_URL: z.string().optional().or(z.literal('')),
     FRONTEND_URL: z.string().optional().or(z.literal('')),
     ADMIN_EMAIL: z.string().optional().or(z.literal('')),
