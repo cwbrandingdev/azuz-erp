@@ -662,6 +662,8 @@ export interface Client {
   email: string | null;
   phone: string | null;
   instagram: string | null;
+  instagramUserId?: string | null;
+  hasMetaAccessToken?: boolean;
   website: string | null;
   street: string | null;
   number: string | null;
@@ -691,6 +693,8 @@ export interface CreateClientInput {
   email?: string;
   phone?: string;
   instagram?: string;
+  instagramUserId?: string;
+  metaAccessToken?: string;
   website?: string;
   street?: string;
   number?: string;
@@ -1692,6 +1696,86 @@ export interface MetaAnalyticsQuery {
   search?: string;
   clientId?: string;
   adAccountId?: string;
+}
+
+export type InstagramContentType =
+  | "VIDEO_WITH_SCRIPT"
+  | "STATIC"
+  | "CAROUSEL"
+  | "STORIES_NO_SCRIPT";
+
+export interface InstagramInsightClient {
+  id: string;
+  companyName: string;
+  avatarUrl: string | null;
+  instagram: string | null;
+  instagramUserId: string | null;
+  hasMetaAccessToken: boolean;
+}
+
+export interface InstagramAudienceMetrics {
+  newFollowers: number;
+  unfollows: number;
+  profileVisits: number;
+  bioClicks: number;
+  reach: number;
+  engagement: number;
+  netFollowers: number;
+  postsCount: number;
+  conversationsStarted: number;
+  comments: number;
+}
+
+export interface InstagramMediaInsight {
+  id: string;
+  caption: string | null;
+  thumbnailUrl: string | null;
+  permalink: string | null;
+  timestamp: string | null;
+  contentType: InstagramContentType;
+  likes: number;
+  comments: number;
+  shares: number;
+  saves: number;
+  reach: number;
+}
+
+export interface InstagramInsightClientsResponse {
+  clients: InstagramInsightClient[];
+}
+
+export interface InstagramConversationRow {
+  id: string;
+  companyName: string;
+  avatarUrl: string | null;
+  instagram: string | null;
+  conversationsStarted: number;
+  comments: number;
+}
+
+export interface InstagramConversationsResponse {
+  period: {
+    month: number;
+    year: number;
+    label: string;
+    partial?: boolean;
+    accountMetricsAvailable?: boolean;
+  };
+  clients: InstagramConversationRow[];
+}
+
+export interface InstagramClientMetricsResponse {
+  client: InstagramInsightClient;
+  audience: InstagramAudienceMetrics;
+  media: InstagramMediaInsight[];
+  period: {
+    month: number;
+    year: number;
+    label: string;
+    partial?: boolean;
+    accountMetricsAvailable?: boolean;
+  };
+  empty: boolean;
 }
 
 export interface MetaInsightsOverview {

@@ -54,6 +54,8 @@ export function ClientFormDialog({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [instagram, setInstagram] = useState("");
+  const [instagramUserId, setInstagramUserId] = useState("");
+  const [metaAccessToken, setMetaAccessToken] = useState("");
   const [website, setWebsite] = useState("");
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
@@ -83,6 +85,8 @@ export function ClientFormDialog({
       setEmail(client.email ?? "");
       setPhone(client.phone ?? "");
       setInstagram(client.instagram ?? "");
+      setInstagramUserId(client.instagramUserId ?? "");
+      setMetaAccessToken("");
       setWebsite(client.website ?? "");
       setStreet(client.street ?? "");
       setNumber(client.number ?? "");
@@ -105,6 +109,8 @@ export function ClientFormDialog({
     setEmail("");
     setPhone("");
     setInstagram("");
+    setInstagramUserId("");
+    setMetaAccessToken("");
     setWebsite("");
     setStreet("");
     setNumber("");
@@ -178,6 +184,8 @@ export function ClientFormDialog({
       email: email || undefined,
       phone: phone || undefined,
       instagram: instagram || undefined,
+      instagramUserId: instagramUserId || undefined,
+      metaAccessToken: metaAccessToken || undefined,
       website: website || undefined,
       street: street || undefined,
       number: number || undefined,
@@ -304,6 +312,30 @@ export function ClientFormDialog({
                 id="client-website"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field>
+              <FieldLabel htmlFor="client-ig-user">Instagram User ID</FieldLabel>
+              <Input
+                id="client-ig-user"
+                value={instagramUserId}
+                onChange={(e) => setInstagramUserId(e.target.value)}
+                placeholder="17841..."
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="client-meta-token">Token Meta</FieldLabel>
+              <Input
+                id="client-meta-token"
+                type="password"
+                value={metaAccessToken}
+                onChange={(e) => setMetaAccessToken(e.target.value)}
+                placeholder={
+                  client?.hasMetaAccessToken ? "••••••••" : "Access token"
+                }
               />
             </Field>
           </div>

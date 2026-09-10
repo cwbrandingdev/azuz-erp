@@ -1,7 +1,6 @@
-"use client";
-
+import { Suspense } from "react";
 import { BarChart2 } from "lucide-react";
-import { MetaAnalyticsDashboard } from "@/components/meta-analytics/meta-analytics-dashboard";
+import { ClientMetricsDashboard } from "@/components/instagram-insights/client-metrics-dashboard";
 
 export default function InsightsPage() {
   return (
@@ -15,12 +14,18 @@ export default function InsightsPage() {
             Meta Insights
           </h1>
           <p className="text-sm text-[var(--atria-primary)]/50">
-            Performance real das contas de anúncios da agência e dos clientes
+            Crescimento de audiência e performance de conteúdo por cliente
           </p>
         </div>
       </div>
 
-      <MetaAnalyticsDashboard />
+      <Suspense
+        fallback={
+          <div className="h-40 animate-pulse rounded-2xl bg-[var(--atria-primary)]/5" />
+        }
+      >
+        <ClientMetricsDashboard />
+      </Suspense>
     </div>
   );
 }
