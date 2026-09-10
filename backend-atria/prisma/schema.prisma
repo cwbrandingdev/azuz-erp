@@ -503,6 +503,8 @@ model Client {
   email                 String?
   phone                 String?
   instagram             String?
+  instagramUserId       String?
+  metaAccessToken       String?
   website               String?
   street                String?
   number                String?

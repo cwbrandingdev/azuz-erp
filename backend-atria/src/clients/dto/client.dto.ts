@@ -38,6 +38,16 @@ export class CreateClientDto {
   @MaxLength(100)
   instagram?: string;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  instagramUserId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(2000)
+  metaAccessToken?: string;
+
   @IsUrl()
   @IsOptional()
   website?: string;
@@ -115,6 +125,16 @@ export class UpdateClientDto {
   @IsOptional()
   @MaxLength(100)
   instagram?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  instagramUserId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(2000)
+  metaAccessToken?: string;
 
   @IsUrl()
   @IsOptional()

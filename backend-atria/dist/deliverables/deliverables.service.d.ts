@@ -21,14 +21,14 @@ export declare class DeliverablesService {
         } | null;
         items: {
             id: string;
-            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             createdAt: Date;
             updatedAt: Date;
+            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             fileName: string | null;
             fileSize: number | null;
+            sortOrder: number;
             storageBucket: string | null;
             storagePath: string | null;
-            sortOrder: number;
             deliverableId: string;
             mediaUrl: string;
             mediaType: import("@prisma/client").$Enums.DeliverableMediaType;
@@ -36,10 +36,10 @@ export declare class DeliverablesService {
             sourceAssetId: string | null;
         }[];
     } & {
-        tenantId: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        tenantId: string;
         clientId: string | null;
         companyId: string;
         title: string;

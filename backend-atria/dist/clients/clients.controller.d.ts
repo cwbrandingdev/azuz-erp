@@ -18,6 +18,8 @@ export declare class ClientsController {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -420,6 +422,8 @@ export declare class ClientsController {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -460,6 +464,8 @@ export declare class ClientsController {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -493,6 +499,8 @@ export declare class ClientsController {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -526,6 +534,8 @@ export declare class ClientsController {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;
@@ -559,6 +569,8 @@ export declare class ClientsController {
         email: string | null;
         phone: string | null;
         instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
         website: string | null;
         street: string | null;
         number: string | null;

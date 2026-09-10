@@ -1,9 +1,9 @@
 import { z } from 'zod';
 declare const envSchema: z.ZodPipe<z.ZodObject<{
     NODE_ENV: z.ZodDefault<z.ZodEnum<{
-        production: "production";
         development: "development";
         test: "test";
+        production: "production";
     }>>;
     PORT: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     DATABASE_URL: z.ZodString;
@@ -25,6 +25,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COMPANY_EMAIL_DOMAIN: z.ZodOptional<z.ZodString>;
     COOKIE_DOMAIN: z.ZodOptional<z.ZodString>;
     TENANT_SECRETS_KEY: z.ZodOptional<z.ZodString>;
+    META_API_VERSION: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     TENANT_BASE_DOMAINS: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     APP_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     FRONTEND_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
@@ -49,7 +50,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     SUPABASE_ANON_KEY: string | undefined;
     SUPABASE_SERVICE_ROLE_KEY: string | undefined;
     SUPABASE_DB_SCHEMA: "dev" | "public";
-    NODE_ENV: "production" | "development" | "test";
+    NODE_ENV: "development" | "test" | "production";
     PORT: number;
     DATABASE_URL: string;
     JWT_ACCESS_SECRET: string;
@@ -62,6 +63,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COMPANY_EMAIL_DOMAIN?: string | undefined;
     COOKIE_DOMAIN?: string | undefined;
     TENANT_SECRETS_KEY?: string | undefined;
+    META_API_VERSION?: string | undefined;
     TENANT_BASE_DOMAINS?: string | undefined;
     APP_URL?: string | undefined;
     FRONTEND_URL?: string | undefined;
@@ -81,7 +83,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     EMAILJS_USER_ID?: string | undefined;
     EMAILJS_PRIVATE_KEY?: string | undefined;
 }, {
-    NODE_ENV: "production" | "development" | "test";
+    NODE_ENV: "development" | "test" | "production";
     PORT: number;
     DATABASE_URL: string;
     SUPABASE_DB_SCHEMA: "dev" | "public";
@@ -99,6 +101,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COMPANY_EMAIL_DOMAIN?: string | undefined;
     COOKIE_DOMAIN?: string | undefined;
     TENANT_SECRETS_KEY?: string | undefined;
+    META_API_VERSION?: string | undefined;
     TENANT_BASE_DOMAINS?: string | undefined;
     APP_URL?: string | undefined;
     FRONTEND_URL?: string | undefined;

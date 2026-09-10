@@ -4,9 +4,9 @@ export declare function seedDevTenant(prisma: PrismaClient): Promise<{
     tenant: {
         id: string;
         name: string;
+        slug: string;
         createdAt: Date;
         updatedAt: Date;
-        slug: string;
     };
     assigned: number;
 }>;

@@ -15,6 +15,7 @@ const config_1 = require("@nestjs/config");
 const secret_crypto_1 = require("../common/crypto/secret-crypto");
 const prisma_service_1 = require("../prisma/prisma.service");
 const company_constants_1 = require("../company/company.constants");
+const tenant_context_1 = require("../tenancy/domain/tenant-context");
 exports.MASKED_SECRET = '********';
 let CompanySettingsService = class CompanySettingsService {
     prisma;
@@ -118,13 +119,27 @@ let CompanySettingsService = class CompanySettingsService {
         };
     }
     async loadCurrentCompany() {
-        const company = (await this.prisma.company.findUnique({
-            where: { id: company_constants_1.DEFAULT_COMPANY_ID },
-        })) ??
-            (await this.prisma.company.findFirst({
+        const tenantId = (0, tenant_context_1.getCurrentTenantId)();
+        if (tenantId) {
+            const company = await this.prisma.company.findFirst({
                 where: { status: 'ACTIVE' },
                 orderBy: { createdAt: 'asc' },
-            }));
+            });
+            if (!company) {
+                throw new common_1.NotFoundException('Company not found');
+            }
+            return company;
+        }
+        const byDefault = await this.prisma.company.findUnique({
+            where: { id: company_constants_1.DEFAULT_COMPANY_ID },
+        });
+        if (byDefault) {
+            return byDefault;
+        }
+        const company = await this.prisma.company.findFirst({
+            where: { status: 'ACTIVE' },
+            orderBy: { createdAt: 'asc' },
+        });
         if (!company) {
             throw new common_1.NotFoundException('Company not found');
         }

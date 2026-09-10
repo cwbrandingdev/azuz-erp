@@ -5,6 +5,8 @@ export declare class CreateClientDto {
     email?: string;
     phone?: string;
     instagram?: string;
+    instagramUserId?: string;
+    metaAccessToken?: string;
     website?: string;
     street?: string;
     number?: string;
@@ -23,6 +25,8 @@ export declare class UpdateClientDto {
     email?: string;
     phone?: string;
     instagram?: string;
+    instagramUserId?: string;
+    metaAccessToken?: string;
     website?: string;
     street?: string;
     number?: string;
