@@ -8,12 +8,12 @@ export declare class PortalController {
     getPortalData(token: string): Promise<{
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
-            isActive: boolean;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
+            isActive: boolean;
             hasCrmEnabled: boolean;
         };
         accountStatus: {
@@ -104,12 +104,12 @@ export declare class PortalController {
         clientId: string;
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
-            isActive: boolean;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
+            isActive: boolean;
             hasCrmEnabled: boolean;
         };
         month: number;
@@ -117,8 +117,8 @@ export declare class PortalController {
         title: string;
         data: import("@prisma/client/runtime/library").JsonValue;
         generatedBy: {
-            id: string;
             name: string;
+            id: string;
             avatarUrl: string | null;
         };
         createdAt: string;
@@ -132,8 +132,8 @@ export declare class PortalController {
             copyText: string;
             mediaUrls: string[];
             createdBy: {
-                id: string;
                 name: string;
+                id: string;
                 avatarUrl: string | null;
             };
             createdAt: string;
@@ -187,15 +187,15 @@ export declare class PortalController {
         client: {
             number: string | null;
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             phone: string | null;
             street: string | null;
             city: string | null;
             state: string | null;
             zipCode: string | null;
+            avatarUrl: string | null;
         };
         title: string;
         status: string;
@@ -206,8 +206,8 @@ export declare class PortalController {
         termsContent: string;
         pdfUrl: string | null;
         createdBy: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -221,15 +221,15 @@ export declare class PortalController {
             client: {
                 number: string | null;
                 id: string;
-                email: string | null;
-                avatarUrl: string | null;
                 companyName: string;
                 contactName: string | null;
+                email: string | null;
                 phone: string | null;
                 street: string | null;
                 city: string | null;
                 state: string | null;
                 zipCode: string | null;
+                avatarUrl: string | null;
             };
             title: string;
             status: "draft" | "sent" | "signed" | "expired" | "cancelled";
@@ -240,8 +240,8 @@ export declare class PortalController {
             termsContent: string;
             pdfUrl: string | null;
             createdBy: {
-                id: string;
                 name: string;
+                id: string;
                 email: string;
                 avatarUrl: string | null;
             };
@@ -272,16 +272,16 @@ export declare class PortalController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
+            avatarUrl: string | null;
         };
         fileName: string;
         fileType: "image" | "logo" | "brand_guide" | "document";
         fileUrl: string;
         fileSize: number;
         uploadedBy: {
-            id: string;
             name: string;
+            id: string;
             avatarUrl: string | null;
         } | null;
         uploadedAt: string;

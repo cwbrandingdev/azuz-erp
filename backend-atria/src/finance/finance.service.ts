@@ -384,9 +384,14 @@ export class FinanceService {
     const to = query.to ?? query.endDate;
 
     if (from || to) {
-      where.date = {};
-      if (from) where.date.gte = this.parseRangeStart(from);
-      if (to) where.date.lte = this.parseRangeEnd(to);
+      const dateRange: Prisma.DateTimeFilter = {};
+      if (from) dateRange.gte = this.parseRangeStart(from);
+      if (to) dateRange.lte = this.parseRangeEnd(to);
+
+      where.OR = [
+        { dueDate: dateRange },
+        { date: dateRange },
+      ];
     }
 
     if (query.search?.trim()) {
@@ -397,11 +402,12 @@ export class FinanceService {
     }
 
     const sortBy = query.sortBy ?? TransactionSortField.DATE;
-    const sortOrder = query.sortOrder ?? SortOrder.DESC;
+    const sortOrder = query.sortOrder ?? SortOrder.ASC;
 
-    const orderBy: Prisma.FinancialTransactionOrderByWithRelationInput = {
-      [sortBy]: sortOrder,
-    };
+    const orderBy: Prisma.FinancialTransactionOrderByWithRelationInput[] =
+      sortBy === TransactionSortField.DATE
+        ? [{ dueDate: sortOrder }, { date: sortOrder }]
+        : [{ [sortBy]: sortOrder }];
 
     const [total, transactions] = await Promise.all([
       this.prisma.financialTransaction.count({ where }),

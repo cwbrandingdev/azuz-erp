@@ -11,19 +11,19 @@ export declare class ReportsController {
         clientId: string;
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         month: number;
         year: number;
         title: string;
         data: import("@prisma/client/runtime/library").JsonValue;
         generatedBy: {
-            id: string;
             name: string;
+            id: string;
             avatarUrl: string | null;
         };
         createdAt: string;
@@ -33,19 +33,19 @@ export declare class ReportsController {
         clientId: string;
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         month: number;
         year: number;
         title: string;
         data: import("@prisma/client/runtime/library").JsonValue;
         generatedBy: {
-            id: string;
             name: string;
+            id: string;
             avatarUrl: string | null;
         };
         createdAt: string;
@@ -55,19 +55,19 @@ export declare class ReportsController {
         clientId: string;
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         month: number;
         year: number;
         title: string;
         data: import("@prisma/client/runtime/library").JsonValue;
         generatedBy: {
-            id: string;
             name: string;
+            id: string;
             avatarUrl: string | null;
         };
         createdAt: string;

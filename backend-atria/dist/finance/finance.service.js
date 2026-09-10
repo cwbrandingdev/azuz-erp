@@ -304,11 +304,15 @@ let FinanceService = class FinanceService {
         const from = query.from ?? query.startDate;
         const to = query.to ?? query.endDate;
         if (from || to) {
-            where.date = {};
+            const dateRange = {};
             if (from)
-                where.date.gte = this.parseRangeStart(from);
+                dateRange.gte = this.parseRangeStart(from);
             if (to)
-                where.date.lte = this.parseRangeEnd(to);
+                dateRange.lte = this.parseRangeEnd(to);
+            where.OR = [
+                { dueDate: dateRange },
+                { date: dateRange },
+            ];
         }
         if (query.search?.trim()) {
             where.description = {
@@ -317,10 +321,10 @@ let FinanceService = class FinanceService {
             };
         }
         const sortBy = query.sortBy ?? transaction_dto_1.TransactionSortField.DATE;
-        const sortOrder = query.sortOrder ?? transaction_dto_1.SortOrder.DESC;
-        const orderBy = {
-            [sortBy]: sortOrder,
-        };
+        const sortOrder = query.sortOrder ?? transaction_dto_1.SortOrder.ASC;
+        const orderBy = sortBy === transaction_dto_1.TransactionSortField.DATE
+            ? [{ dueDate: sortOrder }, { date: sortOrder }]
+            : [{ [sortBy]: sortOrder }];
         const [total, transactions] = await Promise.all([
             this.prisma.financialTransaction.count({ where }),
             this.prisma.financialTransaction.findMany({

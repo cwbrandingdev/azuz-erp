@@ -31,7 +31,7 @@ import type {
 
 const emptyPaginated: PaginatedTransactions = {
   data: [],
-  meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+  meta: { total: 0, page: 1, limit: 100, totalPages: 0 },
 };
 
 function buildDefaultFilters(period: FinancePeriod): TransactionFilters {
@@ -45,7 +45,7 @@ function buildDefaultFilters(period: FinancePeriod): TransactionFilters {
     startDate,
     endDate,
     sortBy: "date",
-    sortOrder: "desc",
+    sortOrder: "asc",
   };
 }
 
@@ -227,15 +227,29 @@ function applyTransactionToExpenseByCategory(
   ];
 }
 
+function isInMonthRange(
+  value: string,
+  startDate?: string,
+  endDate?: string,
+) {
+  const key = value.slice(0, 10);
+  if (startDate && key < startDate) return false;
+  if (endDate && key > endDate) return false;
+  return true;
+}
+
 function transactionMatchesFilters(
   transaction: FinanceTransaction,
   filters: TransactionFilters,
   search: string,
 ): boolean {
-  const txDate = transaction.date.slice(0, 10);
-
-  if (filters.startDate && txDate < filters.startDate) return false;
-  if (filters.endDate && txDate > filters.endDate) return false;
+  const dueOrDate = transaction.dueDate ?? transaction.date;
+  if (
+    !isInMonthRange(dueOrDate, filters.startDate, filters.endDate) &&
+    !isInMonthRange(transaction.date, filters.startDate, filters.endDate)
+  ) {
+    return false;
+  }
   if (
     filters.categoryIds.length > 0 &&
     !filters.categoryIds.includes(transaction.categoryId)
@@ -278,7 +292,9 @@ function sortTransactions(
         break;
       case "date":
       default:
-        comparison = left.date.localeCompare(right.date);
+        comparison = (left.dueDate ?? left.date).localeCompare(
+          right.dueDate ?? right.date,
+        );
         break;
     }
 
@@ -369,7 +385,7 @@ export default function FinancialPage() {
   const transactionQuery = useMemo(
     () => ({
       page,
-      limit: 10,
+      limit: 100,
       search: debouncedSearch || undefined,
       categoryIds:
         filters.categoryIds.length > 0 ? filters.categoryIds : undefined,
