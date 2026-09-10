@@ -252,7 +252,8 @@ export function getContrastColor(hex: string) {
   return luminance > 0.6 ? "#1E293B" : "#FFFFFF";
 }
 
-export type FinanceSheetFocus = "due" | "month-end";
+export type FinanceSheetFocus = "all" | "due" | "month-end";
+export type FinanceSheetSort = "due" | "alpha";
 
 export interface FinanceDueLike {
   title?: string;
@@ -293,6 +294,49 @@ export function sortAlphabetically<
   );
 }
 
+export function sortByDueDate<T extends FinanceDueLike>(items: T[]): T[] {
+  return [...items].sort((left, right) => {
+    const byDate = getDueDateKey(left).localeCompare(getDueDateKey(right));
+    if (byDate !== 0) return byDate;
+    return getTransactionLabel(left).localeCompare(
+      getTransactionLabel(right),
+      "pt-BR",
+      { sensitivity: "base" },
+    );
+  });
+}
+
+export function applySheetSort<T extends FinanceDueLike>(
+  items: T[],
+  sort: FinanceSheetSort,
+) {
+  return sort === "alpha" ? sortAlphabetically(items) : sortByDueDate(items);
+}
+
+export function getMonthSheetRows<T extends FinanceDueLike>(
+  transactions: T[],
+  period: FinancePeriod,
+) {
+  const { startDate, endDate } = getMonthBounds(period);
+  const current = getCurrentPeriod();
+  const isCurrentPeriod =
+    period.month === current.month && period.year === current.year;
+
+  return transactions.filter((transaction) => {
+    const dueKey = getDueDateKey(transaction);
+    const dateKey = getDateKey(transaction.date);
+    const inSelectedMonth =
+      (dueKey >= startDate && dueKey <= endDate) ||
+      (dateKey >= startDate && dateKey <= endDate);
+    if (inSelectedMonth) return true;
+    return (
+      isCurrentPeriod &&
+      isUnpaidTransaction(transaction) &&
+      dueKey < startDate
+    );
+  });
+}
+
 export function getDueSheetBuckets<T extends FinanceDueLike>(
   transactions: T[],
   period: FinancePeriod,
@@ -325,7 +369,7 @@ export function getDueSheetBuckets<T extends FinanceDueLike>(
   }
 
   return {
-    dueNow: sortAlphabetically(dueNow),
-    monthEnd: sortAlphabetically(monthEnd),
+    dueNow,
+    monthEnd,
   };
 }
