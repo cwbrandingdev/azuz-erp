@@ -171,7 +171,7 @@ class QueryTransactionsDto {
     endDate;
     search;
     sortBy = TransactionSortField.DATE;
-    sortOrder = SortOrder.DESC;
+    sortOrder = SortOrder.ASC;
 }
 exports.QueryTransactionsDto = QueryTransactionsDto;
 __decorate([

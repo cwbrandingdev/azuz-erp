@@ -101,7 +101,7 @@ export function TransactionsTable({
       return;
     }
 
-    onSortChange(column, "desc");
+    onSortChange(column, column === "date" ? "asc" : "desc");
   }
 
   function SortIcon({ column }: { column: TransactionSortField }) {
@@ -211,7 +211,7 @@ export function TransactionsTable({
                     {tx.title}
                   </TableCell>
                   <TableCell className="text-[var(--atria-primary)]/60">
-                    {formatDate(tx.date)}
+                    {formatDate(tx.dueDate ?? tx.date)}
                   </TableCell>
                   <TableCell>
                     <Badge
