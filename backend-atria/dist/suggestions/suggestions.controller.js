@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SuggestionsController = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
+const allow_authenticated_decorator_1 = require("../auth/decorators/allow-authenticated.decorator");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
@@ -78,6 +79,7 @@ __decorate([
 exports.SuggestionsController = SuggestionsController = __decorate([
     (0, common_1.Controller)('suggestions'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, allow_authenticated_decorator_1.AllowAuthenticated)(),
     __metadata("design:paramtypes", [suggestions_service_1.SuggestionsService])
 ], SuggestionsController);
 //# sourceMappingURL=suggestions.controller.js.map

@@ -9,7 +9,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const core_1 = require("@nestjs/core");
 const schedule_1 = require("@nestjs/schedule");
+const throttler_1 = require("@nestjs/throttler");
 const agenda_module_1 = require("./agenda/agenda.module");
 const ai_module_1 = require("./ai/ai.module");
 const app_updates_module_1 = require("./app-updates/app-updates.module");
@@ -64,6 +66,10 @@ exports.AppModule = AppModule = __decorate([
                 isGlobal: true,
                 validate: env_validation_1.validateEnv,
             }),
+            throttler_1.ThrottlerModule.forRoot({
+                skipIf: () => Boolean(process.env.JEST_WORKER_ID),
+                throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
+            }),
             schedule_1.ScheduleModule.forRoot(),
             prisma_module_1.PrismaModule,
             supabase_module_1.SupabaseModule,
@@ -108,6 +114,12 @@ exports.AppModule = AppModule = __decorate([
             user_groups_module_1.UserGroupsModule,
             users_module_1.UsersModule,
             sla_module_1.SlaModule,
+        ],
+        providers: [
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
+            },
         ],
     })
 ], AppModule);

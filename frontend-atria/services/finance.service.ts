@@ -1,6 +1,5 @@
 import { apiRequest } from "./api";
 import type {
-  ClientPortalFinances,
   CreateCategoryInput,
   CreateTransactionInput,
   ImportFinanceTransactionInput,
@@ -66,15 +65,6 @@ export async function getMonthlyCashflow(params?: {
   const suffix = query.toString() ? `?${query.toString()}` : "";
   return apiRequest<FinanceMonthlyCashflow>(
     `/api/finances/monthly-cashflow${suffix}`,
-  );
-}
-
-export async function getPublicClientFinances(
-  clientId: string,
-): Promise<ClientPortalFinances> {
-  return apiRequest<ClientPortalFinances>(
-    `/api/public/client-portal/${encodeURIComponent(clientId)}/finances`,
-    { skipAuth: true, skipToast: true },
   );
 }
 

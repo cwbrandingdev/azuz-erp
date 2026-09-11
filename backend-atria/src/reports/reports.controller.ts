@@ -7,17 +7,21 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { RoleName } from '@prisma/client';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { PortalService } from '../portal/portal.service';
 import { GenerateReportDto, QueryReportsDto } from './dto/report.dto';
 import { ReportsService } from './reports.service';
 
 @Controller('reports')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleName.MASTER, RoleName.ADMIN)
 export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,

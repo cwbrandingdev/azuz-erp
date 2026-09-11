@@ -9,12 +9,17 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { TransactionType } from '@prisma/client';
+import { RoleName, TransactionType } from '@prisma/client';
+import { Permission } from '../auth/constants/permissions';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 import {
   CreateTransactionDto,
@@ -27,7 +32,9 @@ import { QueryFinanceCalendarDto } from './dto/query-finance-calendar.dto';
 import { FinanceService } from './finance.service';
 
 @Controller(['finance', 'financial'])
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@Roles(RoleName.MASTER, RoleName.ADMIN)
+@Permissions(Permission.FINANCE_ACCESS)
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 

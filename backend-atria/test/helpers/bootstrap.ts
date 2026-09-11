@@ -10,6 +10,8 @@ import {
   TEST_ADMIN,
   TEST_CLIENT_USER,
   TEST_COMPANY_NAME,
+  TEST_DESIGNER,
+  TEST_DESIGNER_MASTER,
 } from './constants';
 import { cleanupE2EData, seedE2EData } from './seed';
 
@@ -23,6 +25,8 @@ export interface E2ETestContext {
     token: string;
     clientId: string;
   };
+  designer: { id: string; email: string; password: string; token: string };
+  designerMaster: { id: string; email: string; password: string; token: string };
   client: { id: string; companyName: string };
   otherClient: { id: string; companyName: string };
   categoryIds: { income: string; expense: string };
@@ -73,6 +77,16 @@ export async function bootstrapE2E(): Promise<{
     TEST_CLIENT_USER.email,
     TEST_CLIENT_USER.password,
   );
+  const designerToken = await login(
+    application,
+    TEST_DESIGNER.email,
+    TEST_DESIGNER.password,
+  );
+  const designerMasterToken = await login(
+    application,
+    TEST_DESIGNER_MASTER.email,
+    TEST_DESIGNER_MASTER.password,
+  );
 
   const ctx: E2ETestContext = {
     runId: E2E_RUN_ID,
@@ -88,6 +102,18 @@ export async function bootstrapE2E(): Promise<{
       password: TEST_CLIENT_USER.password,
       token: clientToken,
       clientId: seeded.clientId,
+    },
+    designer: {
+      id: seeded.designerUserId,
+      email: TEST_DESIGNER.email,
+      password: TEST_DESIGNER.password,
+      token: designerToken,
+    },
+    designerMaster: {
+      id: seeded.designerMasterUserId,
+      email: TEST_DESIGNER_MASTER.email,
+      password: TEST_DESIGNER_MASTER.password,
+      token: designerMasterToken,
     },
     client: { id: seeded.clientId, companyName: TEST_COMPANY_NAME },
     otherClient: {

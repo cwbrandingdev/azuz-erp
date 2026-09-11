@@ -9,7 +9,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { AnyPermissions } from '../auth/decorators/any-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { getRequiredCalendarEditPermissions } from '../auth/utils/rbac';
 import { CalendarEntriesService } from './calendar-entries.service';
 import {
   CreateCalendarEntryDto,
@@ -18,7 +21,8 @@ import {
 } from './dto/calendar-entry.dto';
 
 @Controller('calendar-entries')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AnyPermissions(...getRequiredCalendarEditPermissions())
 export class CalendarEntriesController {
   constructor(
     private readonly calendarEntriesService: CalendarEntriesService,

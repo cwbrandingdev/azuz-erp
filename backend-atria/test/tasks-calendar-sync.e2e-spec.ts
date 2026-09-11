@@ -14,6 +14,7 @@ describe('Tasks / Kanban / Calendar sync (e2e)', () => {
   let okColumnId: string;
   let createdTaskId = '';
   let createdScheduledTaskId = '';
+  let createdKanbanCalendarTaskId = '';
   let createdEventId: string | null;
 
   beforeAll(async () => {
@@ -41,10 +42,50 @@ describe('Tasks / Kanban / Calendar sync (e2e)', () => {
   });
 
   afterAll(async () => {
-    const ids = [createdTaskId, createdScheduledTaskId].filter(Boolean);
+    const ids = [
+      createdTaskId,
+      createdScheduledTaskId,
+      createdKanbanCalendarTaskId,
+    ].filter(Boolean);
     if (ids.length > 0) {
       await prisma.kanbanTask.deleteMany({ where: { id: { in: ids } } });
     }
+  });
+
+  it('POST /kanban/tasks — scheduled task also appears on the calendar', async () => {
+    const publicationDate = new Date('2026-08-27T15:00:00.000Z').toISOString();
+
+    const created = await request(app.getHttpServer())
+      .post('/kanban/tasks')
+      .set(authHeader(ctx.admin.token))
+      .send({
+        title: `E2E Kanban Calendar Sync ${E2E_RUN_ID}`,
+        clientId: ctx.client.id,
+        publicationDate,
+      })
+      .expect(201);
+
+    createdKanbanCalendarTaskId = created.body.id;
+    expect(created.body.calendarEventId).toBeTruthy();
+    expect(created.body.publicationDate).toBe(publicationDate);
+
+    const events = await request(app.getHttpServer())
+      .get('/calendar/events')
+      .query({
+        from: '2026-08-27T00:00:00.000Z',
+        to: '2026-08-27T23:59:59.999Z',
+        clientId: ctx.client.id,
+      })
+      .set(authHeader(ctx.admin.token))
+      .expect(200);
+
+    const match = events.body.find(
+      (event: { kanbanTaskId: string | null; title?: string }) =>
+        event.kanbanTaskId === createdKanbanCalendarTaskId,
+    );
+    expect(match).toBeDefined();
+    expect(match.startAt).toBe(publicationDate);
+    expect(String(match.title)).toContain('E2E Kanban Calendar Sync');
   });
 
   it('POST /tasks — creates with default Em produção / Roteiro without calendar link', async () => {

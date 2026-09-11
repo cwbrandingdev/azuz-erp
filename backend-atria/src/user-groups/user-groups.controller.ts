@@ -8,7 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { INTERNAL_STAFF_ROLES } from '../auth/constants/roles';
+import { INTERNAL_STAFF_ROLES, USER_MANAGEMENT_ROLES } from '../auth/constants/roles';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -38,21 +38,25 @@ export class UserGroupsController {
   }
 
   @Post()
+  @Roles(...USER_MANAGEMENT_ROLES)
   create(@Body() dto: CreateUserGroupDto) {
     return this.userGroupsService.create(dto);
   }
 
   @Patch(':id')
+  @Roles(...USER_MANAGEMENT_ROLES)
   update(@Param('id') id: string, @Body() dto: UpdateUserGroupDto) {
     return this.userGroupsService.update(id, dto);
   }
 
   @Patch(':id/members')
+  @Roles(...USER_MANAGEMENT_ROLES)
   addMembers(@Param('id') id: string, @Body() dto: AddUserGroupMembersDto) {
     return this.userGroupsService.addMembers(id, dto.memberIds);
   }
 
   @Delete(':id')
+  @Roles(...USER_MANAGEMENT_ROLES)
   remove(@Param('id') id: string) {
     return this.userGroupsService.remove(id);
   }

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AgendaModule } from './agenda/agenda.module';
 import { AiModule } from './ai/ai.module';
 import { AppUpdatesModule } from './app-updates/app-updates.module';
@@ -52,6 +54,10 @@ import { LeadMinerModule } from './leadminer/leadminer.module';
       isGlobal: true,
       validate: validateEnv,
     }),
+    ThrottlerModule.forRoot({
+      skipIf: () => Boolean(process.env.JEST_WORKER_ID),
+      throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
+    }),
     ScheduleModule.forRoot(),
     PrismaModule,
     SupabaseModule,
@@ -96,6 +102,12 @@ import { LeadMinerModule } from './leadminer/leadminer.module';
     UserGroupsModule,
     UsersModule,
     SlaModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { PortalFinanceDashboard } from "@/components/portal/portal-finance-dashboard";
 import { usePortalAuth } from "@/contexts/portal-auth-context";
-import { financeService, portalService } from "@/services";
+import { portalService } from "@/services";
 
 export default function PortalFinancePage() {
   const router = useRouter();
@@ -34,9 +34,7 @@ export default function PortalFinancePage() {
         Financeiro
       </h1>
       <PortalFinanceDashboard
-        loadFinances={() =>
-          financeService.getPublicClientFinances(client.id)
-        }
+        loadFinances={() => portalService.getFinances()}
         loadFinanceDocuments={() => portalService.listFinanceDocuments()}
         uploadFinanceDocument={(file) =>
           portalService.uploadFinanceDocument(file)

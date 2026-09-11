@@ -14,7 +14,10 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClientReportFilesController = void 0;
 const common_1 = require("@nestjs/common");
+const roles_1 = require("../auth/constants/roles");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
 const client_report_files_service_1 = require("./client-report-files.service");
 const client_report_file_dto_1 = require("./dto/client-report-file.dto");
 let ClientReportFilesController = class ClientReportFilesController {
@@ -88,7 +91,8 @@ __decorate([
 ], ClientReportFilesController.prototype, "remove", null);
 exports.ClientReportFilesController = ClientReportFilesController = __decorate([
     (0, common_1.Controller)('client-report-files'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_DIRECTORY_ROLES),
     __metadata("design:paramtypes", [client_report_files_service_1.ClientReportFilesService])
 ], ClientReportFilesController);
 //# sourceMappingURL=client-report-files.controller.js.map

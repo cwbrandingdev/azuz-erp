@@ -1,10 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
-import { AiService } from "../ai/ai.service";
-import { CompanySettingsService } from "../company-settings/company-settings.service";
-import { LeadStagesService } from "../leads/lead-stages.service";
-import { CrmScopeService } from "../leads/crm-scope.service";
-import { PrismaService } from "../prisma/prisma.service";
+import { AiService } from '../ai/ai.service';
+import { CompanySettingsService } from '../company-settings/company-settings.service';
+import { LeadStagesService } from '../leads/lead-stages.service';
+import { CrmScopeService } from '../leads/crm-scope.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { ImportLeadMinerLeadsDto } from './dto/import-leads.dto';
 import { SearchLeadsDTO } from './dto/search-leads.dto';
 export interface LeadMinerJobStartResponse {

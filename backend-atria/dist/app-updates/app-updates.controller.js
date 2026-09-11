@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppUpdatesController = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
+const allow_authenticated_decorator_1 = require("../auth/decorators/allow-authenticated.decorator");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
@@ -112,6 +113,7 @@ __decorate([
 exports.AppUpdatesController = AppUpdatesController = __decorate([
     (0, common_1.Controller)('app-updates'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, allow_authenticated_decorator_1.AllowAuthenticated)(),
     __metadata("design:paramtypes", [app_updates_service_1.AppUpdatesService])
 ], AppUpdatesController);
 //# sourceMappingURL=app-updates.controller.js.map

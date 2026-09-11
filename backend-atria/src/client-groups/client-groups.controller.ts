@@ -8,7 +8,10 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { CLIENT_DIRECTORY_ROLES } from '../auth/constants/roles';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   CreateClientGroupDto,
   UpdateClientGroupDto,
@@ -17,7 +20,8 @@ import { BulkImportClientGroupsDto } from './dto/bulk-import.dto';
 import { ClientGroupsService } from './client-groups.service';
 
 @Controller('client-groups')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(...CLIENT_DIRECTORY_ROLES)
 export class ClientGroupsController {
   constructor(private readonly clientGroupsService: ClientGroupsService) {}
 

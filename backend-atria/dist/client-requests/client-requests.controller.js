@@ -14,8 +14,11 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClientRequestsController = void 0;
 const common_1 = require("@nestjs/common");
+const roles_1 = require("../auth/constants/roles");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
 const client_requests_service_1 = require("./client-requests.service");
 const client_request_dto_1 = require("./dto/client-request.dto");
 let ClientRequestsController = class ClientRequestsController {
@@ -106,7 +109,8 @@ __decorate([
 ], ClientRequestsController.prototype, "remove", null);
 exports.ClientRequestsController = ClientRequestsController = __decorate([
     (0, common_1.Controller)('client-requests'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_DIRECTORY_ROLES),
     __metadata("design:paramtypes", [client_requests_service_1.ClientRequestsService])
 ], ClientRequestsController);
 //# sourceMappingURL=client-requests.controller.js.map

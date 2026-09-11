@@ -14,6 +14,7 @@ const jwt_1 = require("@nestjs/jwt");
 const passport_1 = require("@nestjs/passport");
 const auth_controller_1 = require("./auth.controller");
 const auth_service_1 = require("./auth.service");
+const authorization_policy_guard_1 = require("./guards/authorization-policy.guard");
 const permissions_guard_1 = require("./guards/permissions.guard");
 const roles_guard_1 = require("./guards/roles.guard");
 const client_access_interceptor_1 = require("./interceptors/client-access.interceptor");
@@ -42,7 +43,12 @@ exports.AuthModule = AuthModule = __decorate([
             jwt_strategy_1.JwtStrategy,
             roles_guard_1.RolesGuard,
             permissions_guard_1.PermissionsGuard,
+            authorization_policy_guard_1.AuthorizationPolicyGuard,
             client_access_interceptor_1.ClientAccessInterceptor,
+            {
+                provide: core_1.APP_GUARD,
+                useClass: authorization_policy_guard_1.AuthorizationPolicyGuard,
+            },
             {
                 provide: core_1.APP_INTERCEPTOR,
                 useClass: client_access_interceptor_1.ClientAccessInterceptor,

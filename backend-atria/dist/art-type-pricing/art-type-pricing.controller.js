@@ -14,7 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ArtTypePricingController = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
+const permissions_1 = require("../auth/constants/permissions");
+const permissions_decorator_1 = require("../auth/decorators/permissions.decorator");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
 const art_type_pricing_service_1 = require("./art-type-pricing.service");
 const art_type_pricing_dto_1 = require("./dto/art-type-pricing.dto");
 let ArtTypePricingController = class ArtTypePricingController {
@@ -76,7 +82,9 @@ __decorate([
 ], ArtTypePricingController.prototype, "remove", null);
 exports.ArtTypePricingController = ArtTypePricingController = __decorate([
     (0, common_1.Controller)('art-type-pricing'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard, permissions_guard_1.PermissionsGuard),
+    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN),
+    (0, permissions_decorator_1.Permissions)(permissions_1.Permission.FINANCE_ACCESS),
     __metadata("design:paramtypes", [art_type_pricing_service_1.ArtTypePricingService])
 ], ArtTypePricingController);
 //# sourceMappingURL=art-type-pricing.controller.js.map

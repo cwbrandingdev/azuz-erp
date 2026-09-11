@@ -14,8 +14,11 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContentController = void 0;
 const common_1 = require("@nestjs/common");
+const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
+const rbac_1 = require("../auth/utils/rbac");
 const content_service_1 = require("./content.service");
 const content_post_dto_1 = require("./dto/content-post.dto");
 const content_workflow_dto_1 = require("./dto/content-workflow.dto");
@@ -183,7 +186,8 @@ __decorate([
 ], ContentController.prototype, "deletePost", null);
 exports.ContentController = ContentController = __decorate([
     (0, common_1.Controller)('content'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
+    (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredKanbanEditPermissions)()),
     __metadata("design:paramtypes", [content_service_1.ContentService])
 ], ContentController);
 //# sourceMappingURL=content.controller.js.map

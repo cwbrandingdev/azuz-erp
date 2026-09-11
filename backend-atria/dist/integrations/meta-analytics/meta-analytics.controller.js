@@ -14,7 +14,10 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MetaAnalyticsController = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
+const roles_decorator_1 = require("../../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../../auth/guards/roles.guard");
 const query_meta_analytics_dto_1 = require("./dto/query-meta-analytics.dto");
 const meta_analytics_service_1 = require("./meta-analytics.service");
 let MetaAnalyticsController = class MetaAnalyticsController {
@@ -102,7 +105,8 @@ __decorate([
 ], MetaAnalyticsController.prototype, "getClientCampaigns", null);
 exports.MetaAnalyticsController = MetaAnalyticsController = __decorate([
     (0, common_1.Controller)(),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN),
     __metadata("design:paramtypes", [meta_analytics_service_1.MetaAnalyticsService])
 ], MetaAnalyticsController);
 //# sourceMappingURL=meta-analytics.controller.js.map

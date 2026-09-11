@@ -15,8 +15,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FinanceController = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
+const permissions_1 = require("../auth/constants/permissions");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
+const permissions_decorator_1 = require("../auth/decorators/permissions.decorator");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
 const category_dto_1 = require("./dto/category.dto");
 const transaction_dto_1 = require("./dto/transaction.dto");
 const import_transactions_dto_1 = require("./dto/import-transactions.dto");
@@ -162,7 +167,9 @@ __decorate([
 ], FinanceController.prototype, "deleteTransaction", null);
 exports.FinanceController = FinanceController = __decorate([
     (0, common_1.Controller)(['finance', 'financial']),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard, permissions_guard_1.PermissionsGuard),
+    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN),
+    (0, permissions_decorator_1.Permissions)(permissions_1.Permission.FINANCE_ACCESS),
     __metadata("design:paramtypes", [finance_service_1.FinanceService])
 ], FinanceController);
 //# sourceMappingURL=finance.controller.js.map

@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { usePortalAuth } from "@/contexts/portal-auth-context";
 import { isCrmEnabledForUser } from "@/lib/crm-access";
-import { financeService, portalService } from "@/services";
+import { portalService } from "@/services";
 import type { PortalData } from "@/services/types";
 
 const SESSION_PORTAL_ACTIONS: PortalActionHandlers = {
@@ -219,9 +219,7 @@ export function ClientPortalApp() {
       )}
       {activeTab === "finance" && data.client && (
         <PortalFinanceDashboard
-          loadFinances={() =>
-            financeService.getPublicClientFinances(data.client!.id)
-          }
+          loadFinances={() => portalService.getFinances()}
           loadFinanceDocuments={() => portalService.listFinanceDocuments()}
           uploadFinanceDocument={(file) =>
             portalService.uploadFinanceDocument(file)

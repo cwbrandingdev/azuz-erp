@@ -14,6 +14,55 @@ describe('Finance (e2e)', () => {
     ({ app, ctx } = getE2E());
   });
 
+  it('GET /finance/overview — returns period totals for admin', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/finance/overview')
+      .query({ month: 7, year: 2026 })
+      .set(authHeader(ctx.admin.token))
+      .expect(200);
+
+    expect(res.body).toBeDefined();
+  });
+
+  it('GET /finance/cash-flow — returns cash flow for admin', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/finance/cash-flow')
+      .query({ month: 7, year: 2026 })
+      .set(authHeader(ctx.admin.token))
+      .expect(200);
+
+    expect(res.body).toBeDefined();
+  });
+
+  it('GET /finance/calendar — returns calendar payload for admin', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/finance/calendar')
+      .query({ month: 7, year: 2026 })
+      .set(authHeader(ctx.admin.token))
+      .expect(200);
+
+    expect(res.body).toBeDefined();
+  });
+
+  it('GET /api/finances/due-today-alerts — returns alerts for admin', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/finances/due-today-alerts')
+      .set(authHeader(ctx.admin.token))
+      .expect(200);
+
+    expect(res.body).toBeDefined();
+  });
+
+  it('GET /api/finances/monthly-cashflow — returns monthly cashflow for admin', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/finances/monthly-cashflow')
+      .query({ month: 7, year: 2026 })
+      .set(authHeader(ctx.admin.token))
+      .expect(200);
+
+    expect(res.body).toBeDefined();
+  });
+
   it('GET /finance/categories — lists categories', async () => {
     const res = await request(app.getHttpServer())
       .get('/finance/categories')
