@@ -12,11 +12,19 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { RoleName } from '@prisma/client';
+import { Permission } from '../auth/constants/permissions';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
+import { AllowAuthenticated } from '../auth/decorators/allow-authenticated.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { UpdateAppearanceDto } from './dto/appearance.dto';
 import { UpdateBrandingDto } from './dto/branding.dto';
 import { UpdateIntegrationsDto } from './dto/integrations.dto';
@@ -48,31 +56,40 @@ const brandingUploadInterceptor = FileInterceptor('file', {
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
+  @Public()
   @Get('branding')
   getBranding() {
     return this.settingsService.getBranding();
   }
 
   @Patch('branding')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles(RoleName.MASTER, RoleName.ADMIN)
+  @Permissions(Permission.SETTINGS_MANAGE)
   updateBranding(@Body() dto: UpdateBrandingDto) {
     return this.settingsService.updateBranding(dto);
   }
 
   @Get('integrations')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles(RoleName.MASTER, RoleName.ADMIN)
+  @Permissions(Permission.SETTINGS_MANAGE)
   getIntegrations() {
     return this.settingsService.getIntegrations();
   }
 
   @Patch('integrations')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles(RoleName.MASTER, RoleName.ADMIN)
+  @Permissions(Permission.SETTINGS_MANAGE)
   updateIntegrations(@Body() dto: UpdateIntegrationsDto) {
     return this.settingsService.updateIntegrations(dto);
   }
 
   @Post('branding/upload')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles(RoleName.MASTER, RoleName.ADMIN)
+  @Permissions(Permission.SETTINGS_MANAGE)
   @UseInterceptors(brandingUploadInterceptor)
   uploadBrandingAsset(
     @Query('type') type: 'logo' | 'favicon',
@@ -89,12 +106,14 @@ export class SettingsController {
     return this.settingsService.uploadBrandingAsset(type, file);
   }
 
+  @AllowAuthenticated()
   @Get('appearance')
   @UseGuards(JwtAuthGuard)
   getAppearance(@CurrentUser() user: AuthenticatedUser) {
     return this.settingsService.getAppearance(user.userId);
   }
 
+  @AllowAuthenticated()
   @Patch('appearance')
   @UseGuards(JwtAuthGuard)
   updateAppearance(

@@ -1,10 +1,14 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { RoleName } from '@prisma/client';
+import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
 import { QueryMetaAnalyticsDto } from './dto/query-meta-analytics.dto';
 import { MetaAnalyticsService } from './meta-analytics.service';
 
 @Controller()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleName.MASTER, RoleName.ADMIN)
 export class MetaAnalyticsController {
   constructor(private readonly metaAnalyticsService: MetaAnalyticsService) {}
 

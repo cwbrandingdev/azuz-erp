@@ -691,6 +691,10 @@ let PortalService = class PortalService {
     getClientFinancesForClient(clientId) {
         return this.financeService.getClientFinances(clientId);
     }
+    async getClientFinancesByToken(rawToken) {
+        const portalToken = await this.resolvePortalToken(rawToken);
+        return this.getClientFinancesForClient(portalToken.clientId);
+    }
     async signPortalContractByClientId(clientId, contractId) {
         const contract = await this.prisma.contract.findFirst({
             where: { id: contractId, clientId },

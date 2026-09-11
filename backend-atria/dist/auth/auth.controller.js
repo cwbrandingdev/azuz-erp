@@ -24,10 +24,14 @@ const register_dto_1 = require("./dto/register.dto");
 const create_invitation_token_dto_1 = require("./dto/create-invitation-token.dto");
 const signup_with_token_dto_1 = require("./dto/signup-with-token.dto");
 const validate_invitation_token_dto_1 = require("./dto/validate-invitation-token.dto");
-const roles_decorator_1 = require("./decorators/roles.decorator");
 const client_1 = require("@prisma/client");
-const permissions_decorator_1 = require("./decorators/permissions.decorator");
+const throttler_1 = require("@nestjs/throttler");
 const permissions_1 = require("./constants/permissions");
+const throttle_1 = require("./constants/throttle");
+const allow_authenticated_decorator_1 = require("./decorators/allow-authenticated.decorator");
+const permissions_decorator_1 = require("./decorators/permissions.decorator");
+const public_decorator_1 = require("./decorators/public.decorator");
+const roles_decorator_1 = require("./decorators/roles.decorator");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 const permissions_guard_1 = require("./guards/permissions.guard");
 const roles_guard_1 = require("./guards/roles.guard");
@@ -113,6 +117,7 @@ let AuthController = class AuthController {
 };
 exports.AuthController = AuthController;
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Post)('signup-with-token'),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
@@ -121,6 +126,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "signupWithToken", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Get)('invitation-tokens/validate'),
     __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
@@ -139,6 +145,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "createInvitationToken", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Post)('register'),
     (0, common_1.HttpCode)(common_1.HttpStatus.GONE),
     __param(0, (0, common_1.Body)()),
@@ -147,6 +154,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "register", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)(throttle_1.AUTH_THROTTLE),
     (0, common_1.Post)('login'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Body)()),
@@ -156,6 +165,8 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)(throttle_1.AUTH_THROTTLE),
     (0, common_1.Post)('refresh'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Req)()),
@@ -166,6 +177,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "refresh", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Post)('logout'),
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     __param(0, (0, common_1.Req)()),
@@ -176,6 +188,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
 __decorate([
+    (0, allow_authenticated_decorator_1.AllowAuthenticated)(),
     (0, common_1.Get)('me'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
@@ -184,6 +197,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "getProfile", null);
 __decorate([
+    (0, allow_authenticated_decorator_1.AllowAuthenticated)(),
     (0, common_1.Post)('change-password'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

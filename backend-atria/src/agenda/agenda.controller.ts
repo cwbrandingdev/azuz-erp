@@ -9,11 +9,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { AnyPermissions } from '../auth/decorators/any-permissions.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { getRequiredCalendarEditPermissions } from '../auth/utils/rbac';
 import { AgendaService } from './agenda.service';
 import {
   ConfirmAgendaEventDto,
@@ -23,7 +26,8 @@ import {
 } from './dto/agenda-event.dto';
 
 @Controller('agenda-events')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AnyPermissions(...getRequiredCalendarEditPermissions())
 export class AgendaController {
   constructor(private readonly agendaService: AgendaService) {}
 

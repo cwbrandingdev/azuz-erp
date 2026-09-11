@@ -817,6 +817,11 @@ export class PortalService {
     return this.financeService.getClientFinances(clientId);
   }
 
+  async getClientFinancesByToken(rawToken: string) {
+    const portalToken = await this.resolvePortalToken(rawToken);
+    return this.getClientFinancesForClient(portalToken.clientId);
+  }
+
   private async signPortalContractByClientId(
     clientId: string,
     contractId: string,

@@ -18,7 +18,7 @@ describe('Content workflow & Kanban (e2e)', () => {
   it('POST /content/posts — creates content post', async () => {
     const res = await request(app.getHttpServer())
       .post('/content/posts')
-      .set(authHeader(ctx.admin.token))
+      .set(authHeader(ctx.designerMaster.token))
       .send({
         title: `E2E Post ${E2E_RUN_ID}`,
         clientId: ctx.client.id,
@@ -36,7 +36,7 @@ describe('Content workflow & Kanban (e2e)', () => {
 
     const res = await request(app.getHttpServer())
       .post('/kanban/tasks')
-      .set(authHeader(ctx.admin.token))
+      .set(authHeader(ctx.designerMaster.token))
       .send({
         title: `E2E Task ${E2E_RUN_ID}`,
         columnId: todoColumn,
@@ -54,7 +54,7 @@ describe('Content workflow & Kanban (e2e)', () => {
 
     const res = await request(app.getHttpServer())
       .patch(`/kanban/tasks/${taskId}/move`)
-      .set(authHeader(ctx.admin.token))
+      .set(authHeader(ctx.designerMaster.token))
       .send({ columnId: inProgressColumn, order: 0 })
       .expect(200);
 
@@ -64,7 +64,7 @@ describe('Content workflow & Kanban (e2e)', () => {
   it('POST /kanban/tasks/:id/assets — uploads deliverable', async () => {
     const res = await request(app.getHttpServer())
       .post(`/kanban/tasks/${taskId}/assets`)
-      .set(authHeader(ctx.admin.token))
+      .set(authHeader(ctx.designerMaster.token))
       .attach('file', Buffer.from('fake-image-content'), {
         filename: 'e2e-test.png',
         contentType: 'image/png',
@@ -79,7 +79,7 @@ describe('Content workflow & Kanban (e2e)', () => {
   it('PATCH /content/posts/:id/internal-review — internal approval', async () => {
     const res = await request(app.getHttpServer())
       .patch(`/content/posts/${postId}/internal-review`)
-      .set(authHeader(ctx.admin.token))
+      .set(authHeader(ctx.designerMaster.token))
       .send({ status: InternalReviewAction.APPROVED, note: 'E2E approved' })
       .expect(200);
 
@@ -90,7 +90,7 @@ describe('Content workflow & Kanban (e2e)', () => {
   it('PATCH /kanban/tasks/:id/internal-review — task internal approval', async () => {
     const res = await request(app.getHttpServer())
       .patch(`/kanban/tasks/${taskId}/internal-review`)
-      .set(authHeader(ctx.admin.token))
+      .set(authHeader(ctx.designerMaster.token))
       .send({ status: InternalReviewAction.APPROVED, note: 'E2E task approved' })
       .expect(200);
 

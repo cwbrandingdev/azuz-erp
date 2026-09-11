@@ -14,8 +14,11 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReportsController = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
 const portal_service_1 = require("../portal/portal.service");
 const report_dto_1 = require("./dto/report.dto");
 const reports_service_1 = require("./reports.service");
@@ -72,7 +75,8 @@ __decorate([
 ], ReportsController.prototype, "generatePortalToken", null);
 exports.ReportsController = ReportsController = __decorate([
     (0, common_1.Controller)('reports'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN),
     __metadata("design:paramtypes", [reports_service_1.ReportsService,
         portal_service_1.PortalService])
 ], ReportsController);

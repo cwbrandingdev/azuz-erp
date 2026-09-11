@@ -9,7 +9,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { CLIENT_DIRECTORY_ROLES } from '../auth/constants/roles';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { ClientReportFilesService } from './client-report-files.service';
 import {
   ApproveClientReportFileDto,
@@ -19,7 +22,8 @@ import {
 } from './dto/client-report-file.dto';
 
 @Controller('client-report-files')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(...CLIENT_DIRECTORY_ROLES)
 export class ClientReportFilesController {
   constructor(
     private readonly clientReportFilesService: ClientReportFilesService,

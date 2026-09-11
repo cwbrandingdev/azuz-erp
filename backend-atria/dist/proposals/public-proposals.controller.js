@@ -14,6 +14,9 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PublicProposalsController = void 0;
 const common_1 = require("@nestjs/common");
+const throttler_1 = require("@nestjs/throttler");
+const throttle_1 = require("../auth/constants/throttle");
+const public_decorator_1 = require("../auth/decorators/public.decorator");
 const proposals_service_1 = require("./proposals.service");
 let PublicProposalsController = class PublicProposalsController {
     proposalsService;
@@ -33,6 +36,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], PublicProposalsController.prototype, "findPublic", null);
 exports.PublicProposalsController = PublicProposalsController = __decorate([
+    (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)(throttle_1.PUBLIC_THROTTLE),
     (0, common_1.Controller)('public/proposals'),
     __metadata("design:paramtypes", [proposals_service_1.ProposalsService])
 ], PublicProposalsController);

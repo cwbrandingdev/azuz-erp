@@ -13,4 +13,16 @@ export const TEST_CLIENT_USER = {
   name: 'E2E Client User',
 };
 
+export const TEST_DESIGNER = {
+  email: 'e2e-designer@atria.test',
+  password: 'E2eDesigner!Pass123',
+  name: 'E2E Designer Junior',
+};
+
+export const TEST_DESIGNER_MASTER = {
+  email: 'e2e-designer-master@atria.test',
+  password: 'E2eDesignerMaster!Pass123',
+  name: 'E2E Designer Master',
+};
+
 export const TEST_COMPANY_NAME = `E2E Company ${E2E_RUN_ID}`;

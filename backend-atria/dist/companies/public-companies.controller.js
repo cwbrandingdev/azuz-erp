@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PublicCompaniesController = void 0;
 const common_1 = require("@nestjs/common");
+const public_decorator_1 = require("../auth/decorators/public.decorator");
 const companies_service_1 = require("./companies.service");
 let PublicCompaniesController = class PublicCompaniesController {
     companiesService;
@@ -29,6 +30,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], PublicCompaniesController.prototype, "findPrimary", null);
 exports.PublicCompaniesController = PublicCompaniesController = __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Controller)('public/company'),
     __metadata("design:paramtypes", [companies_service_1.CompaniesService])
 ], PublicCompaniesController);

@@ -10,11 +10,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ContentPostStatus } from '@prisma/client';
+import { AnyPermissions } from '../auth/decorators/any-permissions.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { getRequiredKanbanEditPermissions } from '../auth/utils/rbac';
 import { ContentService } from './content.service';
 import {
   CreateContentPostDto,
@@ -28,7 +31,8 @@ import {
 import { InternalReviewDto } from '../kanban/dto/internal-review.dto';
 
 @Controller('content')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AnyPermissions(...getRequiredKanbanEditPermissions())
 export class ContentController {
   constructor(private readonly contentService: ContentService) {}
 

@@ -9,11 +9,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { CLIENT_DIRECTORY_ROLES } from '../auth/constants/roles';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { ClientRequestsService } from './client-requests.service';
 import {
   CreateClientRequestCommentDto,
@@ -24,7 +27,8 @@ import {
 } from './dto/client-request.dto';
 
 @Controller('client-requests')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(...CLIENT_DIRECTORY_ROLES)
 export class ClientRequestsController {
   constructor(private readonly clientRequestsService: ClientRequestsService) {}
 

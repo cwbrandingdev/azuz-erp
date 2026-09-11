@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { AllowAuthenticated } from '../auth/decorators/allow-authenticated.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -62,7 +63,8 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @Roles(...MEMBER_ROLES)
+  @Roles(...USER_MANAGEMENT_ROLES)
+  @Permissions(Permission.USERS_MANAGE)
   findAll() {
     return this.usersService.findAll();
   }
@@ -80,7 +82,7 @@ export class UsersController {
   }
 
   @Get('representatives')
-  @Roles(...MEMBER_ROLES)
+  @Roles(...USER_MANAGEMENT_ROLES)
   findRepresentatives() {
     return this.usersService.findRepresentatives();
   }
@@ -95,6 +97,7 @@ export class UsersController {
     return this.usersService.provision(dto, user.userId);
   }
 
+  @AllowAuthenticated()
   @Post('me/avatar')
   @UseInterceptors(avatarUploadInterceptor)
   async uploadMyAvatar(
@@ -107,13 +110,15 @@ export class UsersController {
     return this.usersService.uploadAvatar(user.userId, file);
   }
 
+  @AllowAuthenticated()
   @Post('me/avatar/remove')
   removeMyAvatar(@CurrentUser() user: AuthenticatedUser) {
     return this.usersService.removeAvatar(user.userId);
   }
 
   @Post(':id/avatar')
-  @Roles(...MEMBER_ROLES)
+  @Roles(...USER_MANAGEMENT_ROLES)
+  @Permissions(Permission.USERS_MANAGE)
   @UseInterceptors(avatarUploadInterceptor)
   async uploadUserAvatar(
     @Param('id') id: string,

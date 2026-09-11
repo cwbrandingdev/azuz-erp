@@ -11,17 +11,12 @@ const common_1 = require("@nestjs/common");
 const finance_controller_1 = require("./finance.controller");
 const finance_service_1 = require("./finance.service");
 const finances_api_controller_1 = require("./finances-api.controller");
-const public_client_portal_finance_controller_1 = require("./public-client-portal-finance.controller");
 let FinanceModule = class FinanceModule {
 };
 exports.FinanceModule = FinanceModule;
 exports.FinanceModule = FinanceModule = __decorate([
     (0, common_1.Module)({
-        controllers: [
-            finance_controller_1.FinanceController,
-            finances_api_controller_1.FinancesApiController,
-            public_client_portal_finance_controller_1.PublicClientPortalFinanceController,
-        ],
+        controllers: [finance_controller_1.FinanceController, finances_api_controller_1.FinancesApiController],
         providers: [finance_service_1.FinanceService],
         exports: [finance_service_1.FinanceService],
     })

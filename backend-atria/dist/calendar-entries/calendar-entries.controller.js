@@ -14,7 +14,10 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CalendarEntriesController = void 0;
 const common_1 = require("@nestjs/common");
+const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
+const rbac_1 = require("../auth/utils/rbac");
 const calendar_entries_service_1 = require("./calendar-entries.service");
 const calendar_entry_dto_1 = require("./dto/calendar-entry.dto");
 let CalendarEntriesController = class CalendarEntriesController {
@@ -77,7 +80,8 @@ __decorate([
 ], CalendarEntriesController.prototype, "remove", null);
 exports.CalendarEntriesController = CalendarEntriesController = __decorate([
     (0, common_1.Controller)('calendar-entries'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
+    (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredCalendarEditPermissions)()),
     __metadata("design:paramtypes", [calendar_entries_service_1.CalendarEntriesService])
 ], CalendarEntriesController);
 //# sourceMappingURL=calendar-entries.controller.js.map

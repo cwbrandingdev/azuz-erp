@@ -14,8 +14,11 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgendaController = void 0;
 const common_1 = require("@nestjs/common");
+const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
+const rbac_1 = require("../auth/utils/rbac");
 const agenda_service_1 = require("./agenda.service");
 const agenda_event_dto_1 = require("./dto/agenda-event.dto");
 let AgendaController = class AgendaController {
@@ -101,7 +104,8 @@ __decorate([
 ], AgendaController.prototype, "removeConfirmation", null);
 exports.AgendaController = AgendaController = __decorate([
     (0, common_1.Controller)('agenda-events'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
+    (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredCalendarEditPermissions)()),
     __metadata("design:paramtypes", [agenda_service_1.AgendaService])
 ], AgendaController);
 //# sourceMappingURL=agenda.controller.js.map

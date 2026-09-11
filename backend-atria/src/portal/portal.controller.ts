@@ -13,10 +13,15 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
+import { Throttle } from '@nestjs/throttler';
+import { PUBLIC_THROTTLE } from '../auth/constants/throttle';
+import { Public } from '../auth/decorators/public.decorator';
 import { AssetsService } from '../assets/assets.service';
 import { PortalBriefingDto, PortalRejectPostDto } from './dto/portal.dto';
 import { PortalService } from './portal.service';
 
+@Public()
+@Throttle(PUBLIC_THROTTLE)
 @Controller('portal')
 export class PortalController {
   constructor(
@@ -27,6 +32,11 @@ export class PortalController {
   @Get(':token')
   getPortalData(@Param('token') token: string) {
     return this.portalService.getPortalData(token);
+  }
+
+  @Get(':token/finances')
+  getPortalFinances(@Param('token') token: string) {
+    return this.portalService.getClientFinancesByToken(token);
   }
 
   @Get(':token/reports/:reportId')

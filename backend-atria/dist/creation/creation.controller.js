@@ -14,8 +14,11 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreationController = void 0;
 const common_1 = require("@nestjs/common");
+const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
+const rbac_1 = require("../auth/utils/rbac");
 const creation_service_1 = require("./creation.service");
 const brief_to_content_dto_1 = require("./dto/brief-to-content.dto");
 const deliverable_dto_1 = require("./dto/deliverable.dto");
@@ -105,7 +108,8 @@ __decorate([
 ], CreationController.prototype, "createFromBriefPlan", null);
 exports.CreationController = CreationController = __decorate([
     (0, common_1.Controller)('creation'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
+    (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredKanbanEditPermissions)()),
     __metadata("design:paramtypes", [creation_service_1.CreationService])
 ], CreationController);
 //# sourceMappingURL=creation.controller.js.map

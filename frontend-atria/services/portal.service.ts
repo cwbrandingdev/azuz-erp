@@ -20,6 +20,7 @@ import type {
   PortalFinanceDocument,
   PortalRequestComment,
   ReportContentPost,
+  ClientPortalFinances,
 } from "./types";
 
 async function portalRequest<T>(
@@ -317,6 +318,10 @@ export async function listFinanceDocuments() {
   return portalRequest<PortalFinanceDocument[]>(
     "/portal/session/financial/attachments",
   );
+}
+
+export async function getFinances() {
+  return portalRequest<ClientPortalFinances>("/portal/session/finances");
 }
 
 export async function uploadFinanceDocument(

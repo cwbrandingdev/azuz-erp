@@ -14,6 +14,10 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageController = void 0;
 const common_1 = require("@nestjs/common");
+const roles_1 = require("../auth/constants/roles");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
 const create_message_dto_1 = require("./dto/create-message.dto");
 const message_service_1 = require("./message.service");
 let MessageController = class MessageController {
@@ -44,6 +48,8 @@ __decorate([
 ], MessageController.prototype, "findAll", null);
 exports.MessageController = MessageController = __decorate([
     (0, common_1.Controller)('messages'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(...roles_1.INTERNAL_STAFF_ROLES),
     __metadata("design:paramtypes", [message_service_1.MessageService])
 ], MessageController);
 //# sourceMappingURL=message.controller.js.map

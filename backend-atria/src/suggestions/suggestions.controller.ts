@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { RoleName } from '@prisma/client';
+import { AllowAuthenticated } from '../auth/decorators/allow-authenticated.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -23,6 +24,7 @@ import { SuggestionsService } from './suggestions.service';
 
 @Controller('suggestions')
 @UseGuards(JwtAuthGuard)
+@AllowAuthenticated()
 export class SuggestionsController {
   constructor(private readonly suggestionsService: SuggestionsService) {}
 

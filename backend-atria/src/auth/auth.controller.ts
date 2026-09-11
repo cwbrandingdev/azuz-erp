@@ -25,10 +25,14 @@ import { RegisterDto } from './dto/register.dto';
 import { CreateInvitationTokenDto } from './dto/create-invitation-token.dto';
 import { SignupWithTokenDto } from './dto/signup-with-token.dto';
 import { ValidateInvitationTokenDto } from './dto/validate-invitation-token.dto';
-import { Roles } from './decorators/roles.decorator';
 import { RoleName } from '@prisma/client';
-import { Permissions } from './decorators/permissions.decorator';
+import { Throttle } from '@nestjs/throttler';
 import { Permission } from './constants/permissions';
+import { AUTH_THROTTLE } from './constants/throttle';
+import { AllowAuthenticated } from './decorators/allow-authenticated.decorator';
+import { Permissions } from './decorators/permissions.decorator';
+import { Public } from './decorators/public.decorator';
+import { Roles } from './decorators/roles.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { RolesGuard } from './guards/roles.guard';
@@ -42,6 +46,7 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
+  @Public()
   @Post('signup-with-token')
   async signupWithToken(
     @Body() dto: SignupWithTokenDto,
@@ -57,6 +62,7 @@ export class AuthController {
     };
   }
 
+  @Public()
   @Get('invitation-tokens/validate')
   validateInvitationToken(@Query() dto: ValidateInvitationTokenDto) {
     return this.authService.validateInvitationToken(dto.token);
@@ -73,12 +79,15 @@ export class AuthController {
     return this.authService.createInvitationToken(user.userId, dto);
   }
 
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.GONE)
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @Public()
+  @Throttle(AUTH_THROTTLE)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -95,6 +104,8 @@ export class AuthController {
     };
   }
 
+  @Public()
+  @Throttle(AUTH_THROTTLE)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
@@ -119,6 +130,7 @@ export class AuthController {
     };
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
@@ -136,12 +148,14 @@ export class AuthController {
     this.clearRefreshTokenCookie(res);
   }
 
+  @AllowAuthenticated()
   @Get('me')
   @UseGuards(JwtAuthGuard)
   getProfile(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.getProfile(user.userId);
   }
 
+  @AllowAuthenticated()
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

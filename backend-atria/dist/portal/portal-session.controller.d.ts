@@ -28,12 +28,12 @@ export declare class PortalSessionController {
     getPortalData(req: PortalRequest): Promise<{
         client: {
             id: string;
-            companyName: string;
-            contactName: string | null;
             email: string | null;
-            instagram: string | null;
             avatarUrl: string | null;
             isActive: boolean;
+            companyName: string;
+            contactName: string | null;
+            instagram: string | null;
             hasCrmEnabled: boolean;
         };
         accountStatus: {
@@ -119,6 +119,81 @@ export declare class PortalSessionController {
             createdAt: string;
         }[];
     }>;
+    getFinances(req: PortalRequest): Promise<{
+        clientId: string;
+        pending: {
+            id: string;
+            title: string;
+            description: string;
+            amount: number;
+            type: "income" | "expense";
+            status: "paid" | "pending" | "overdue";
+            date: string;
+            dueDate: string | null;
+            categoryId: string;
+            category: string;
+            categoryColor: string;
+            clientId: string | null;
+            contractId: string | null;
+            createdAt: string;
+        }[];
+        paid: {
+            id: string;
+            title: string;
+            description: string;
+            amount: number;
+            type: "income" | "expense";
+            status: "paid" | "pending" | "overdue";
+            date: string;
+            dueDate: string | null;
+            categoryId: string;
+            category: string;
+            categoryColor: string;
+            clientId: string | null;
+            contractId: string | null;
+            createdAt: string;
+        }[];
+        overdue: {
+            id: string;
+            title: string;
+            description: string;
+            amount: number;
+            type: "income" | "expense";
+            status: "paid" | "pending" | "overdue";
+            date: string;
+            dueDate: string | null;
+            categoryId: string;
+            category: string;
+            categoryColor: string;
+            clientId: string | null;
+            contractId: string | null;
+            createdAt: string;
+        }[];
+        invoices: {
+            id: string;
+            title: string;
+            description: string;
+            amount: number;
+            type: "income" | "expense";
+            status: "paid" | "pending" | "overdue";
+            date: string;
+            dueDate: string | null;
+            categoryId: string;
+            category: string;
+            categoryColor: string;
+            clientId: string | null;
+            contractId: string | null;
+            createdAt: string;
+        }[];
+        totals: {
+            totalDue: number;
+            totalPaid: number;
+            totalOverdue: number;
+            pendingCount: number;
+            paidCount: number;
+            overdueCount: number;
+        };
+    }>;
     getCalendar(req: PortalRequest, from?: string, to?: string): Promise<{
         events: {
             id: string;
@@ -148,12 +223,12 @@ export declare class PortalSessionController {
         clientId: string;
         client: {
             id: string;
-            companyName: string;
-            contactName: string | null;
             email: string | null;
-            instagram: string | null;
             avatarUrl: string | null;
             isActive: boolean;
+            companyName: string;
+            contactName: string | null;
+            instagram: string | null;
             hasCrmEnabled: boolean;
         };
         month: number;
@@ -161,8 +236,8 @@ export declare class PortalSessionController {
         title: string;
         data: import("@prisma/client/runtime/library").JsonValue;
         generatedBy: {
-            name: string;
             id: string;
+            name: string;
             avatarUrl: string | null;
         };
         createdAt: string;
@@ -176,8 +251,8 @@ export declare class PortalSessionController {
             copyText: string;
             mediaUrls: string[];
             createdBy: {
-                name: string;
                 id: string;
+                name: string;
                 avatarUrl: string | null;
             };
             createdAt: string;
@@ -231,15 +306,15 @@ export declare class PortalSessionController {
         client: {
             number: string | null;
             id: string;
+            email: string | null;
+            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
-            email: string | null;
             phone: string | null;
             street: string | null;
             city: string | null;
             state: string | null;
             zipCode: string | null;
-            avatarUrl: string | null;
         };
         title: string;
         status: string;
@@ -250,8 +325,8 @@ export declare class PortalSessionController {
         termsContent: string;
         pdfUrl: string | null;
         createdBy: {
-            name: string;
             id: string;
+            name: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -265,15 +340,15 @@ export declare class PortalSessionController {
             client: {
                 number: string | null;
                 id: string;
+                email: string | null;
+                avatarUrl: string | null;
                 companyName: string;
                 contactName: string | null;
-                email: string | null;
                 phone: string | null;
                 street: string | null;
                 city: string | null;
                 state: string | null;
                 zipCode: string | null;
-                avatarUrl: string | null;
             };
             title: string;
             status: "draft" | "sent" | "signed" | "expired" | "cancelled";
@@ -284,8 +359,8 @@ export declare class PortalSessionController {
             termsContent: string;
             pdfUrl: string | null;
             createdBy: {
-                name: string;
                 id: string;
+                name: string;
                 email: string;
                 avatarUrl: string | null;
             };
@@ -316,16 +391,16 @@ export declare class PortalSessionController {
         clientId: string;
         client: {
             id: string;
-            companyName: string;
             avatarUrl: string | null;
+            companyName: string;
         };
         fileName: string;
         fileType: "image" | "logo" | "brand_guide" | "document";
         fileUrl: string;
         fileSize: number;
         uploadedBy: {
-            name: string;
             id: string;
+            name: string;
             avatarUrl: string | null;
         } | null;
         uploadedAt: string;
@@ -790,8 +865,8 @@ export declare class PortalAuthRoutesController {
         refreshToken: string;
         client: {
             id: string;
-            companyName: string;
             isActive: boolean;
+            companyName: string;
         };
         mustChangePassword: boolean;
     }>;
@@ -802,8 +877,8 @@ export declare class PortalAuthRoutesController {
         refreshToken: string;
         client: {
             id: string;
-            companyName: string;
             isActive: boolean;
+            companyName: string;
         };
         mustChangePassword: boolean;
     }>;

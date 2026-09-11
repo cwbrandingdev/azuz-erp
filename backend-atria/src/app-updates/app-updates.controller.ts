@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { RoleName } from '@prisma/client';
+import { AllowAuthenticated } from '../auth/decorators/allow-authenticated.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -21,6 +22,7 @@ import { AppUpdatesService } from './app-updates.service';
 
 @Controller('app-updates')
 @UseGuards(JwtAuthGuard)
+@AllowAuthenticated()
 export class AppUpdatesController {
   constructor(private readonly appUpdatesService: AppUpdatesService) {}
 

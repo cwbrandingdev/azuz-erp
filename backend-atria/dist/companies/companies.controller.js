@@ -14,7 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CompaniesController = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
+const permissions_1 = require("../auth/constants/permissions");
+const permissions_decorator_1 = require("../auth/decorators/permissions.decorator");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
 const companies_service_1 = require("./companies.service");
 const company_dto_1 = require("./dto/company.dto");
 let CompaniesController = class CompaniesController {
@@ -66,7 +72,9 @@ __decorate([
 ], CompaniesController.prototype, "update", null);
 exports.CompaniesController = CompaniesController = __decorate([
     (0, common_1.Controller)('companies'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard, permissions_guard_1.PermissionsGuard),
+    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN),
+    (0, permissions_decorator_1.Permissions)(permissions_1.Permission.SETTINGS_MANAGE),
     __metadata("design:paramtypes", [companies_service_1.CompaniesService])
 ], CompaniesController);
 //# sourceMappingURL=companies.controller.js.map

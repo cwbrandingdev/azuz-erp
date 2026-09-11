@@ -75,6 +75,8 @@ async function bootstrap() {
 
   app.useGlobalFilters(new GlobalExceptionFilter());
 
+  // Swagger / OpenAPI is intentionally not mounted in any environment.
+
   const port = configService.get<number>('PORT', 3001);
   await app.listen(port);
   const appUrl = await app.getUrl();

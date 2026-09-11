@@ -5,15 +5,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Lead, LeadStatus, Prisma } from '@prisma/client';
-import { AiService } from 'src/ai/ai.service';
-import { CompanySettingsService } from 'src/company-settings/company-settings.service';
-import { LeadStagesService } from 'src/leads/lead-stages.service';
-import { CrmScopeService } from 'src/leads/crm-scope.service';
+import { AiService } from '../ai/ai.service';
+import { CompanySettingsService } from '../company-settings/company-settings.service';
+import { LeadStagesService } from '../leads/lead-stages.service';
+import { CrmScopeService } from '../leads/crm-scope.service';
 import {
   LEAD_STATUS_COLORS,
   LEAD_STATUS_LABELS,
-} from 'src/leads/lead-kanban.constants';
-import { PrismaService } from 'src/prisma/prisma.service';
+} from '../leads/lead-kanban.constants';
+import { PrismaService } from '../prisma/prisma.service';
 import { ImportLeadMinerLeadsDto } from './dto/import-leads.dto';
 import { SearchLeadsDTO } from './dto/search-leads.dto';
 

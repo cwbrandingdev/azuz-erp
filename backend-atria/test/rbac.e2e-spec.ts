@@ -48,6 +48,36 @@ describe('RBAC & Client isolation (e2e)', () => {
       .expect(403);
   });
 
+  it('GET /finance/transactions — blocks DESIGNER_JUNIOR even with a valid token', async () => {
+    await request(app.getHttpServer())
+      .get('/finance/transactions')
+      .set(authHeader(ctx.designer.token))
+      .expect(403);
+  });
+
+  it('GET /reports — blocks DESIGNER_JUNIOR from staff reports', async () => {
+    await request(app.getHttpServer())
+      .get('/reports')
+      .set(authHeader(ctx.designer.token))
+      .expect(403);
+  });
+
+  it('GET /users — blocks DESIGNER_JUNIOR from full user admin list', async () => {
+    await request(app.getHttpServer())
+      .get('/users')
+      .set(authHeader(ctx.designer.token))
+      .expect(403);
+  });
+
+  it('GET /users/members — still allows DESIGNER_JUNIOR assignment directory', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/users/members')
+      .set(authHeader(ctx.designer.token))
+      .expect(200);
+
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
   it('PATCH /client-portal/posts/:id/approve — cannot approve other client post', async () => {
     await request(app.getHttpServer())
       .patch(`/client-portal/posts/${otherClientPostId}/approve`)

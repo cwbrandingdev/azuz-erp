@@ -20,6 +20,7 @@ const path_1 = require("path");
 const crypto_1 = require("crypto");
 const client_1 = require("@prisma/client");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
+const roles_1 = require("../auth/constants/roles");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
@@ -163,6 +164,7 @@ __decorate([
 exports.DeliverablesController = DeliverablesController = __decorate([
     (0, common_1.Controller)('deliverables'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(...roles_1.DELIVERABLE_ACCESS_ROLES),
     __metadata("design:paramtypes", [deliverables_service_1.DeliverablesService])
 ], DeliverablesController);
 //# sourceMappingURL=deliverables.controller.js.map

@@ -18,6 +18,9 @@ const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
 const path_1 = require("path");
 const crypto_1 = require("crypto");
+const throttler_1 = require("@nestjs/throttler");
+const throttle_1 = require("../auth/constants/throttle");
+const public_decorator_1 = require("../auth/decorators/public.decorator");
 const assets_service_1 = require("../assets/assets.service");
 const portal_dto_1 = require("./dto/portal.dto");
 const portal_service_1 = require("./portal.service");
@@ -30,6 +33,9 @@ let PortalController = class PortalController {
     }
     getPortalData(token) {
         return this.portalService.getPortalData(token);
+    }
+    getPortalFinances(token) {
+        return this.portalService.getClientFinancesByToken(token);
     }
     getPortalReport(token, reportId) {
         return this.portalService.getPortalReport(token, reportId);
@@ -64,6 +70,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], PortalController.prototype, "getPortalData", null);
+__decorate([
+    (0, common_1.Get)(':token/finances'),
+    __param(0, (0, common_1.Param)('token')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], PortalController.prototype, "getPortalFinances", null);
 __decorate([
     (0, common_1.Get)(':token/reports/:reportId'),
     __param(0, (0, common_1.Param)('token')),
@@ -142,6 +155,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], PortalController.prototype, "createBriefing", null);
 exports.PortalController = PortalController = __decorate([
+    (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)(throttle_1.PUBLIC_THROTTLE),
     (0, common_1.Controller)('portal'),
     __metadata("design:paramtypes", [portal_service_1.PortalService,
         assets_service_1.AssetsService])

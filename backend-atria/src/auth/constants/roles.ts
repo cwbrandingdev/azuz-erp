@@ -31,3 +31,8 @@ export const KANBAN_TASK_CREATE_ROLES = [
   RoleName.DESIGNER_MASTER,
   RoleName.DESIGNER_JUNIOR,
 ] as const;
+
+export const DELIVERABLE_ACCESS_ROLES = [
+  ...KANBAN_TASK_CREATE_ROLES,
+  RoleName.CLIENT,
+] as const;

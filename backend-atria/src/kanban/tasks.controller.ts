@@ -13,15 +13,19 @@ import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
+import { KANBAN_TASK_CREATE_ROLES } from '../auth/constants/roles';
+import { AnyPermissions } from '../auth/decorators/any-permissions.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { KANBAN_TASK_CREATE_ROLES } from '../auth/constants/roles';
+import { getRequiredKanbanEditPermissions } from '../auth/utils/rbac';
 import { CreateTaskDto, QueryTasksDto, UpdateTaskStatusDto } from './dto/task.dto';
 import { KanbanService } from './kanban.service';
 
 @Controller('tasks')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@AnyPermissions(...getRequiredKanbanEditPermissions())
 export class TasksController {
   constructor(private readonly kanbanService: KanbanService) {}
 

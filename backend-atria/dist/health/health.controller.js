@@ -11,6 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HealthController = void 0;
 const common_1 = require("@nestjs/common");
+const throttler_1 = require("@nestjs/throttler");
+const public_decorator_1 = require("../auth/decorators/public.decorator");
 const health_service_1 = require("./health.service");
 let HealthController = class HealthController {
     healthService;
@@ -33,6 +35,8 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], HealthController.prototype, "check", null);
 exports.HealthController = HealthController = __decorate([
+    (0, public_decorator_1.Public)(),
+    (0, throttler_1.SkipThrottle)(),
     (0, common_1.Controller)('health'),
     __metadata("design:paramtypes", [health_service_1.HealthService])
 ], HealthController);

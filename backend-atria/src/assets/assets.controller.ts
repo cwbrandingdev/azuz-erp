@@ -14,16 +14,20 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
+import { AnyPermissions } from '../auth/decorators/any-permissions.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { getRequiredKanbanEditPermissions } from '../auth/utils/rbac';
 import { AssetsService } from './assets.service';
 import { CreateAssetDto, QueryAssetsDto } from './dto/asset.dto';
 
 @Controller('assets')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AnyPermissions(...getRequiredKanbanEditPermissions())
 export class AssetsController {
   constructor(private readonly assetsService: AssetsService) {}
 

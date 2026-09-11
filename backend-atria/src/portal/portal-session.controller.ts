@@ -16,7 +16,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage, memoryStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
+import { Throttle } from '@nestjs/throttler';
+import { AUTH_THROTTLE } from '../auth/constants/throttle';
+import { USER_MANAGEMENT_ROLES } from '../auth/constants/roles';
+import { PortalAuthenticated } from '../auth/decorators/portal-authenticated.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { ClientPortalFinancialService } from '../client-portal-financial/client-portal-financial.service';
 import { CreateClientFinancialAttachmentDto } from '../client-portal-financial/dto/create-client-financial-attachment.dto';
 import { AssetsService } from '../assets/assets.service';
@@ -42,6 +49,7 @@ interface PortalRequest {
 
 @Controller('portal/session')
 @UseGuards(PortalAuthGuard)
+@PortalAuthenticated()
 export class PortalSessionController {
   constructor(
     private readonly portalService: PortalService,
@@ -54,6 +62,11 @@ export class PortalSessionController {
   @Get()
   getPortalData(@Req() req: PortalRequest) {
     return this.portalService.getPortalDataForClient(req.portalUser.clientId);
+  }
+
+  @Get('finances')
+  getFinances(@Req() req: PortalRequest) {
+    return this.portalService.getClientFinancesForClient(req.portalUser.clientId);
   }
 
   @Get('calendar')
@@ -285,11 +298,15 @@ export class PortalSessionController {
 export class PortalAuthRoutesController {
   constructor(private readonly portalAuthService: PortalAuthService) {}
 
+  @Public()
+  @Throttle(AUTH_THROTTLE)
   @Post('auth/login')
   login(@Body() dto: PortalLoginDto) {
     return this.portalAuthService.login(dto);
   }
 
+  @Public()
+  @Throttle(AUTH_THROTTLE)
   @Post('auth/refresh')
   refresh(@Body() body: { refreshToken?: string }) {
     if (!body.refreshToken) {
@@ -298,6 +315,7 @@ export class PortalAuthRoutesController {
     return this.portalAuthService.refresh(body.refreshToken);
   }
 
+  @Public()
   @Post('auth/logout')
   logout(@Body() body: { refreshToken?: string }) {
     if (body.refreshToken) {
@@ -307,7 +325,8 @@ export class PortalAuthRoutesController {
   }
 
   @Post('provision/:clientId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...USER_MANAGEMENT_ROLES)
   provisionAccess(
     @Param('clientId') clientId: string,
     @Body() dto: ProvisionPortalAccessDto,

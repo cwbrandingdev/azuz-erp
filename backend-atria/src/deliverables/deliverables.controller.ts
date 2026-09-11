@@ -21,6 +21,7 @@ import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
+import { DELIVERABLE_ACCESS_ROLES } from '../auth/constants/roles';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -37,6 +38,7 @@ const DELIVERABLE_SUBMISSION_ROLES = [
 
 @Controller('deliverables')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(...DELIVERABLE_ACCESS_ROLES)
 export class DeliverablesController {
   constructor(private readonly deliverablesService: DeliverablesService) {}
 

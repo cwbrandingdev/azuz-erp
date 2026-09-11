@@ -6,6 +6,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { AllowAuthenticated } from '../auth/decorators/allow-authenticated.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -15,6 +16,7 @@ import { NotificationsService } from './notifications.service';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
+@AllowAuthenticated()
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 

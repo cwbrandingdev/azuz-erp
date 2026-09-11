@@ -15,10 +15,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TasksController = void 0;
 const common_1 = require("@nestjs/common");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
+const roles_1 = require("../auth/constants/roles");
+const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
-const roles_1 = require("../auth/constants/roles");
+const rbac_1 = require("../auth/utils/rbac");
 const task_dto_1 = require("./dto/task.dto");
 const kanban_service_1 = require("./kanban.service");
 let TasksController = class TasksController {
@@ -75,7 +78,8 @@ __decorate([
 ], TasksController.prototype, "updateStatus", null);
 exports.TasksController = TasksController = __decorate([
     (0, common_1.Controller)('tasks'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard, permissions_guard_1.PermissionsGuard),
+    (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredKanbanEditPermissions)()),
     __metadata("design:paramtypes", [kanban_service_1.KanbanService])
 ], TasksController);
 //# sourceMappingURL=tasks.controller.js.map

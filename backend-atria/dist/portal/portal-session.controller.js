@@ -18,7 +18,14 @@ const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
 const path_1 = require("path");
 const crypto_1 = require("crypto");
+const throttler_1 = require("@nestjs/throttler");
+const throttle_1 = require("../auth/constants/throttle");
+const roles_1 = require("../auth/constants/roles");
+const portal_authenticated_decorator_1 = require("../auth/decorators/portal-authenticated.decorator");
+const public_decorator_1 = require("../auth/decorators/public.decorator");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
 const client_portal_financial_service_1 = require("../client-portal-financial/client-portal-financial.service");
 const create_client_financial_attachment_dto_1 = require("../client-portal-financial/dto/create-client-financial-attachment.dto");
 const assets_service_1 = require("../assets/assets.service");
@@ -48,6 +55,9 @@ let PortalSessionController = class PortalSessionController {
     }
     getPortalData(req) {
         return this.portalService.getPortalDataForClient(req.portalUser.clientId);
+    }
+    getFinances(req) {
+        return this.portalService.getClientFinancesForClient(req.portalUser.clientId);
     }
     getCalendar(req, from, to) {
         return this.portalService.getClientPortalCalendar(req.portalUser.clientId, from, to);
@@ -124,6 +134,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], PortalSessionController.prototype, "getPortalData", null);
+__decorate([
+    (0, common_1.Get)('finances'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], PortalSessionController.prototype, "getFinances", null);
 __decorate([
     (0, common_1.Get)('calendar'),
     __param(0, (0, common_1.Req)()),
@@ -308,6 +325,7 @@ __decorate([
 exports.PortalSessionController = PortalSessionController = __decorate([
     (0, common_1.Controller)('portal/session'),
     (0, common_1.UseGuards)(portal_auth_guard_1.PortalAuthGuard),
+    (0, portal_authenticated_decorator_1.PortalAuthenticated)(),
     __metadata("design:paramtypes", [portal_service_1.PortalService,
         assets_service_1.AssetsService,
         client_requests_service_1.ClientRequestsService,
@@ -340,6 +358,8 @@ let PortalAuthRoutesController = class PortalAuthRoutesController {
 };
 exports.PortalAuthRoutesController = PortalAuthRoutesController;
 __decorate([
+    (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)(throttle_1.AUTH_THROTTLE),
     (0, common_1.Post)('auth/login'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -347,6 +367,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], PortalAuthRoutesController.prototype, "login", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
+    (0, throttler_1.Throttle)(throttle_1.AUTH_THROTTLE),
     (0, common_1.Post)('auth/refresh'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -354,6 +376,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], PortalAuthRoutesController.prototype, "refresh", null);
 __decorate([
+    (0, public_decorator_1.Public)(),
     (0, common_1.Post)('auth/logout'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -362,7 +385,8 @@ __decorate([
 ], PortalAuthRoutesController.prototype, "logout", null);
 __decorate([
     (0, common_1.Post)('provision/:clientId'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)(...roles_1.USER_MANAGEMENT_ROLES),
     __param(0, (0, common_1.Param)('clientId')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),

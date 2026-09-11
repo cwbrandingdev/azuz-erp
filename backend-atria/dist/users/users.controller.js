@@ -16,6 +16,7 @@ exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
+const allow_authenticated_decorator_1 = require("../auth/decorators/allow-authenticated.decorator");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const permissions_decorator_1 = require("../auth/decorators/permissions.decorator");
@@ -89,7 +90,8 @@ let UsersController = class UsersController {
 exports.UsersController = UsersController;
 __decorate([
     (0, common_1.Get)(),
-    (0, roles_decorator_1.Roles)(...MEMBER_ROLES),
+    (0, roles_decorator_1.Roles)(...roles_1.USER_MANAGEMENT_ROLES),
+    (0, permissions_decorator_1.Permissions)(permissions_1.Permission.USERS_MANAGE),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -110,7 +112,7 @@ __decorate([
 ], UsersController.prototype, "findClients", null);
 __decorate([
     (0, common_1.Get)('representatives'),
-    (0, roles_decorator_1.Roles)(...MEMBER_ROLES),
+    (0, roles_decorator_1.Roles)(...roles_1.USER_MANAGEMENT_ROLES),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -126,6 +128,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "provision", null);
 __decorate([
+    (0, allow_authenticated_decorator_1.AllowAuthenticated)(),
     (0, common_1.Post)('me/avatar'),
     (0, common_1.UseInterceptors)(avatarUploadInterceptor),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
@@ -135,6 +138,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "uploadMyAvatar", null);
 __decorate([
+    (0, allow_authenticated_decorator_1.AllowAuthenticated)(),
     (0, common_1.Post)('me/avatar/remove'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -143,7 +147,8 @@ __decorate([
 ], UsersController.prototype, "removeMyAvatar", null);
 __decorate([
     (0, common_1.Post)(':id/avatar'),
-    (0, roles_decorator_1.Roles)(...MEMBER_ROLES),
+    (0, roles_decorator_1.Roles)(...roles_1.USER_MANAGEMENT_ROLES),
+    (0, permissions_decorator_1.Permissions)(permissions_1.Permission.USERS_MANAGE),
     (0, common_1.UseInterceptors)(avatarUploadInterceptor),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.UploadedFile)()),

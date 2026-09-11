@@ -18,8 +18,11 @@ const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
 const path_1 = require("path");
 const crypto_1 = require("crypto");
+const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
+const rbac_1 = require("../auth/utils/rbac");
 const assets_service_1 = require("./assets.service");
 const asset_dto_1 = require("./dto/asset.dto");
 let AssetsController = class AssetsController {
@@ -95,7 +98,8 @@ __decorate([
 ], AssetsController.prototype, "remove", null);
 exports.AssetsController = AssetsController = __decorate([
     (0, common_1.Controller)('assets'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
+    (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredKanbanEditPermissions)()),
     __metadata("design:paramtypes", [assets_service_1.AssetsService])
 ], AssetsController);
 //# sourceMappingURL=assets.controller.js.map

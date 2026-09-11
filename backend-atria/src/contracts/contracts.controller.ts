@@ -9,11 +9,17 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { RoleName } from '@prisma/client';
+import { Permission } from '../auth/constants/permissions';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { ContractsService } from './contracts.service';
 import {
   CreateContractDto,
@@ -22,7 +28,9 @@ import {
 } from './dto/contract.dto';
 
 @Controller('contracts')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@Roles(RoleName.MASTER, RoleName.ADMIN)
+@Permissions(Permission.FINANCE_ACCESS)
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}
 
