@@ -5,41 +5,7 @@ export declare class ClientsService {
     private readonly prisma;
     private readonly config;
     constructor(prisma: PrismaService, config: ConfigService);
-    findAll(clientGroupId?: string, activeOnly?: boolean): Promise<{
-        id: string;
-        companyName: string;
-        contactName: string | null;
-        document: string | null;
-        email: string | null;
-        phone: string | null;
-        instagram: string | null;
-        instagramUserId: string | null;
-        hasMetaAccessToken: boolean;
-        website: string | null;
-        street: string | null;
-        number: string | null;
-        neighborhood: string | null;
-        city: string | null;
-        state: string | null;
-        zipCode: string | null;
-        address: string | null;
-        notes: string | null;
-        avatarUrl: string | null;
-        isActive: boolean;
-        hasCrmEnabled: boolean;
-        clientGroup: {
-            id: string;
-            name: string;
-            description: string | null;
-            color: string;
-        } | null;
-        postCount: number;
-        requestCount: number;
-        pendingRequestCount: number;
-        activeRequestCount: number;
-        createdAt: string;
-        updatedAt: string;
-    }[]>;
+    findAll(clientGroupId?: string, activeOnly?: boolean): Promise<any>;
     findOne(id: string): Promise<{
         id: string;
         companyName: string;

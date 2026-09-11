@@ -120,6 +120,11 @@ export class ProvisionUserDto {
 
 export class UpdateUserDto {
   @IsOptional()
+  @IsEmail()
+  @MaxLength(255)
+  email?: string;
+
+  @IsOptional()
   @ValidateIf((_, value) => value !== null)
   @IsUUID()
   userGroupId?: string | null;

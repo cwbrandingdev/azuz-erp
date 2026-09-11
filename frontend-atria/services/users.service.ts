@@ -42,6 +42,7 @@ export async function getRepresentatives(): Promise<CompanyRepresentativeEntry[]
 }
 
 export interface UpdateUserInput {
+  email?: string;
   userGroupId?: string | null;
   role?:
     | "MASTER"

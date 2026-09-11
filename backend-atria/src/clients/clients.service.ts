@@ -16,17 +16,76 @@ export class ClientsService {
   ) {}
 
   async findAll(clientGroupId?: string, activeOnly = false) {
-    const clients = await this.prisma.client.findMany({
-      where: {
-        ...(clientGroupId ? { clientGroupId } : {}),
-        ...(activeOnly ? { isActive: true } : {}),
+    // #region agent log
+    const schemaProbe = await this.prisma.$queryRaw<
+      Array<{ schema: string }>
+    >`SELECT current_schema() AS schema`;
+    const columnProbe = await this.prisma.$queryRaw<
+      Array<{ table_schema: string; column_name: string }>
+    >`
+      SELECT table_schema, column_name
+      FROM information_schema.columns
+      WHERE table_name = 'Client'
+        AND column_name IN ('instagramUserId', 'metaAccessToken')
+    `;
+    fetch('http://127.0.0.1:7726/ingest/f61a8b4f-537b-4440-a74f-2179a1f0cffe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': 'fd3a09',
       },
-      orderBy: { companyName: 'asc' },
-      include: {
-        clientGroup: true,
-        _count: { select: { posts: true, clientRequests: true } },
-      },
-    });
+      body: JSON.stringify({
+        sessionId: 'fd3a09',
+        runId: 'post-fix',
+        hypothesisId: 'C',
+        location: 'clients.service.ts:findAll',
+        message: 'clients.findAll schema probe',
+        data: {
+          currentSchema: schemaProbe[0]?.schema ?? null,
+          envSchema: this.config.get<string>('SUPABASE_DB_SCHEMA') ?? null,
+          columns: columnProbe,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    let clients;
+    try {
+      clients = await this.prisma.client.findMany({
+        where: {
+          ...(clientGroupId ? { clientGroupId } : {}),
+          ...(activeOnly ? { isActive: true } : {}),
+        },
+        orderBy: { companyName: 'asc' },
+        include: {
+          clientGroup: true,
+          _count: { select: { posts: true, clientRequests: true } },
+        },
+      });
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7726/ingest/f61a8b4f-537b-4440-a74f-2179a1f0cffe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Debug-Session-Id': 'fd3a09',
+        },
+        body: JSON.stringify({
+          sessionId: 'fd3a09',
+          runId: 'post-fix',
+          hypothesisId: 'C',
+          location: 'clients.service.ts:findAll:error',
+          message: 'clients.findAll prisma error',
+          data: {
+            errorName: error instanceof Error ? error.name : 'unknown',
+            errorMessage: error instanceof Error ? error.message.slice(0, 300) : String(error).slice(0, 300),
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+      throw error;
+    }
 
     const requestCounts = await this.getRequestCountsByClient(
       clients.map((client) => client.id),

@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { GroupBadge } from "@/components/ui/group-badge";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { UserAvatarPicker } from "@/components/users/user-avatar-picker";
@@ -49,6 +50,7 @@ export function EditUserDialog({
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [userGroupId, setUserGroupId] = useState("");
   const [clientId, setClientId] = useState("");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState<string>("DESIGNER_JUNIOR");
   const [monthlySalary, setMonthlySalary] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -83,6 +85,7 @@ export function EditUserDialog({
     if (!user) return;
     setUserGroupId(user.userGroup?.id ?? "");
     setClientId(user.clientId ?? user.client?.id ?? "");
+    setEmail(user.email);
     setRole(user.role.toUpperCase());
     setMonthlySalary(
       user.monthlySalary !== null ? String(user.monthlySalary) : "",
@@ -102,11 +105,17 @@ export function EditUserDialog({
       return;
     }
 
+    if (!email.trim()) {
+      setError("Informe o e-mail do usuário.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const updated = await usersService.updateUser(user.id, {
+        email: email.trim().toLowerCase(),
         userGroupId: isClientRole ? null : userGroupId || null,
         role: role as
           | "MASTER"
@@ -134,6 +143,7 @@ export function EditUserDialog({
         updateUser({
           avatarUrl: updated.avatarUrl ?? undefined,
           name: updated.name,
+          email: updated.email,
           role: updated.role,
           clientId: updated.clientId ?? null,
         });
@@ -199,7 +209,6 @@ export function EditUserDialog({
 
             <div className="rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/3 p-3">
               <p className="font-medium text-[var(--atria-primary)]">{user.name}</p>
-              <p className="text-sm text-[var(--atria-primary)]/60">{user.email}</p>
               {user.userGroup && (
                 <div className="mt-2">
                   <GroupBadge
@@ -214,6 +223,21 @@ export function EditUserDialog({
                 </p>
               )}
             </div>
+
+            <Field>
+              <FieldLabel htmlFor="edit-email">E-mail</FieldLabel>
+              <Input
+                id="edit-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nome@gmail.com"
+                required
+              />
+              <p className="mt-1.5 text-[11px] text-[var(--atria-primary)]/45">
+                Usado para login e notificações. Coloque o e-mail que a pessoa realmente acessa.
+              </p>
+            </Field>
 
             <Field>
               <FieldLabel htmlFor="edit-role">Função</FieldLabel>

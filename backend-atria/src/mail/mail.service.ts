@@ -87,7 +87,17 @@ export class MailService {
   }
 
   private resolveFromAddress(): string {
+    const smtpUser = this.config.get<string>('SMTP_USER')?.trim();
     const from = this.config.get<string>('MAIL_FROM')?.trim();
+    const displayName =
+      from?.match(/^"?([^"<]+)"?\s*</)?.[1]?.trim() ||
+      (from && !from.includes('@') ? from : null) ||
+      'Atria';
+
+    // Titan rejects a From address that the authenticated mailbox does not own.
+    if (smtpUser) {
+      return `${displayName} <${smtpUser}>`;
+    }
     if (from) return from;
 
     const domain =
@@ -147,13 +157,19 @@ export class MailService {
     const secure =
       this.parseBoolean(this.config.get<string>('SMTP_SECURE')) || port === 465;
     const user = this.config.get<string>('SMTP_USER')?.trim();
-    const pass = this.config.get<string>('SMTP_PASS');
+    const pass = this.config.get<string>('SMTP_PASS')?.trim() ?? '';
+
+    if (!user || !pass) {
+      throw new Error(
+        'SMTP_USER and SMTP_PASS are required for Titan SMTP. Add them to backend-atria/.env and restart the server.',
+      );
+    }
 
     this.smtpTransporter = nodemailer.createTransport({
       host,
       port: Number.isFinite(port) ? port : 587,
       secure,
-      auth: user ? { user, pass: pass ?? '' } : undefined,
+      auth: { user, pass },
     });
 
     return this.smtpTransporter;

@@ -269,7 +269,7 @@ let KanbanService = class KanbanService {
                 .filter((name) => Boolean(name))
                 .join(', ');
             await this.logHistory(userId, ensuredTask.id, `Atribuída a ${names}`);
-            await this.notifications.notifyTaskAssigned(assigneeIds, ensuredTask.title, userId);
+            await this.notifications.notifyTaskAssigned(assigneeIds, ensuredTask.title, userId, { companyId: ensuredTask.companyId, taskId: ensuredTask.id });
         }
         if (ensuredTask.assignedGroup) {
             await this.logHistory(userId, ensuredTask.id, `Grupo atribuído: ${ensuredTask.assignedGroup.name}`);
@@ -422,6 +422,17 @@ let KanbanService = class KanbanService {
         }
         const withCalendar = await this.ensureCalendarEventForTask(updated, userId, updated.status);
         await this.logTaskChanges(userId, existing, withCalendar, dto);
+        const becamePending = referenceUrlProvided &&
+            (existing.internalReviewStatus === client_1.InternalReviewStatus.NOT_REQUIRED ||
+                existing.internalReviewStatus === client_1.InternalReviewStatus.REJECTED);
+        if (becamePending) {
+            await this.notifications.notifyInternalApprovalPending({
+                companyId: withCalendar.companyId,
+                taskId: withCalendar.id,
+                taskTitle: withCalendar.title,
+                actorId: userId,
+            });
+        }
         return this.toTaskResponse(withCalendar);
     }
     async updateTaskStatus(userId, role, id, dto) {
@@ -564,7 +575,7 @@ let KanbanService = class KanbanService {
         }
         const existing = await this.prisma.kanbanTask.findUnique({
             where: { id: taskId },
-            select: { contentPostId: true },
+            select: { contentPostId: true, companyId: true, title: true },
         });
         if (!existing)
             throw new common_1.NotFoundException('Task not found');
@@ -589,6 +600,13 @@ let KanbanService = class KanbanService {
         }
         await this.deliverablesService.markRequiresAdjustment(taskId);
         await this.logHistory(userId, taskId, 'Revisão interna: rejeitada internamente');
+        await this.notifications.notifyTaskReproved({
+            companyId: existing.companyId,
+            taskId,
+            taskTitle: existing.title,
+            actorId: userId,
+            reason: dto.note,
+        });
         return this.toTaskResponse(await this.ensureTaskExists(taskId));
     }
     async applyInternalApproval(taskId, userId, role, note) {
@@ -635,7 +653,7 @@ let KanbanService = class KanbanService {
     async applyInternalAdjustment(taskId, userId, reason) {
         const existing = await this.prisma.kanbanTask.findUnique({
             where: { id: taskId, deletedAt: null },
-            select: { id: true, contentPostId: true },
+            select: { id: true, contentPostId: true, companyId: true, title: true },
         });
         if (!existing)
             throw new common_1.NotFoundException('Task not found');
@@ -661,11 +679,18 @@ let KanbanService = class KanbanService {
         }
         await this.deliverablesService.markRequiresAdjustment(taskId);
         await this.logHistoryIfUser(userId, taskId, 'Revisão interna: ajustes solicitados na entrega');
+        await this.notifications.notifyTaskReproved({
+            companyId: existing.companyId,
+            taskId,
+            taskTitle: existing.title,
+            actorId: userId,
+            reason,
+        });
     }
     async applyClientRejection(taskId, userId, reason) {
         const existing = await this.prisma.kanbanTask.findUnique({
             where: { id: taskId, deletedAt: null },
-            select: { id: true, contentPostId: true },
+            select: { id: true, contentPostId: true, companyId: true, title: true },
         });
         if (!existing)
             throw new common_1.NotFoundException('Task not found');
@@ -693,6 +718,13 @@ let KanbanService = class KanbanService {
         }
         await this.deliverablesService.markRequiresAdjustment(taskId);
         await this.logHistoryIfUser(userId, taskId, 'Cliente reprovou: movida para Necessita Ajuste');
+        await this.notifications.notifyTaskReproved({
+            companyId: existing.companyId,
+            taskId,
+            taskTitle: existing.title,
+            actorId: userId,
+            reason,
+        });
     }
     async applyClientApproval(taskId, userId) {
         const existing = await this.prisma.kanbanTask.findUnique({
@@ -798,6 +830,16 @@ let KanbanService = class KanbanService {
             }
             await this.logHistory(userId, taskId, `Entregável adicionado: ${asset.fileName}`);
             await this.deliverablesService.syncFromKanbanTask(taskId);
+            const becamePending = task.internalReviewStatus === client_1.InternalReviewStatus.NOT_REQUIRED ||
+                task.internalReviewStatus === client_1.InternalReviewStatus.REJECTED;
+            if (becamePending) {
+                await this.notifications.notifyInternalApprovalPending({
+                    companyId: task.companyId,
+                    taskId,
+                    taskTitle: task.title,
+                    actorId: userId,
+                });
+            }
         }
         return {
             id: asset.id,
@@ -1439,7 +1481,7 @@ let KanbanService = class KanbanService {
                 logs.push(`Responsáveis atualizados: ${names}`);
                 const newAssignees = afterIds.filter((id) => !beforeIds.includes(id));
                 if (newAssignees.length > 0) {
-                    await this.notifications.notifyTaskAssigned(newAssignees, after.title, userId);
+                    await this.notifications.notifyTaskAssigned(newAssignees, after.title, userId, { companyId: after.companyId, taskId: after.id });
                 }
             }
         }

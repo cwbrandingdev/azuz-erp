@@ -47,11 +47,11 @@ export declare class ContentController {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 postId: string;
+                url: string;
                 mimeType: string | null;
             }[];
             author: {
@@ -104,11 +104,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -223,11 +223,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -263,11 +263,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -303,11 +303,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -358,11 +358,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -398,11 +398,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -438,11 +438,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {

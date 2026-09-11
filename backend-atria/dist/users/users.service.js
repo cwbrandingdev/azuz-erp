@@ -358,6 +358,15 @@ let UsersService = class UsersService {
         if (dto.avatarUrl === null) {
             await this.deleteStoredAvatar(existing.avatarUrl);
         }
+        const nextEmail = dto.email?.trim().toLowerCase();
+        if (nextEmail && nextEmail !== existing.email.toLowerCase()) {
+            const taken = await this.prisma.user.findFirst({
+                where: { email: nextEmail, NOT: { id } },
+            });
+            if (taken) {
+                throw new common_1.BadRequestException('Email already registered');
+            }
+        }
         const user = await this.prisma.$transaction(async (tx) => {
             if (groupIds) {
                 await tx.userGroupMember.deleteMany({ where: { userId: id } });
@@ -370,6 +379,9 @@ let UsersService = class UsersService {
             return tx.user.update({
                 where: { id },
                 data: {
+                    email: nextEmail && nextEmail !== existing.email.toLowerCase()
+                        ? nextEmail
+                        : undefined,
                     userGroupId: nextCategory === client_1.UserCategory.CLIENT
                         ? null
                         : groupIds !== undefined

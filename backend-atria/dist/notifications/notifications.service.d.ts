@@ -1,8 +1,20 @@
+import { ConfigService } from '@nestjs/config';
 import { NotificationType } from '@prisma/client';
+import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+type TaskMailContext = {
+    companyId: string;
+    taskId: string;
+    taskTitle: string;
+    actorId?: string | null;
+    reason?: string | null;
+};
 export declare class NotificationsService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly config;
+    private readonly mail;
+    private readonly logger;
+    constructor(prisma: PrismaService, config: ConfigService, mail: MailService);
     findAll(userId: string, unreadOnly?: boolean): Promise<{
         id: string;
         userId: string;
@@ -29,7 +41,12 @@ export declare class NotificationsService {
     markAllAsRead(userId: string): Promise<{
         success: boolean;
     }>;
-    notifyTaskAssigned(assigneeIds: string[], taskTitle: string, actorId: string): Promise<void>;
+    notifyTaskAssigned(assigneeIds: string[], taskTitle: string, actorId: string, options?: {
+        companyId?: string;
+        taskId?: string;
+    }): Promise<void>;
+    notifyInternalApprovalPending(input: TaskMailContext): Promise<void>;
+    notifyTaskReproved(input: TaskMailContext): Promise<void>;
     notifyContractSigned(userIds: string[], contractTitle: string, clientName: string): Promise<void>;
     notifyPostPending(userIds: string[], postTitle: string, clientName: string): Promise<void>;
     notifyPostRejected(userIds: string[], postTitle: string, clientName: string, reason: string): Promise<void>;
@@ -59,5 +76,15 @@ export declare class NotificationsService {
         taskId?: string;
         appUpdateId?: string;
     }): Promise<void>;
+    private findDesignerRecipients;
+    private sendTaskMail;
+    private buildTaskHtml;
+    private loadTaskMailDetails;
+    private formatDate;
+    private buildTaskLink;
+    private buildAppLink;
+    private resolveAppUrl;
+    private escapeHtml;
     private toResponse;
 }
+export {};
