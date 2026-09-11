@@ -25,6 +25,7 @@ export declare class ProvisionUserDto {
     crmIncludeInternal?: boolean;
 }
 export declare class UpdateUserDto {
+    email?: string;
     userGroupId?: string | null;
     userGroupIds?: string[];
     role?: RoleName;

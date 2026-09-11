@@ -57,11 +57,11 @@ export declare class ContentService {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 postId: string;
+                url: string;
                 mimeType: string | null;
             }[];
             author: {
@@ -114,11 +114,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -154,11 +154,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -209,11 +209,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -249,11 +249,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -289,11 +289,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -408,11 +408,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
@@ -448,11 +448,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {

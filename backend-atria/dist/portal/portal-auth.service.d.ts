@@ -43,9 +43,9 @@ export declare class PortalAuthService {
     }>;
     getPortalUserFromAccessToken(token: string): Promise<{
         id: string;
-        clientId: string;
         email: string;
         mustChangePassword: boolean;
+        clientId: string;
     }>;
     private generateTokens;
     private storeRefreshToken;

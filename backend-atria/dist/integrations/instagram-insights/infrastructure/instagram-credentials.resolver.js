@@ -31,6 +31,27 @@ let InstagramCredentialsResolver = InstagramCredentialsResolver_1 = class Instag
         this.graph = graph;
     }
     async listConnectedClients() {
+        const schemaProbe = await this.prisma.$queryRaw `SELECT current_schema() AS schema`;
+        fetch('http://127.0.0.1:7726/ingest/f61a8b4f-537b-4440-a74f-2179a1f0cffe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Debug-Session-Id': 'fd3a09',
+            },
+            body: JSON.stringify({
+                sessionId: 'fd3a09',
+                runId: 'post-fix',
+                hypothesisId: 'C',
+                location: 'instagram-credentials.resolver.ts:listConnectedClients',
+                message: 'instagram listConnectedClients schema probe',
+                data: {
+                    currentSchema: schemaProbe[0]?.schema ?? null,
+                    envSchema: this.config.get('SUPABASE_DB_SCHEMA') ?? null,
+                    hasEnvMetaToken: Boolean(this.config.get('META_ACCESS_TOKEN')?.trim()),
+                },
+                timestamp: Date.now(),
+            }),
+        }).catch(() => { });
         const clients = await this.prisma.client.findMany({
             where: {
                 isActive: true,

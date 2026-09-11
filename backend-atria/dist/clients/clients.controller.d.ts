@@ -10,41 +10,7 @@ export declare class ClientsController {
     private readonly client360Service;
     private readonly clientRequestsService;
     constructor(clientsService: ClientsService, client360Service: Client360Service, clientRequestsService: ClientRequestsService);
-    findAll(clientGroupId?: string, activeOnly?: string): Promise<{
-        id: string;
-        companyName: string;
-        contactName: string | null;
-        document: string | null;
-        email: string | null;
-        phone: string | null;
-        instagram: string | null;
-        instagramUserId: string | null;
-        hasMetaAccessToken: boolean;
-        website: string | null;
-        street: string | null;
-        number: string | null;
-        neighborhood: string | null;
-        city: string | null;
-        state: string | null;
-        zipCode: string | null;
-        address: string | null;
-        notes: string | null;
-        avatarUrl: string | null;
-        isActive: boolean;
-        hasCrmEnabled: boolean;
-        clientGroup: {
-            id: string;
-            name: string;
-            description: string | null;
-            color: string;
-        } | null;
-        postCount: number;
-        requestCount: number;
-        pendingRequestCount: number;
-        activeRequestCount: number;
-        createdAt: string;
-        updatedAt: string;
-    }[]>;
+    findAll(clientGroupId?: string, activeOnly?: string): Promise<any>;
     getClientRequests(id: string, query: QueryClientRequestsDto): Promise<{
         id: string;
         tenantId: string;
@@ -95,7 +61,7 @@ export declare class ClientsController {
             title: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             scheduledDate: string | null;
             copy: string;
             referenceUrl: string | null;
@@ -190,7 +156,7 @@ export declare class ClientsController {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             assignee: null;
         })[];
         meetings: ({
@@ -220,7 +186,7 @@ export declare class ClientsController {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             assignee: null;
         })[];
         releases: ({
@@ -250,7 +216,7 @@ export declare class ClientsController {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             assignee: null;
         })[];
     } | {

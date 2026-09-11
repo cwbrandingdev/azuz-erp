@@ -60,6 +60,7 @@ export function ProvisionUserDialog({
   const [userGroupId, setUserGroupId] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientEmail, setClientEmail] = useState("");
+  const [memberEmail, setMemberEmail] = useState("");
   const [monthlySalary, setMonthlySalary] = useState("");
   const [emailDomain, setEmailDomain] = useState("");
   const [copied, setCopied] = useState(false);
@@ -107,6 +108,7 @@ export function ProvisionUserDialog({
     setUserGroupId("");
     setClientId("");
     setClientEmail("");
+    setMemberEmail("");
     setMonthlySalary("");
     setEmailDomain("");
     setPassword("");
@@ -152,6 +154,9 @@ export function ProvisionUserDialog({
               userGroupId: userGroupId || undefined,
               password: useCustomPassword ? password : undefined,
               monthlySalary: monthlySalary ? Number(monthlySalary) : undefined,
+              email: memberEmail.trim()
+                ? memberEmail.trim().toLowerCase()
+                : undefined,
               emailDomain: emailDomain.trim() || undefined,
               ...(role === "CRM"
                 ? {
@@ -466,6 +471,20 @@ export function ProvisionUserDialog({
                       </div>
                     </div>
                   )}
+
+                  <Field>
+                    <FieldLabel htmlFor="pu-member-email">E-mail (opcional)</FieldLabel>
+                    <Input
+                      id="pu-member-email"
+                      type="email"
+                      value={memberEmail}
+                      onChange={(e) => setMemberEmail(e.target.value)}
+                      placeholder="nome@gmail.com"
+                    />
+                    <p className="mt-1.5 text-[11px] text-[var(--atria-primary)]/45">
+                      E-mail de login e notificações. Se vazio, será gerado com o domínio abaixo.
+                    </p>
+                  </Field>
 
                   <Field>
                     <FieldLabel htmlFor="pu-domain">Domínio do e-mail</FieldLabel>

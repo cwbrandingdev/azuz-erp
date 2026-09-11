@@ -56,6 +56,13 @@ export function getNotificationHref(notification: AppNotification): string {
       return "/content/management";
     case "app_update":
       return "/app-updates";
+    case "system":
+      if (notification.title.toLowerCase().includes("aprovação interna")) {
+        return "/internal-approvals";
+      }
+      return taskId
+        ? `/kanban?taskId=${encodeURIComponent(taskId)}`
+        : "/dashboard?tab=notifications";
     default:
       return "/dashboard?tab=notifications";
   }
