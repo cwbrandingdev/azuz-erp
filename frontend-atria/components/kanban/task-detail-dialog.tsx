@@ -24,6 +24,10 @@ import {
   formatSlaDue,
 } from "@/components/sla/sla-status-badge";
 import {
+  fromDateTimeLocalValue,
+  toDateTimeLocalValue,
+} from "@/lib/datetime-local";
+import {
   getInitials,
   DEFAULT_TASK_STATUS,
   STATUS_LABELS,
@@ -152,7 +156,8 @@ export function TaskDetailDialog({
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [assignedGroupId, setAssignedGroupId] = useState("");
   const [clientId, setClientId] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [publicationDate, setPublicationDate] = useState("");
   const [referenceUrl, setReferenceUrl] = useState("");
   const [internalReviewStatus, setInternalReviewStatus] =
     useState<InternalReviewStatus>("not_required");
@@ -170,7 +175,10 @@ export function TaskDetailDialog({
     setAssigneeIds(task.assignees.map((a) => a.id));
     setAssignedGroupId(task.assignedGroupId ?? "");
     setClientId(task.clientId ?? "");
-    setDueDate(task.dueDate ? task.dueDate.split("T")[0] : "");
+    setDeliveryDate(
+      toDateTimeLocalValue(task.deliveryDate ?? task.dueDate),
+    );
+    setPublicationDate(toDateTimeLocalValue(task.publicationDate));
     setReferenceUrl(task.referenceUrl ?? "");
     setInternalReviewStatus(task.internalReviewStatus);
     setInternalReviewNote(task.internalReviewNote ?? "");
@@ -295,7 +303,8 @@ export function TaskDetailDialog({
           assigneeIds,
           assignedGroupId: assignedGroupId || null,
           clientId: clientId || undefined,
-          dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+          deliveryDate: fromDateTimeLocalValue(deliveryDate),
+          publicationDate: fromDateTimeLocalValue(publicationDate),
           referenceUrl: referenceUrl.trim() ? referenceUrl.trim() : null,
         },
       });
@@ -522,6 +531,20 @@ export function TaskDetailDialog({
             )}
             {task.slaStatus && <SlaStatusBadge status={task.slaStatus} />}
           </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--atria-primary)]/70">
+            <p>
+              <span className="font-medium text-[var(--atria-primary)]/55">
+                Data de Entrega:{" "}
+              </span>
+              {formatSlaDue(task.deliveryDate ?? task.dueDate)}
+            </p>
+            <p>
+              <span className="font-medium text-[var(--atria-primary)]/55">
+                Data de Publicação:{" "}
+              </span>
+              {formatSlaDue(task.publicationDate ?? null)}
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2 border-b border-[var(--atria-primary)]/10 pb-3">
@@ -609,15 +632,30 @@ export function TaskDetailDialog({
                     />
                   </Field>
 
-                  <Field>
-                    <FieldLabel htmlFor="detail-due">Prazo</FieldLabel>
-                    <Input
-                      id="detail-due"
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                    />
-                  </Field>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Field>
+                      <FieldLabel htmlFor="detail-delivery">
+                        Data de Entrega
+                      </FieldLabel>
+                      <Input
+                        id="detail-delivery"
+                        type="datetime-local"
+                        value={deliveryDate}
+                        onChange={(e) => setDeliveryDate(e.target.value)}
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="detail-publication">
+                        Data de Publicação
+                      </FieldLabel>
+                      <Input
+                        id="detail-publication"
+                        type="datetime-local"
+                        value={publicationDate}
+                        onChange={(e) => setPublicationDate(e.target.value)}
+                      />
+                    </Field>
+                  </div>
 
                   <Field>
                     <FieldLabel htmlFor="detail-client">Cliente</FieldLabel>
