@@ -15,6 +15,7 @@ import type { CalendarEvent, Client, TeamMember } from "@/services/types";
 import { useCalendarEvents } from "@/hooks/use-calendar-events";
 import { useTasks } from "@/hooks/use-tasks";
 import {
+  EMPTY_KANBAN_FILTERS,
   KanbanFilters,
   type KanbanFiltersState,
 } from "@/components/kanban/kanban-filters";
@@ -46,11 +47,7 @@ const VIEW_OPTIONS: { id: CalendarView; label: string }[] = [
   { id: "month", label: "Mês" },
 ];
 
-const EMPTY_FILTERS: KanbanFiltersState = {
-  assigneeId: "",
-  clientId: "",
-  recordingFilter: "",
-};
+const EMPTY_FILTERS: KanbanFiltersState = EMPTY_KANBAN_FILTERS;
 
 function getNavigationLabel(view: CalendarView, anchor: Date) {
   if (view === "day") {
