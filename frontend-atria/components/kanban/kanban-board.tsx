@@ -28,18 +28,13 @@ import { ColumnHeader } from "./column-header";
 import { CreateTaskDialog } from "./create-task-dialog";
 import { DeletionHistoryDrawer } from "./deletion-history-drawer";
 import {
+  EMPTY_KANBAN_FILTERS,
   KanbanFilters,
-  type KanbanFiltersState,
+  matchesTaskDateFilter,
 } from "./kanban-filters";
 import { TaskCard } from "./task-card";
 import { KanbanHorizontalScroll } from "./kanban-horizontal-scroll";
 import { useTaskDetail } from "./task-detail-provider";
-
-const EMPTY_FILTERS: KanbanFiltersState = {
-  assigneeId: "",
-  clientId: "",
-  recordingFilter: "",
-};
 
 export function KanbanBoard() {
   const { openTask, openTaskById } = useTaskDetail();
@@ -55,7 +50,7 @@ export function KanbanBoard() {
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [filters, setFilters] = useState<KanbanFiltersState>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState(EMPTY_KANBAN_FILTERS);
   const [metaLoading, setMetaLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
 
@@ -104,6 +99,7 @@ export function KanbanBoard() {
       }
       if (filters.clientId && task.clientId !== filters.clientId) return false;
       if (!matchesRecordingFilter(task, filters.recordingFilter)) return false;
+      if (!matchesTaskDateFilter(task, filters)) return false;
       return true;
     });
   }, [tasks, filters]);
@@ -249,6 +245,7 @@ export function KanbanBoard() {
         onChange={setFilters}
         members={members}
         clients={filterClients}
+        showDateFilters
       />
 
       <DragDropContext onDragEnd={handleDragEnd}>
