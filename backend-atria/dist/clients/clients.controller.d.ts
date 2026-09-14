@@ -61,7 +61,7 @@ export declare class ClientsController {
             title: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             scheduledDate: string | null;
             copy: string;
             referenceUrl: string | null;
@@ -156,7 +156,7 @@ export declare class ClientsController {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             assignee: null;
         })[];
         meetings: ({
@@ -186,7 +186,7 @@ export declare class ClientsController {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             assignee: null;
         })[];
         releases: ({
@@ -216,7 +216,7 @@ export declare class ClientsController {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             assignee: null;
         })[];
     } | {
