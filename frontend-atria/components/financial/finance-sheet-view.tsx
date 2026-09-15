@@ -6,6 +6,7 @@ import {
   ArrowUpAZ,
   CalendarClock,
   CheckCircle2,
+  Columns2,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -238,7 +239,9 @@ function SheetColumnTable({
                   className={cn(
                     "px-1.5 py-0.5 text-right font-bold",
                     isPaid
-                      ? "text-emerald-800"
+                      ? transaction.type === "expense"
+                        ? "text-red-600"
+                        : "text-emerald-800"
                       : transaction.type === "income"
                         ? "text-emerald-600"
                         : "text-red-600",
@@ -293,6 +296,7 @@ export function FinanceSheetView({
 }: FinanceSheetViewProps) {
   const [focus, setFocus] = useState<FinanceSheetFocus>("all");
   const [sort, setSort] = useState<FinanceSheetSort>("due");
+  const [twoColumns, setTwoColumns] = useState(false);
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -478,6 +482,23 @@ export function FinanceSheetView({
               );
             })}
 
+            <Button
+              type="button"
+              variant={twoColumns ? "default" : "outline"}
+              size="xs"
+              className={cn(
+                "rounded-lg",
+                twoColumns
+                  ? "bg-[var(--atria-primary)] text-white"
+                  : "border-[var(--atria-primary)]/15 text-[var(--atria-primary)]",
+              )}
+              onClick={() => setTwoColumns((current) => !current)}
+              aria-pressed={twoColumns}
+            >
+              <Columns2 className="size-3.5" />
+              {twoColumns ? "1 coluna" : "2 colunas"}
+            </Button>
+
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -502,22 +523,34 @@ export function FinanceSheetView({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto lg:hidden">
-          <SheetColumnTable
-            rows={loading ? [] : visibleRows}
-            focus={focus}
-            loading={loading}
-            emptyLabel={currentFilter.empty(period)}
-            onEdit={setEditingTransaction}
-            onMarkAsPaid={handleMarkAsPaid}
-            onDelete={setDeletingTransaction}
-          />
-        </div>
-
-        <div className="hidden min-h-0 flex-1 grid-cols-2 overflow-hidden lg:grid">
-          <div className="min-h-0 overflow-auto border-[var(--atria-primary)]/10 lg:border-r">
+        {twoColumns ? (
+          <div className="grid min-h-0 flex-1 grid-cols-2 overflow-hidden">
+            <div className="min-h-0 overflow-auto border-[var(--atria-primary)]/10 border-r">
+              <SheetColumnTable
+                rows={loading ? [] : leftRows}
+                focus={focus}
+                loading={loading}
+                emptyLabel={currentFilter.empty(period)}
+                onEdit={setEditingTransaction}
+                onMarkAsPaid={handleMarkAsPaid}
+                onDelete={setDeletingTransaction}
+              />
+            </div>
+            <div className="min-h-0 overflow-auto">
+              <SheetColumnTable
+                rows={loading ? [] : rightRows}
+                focus={focus}
+                emptyLabel=""
+                onEdit={setEditingTransaction}
+                onMarkAsPaid={handleMarkAsPaid}
+                onDelete={setDeletingTransaction}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 overflow-auto">
             <SheetColumnTable
-              rows={loading ? [] : leftRows}
+              rows={loading ? [] : visibleRows}
               focus={focus}
               loading={loading}
               emptyLabel={currentFilter.empty(period)}
@@ -526,17 +559,7 @@ export function FinanceSheetView({
               onDelete={setDeletingTransaction}
             />
           </div>
-          <div className="min-h-0 overflow-auto">
-            <SheetColumnTable
-              rows={loading ? [] : rightRows}
-              focus={focus}
-              emptyLabel=""
-              onEdit={setEditingTransaction}
-              onMarkAsPaid={handleMarkAsPaid}
-              onDelete={setDeletingTransaction}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       <TransactionDialog
