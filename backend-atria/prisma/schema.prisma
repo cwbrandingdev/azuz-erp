@@ -716,7 +716,9 @@ model Contract {
 
 model Proposal {
   id                 String            @id @default(uuid())
-  clientId           String
+  clientId           String?
+  companyName        String
+  slug               String            @unique
   title              String
   status             ProposalStatus    @default(DRAFT)
   validUntil         DateTime?
@@ -731,7 +733,7 @@ model Proposal {
   coverVideoUrl      String?
   coverImageUrl      String?
   companyId          String            @default("00000000-0000-4000-8000-000000000001")
-  client             Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client             Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
   company            Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdBy          User              @relation("ProposalCreator", fields: [createdById], references: [id])
   items              ProposalItem[]

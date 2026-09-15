@@ -2,15 +2,13 @@
 
 import Image from "next/image";
 import { ClientLogosCarousel } from "@/components/proposals/public/client-logos-carousel";
-import { PricingPlansSection } from "@/components/proposals/public/pricing-plans-section";
 import { ProposalServicesSection } from "@/components/proposals/public/proposal-services-section";
-import { SpaceImagesCarousel } from "@/components/proposals/public/space-images-carousel";
+import { ProposalSpaceSection } from "@/components/proposals/public/proposal-space-section";
 import {
   ABOUT_AGENCY_COPY,
   DEFAULT_COVER_IMAGE_URL,
   DEFAULT_COVER_VIDEO_URL,
   DEFAULT_SCHEDULING_URL,
-  DEFAULT_STRUCTURE_CONTENT,
   formatProposalCurrency,
   formatProposalDate,
   PROPOSAL_GOLD,
@@ -25,6 +23,7 @@ interface PublicProposalViewProps {
 export function PublicProposalView({ proposal }: PublicProposalViewProps) {
   const schedulingUrl =
     proposal.schedulingUrl?.trim() || DEFAULT_SCHEDULING_URL;
+  const hasProjects = proposal.projects.length > 0;
 
   return (
     <main className="bg-white text-neutral-900">
@@ -44,6 +43,12 @@ export function PublicProposalView({ proposal }: PublicProposalViewProps) {
           style={{ backgroundColor: `${PROPOSAL_TEAL}99` }}
         />
         <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
+          <p
+            className="mb-4 text-sm tracking-[0.2em] uppercase sm:text-base"
+            style={{ color: PROPOSAL_GOLD }}
+          >
+            {proposal.companyName}
+          </p>
           <h1 className="font-[family-name:var(--font-proposal-serif)] text-4xl leading-[1.05] font-semibold tracking-tight text-white uppercase sm:text-6xl md:text-7xl">
             Proposta
             <br />
@@ -98,29 +103,7 @@ export function PublicProposalView({ proposal }: PublicProposalViewProps) {
 
       <ProposalServicesSection />
 
-      <section
-        className="px-4 py-16 sm:px-6 sm:py-24"
-        style={{ backgroundColor: PROPOSAL_TEAL }}
-      >
-        <div className="mx-auto max-w-6xl">
-          <p
-            className="text-xs tracking-[0.3em] uppercase"
-            style={{ color: PROPOSAL_GOLD }}
-          >
-            Nosso espaço
-          </p>
-          <h2 className="mt-3 font-[family-name:var(--font-proposal-serif)] text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Estrutura / Fotos do Local
-          </h2>
-
-          <div className="mt-10 grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
-            <SpaceImagesCarousel />
-            <div className="text-base leading-relaxed whitespace-pre-line text-white/80 sm:text-lg">
-              {DEFAULT_STRUCTURE_CONTENT}
-            </div>
-          </div>
-        </div>
-      </section>
+      <ProposalSpaceSection />
 
       <section className="bg-white px-4 py-16 sm:px-6 sm:py-24">
         <div className="mx-auto max-w-6xl">
@@ -146,25 +129,21 @@ export function PublicProposalView({ proposal }: PublicProposalViewProps) {
         </div>
       </section>
 
-      <section
-        className="px-4 py-16 sm:px-6 sm:py-24"
-        style={{ backgroundColor: "#0a2f2f" }}
-      >
-        <div className="mx-auto max-w-6xl">
-          <p
-            className="text-xs tracking-[0.3em] uppercase"
-            style={{ color: PROPOSAL_GOLD }}
-          >
-            Cases
-          </p>
-          <h2 className="mt-3 font-[family-name:var(--font-proposal-serif)] text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Projetos
-          </h2>
-          {proposal.projects.length === 0 ? (
-            <p className="mt-6 text-white/60">
-              Projetos selecionados para esta proposta serão exibidos aqui.
+      {hasProjects ? (
+        <section
+          className="px-4 py-16 sm:px-6 sm:py-24"
+          style={{ backgroundColor: "#0a2f2f" }}
+        >
+          <div className="mx-auto max-w-6xl">
+            <p
+              className="text-xs tracking-[0.3em] uppercase"
+              style={{ color: PROPOSAL_GOLD }}
+            >
+              Cases
             </p>
-          ) : (
+            <h2 className="mt-3 font-[family-name:var(--font-proposal-serif)] text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+              Projetos
+            </h2>
             <div className="mt-10 grid gap-6 md:grid-cols-2">
               {proposal.projects.map((project) => (
                 <article
@@ -207,9 +186,9 @@ export function PublicProposalView({ proposal }: PublicProposalViewProps) {
                 </article>
               ))}
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : null}
 
       <section className="bg-white px-4 py-16 sm:px-6 sm:py-24">
         <div className="mx-auto max-w-6xl">
@@ -229,66 +208,36 @@ export function PublicProposalView({ proposal }: PublicProposalViewProps) {
             className="mt-8 overflow-hidden rounded-2xl border"
             style={{ borderColor: `${PROPOSAL_TEAL}22` }}
           >
-            <table className="min-w-full text-sm">
-              <thead
-                className="text-left"
-                style={{
-                  backgroundColor: `${PROPOSAL_TEAL}0D`,
-                  color: PROPOSAL_TEAL,
-                }}
-              >
-                <tr>
-                  <th className="px-4 py-3 font-medium">Serviço</th>
-                  <th className="px-4 py-3 font-medium">Qtd</th>
-                  <th className="px-4 py-3 font-medium">Unitário</th>
-                  <th className="px-4 py-3 font-medium">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {proposal.items.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="border-t"
-                    style={{ borderColor: `${PROPOSAL_TEAL}14` }}
-                  >
-                    <td className="px-4 py-4">
-                      <p
-                        className="font-medium"
-                        style={{ color: PROPOSAL_TEAL }}
-                      >
-                        {item.name}
-                      </p>
-                      {item.description ? (
-                        <p className="mt-1 text-neutral-500">
-                          {item.description}
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-4 text-neutral-600">
-                      {item.quantity}
-                    </td>
-                    <td className="px-4 py-4 text-neutral-600">
-                      {formatProposalCurrency(item.unitPrice)}
-                    </td>
-                    <td
-                      className="px-4 py-4 font-medium"
-                      style={{ color: PROPOSAL_TEAL }}
-                    >
-                      {formatProposalCurrency(item.subtotal)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ul
+              className="divide-y"
+              style={{ borderColor: `${PROPOSAL_TEAL}14` }}
+            >
+              {proposal.items.map((item) => (
+                <li
+                  key={item.id}
+                  className="px-5 py-4"
+                  style={{ borderColor: `${PROPOSAL_TEAL}14` }}
+                >
+                  <p className="font-medium" style={{ color: PROPOSAL_TEAL }}>
+                    {item.name}
+                  </p>
+                  {item.description ? (
+                    <p className="mt-1 text-sm text-neutral-500">
+                      {item.description}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
             <div
-              className="flex items-center justify-between px-4 py-5 text-white"
+              className="flex items-center justify-between px-5 py-5 text-white"
               style={{ backgroundColor: PROPOSAL_TEAL }}
             >
               <span
                 className="text-sm tracking-wide uppercase"
                 style={{ color: PROPOSAL_GOLD }}
               >
-                Total
+                Investimento mensal
               </span>
               <span className="text-2xl font-semibold">
                 {formatProposalCurrency(proposal.totalValue)}
@@ -297,8 +246,6 @@ export function PublicProposalView({ proposal }: PublicProposalViewProps) {
           </div>
         </div>
       </section>
-
-      <PricingPlansSection />
 
       <section
         className="px-4 py-20 text-center sm:px-6 sm:py-28"

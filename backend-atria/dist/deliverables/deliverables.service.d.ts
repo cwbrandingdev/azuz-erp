@@ -38,7 +38,6 @@ export declare class DeliverablesService {
     } & {
         title: string;
         id: string;
-        tenantId: string;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;

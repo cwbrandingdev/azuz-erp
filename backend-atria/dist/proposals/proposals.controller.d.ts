@@ -6,7 +6,7 @@ export declare class ProposalsController {
     constructor(proposalsService: ProposalsService);
     findAll(query: QueryProposalsDto): Promise<{
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -14,7 +14,9 @@ export declare class ProposalsController {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -53,7 +55,7 @@ export declare class ProposalsController {
     }[]>;
     findOne(id: string): Promise<{
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -61,7 +63,9 @@ export declare class ProposalsController {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -100,7 +104,7 @@ export declare class ProposalsController {
     }>;
     create(user: AuthenticatedUser, dto: CreateProposalDto): Promise<{
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -108,7 +112,9 @@ export declare class ProposalsController {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -147,7 +153,7 @@ export declare class ProposalsController {
     }>;
     update(id: string, dto: UpdateProposalDto): Promise<{
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -155,7 +161,9 @@ export declare class ProposalsController {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -195,7 +203,7 @@ export declare class ProposalsController {
     publish(id: string): Promise<{
         publicPath: string;
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -203,7 +211,9 @@ export declare class ProposalsController {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;

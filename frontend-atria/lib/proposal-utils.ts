@@ -3,15 +3,19 @@ import type { ProposalStatus } from "@/services/types";
 export const PROPOSAL_TEAL = "#004A4A";
 export const PROPOSAL_GOLD = "#D4BA97";
 
-export const CW_LOGO_URL =
-  "https://cwbranding.com.br/cwbranding/cwbrandinglogo.png";
+export const CW_BASE_URL = "https://cwbranding.com.br";
 
-export const DEFAULT_COVER_VIDEO_URL = "/ourspaceimages/videofundo.mp4";
-export const DEFAULT_COVER_IMAGE_URL = "/ourspaceimages/cover-hero.png";
+export const CW_LOGO_URL = `${CW_BASE_URL}/cwbranding/cwbrandinglogo.png`;
+export const CW_LOCAL_LOGO_URL = `${CW_BASE_URL}/cwbranding/cwbnossolocal.png`;
+export const CW_PINHAO_URL = `${CW_BASE_URL}/cwbranding/pinhao.png`;
+export const CW_MAIN_SERVICES_IMAGE_URL = `${CW_BASE_URL}/cwbranding/mainservicesimagept.png`;
+
+export const DEFAULT_COVER_VIDEO_URL = `${CW_BASE_URL}/cwbranding/videofundo.mp4`;
+export const DEFAULT_COVER_IMAGE_URL = `${CW_BASE_URL}/cwbranding/cwbrandinglogo.png`;
 
 export const LOCAL_SPACE_IMAGES = Array.from({ length: 10 }, (_, index) => ({
   id: `space-${index + 1}`,
-  src: `/ourspaceimages/${index + 1}.png`,
+  src: `${CW_BASE_URL}/fotos-espaco/${index + 1}.png`,
   alt: `Espaço CWBranding ${index + 1}`,
 }));
 
@@ -45,56 +49,56 @@ export const PROPOSAL_SERVICES = [
     title: "Social Media",
     description:
       "Criação e gestão de conteúdo para redes sociais, incluindo estratégias de engajamento e crescimento de audiência.",
-    icon: "share-2",
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/SOCIAL%20MEDIA.png`,
   },
   {
     id: "branding",
     title: "Identidade Visual",
     description:
       "Conjunto de elementos gráficos que representam visualmente uma marca — logo, cores, tipografia e padrões visuais.",
-    icon: "palette",
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/IDENTIDADE%20VISUAL.png`,
   },
   {
     id: "traffic",
     title: "Gestão de Tráfego",
     description:
       "Planejamento e execução de campanhas de mídia paga para direcionar visitantes qualificados para a empresa.",
-    icon: "trending-up",
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/TR%C3%81FEGO.png`,
   },
   {
     id: "landing-pages",
     title: "Landing Pages",
     description:
-      "Páginas web específicas criadas para conversão, com foco em performance e experiência do usuário.",
-    icon: "layout-template",
+      "Páginas web específicas criadas para converter visitantes em leads ou clientes através de uma experiência focada.",
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/LANDING%20PAGES.png`,
   },
   {
     id: "marketing-advisory",
     title: "Assessoria de Marketing",
     description:
       "Consultoria estratégica para empresas desenvolverem e implementarem planos de marketing eficazes.",
-    icon: "lightbulb",
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/ASSESSORIA.png`,
+  },
+  {
+    id: "photo-shoots",
+    title: "Ensaios Fotográficos",
+    description:
+      "Produção de fotografias profissionais para materiais de marketing, redes sociais e comunicação da marca.",
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/ENSAIOS%20FOTOGRAFICOS.png`,
   },
   {
     id: "graphic-materials",
     title: "Materiais Gráficos",
     description:
-      "Produção de peças visuais para comunicação — folders, banners, apresentações e materiais institucionais.",
-    icon: "image",
+      "Peças visuais impressas ou digitais — folders, banners, cartões, apresentações e demais materiais.",
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/MATERIAIS%20GR%C3%81FICOS.png`,
   },
   {
-    id: "audiovisual",
-    title: "Produção Audiovisual",
+    id: "events",
+    title: "Cobertura de Eventos",
     description:
-      "Criação de vídeos, ensaios fotográficos e conteúdo audiovisual premium para fortalecer a presença da marca.",
-    icon: "video",
-  },
-  {
-    id: "content-strategy",
-    title: "Estratégia de Conteúdo",
-    description:
-      "Planejamento editorial e direção criativa para posicionar a marca com autoridade e consistência.",
-    icon: "file-text",
+      "Planejamento e execução da cobertura de eventos institucionais ou promocionais da marca.",
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/EVENTOS.png`,
   },
 ] as const;
 
@@ -196,4 +200,72 @@ export function formatProposalDate(value: string | null | undefined) {
 export function toDateInputValue(value: string | null | undefined) {
   if (!value) return "";
   return value.slice(0, 10);
+}
+
+export type ProposalPlanId =
+  | "posicionamento"
+  | "escala"
+  | "lideranca"
+  | "custom";
+
+export const PROPOSAL_PLAN_OPTIONS: {
+  id: ProposalPlanId;
+  label: string;
+  description: string;
+}[] = [
+  {
+    id: "posicionamento",
+    label: "Posicionamento",
+    description: "Estruturar presença e posicionamento no mercado",
+  },
+  {
+    id: "escala",
+    label: "Escala",
+    description: "Acelerar crescimento e aquisição de clientes",
+  },
+  {
+    id: "lideranca",
+    label: "Liderança",
+    description: "Estrutura completa de marketing e geração de demanda",
+  },
+  {
+    id: "custom",
+    label: "Plano personalizado",
+    description: "Montar serviços e valor à parte",
+  },
+];
+
+export function slugifyCompanyName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function getPlanFormDefaults(planId: ProposalPlanId) {
+  if (planId === "custom") {
+    return {
+      title: "",
+      totalValue: 0,
+      items: [{ name: "", description: "" }],
+    };
+  }
+
+  const plan = PROPOSAL_PRICING_PLANS.find((entry) => entry.id === planId);
+  if (!plan) {
+    return {
+      title: "",
+      totalValue: 0,
+      items: [{ name: "", description: "" }],
+    };
+  }
+
+  return {
+    title: plan.name,
+    totalValue: plan.price,
+    items: plan.items.map((name) => ({ name, description: "" })),
+  };
 }

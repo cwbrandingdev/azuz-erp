@@ -25,8 +25,8 @@ export async function getProposal(id: string): Promise<Proposal> {
   return apiRequest<Proposal>(`/proposals/${id}`);
 }
 
-export async function getPublicProposal(id: string): Promise<Proposal> {
-  return apiRequest<Proposal>(`/public/proposals/${id}`, {
+export async function getPublicProposal(slug: string): Promise<Proposal> {
+  return apiRequest<Proposal>(`/public/proposals/${slug}`, {
     skipAuth: true,
     skipToast: true,
   });
@@ -68,9 +68,9 @@ export async function deleteProposal(id: string): Promise<void> {
   return apiRequest<void>(`/proposals/${id}`, { method: "DELETE" });
 }
 
-export function buildPublicProposalUrl(proposalId: string) {
+export function buildPublicProposalUrl(slug: string) {
   if (typeof window !== "undefined") {
-    return `${window.location.origin}/p/${proposalId}`;
+    return `${window.location.origin}/p/${slug}`;
   }
-  return `${API_BASE_URL.replace(/:\d+$/, ":3000")}/p/${proposalId}`;
+  return `${API_BASE_URL.replace(/:\d+$/, ":3000")}/p/${slug}`;
 }

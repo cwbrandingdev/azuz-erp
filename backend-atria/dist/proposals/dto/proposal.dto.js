@@ -102,6 +102,7 @@ __decorate([
 ], ProposalProjectDto.prototype, "sortOrder", void 0);
 class CreateProposalDto {
     clientId;
+    companyName;
     title;
     status;
     validUntil;
@@ -116,9 +117,15 @@ class CreateProposalDto {
 }
 exports.CreateProposalDto = CreateProposalDto;
 __decorate([
-    (0, entity_id_1.IsEntityId)(),
+    (0, entity_id_1.IsEntityId)({ optional: true }),
     __metadata("design:type", String)
 ], CreateProposalDto.prototype, "clientId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], CreateProposalDto.prototype, "companyName", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -189,6 +196,7 @@ __decorate([
 ], CreateProposalDto.prototype, "projects", void 0);
 class UpdateProposalDto {
     clientId;
+    companyName;
     title;
     status;
     validUntil;
@@ -206,6 +214,13 @@ __decorate([
     (0, entity_id_1.IsEntityId)({ optional: true }),
     __metadata("design:type", String)
 ], UpdateProposalDto.prototype, "clientId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], UpdateProposalDto.prototype, "companyName", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

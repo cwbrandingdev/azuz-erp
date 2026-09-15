@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Plus, Save, Send, Trash2 } from "lucide-react";
@@ -9,22 +9,27 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   DEFAULT_COVER_IMAGE_URL,
   DEFAULT_COVER_VIDEO_URL,
   DEFAULT_SCHEDULING_URL,
   DEFAULT_STRUCTURE_CONTENT,
-  LOCAL_SPACE_IMAGES,
   formatProposalCurrency,
+  getPlanFormDefaults,
+  LOCAL_SPACE_IMAGES,
+  PROPOSAL_PLAN_OPTIONS,
+  PROPOSAL_PRICING_PLANS,
+  slugifyCompanyName,
+  type ProposalPlanId,
   toDateInputValue,
 } from "@/lib/proposal-utils";
 import { toast } from "@/lib/toast";
-import { clientsService, proposalsService } from "@/services";
-import type { Client, Proposal } from "@/services/types";
+import { proposalsService } from "@/services";
+import type { Proposal } from "@/services/types";
 
 export interface ProposalFormValues {
-  clientId: string;
+  planId: ProposalPlanId;
+  companyName: string;
   title: string;
   validUntil: string;
   totalValue: number;
@@ -34,8 +39,6 @@ export interface ProposalFormValues {
   items: {
     name: string;
     description: string;
-    quantity: number;
-    unitPrice: number;
   }[];
   projects: {
     title: string;
@@ -49,30 +52,36 @@ interface ProposalFormProps {
   proposal?: Proposal;
 }
 
+function detectPlanId(proposal: Proposal): ProposalPlanId {
+  const matchedPlan = PROPOSAL_PRICING_PLANS.find(
+    (plan) =>
+      plan.name === proposal.title &&
+      plan.price === proposal.totalValue &&
+      plan.items.length === proposal.items.length,
+  );
+  return matchedPlan?.id ?? "custom";
+}
+
 function buildDefaults(proposal?: Proposal): ProposalFormValues {
   if (!proposal) {
+    const planDefaults = getPlanFormDefaults("posicionamento");
     return {
-      clientId: "",
-      title: "",
+      planId: "posicionamento",
+      companyName: "",
+      title: planDefaults.title,
       validUntil: "",
-      totalValue: 0,
+      totalValue: planDefaults.totalValue,
       coverVideoUrl: DEFAULT_COVER_VIDEO_URL,
       coverImageUrl: DEFAULT_COVER_IMAGE_URL,
       schedulingUrl: DEFAULT_SCHEDULING_URL,
-      items: [
-        {
-          name: "",
-          description: "",
-          quantity: 1,
-          unitPrice: 0,
-        },
-      ],
+      items: planDefaults.items,
       projects: [],
     };
   }
 
   return {
-    clientId: proposal.clientId,
+    planId: detectPlanId(proposal),
+    companyName: proposal.companyName,
     title: proposal.title,
     validUntil: toDateInputValue(proposal.validUntil),
     totalValue: proposal.totalValue,
@@ -82,8 +91,6 @@ function buildDefaults(proposal?: Proposal): ProposalFormValues {
     items: proposal.items.map((item) => ({
       name: item.name,
       description: item.description ?? "",
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
     })),
     projects: proposal.projects.map((project) => ({
       title: project.title,
@@ -100,22 +107,16 @@ function toPayload(values: ProposalFormValues) {
     .map((item, index) => ({
       name: item.name.trim(),
       description: item.description.trim() || undefined,
-      quantity: Number(item.quantity) || 1,
-      unitPrice: Number(item.unitPrice) || 0,
+      quantity: 1,
+      unitPrice: 0,
       sortOrder: index,
     }));
 
-  const computedTotal = items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0,
-  );
-
   return {
-    clientId: values.clientId,
+    companyName: values.companyName.trim(),
     title: values.title.trim(),
     validUntil: values.validUntil || undefined,
-    totalValue:
-      values.totalValue > 0 ? Number(values.totalValue) : computedTotal,
+    totalValue: Number(values.totalValue) || 0,
     structureContent: DEFAULT_STRUCTURE_CONTENT,
     structureImageUrls: LOCAL_SPACE_IMAGES.map((image) => image.src),
     coverVideoUrl: values.coverVideoUrl.trim() || undefined,
@@ -136,8 +137,6 @@ function toPayload(values: ProposalFormValues) {
 
 export function ProposalForm({ proposal }: ProposalFormProps) {
   const router = useRouter();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [clientsLoading, setClientsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -148,7 +147,6 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
     handleSubmit,
     watch,
     setValue,
-    formState: { errors },
   } = useForm<ProposalFormValues>({
     defaultValues: buildDefaults(proposal),
   });
@@ -156,37 +154,18 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
   const itemsArray = useFieldArray({ control, name: "items" });
   const projectsArray = useFieldArray({ control, name: "projects" });
 
-  const watchedItems = watch("items");
-  const clientId = watch("clientId");
-
-  const computedTotal = useMemo(() => {
-    return (watchedItems ?? []).reduce((sum, item) => {
-      return sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
-    }, 0);
-  }, [watchedItems]);
+  const planId = watch("planId");
+  const companyName = watch("companyName");
+  const totalValue = watch("totalValue");
+  const previewSlug = slugifyCompanyName(companyName || "");
 
   useEffect(() => {
-    let cancelled = false;
-    setClientsLoading(true);
-    clientsService
-      .getClients()
-      .then((data) => {
-        if (!cancelled) setClients(data);
-      })
-      .catch(() => {
-        if (!cancelled) setClients([]);
-      })
-      .finally(() => {
-        if (!cancelled) setClientsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    setValue("totalValue", Number(computedTotal.toFixed(2)));
-  }, [computedTotal, setValue]);
+    if (proposal) return;
+    const defaults = getPlanFormDefaults(planId);
+    setValue("title", defaults.title);
+    setValue("totalValue", defaults.totalValue);
+    setValue("items", defaults.items);
+  }, [planId, proposal, setValue]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -197,12 +176,22 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
     }
   }, []);
 
+  function handlePlanChange(nextPlanId: ProposalPlanId) {
+    setValue("planId", nextPlanId);
+    if (nextPlanId === "custom") return;
+
+    const defaults = getPlanFormDefaults(nextPlanId);
+    setValue("title", defaults.title);
+    setValue("totalValue", defaults.totalValue);
+    setValue("items", defaults.items);
+  }
+
   async function saveDraft(values: ProposalFormValues) {
     setSaving(true);
     try {
       const payload = toPayload(values);
-      if (!payload.clientId) {
-        toast.error("Selecione um cliente");
+      if (!payload.companyName) {
+        toast.error("Informe o nome da empresa");
         return;
       }
       if (!payload.title) {
@@ -240,12 +229,20 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
     setPublishing(true);
     try {
       const payload = toPayload(values);
-      if (!payload.clientId || !payload.title) {
-        toast.error("Preencha cliente e título antes de publicar");
+      if (!payload.companyName) {
+        toast.error("Informe o nome da empresa antes de publicar");
+        return;
+      }
+      if (!payload.title) {
+        toast.error("Informe o título antes de publicar");
         return;
       }
       if (!payload.items.length) {
-        toast.error("Adicione ao menos um item de serviço");
+        toast.error("Adicione ao menos um serviço");
+        return;
+      }
+      if (!payload.totalValue || payload.totalValue <= 0) {
+        toast.error("Informe o valor total da proposta");
         return;
       }
 
@@ -261,7 +258,7 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
       }
 
       const published = await proposalsService.publishProposal(proposalId);
-      const url = proposalsService.buildPublicProposalUrl(published.id);
+      const url = proposalsService.buildPublicProposalUrl(published.slug);
       if (typeof window !== "undefined") {
         sessionStorage.setItem("proposalShareUrl", url);
       }
@@ -281,6 +278,8 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
     }
   }
 
+  const selectedPlan = PROPOSAL_PRICING_PLANS.find((plan) => plan.id === planId);
+
   return (
     <>
       <form className="flex flex-col gap-6">
@@ -290,7 +289,7 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
               {proposal ? "Editar proposta" : "Nova proposta"}
             </h1>
             <p className="text-sm text-[var(--atria-primary)]/50">
-              Monte a proposta comercial e publique o link público
+              Escolha um plano ou monte uma proposta personalizada
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -316,29 +315,64 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
 
         <Card className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/50">
+            Plano
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {PROPOSAL_PLAN_OPTIONS.map((option) => {
+              const plan = PROPOSAL_PRICING_PLANS.find(
+                (entry) => entry.id === option.id,
+              );
+              const selected = planId === option.id;
+
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => handlePlanChange(option.id)}
+                  className={`rounded-xl border p-4 text-left transition ${
+                    selected
+                      ? "border-[var(--atria-primary)] bg-[var(--atria-primary)]/5 ring-1 ring-[var(--atria-primary)]"
+                      : "border-[var(--atria-primary)]/10 hover:border-[var(--atria-primary)]/30"
+                  }`}
+                >
+                  <p className="font-semibold text-[var(--atria-primary)]">
+                    {option.label}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--atria-primary)]/50">
+                    {option.description}
+                  </p>
+                  {plan ? (
+                    <p className="mt-3 text-sm font-medium text-[var(--atria-primary)]">
+                      {formatProposalCurrency(plan.price)}/mês
+                    </p>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+          {selectedPlan ? (
+            <p className="mt-4 text-sm text-[var(--atria-primary)]/60">
+              {selectedPlan.description}
+            </p>
+          ) : null}
+        </Card>
+
+        <Card className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/50">
             Dados da proposta
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             <Field>
-              <FieldLabel>Cliente</FieldLabel>
-              <SearchableSelect
-                value={clientId}
-                onValueChange={(value) =>
-                  setValue("clientId", value, { shouldValidate: true })
-                }
-                loading={clientsLoading}
-                placeholder="Selecione..."
-                searchPlaceholder="Buscar cliente..."
-                emptyLabel="Nenhum cliente encontrado"
-                options={clients.map((client) => ({
-                  value: client.id,
-                  label: client.companyName,
-                }))}
+              <FieldLabel>Nome da empresa</FieldLabel>
+              <Input
+                placeholder="Ex: Empresa ABC"
+                {...register("companyName", { required: true })}
               />
-              <input type="hidden" {...register("clientId", { required: true })} />
-              {errors.clientId && (
-                <p className="text-xs text-red-600">Cliente obrigatório</p>
-              )}
+              {proposal?.slug || previewSlug ? (
+                <p className="text-xs text-[var(--atria-primary)]/45">
+                  Link público: /p/{proposal?.slug ?? previewSlug}
+                </p>
+              ) : null}
             </Field>
 
             <Field>
@@ -362,9 +396,11 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
                 min="0"
                 {...register("totalValue", { valueAsNumber: true })}
               />
-              <p className="text-xs text-[var(--atria-primary)]/45">
-                Calculado dos itens: {formatProposalCurrency(computedTotal)}
-              </p>
+              {totalValue > 0 ? (
+                <p className="text-xs text-[var(--atria-primary)]/45">
+                  {formatProposalCurrency(totalValue)}
+                </p>
+              ) : null}
             </Field>
 
             <Field className="md:col-span-2">
@@ -379,69 +415,63 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
 
         <Card className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/50">
-              Itens de serviço
-            </h2>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                itemsArray.append({
-                  name: "",
-                  description: "",
-                  quantity: 1,
-                  unitPrice: 0,
-                })
-              }
-            >
-              <Plus className="size-4" />
-              Item
-            </Button>
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/50">
+                Serviços incluídos
+              </h2>
+              <p className="mt-1 text-xs text-[var(--atria-primary)]/45">
+                Lista de serviços da proposta — o valor é definido apenas no
+                total acima
+              </p>
+            </div>
+            {planId === "custom" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  itemsArray.append({
+                    name: "",
+                    description: "",
+                  })
+                }
+              >
+                <Plus className="size-4" />
+                Serviço
+              </Button>
+            )}
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {itemsArray.fields.map((field, index) => (
               <div
                 key={field.id}
-                className="grid gap-3 rounded-xl border border-[var(--atria-primary)]/10 p-3 md:grid-cols-[1fr_80px_120px_40px]"
+                className="flex items-start gap-2 rounded-xl border border-[var(--atria-primary)]/10 p-3"
               >
-                <div className="flex flex-col gap-2 md:col-span-1">
+                <div className="grid flex-1 gap-2">
                   <Input
                     placeholder="Nome do serviço"
+                    readOnly={planId !== "custom"}
                     {...register(`items.${index}.name` as const)}
                   />
-                  <Input
-                    placeholder="Descrição (opcional)"
-                    {...register(`items.${index}.description` as const)}
-                  />
+                  {planId === "custom" && (
+                    <Input
+                      placeholder="Descrição (opcional)"
+                      {...register(`items.${index}.description` as const)}
+                    />
+                  )}
                 </div>
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="Qtd"
-                  {...register(`items.${index}.quantity` as const, {
-                    valueAsNumber: true,
-                  })}
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  placeholder="Valor"
-                  {...register(`items.${index}.unitPrice` as const, {
-                    valueAsNumber: true,
-                  })}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={itemsArray.fields.length === 1}
-                  onClick={() => itemsArray.remove(index)}
-                >
-                  <Trash2 className="size-4 text-red-600" />
-                </Button>
+                {planId === "custom" && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={itemsArray.fields.length === 1}
+                    onClick={() => itemsArray.remove(index)}
+                  >
+                    <Trash2 className="size-4 text-red-600" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>

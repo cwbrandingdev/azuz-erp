@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/settings/branding", label: "Identidade" },
   { href: "/settings/appearance", label: "Aparência" },
+  { href: "/settings/users", label: "Usuários" },
   { href: "/settings/api-integrations", label: "Integrações / APIs" },
   { href: "/settings/client-sdr", label: "SDR Cliente" },
   { href: "/settings/sla", label: "SLA" },
-  { href: "/settings/users", label: "Usuários" },
 ];
 
 export function SettingsNav() {

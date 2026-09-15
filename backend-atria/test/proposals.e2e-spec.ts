@@ -25,6 +25,7 @@ describe('Proposals (e2e)', () => {
       .post('/proposals')
       .set(authHeader(ctx.admin.token))
       .send({
+        companyName: `Empresa E2E ${E2E_RUN_ID}`,
         title: `E2E Proposal ${E2E_RUN_ID}`,
         clientId: ctx.client.id,
         structureContent: 'Audit proposal structure',
@@ -76,12 +77,18 @@ describe('Proposals (e2e)', () => {
       .expect(200);
 
     expect(String(res.body.status).toLowerCase()).toMatch(/publish|sent/);
-    expect(res.body.publicPath).toBe(`/p/${proposalId}`);
+    expect(res.body.publicPath).toMatch(/^\/p\//);
+    expect(res.body.slug).toBeTruthy();
   });
 
-  it('GET /public/proposals/:id — returns published proposal payload', async () => {
+  it('GET /public/proposals/:slug — returns published proposal payload', async () => {
+    const published = await request(app.getHttpServer())
+      .get(`/proposals/${proposalId}`)
+      .set(authHeader(ctx.admin.token))
+      .expect(200);
+
     const res = await request(app.getHttpServer())
-      .get(`/public/proposals/${proposalId}`)
+      .get(`/public/proposals/${published.body.slug}`)
       .expect(200);
 
     expect(res.body.id).toBe(proposalId);

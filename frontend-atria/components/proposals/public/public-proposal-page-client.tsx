@@ -10,7 +10,7 @@ import { ApiError, proposalsService } from "@/services";
 import type { Proposal } from "@/services/types";
 
 interface PublicProposalPageClientProps {
-  proposalId: string;
+  slug: string;
 }
 
 function PublicProposalSkeleton() {
@@ -36,7 +36,7 @@ function PublicProposalSkeleton() {
 }
 
 export function PublicProposalPageClient({
-  proposalId,
+  slug,
 }: PublicProposalPageClientProps) {
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +51,7 @@ export function PublicProposalPageClient({
       setLoading(true);
       setError(null);
       try {
-        const data = await proposalsService.getPublicProposal(proposalId);
+        const data = await proposalsService.getPublicProposal(slug);
         if (!active) return;
         if (data.expired || data.status === "expired") {
           setProposal(data);
@@ -75,7 +75,7 @@ export function PublicProposalPageClient({
     return () => {
       active = false;
     };
-  }, [proposalId]);
+  }, [slug]);
 
   if (loading) return <PublicProposalSkeleton />;
 
