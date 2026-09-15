@@ -2,10 +2,10 @@ import { ProposalsService } from './proposals.service';
 export declare class PublicProposalsController {
     private readonly proposalsService;
     constructor(proposalsService: ProposalsService);
-    findPublic(id: string): Promise<{
+    findPublic(slug: string): Promise<{
         expired: boolean;
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -13,7 +13,9 @@ export declare class PublicProposalsController {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;

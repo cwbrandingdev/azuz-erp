@@ -233,6 +233,7 @@ describe('P0 authorization (e2e)', () => {
       .post('/proposals')
       .set(authHeader(ctx.designer.token))
       .send({
+        companyName: `Empresa Bloqueada ${E2E_RUN_ID}`,
         title: `E2E Blocked Proposal ${E2E_RUN_ID}`,
         clientId: ctx.client.id,
         items: [{ name: 'Item', quantity: 1, unitPrice: 100 }],
@@ -243,6 +244,7 @@ describe('P0 authorization (e2e)', () => {
       .post('/proposals')
       .set(authHeader(ctx.admin.token))
       .send({
+        companyName: `Empresa Auth ${E2E_RUN_ID}`,
         title: `E2E Auth Proposal ${E2E_RUN_ID}`,
         clientId: ctx.client.id,
         items: [{ name: 'Gestão', quantity: 1, unitPrice: 1000 }],

@@ -985,7 +985,7 @@ export interface ProposalProject {
 
 export interface Proposal {
   id: string;
-  clientId: string;
+  clientId: string | null;
   client: {
     id: string;
     companyName: string;
@@ -993,7 +993,9 @@ export interface Proposal {
     email: string | null;
     phone: string | null;
     avatarUrl: string | null;
-  };
+  } | null;
+  companyName: string;
+  slug: string;
   title: string;
   status: ProposalStatus;
   validUntil: string | null;
@@ -1037,7 +1039,8 @@ export interface ProposalProjectInput {
 }
 
 export interface CreateProposalInput {
-  clientId: string;
+  clientId?: string;
+  companyName: string;
   title: string;
   status?: ProposalStatus;
   validUntil?: string;
@@ -1053,6 +1056,7 @@ export interface CreateProposalInput {
 
 export interface UpdateProposalInput {
   clientId?: string;
+  companyName?: string;
   title?: string;
   status?: ProposalStatus;
   validUntil?: string | null;

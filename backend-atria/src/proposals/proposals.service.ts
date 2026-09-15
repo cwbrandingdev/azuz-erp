@@ -57,11 +57,8 @@ export class ProposalsService {
     return this.toResponse(proposal);
   }
 
-  async findPublic(id: string) {
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id },
-      include: proposalInclude,
-    });
+  async findPublic(slugOrId: string) {
+    const proposal = await this.findBySlugOrId(slugOrId);
 
     if (!proposal) {
       throw new NotFoundException('Proposal not found');
@@ -83,7 +80,7 @@ export class ProposalsService {
     if (expired) {
       if (proposal.status !== ProposalStatus.EXPIRED) {
         await this.prisma.proposal.update({
-          where: { id },
+          where: { id: proposal.id },
           data: { status: ProposalStatus.EXPIRED },
         });
       }
@@ -104,18 +101,18 @@ export class ProposalsService {
   }
 
   async create(userId: string, dto: CreateProposalDto) {
-    await this.ensureClientExists(dto.clientId);
+    if (dto.clientId) await this.ensureClientExists(dto.clientId);
 
     const items = dto.items ?? [];
     const projects = dto.projects ?? [];
-    const totalValue =
-      dto.totalValue !== undefined
-        ? dto.totalValue
-        : this.computeTotalFromItems(items);
+    const totalValue = dto.totalValue ?? 0;
+    const slug = await this.generateUniqueSlug(dto.companyName);
 
     const proposal = await this.prisma.proposal.create({
       data: {
-        clientId: dto.clientId,
+        clientId: dto.clientId ?? null,
+        companyName: dto.companyName.trim(),
+        slug,
         title: dto.title,
         status: dto.status ?? ProposalStatus.DRAFT,
         validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
@@ -148,6 +145,7 @@ export class ProposalsService {
 
     const data: Prisma.ProposalUpdateInput = {
       title: dto.title,
+      companyName: dto.companyName?.trim(),
       status: dto.status,
       structureContent: dto.structureContent,
       structureImageUrls: dto.structureImageUrls,
@@ -166,10 +164,9 @@ export class ProposalsService {
     };
 
     if (dto.items) {
-      data.totalValue =
-        dto.totalValue !== undefined
-          ? dto.totalValue
-          : this.computeTotalFromItems(dto.items);
+      if (dto.totalValue !== undefined) {
+        data.totalValue = dto.totalValue;
+      }
       data.items = {
         deleteMany: {},
         create: dto.items.map((item, index) =>
@@ -187,6 +184,10 @@ export class ProposalsService {
           this.mapProjectCreate(project, index),
         ),
       };
+    }
+
+    if (dto.companyName) {
+      data.slug = await this.generateUniqueSlug(dto.companyName, id);
     }
 
     const proposal = await this.prisma.proposal.update({
@@ -229,7 +230,7 @@ export class ProposalsService {
     const response = this.toResponse(proposal);
     return {
       ...response,
-      publicPath: `/p/${proposal.id}`,
+      publicPath: `/p/${proposal.slug}`,
     };
   }
 
@@ -258,11 +259,53 @@ export class ProposalsService {
     };
   }
 
-  private computeTotalFromItems(items: ProposalItemDto[]) {
-    return items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0,
-    );
+  private slugify(value: string) {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  private async generateUniqueSlug(companyName: string, excludeId?: string) {
+    const base = this.slugify(companyName) || 'proposta';
+    let slug = base;
+    let counter = 2;
+
+    while (true) {
+      const existing = await this.prisma.proposal.findFirst({
+        where: {
+          slug,
+          ...(excludeId ? { NOT: { id: excludeId } } : {}),
+        },
+        select: { id: true },
+      });
+
+      if (!existing) return slug;
+
+      slug = `${base}-${counter}`;
+      counter += 1;
+    }
+  }
+
+  private async findBySlugOrId(slugOrId: string) {
+    const bySlug = await this.prisma.proposal.findUnique({
+      where: { slug: slugOrId },
+      include: proposalInclude,
+    });
+
+    if (bySlug) return bySlug;
+
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(slugOrId)) return null;
+
+    return this.prisma.proposal.findUnique({
+      where: { id: slugOrId },
+      include: proposalInclude,
+    });
   }
 
   private async ensureExists(id: string) {
@@ -292,8 +335,10 @@ export class ProposalsService {
   private toResponse(proposal: ProposalWithRelations) {
     return {
       id: proposal.id,
-      clientId: proposal.clientId,
-      client: proposal.client,
+      clientId: proposal.clientId ?? null,
+      client: proposal.client ?? null,
+      companyName: proposal.companyName,
+      slug: proposal.slug,
       title: proposal.title,
       status: proposal.status.toLowerCase(),
       validUntil: proposal.validUntil?.toISOString() ?? null,

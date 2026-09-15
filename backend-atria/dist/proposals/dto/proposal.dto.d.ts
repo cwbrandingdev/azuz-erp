@@ -16,7 +16,8 @@ export declare class ProposalProjectDto {
     sortOrder?: number;
 }
 export declare class CreateProposalDto {
-    clientId: string;
+    clientId?: string;
+    companyName: string;
     title: string;
     status?: ProposalStatus;
     validUntil?: string;
@@ -31,6 +32,7 @@ export declare class CreateProposalDto {
 }
 export declare class UpdateProposalDto {
     clientId?: string;
+    companyName?: string;
     title?: string;
     status?: ProposalStatus;
     validUntil?: string | null;

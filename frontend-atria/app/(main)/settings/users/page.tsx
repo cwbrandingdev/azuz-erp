@@ -1,6 +1,5 @@
 "use client";
 
-import { ClientCrmSettingsPanel } from "@/components/settings/client-crm-settings-panel";
 import { UsersAndGroupsPanel } from "@/components/users/users-and-groups-panel";
 
 export default function SettingsUsersPage() {
@@ -15,7 +14,6 @@ export default function SettingsUsersPage() {
         </p>
       </div>
 
-      <ClientCrmSettingsPanel />
       <UsersAndGroupsPanel />
     </div>
   );

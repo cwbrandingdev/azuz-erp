@@ -77,8 +77,13 @@ export class ProposalProjectDto {
 }
 
 export class CreateProposalDto {
-  @IsEntityId()
-  clientId: string;
+  @IsEntityId({ optional: true })
+  clientId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  companyName: string;
 
   @IsString()
   @IsNotEmpty()
@@ -141,6 +146,12 @@ export class CreateProposalDto {
 export class UpdateProposalDto {
   @IsEntityId({ optional: true })
   clientId?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  companyName?: string;
 
   @IsOptional()
   @IsString()

@@ -31,6 +31,7 @@ const ROUTE_LABELS: Record<string, string> = {
   integrations: "Integrações",
   "api-integrations": "Integrações / APIs",
   appearance: "Aparência",
+  "client-sdr": "SDR Cliente",
   users: "Usuários",
 };
 
@@ -91,7 +92,9 @@ export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
 
   const item = findNavItem(pathname);
   if (item) {
-    const sectionLabel = formatSectionLabel(SECTION_BY_HREF.get(item.href) ?? "");
+    const sectionLabel = formatSectionLabel(
+      SECTION_BY_HREF.get(item.href) ?? "",
+    );
     if (sectionLabel) crumbs.push({ label: sectionLabel });
     crumbs.push({ label: item.name });
     return crumbs;

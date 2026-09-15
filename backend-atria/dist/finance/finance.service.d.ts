@@ -15,7 +15,6 @@ export declare class FinanceService {
     private activeTransactionScope;
     getCategories(type?: TransactionType): Promise<{
         id: string;
-        tenantId: string;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
@@ -25,7 +24,6 @@ export declare class FinanceService {
     }[]>;
     createCategory(dto: CreateCategoryDto): Promise<{
         id: string;
-        tenantId: string;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
@@ -35,7 +33,6 @@ export declare class FinanceService {
     }>;
     updateCategory(id: string, dto: UpdateCategoryDto): Promise<{
         id: string;
-        tenantId: string;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;

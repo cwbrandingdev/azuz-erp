@@ -87,6 +87,7 @@ export const navSections: NavSection[] = [
           { name: "Identidade", href: "/settings/branding" },
           { name: "Aparência", href: "/settings/appearance" },
           { name: "Integrações APIs", href: "/settings/api-integrations" },
+          { name: "SDR Cliente", href: "/settings/client-sdr" },
           { name: "Usuários", href: "/settings/users" },
         ],
       },

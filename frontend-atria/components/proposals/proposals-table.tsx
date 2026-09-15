@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { ExternalLink, Pencil, Trash2 } from "lucide-react";
-import { ClientName } from "@/components/ui/client-name";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -48,7 +47,7 @@ export function ProposalsTable({
           Nenhuma proposta ainda
         </p>
         <p className="mt-1 text-sm text-[var(--atria-primary)]/50">
-          Crie a primeira proposta comercial para um cliente.
+          Crie a primeira proposta comercial.
         </p>
       </Card>
     );
@@ -61,7 +60,7 @@ export function ProposalsTable({
           <thead className="bg-[var(--atria-primary)]/5 text-left text-[var(--atria-primary)]/60">
             <tr>
               <th className="px-4 py-3 font-medium">Proposta</th>
-              <th className="px-4 py-3 font-medium">Cliente</th>
+              <th className="px-4 py-3 font-medium">Empresa</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Validade</th>
               <th className="px-4 py-3 font-medium">Valor</th>
@@ -78,7 +77,7 @@ export function ProposalsTable({
                   {proposal.title}
                 </td>
                 <td className="px-4 py-3 text-[var(--atria-primary)]/70">
-                  <ClientName>{proposal.client.companyName}</ClientName>
+                  {proposal.companyName}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -103,7 +102,7 @@ export function ProposalsTable({
                         title="Abrir link público"
                         render={
                           <a
-                            href={`/p/${proposal.id}`}
+                            href={`/p/${proposal.slug}`}
                             target="_blank"
                             rel="noreferrer"
                           />

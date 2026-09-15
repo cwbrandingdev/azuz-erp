@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Save, Users } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { SearchableMultiSelect } from "@/components/ui/searchable-multi-select";
@@ -16,7 +16,7 @@ import {
 } from "@/services";
 import type { Client, ManagedUser } from "@/services/types";
 
-export function ClientCrmSettingsPanel() {
+export function ClientSdrSettingsPanel() {
   const [clients, setClients] = useState<Client[]>([]);
   const [members, setMembers] = useState<ManagedUser[]>([]);
   const [organizationId, setOrganizationId] = useState("");
@@ -75,7 +75,7 @@ export function ClientCrmSettingsPanel() {
       toast.error(
         err instanceof ApiError
           ? err.message
-          : "Não foi possível carregar as configurações CRM.",
+          : "Não foi possível carregar as configurações SDR.",
       );
     } finally {
       setLoadingOrganization(false);
@@ -106,12 +106,12 @@ export function ClientCrmSettingsPanel() {
       setSdrUserIds(
         updated.sdrAssignments.map((assignment) => assignment.userId),
       );
-      toast.success("Configurações CRM salvas com sucesso");
+      toast.success("Configurações SDR salvas com sucesso");
     } catch (err) {
       toast.error(
         err instanceof ApiError
           ? err.message
-          : "Não foi possível salvar as configurações CRM.",
+          : "Não foi possível salvar as configurações SDR.",
       );
     } finally {
       setSaving(false);
@@ -131,26 +131,11 @@ export function ClientCrmSettingsPanel() {
       onSubmit={(event) => void handleSave(event)}
       className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5"
     >
-      <div className="mb-5 flex items-start gap-3">
-        <div className="rounded-xl bg-[var(--atria-accent)]/20 p-2 text-[var(--atria-primary)]">
-          <Users className="size-5" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--atria-primary)]">
-            Configurações CRM do Cliente
-          </h2>
-          <p className="text-sm text-[var(--atria-primary)]/50">
-            Ative o CRM por organização e defina os SDRs responsáveis pelo funil
-            comercial.
-          </p>
-        </div>
-      </div>
-
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="crm-organization">Empresa cliente</FieldLabel>
+          <FieldLabel htmlFor="sdr-organization">Empresa cliente</FieldLabel>
           <SearchableSelect
-            id="crm-organization"
+            id="sdr-organization"
             value={organizationId}
             onValueChange={setOrganizationId}
             placeholder="Selecione a empresa..."
@@ -171,7 +156,7 @@ export function ClientCrmSettingsPanel() {
             </p>
           </div>
           <Switch
-            id="crm-enabled"
+            id="sdr-enabled"
             checked={hasCrmEnabled}
             onCheckedChange={setHasCrmEnabled}
             disabled={!organizationId || loadingOrganization || saving}
@@ -180,9 +165,9 @@ export function ClientCrmSettingsPanel() {
 
         {hasCrmEnabled && (
           <Field>
-            <FieldLabel htmlFor="crm-sdrs">SDRs Responsáveis</FieldLabel>
+            <FieldLabel htmlFor="sdr-assignments">SDRs Responsáveis</FieldLabel>
             <SearchableMultiSelect
-              id="crm-sdrs"
+              id="sdr-assignments"
               values={sdrUserIds}
               onValuesChange={setSdrUserIds}
               options={sdrOptions}

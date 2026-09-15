@@ -21,6 +21,7 @@ const ROUTE_PERMISSIONS: Record<string, PermissionKey[]> = {
   "/settings/branding": [Permission.SETTINGS_MANAGE],
   "/settings/appearance": [Permission.SETTINGS_MANAGE],
   "/settings/api-integrations": [Permission.SETTINGS_MANAGE],
+  "/settings/client-sdr": [Permission.SETTINGS_MANAGE],
   "/settings/users": [Permission.USERS_MANAGE],
 };
 

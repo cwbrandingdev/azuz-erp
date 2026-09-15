@@ -5,7 +5,7 @@ export declare class ProposalsService {
     constructor(prisma: PrismaService);
     findAll(query: QueryProposalsDto): Promise<{
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -13,7 +13,9 @@ export declare class ProposalsService {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -52,7 +54,7 @@ export declare class ProposalsService {
     }[]>;
     findOne(id: string): Promise<{
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -60,7 +62,9 @@ export declare class ProposalsService {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -97,10 +101,10 @@ export declare class ProposalsService {
         createdAt: string;
         updatedAt: string;
     }>;
-    findPublic(id: string): Promise<{
+    findPublic(slugOrId: string): Promise<{
         expired: boolean;
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -108,7 +112,9 @@ export declare class ProposalsService {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -147,7 +153,7 @@ export declare class ProposalsService {
     }>;
     create(userId: string, dto: CreateProposalDto): Promise<{
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -155,7 +161,9 @@ export declare class ProposalsService {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -194,7 +202,7 @@ export declare class ProposalsService {
     }>;
     update(id: string, dto: UpdateProposalDto): Promise<{
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -202,7 +210,9 @@ export declare class ProposalsService {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -242,7 +252,7 @@ export declare class ProposalsService {
     publish(id: string): Promise<{
         publicPath: string;
         id: string;
-        clientId: string;
+        clientId: string | null;
         client: {
             id: string;
             email: string | null;
@@ -250,7 +260,9 @@ export declare class ProposalsService {
             companyName: string;
             contactName: string | null;
             phone: string | null;
-        };
+        } | null;
+        companyName: string;
+        slug: string;
         title: string;
         status: string;
         validUntil: string | null;
@@ -290,7 +302,9 @@ export declare class ProposalsService {
     remove(id: string): Promise<void>;
     private mapItemCreate;
     private mapProjectCreate;
-    private computeTotalFromItems;
+    private slugify;
+    private generateUniqueSlug;
+    private findBySlugOrId;
     private ensureExists;
     private ensureClientExists;
     private toResponse;

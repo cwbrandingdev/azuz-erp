@@ -3,8 +3,8 @@ import { PublicProposalPageClient } from "@/components/proposals/public/public-p
 export default async function PublicProposalPage({
   params,
 }: {
-  params: Promise<{ proposalId: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { proposalId } = await params;
-  return <PublicProposalPageClient proposalId={proposalId} />;
+  const { slug } = await params;
+  return <PublicProposalPageClient slug={slug} />;
 }
