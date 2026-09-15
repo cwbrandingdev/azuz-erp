@@ -7,6 +7,7 @@ const links = [
   { href: "/settings/branding", label: "Identidade" },
   { href: "/settings/appearance", label: "Aparência" },
   { href: "/settings/api-integrations", label: "Integrações / APIs" },
+  { href: "/settings/client-sdr", label: "SDR Cliente" },
   { href: "/settings/sla", label: "SLA" },
   { href: "/settings/users", label: "Usuários" },
 ];
