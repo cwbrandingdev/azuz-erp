@@ -1,40 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { useAuth } from "@/contexts/auth-context";
-import { useAppUpdatesAccess } from "@/hooks/use-app-updates";
-import { canAccessRoute } from "@/lib/navigation-access";
-import { isMasterRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { isRouteActive } from "@/lib/nav-active";
+import { isNavItemActive } from "@/lib/nav-match";
+import {
+  getNavItemBadgeCount,
+  useVisibleNavSections,
+} from "@/hooks/use-visible-nav-sections";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  navSections,
-  leadsRoutes,
-  settingsRoutes,
-} from "./navigation";
+import { leadsRoutes, settingsRoutes } from "./navigation";
 
 interface SidebarNavProps {
   onNavigate?: () => void;
   className?: string;
   collapsed?: boolean;
-}
-
-function isRouteActive(pathname: string, href: string) {
-  if (href === "/dashboard") return pathname === "/dashboard";
-  if (href === "/creation") {
-    return (
-      pathname === "/creation" ||
-      pathname.startsWith("/content/")
-    );
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function NavItemBadge({ count }: { count: number }) {
@@ -63,45 +50,9 @@ export function SidebarNav({
   collapsed = false,
 }: SidebarNavProps) {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const { data: appUpdatesAccess } = useAppUpdatesAccess();
-  const appUpdatesBadgeCount = appUpdatesAccess?.unreadCount ?? 0;
+  const { sections: visibleSections, appUpdatesBadgeCount } =
+    useVisibleNavSections();
   const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
-
-  const visibleSections = useMemo(() => {
-    return navSections
-      .map((section) => ({
-        ...section,
-        items: section.items
-          .map((item) => {
-            if (item.href === "/app-updates") {
-              const canSeeAppUpdates =
-                isMasterRole(user?.role) || appUpdatesAccess?.canView;
-              if (!canSeeAppUpdates) {
-                return null;
-              }
-            }
-
-            if (!item.children?.length) {
-              return canAccessRoute(user?.role, item.href, user?.permissions)
-                ? item
-                : null;
-            }
-
-            const children = item.children.filter((child) =>
-              canAccessRoute(user?.role, child.href, user?.permissions),
-            );
-
-            if (children.length === 0) {
-              return null;
-            }
-
-            return { ...item, children };
-          })
-          .filter((item): item is NonNullable<typeof item> => item !== null),
-      }))
-      .filter((section) => section.items.length > 0);
-  }, [appUpdatesAccess?.canView, appUpdatesAccess?.unreadCount, user?.permissions, user?.role]);
 
   useEffect(() => {
     if (collapsed) {
@@ -157,12 +108,11 @@ export function SidebarNav({
               const Icon = item.icon;
               const hasChildren = Boolean(item.children?.length);
               const isOpen = openDropdowns.has(item.name);
-              const active =
-                isRouteActive(pathname, item.href) ||
-                (hasChildren &&
-                  item.children?.some((child) =>
-                    isRouteActive(pathname, child.href),
-                  ));
+              const active = isNavItemActive(pathname, item);
+              const badgeCount = getNavItemBadgeCount(
+                item.href,
+                appUpdatesBadgeCount,
+              );
 
               const iconClass = cn(
                 "shrink-0 transition-colors",
@@ -186,9 +136,6 @@ export function SidebarNav({
               );
 
               if (collapsed) {
-                const badgeCount =
-                  item.href === "/app-updates" ? appUpdatesBadgeCount : 0;
-
                 return (
                   <Tooltip key={item.name}>
                     <TooltipTrigger
@@ -276,7 +223,7 @@ export function SidebarNav({
                   <span className="flex min-w-0 flex-1 items-center gap-2 opacity-100 transition-opacity duration-300 ease-in-out">
                     <span className="truncate">{item.name}</span>
                     {item.href === "/app-updates" ? (
-                      <NavItemBadge count={appUpdatesBadgeCount} />
+                      <NavItemBadge count={badgeCount} />
                     ) : null}
                   </span>
                 </Link>

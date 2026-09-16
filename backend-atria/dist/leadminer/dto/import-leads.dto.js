@@ -18,6 +18,7 @@ class LeadMinerLeadDto {
     phone;
     address;
     website;
+    instagram;
     rating;
     reviews;
     category;
@@ -47,6 +48,12 @@ __decorate([
     (0, class_validator_1.MaxLength)(500),
     __metadata("design:type", String)
 ], LeadMinerLeadDto.prototype, "website", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.MaxLength)(500),
+    __metadata("design:type", String)
+], LeadMinerLeadDto.prototype, "instagram", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),

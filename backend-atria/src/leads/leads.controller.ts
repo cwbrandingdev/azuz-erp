@@ -21,6 +21,10 @@ import { FetchMapsLeadsDto } from './dto/fetch-maps-leads.dto';
 import { CreateLeadCommentDto } from './dto/lead-comment.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { ProspectingLeadsQueryDto } from '../crm/dto/prospecting-leads-query.dto';
+import { CnaeResolverService } from './company-lookup/application/cnae-resolver.service';
+import { B2bLeadSearchDto } from './company-lookup/dto/b2b-lead-search.dto';
+import { CnaeSearchQueryDto } from './company-lookup/dto/cnae-search-query.dto';
+import { LeadSearchSessionService } from './company-lookup/application/lead-search-session.service';
 import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadsService } from './leads.service';
 
@@ -28,7 +32,11 @@ import { LeadsService } from './leads.service';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @AnyPermissions(...getRequiredCrmPermissions())
 export class LeadsController {
-  constructor(private readonly leadsService: LeadsService) {}
+  constructor(
+    private readonly leadsService: LeadsService,
+    private readonly leadSearchSessionService: LeadSearchSessionService,
+    private readonly cnaeResolverService: CnaeResolverService,
+  ) {}
 
   @Get()
   findAll(@CurrentUser() user: AuthenticatedUser) {
@@ -43,8 +51,34 @@ export class LeadsController {
     return this.leadsService.findKanbanBoard(user, query.organizationId);
   }
 
+  @Get('cnae/search')
+  searchCnae(@Query() query: CnaeSearchQueryDto) {
+    return this.cnaeResolverService.search(query.q ?? '');
+  }
+
+  @Get('sessions')
+  listSearchSessions(@CurrentUser() user: AuthenticatedUser) {
+    return this.leadSearchSessionService.listSessions(user.companyId);
+  }
+
+  @Get('sessions/:id')
+  getSearchSessionLeads(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.leadSearchSessionService.getSessionLeads(user.companyId, id);
+  }
+
   @Post('search')
-  search(@Body() dto: LeadSearchDto) {
+  search(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: B2bLeadSearchDto,
+  ) {
+    return this.leadSearchSessionService.search(user.companyId, dto);
+  }
+
+  @Post('search/scraper')
+  searchScraper(@Body() dto: LeadSearchDto) {
     return this.leadsService.search(dto);
   }
 

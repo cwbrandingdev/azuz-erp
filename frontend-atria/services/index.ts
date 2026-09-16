@@ -4,6 +4,7 @@ export { toast, showApiError } from "@/lib/toast";
 export * as authService from "./auth.service";
 export * as calendarService from "./calendar.service";
 export * as leadsService from "./leads.service";
+export * as companySearchService from "./company-search.service";
 export * as kanbanService from "./kanban.service";
 export * as financeService from "./finance.service";
 export * as clientsService from "./clients.service";

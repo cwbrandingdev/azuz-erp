@@ -20,6 +20,7 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const business_days_1 = require("./business-days");
 const crm_scope_service_1 = require("./crm-scope.service");
 const lead_notification_service_1 = require("./lead-notification.service");
+const apify_place_mapper_1 = require("./maps-scraper/apify-place.mapper");
 const lead_stages_service_1 = require("./lead-stages.service");
 const lead_kanban_constants_1 = require("./lead-kanban.constants");
 const lead_pipeline_zones_1 = require("./lead-pipeline-zones");
@@ -28,7 +29,6 @@ const SCRAPER_TIMEOUT_MS = 120_000;
 const OUTSCRAPER_TIMEOUT_MS = 180_000;
 const OUTSCRAPER_LIMIT = 25;
 const APIFY_TIMEOUT_MS = 180_000;
-const APIFY_DEFAULT_LANGUAGE = 'pt-BR';
 const APIFY_DEFAULT_MAX_RESULTS = 25;
 const APIFY_MAX_RESULTS_LIMIT = 120;
 let LeadsService = LeadsService_1 = class LeadsService {
@@ -110,6 +110,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                     phone: place.phone,
                     email: place.email,
                     website: place.website,
+                    instagram: place.instagram,
                     address: place.address,
                     city: place.city ?? dto.city,
                     neighborhood: place.neighborhood ?? dto.neighborhood,
@@ -669,11 +670,14 @@ let LeadsService = LeadsService_1 = class LeadsService {
         return {
             id: lead.id,
             companyId: lead.companyId,
+            tenantId: lead.companyId,
+            searchSessionId: lead.searchSessionId,
             organizationId: lead.organizationId,
             name: lead.name,
             phone: lead.phone,
             email: lead.email,
             website: lead.website,
+            instagram: lead.instagram,
             address: lead.address,
             city: lead.city,
             neighborhood: lead.neighborhood,
@@ -806,7 +810,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 throw new common_1.BadGatewayException(this.extractApifyErrorMessage(body) ??
                     'Falha ao buscar lugares no Apify. Tente novamente.');
             }
-            return this.mapApifyPlaces(body, dto);
+            return (0, apify_place_mapper_1.mapApifyPlaces)(body, dto);
         }
         catch (error) {
             if (error instanceof common_1.BadGatewayException)
@@ -822,15 +826,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
         }
     }
     buildApifyActorInput(dto) {
-        const category = dto.category.trim();
-        const neighborhood = dto.neighborhood.trim();
-        const city = dto.city.trim();
-        return {
-            searchStringsArray: [`${category} em ${neighborhood}, ${city}`],
-            locationQuery: `${neighborhood}, ${city}, Brasil`,
-            language: APIFY_DEFAULT_LANGUAGE,
-            maxCrawledPlacesPerSearch: this.resolveApifyMaxResults(),
-        };
+        return (0, apify_place_mapper_1.buildApifyActorInput)(dto, this.resolveApifyMaxResults());
     }
     resolveApifyMaxResults() {
         const configured = Number(this.configService.get('APIFY_MAX_RESULTS'));
@@ -882,40 +878,6 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 latitude: typeof place.latitude === 'number' ? place.latitude : undefined,
                 longitude: typeof place.longitude === 'number' ? place.longitude : undefined,
                 source: 'outscraper',
-                rawData: place,
-            });
-        }
-        return mapped;
-    }
-    mapApifyPlaces(body, dto) {
-        const places = (Array.isArray(body) ? body : []);
-        const mapped = [];
-        for (const place of places) {
-            const name = this.asOptionalString(place.title ?? place.name);
-            if (!name)
-                continue;
-            mapped.push({
-                name,
-                phone: this.asOptionalString(place.phone ?? place.phoneUnformatted),
-                email: this.asOptionalString(place.email),
-                website: this.asOptionalString(place.website),
-                address: this.asOptionalString(place.address),
-                city: this.asOptionalString(place.city) ?? dto.city,
-                neighborhood: this.asOptionalString(place.neighborhood) ?? dto.neighborhood,
-                category: this.asOptionalString(place.categoryName ?? place.category) ??
-                    dto.category,
-                placeId: this.asOptionalString(place.placeId),
-                rating: typeof place.totalScore === 'number' ? place.totalScore : undefined,
-                reviewsCount: typeof place.reviewsCount === 'number'
-                    ? place.reviewsCount
-                    : undefined,
-                latitude: typeof place.location?.lat === 'number'
-                    ? place.location.lat
-                    : undefined,
-                longitude: typeof place.location?.lng === 'number'
-                    ? place.location.lng
-                    : undefined,
-                source: 'apify',
                 rawData: place,
             });
         }

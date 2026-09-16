@@ -23,12 +23,20 @@ const fetch_maps_leads_dto_1 = require("./dto/fetch-maps-leads.dto");
 const lead_comment_dto_1 = require("./dto/lead-comment.dto");
 const lead_kanban_dto_1 = require("./dto/lead-kanban.dto");
 const prospecting_leads_query_dto_1 = require("../crm/dto/prospecting-leads-query.dto");
+const cnae_resolver_service_1 = require("./company-lookup/application/cnae-resolver.service");
+const b2b_lead_search_dto_1 = require("./company-lookup/dto/b2b-lead-search.dto");
+const cnae_search_query_dto_1 = require("./company-lookup/dto/cnae-search-query.dto");
+const lead_search_session_service_1 = require("./company-lookup/application/lead-search-session.service");
 const lead_search_dto_1 = require("./dto/lead-search.dto");
 const leads_service_1 = require("./leads.service");
 let LeadsController = class LeadsController {
     leadsService;
-    constructor(leadsService) {
+    leadSearchSessionService;
+    cnaeResolverService;
+    constructor(leadsService, leadSearchSessionService, cnaeResolverService) {
         this.leadsService = leadsService;
+        this.leadSearchSessionService = leadSearchSessionService;
+        this.cnaeResolverService = cnaeResolverService;
     }
     findAll(user) {
         return this.leadsService.findAll(user);
@@ -36,7 +44,19 @@ let LeadsController = class LeadsController {
     getKanbanBoard(user, query) {
         return this.leadsService.findKanbanBoard(user, query.organizationId);
     }
-    search(dto) {
+    searchCnae(query) {
+        return this.cnaeResolverService.search(query.q ?? '');
+    }
+    listSearchSessions(user) {
+        return this.leadSearchSessionService.listSessions(user.companyId);
+    }
+    getSearchSessionLeads(user, id) {
+        return this.leadSearchSessionService.getSessionLeads(user.companyId, id);
+    }
+    search(user, dto) {
+        return this.leadSearchSessionService.search(user.companyId, dto);
+    }
+    searchScraper(dto) {
         return this.leadsService.search(dto);
     }
     fetchMaps(dto) {
@@ -78,12 +98,42 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], LeadsController.prototype, "getKanbanBoard", null);
 __decorate([
+    (0, common_1.Get)('cnae/search'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [cnae_search_query_dto_1.CnaeSearchQueryDto]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "searchCnae", null);
+__decorate([
+    (0, common_1.Get)('sessions'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "listSearchSessions", null);
+__decorate([
+    (0, common_1.Get)('sessions/:id'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "getSearchSessionLeads", null);
+__decorate([
     (0, common_1.Post)('search'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, b2b_lead_search_dto_1.B2bLeadSearchDto]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "search", null);
+__decorate([
+    (0, common_1.Post)('search/scraper'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [lead_search_dto_1.LeadSearchDto]),
     __metadata("design:returntype", void 0)
-], LeadsController.prototype, "search", null);
+], LeadsController.prototype, "searchScraper", null);
 __decorate([
     (0, common_1.Post)('fetch-maps'),
     __param(0, (0, common_1.Body)()),
@@ -145,6 +195,8 @@ exports.LeadsController = LeadsController = __decorate([
     (0, common_1.Controller)('leads'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
     (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredCrmPermissions)()),
-    __metadata("design:paramtypes", [leads_service_1.LeadsService])
+    __metadata("design:paramtypes", [leads_service_1.LeadsService,
+        lead_search_session_service_1.LeadSearchSessionService,
+        cnae_resolver_service_1.CnaeResolverService])
 ], LeadsController);
 //# sourceMappingURL=leads.controller.js.map

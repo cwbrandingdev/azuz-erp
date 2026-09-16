@@ -18,6 +18,8 @@ const lead_stages_service_1 = require("../leads/lead-stages.service");
 const crm_scope_service_1 = require("../leads/crm-scope.service");
 const lead_kanban_constants_1 = require("../leads/lead-kanban.constants");
 const prisma_service_1 = require("../prisma/prisma.service");
+const lead_miner_client_1 = require("../leads/company-lookup/infrastructure/lead-miner.client");
+const DEFAULT_LEADMINER_API = 'https://lead-miner.fly.dev';
 let LeadminerService = class LeadminerService {
     configService;
     prisma;
@@ -34,10 +36,8 @@ let LeadminerService = class LeadminerService {
         this.crmScope = crmScope;
     }
     getLeadMinerBaseUrl() {
-        const baseURL = this.configService.get('LEADMINER_API');
-        if (!baseURL) {
-            throw new common_1.InternalServerErrorException('LEADMINER_API is not defined');
-        }
+        const baseURL = this.configService.get('LEADMINER_API')?.trim() ||
+            DEFAULT_LEADMINER_API;
         return baseURL.replace(/\/$/, '');
     }
     async SearchLeads(payload) {
@@ -122,10 +122,12 @@ let LeadminerService = class LeadminerService {
                 }
                 continue;
             }
+            const contact = (0, lead_miner_client_1.parseLeadMinerWebsiteAndInstagram)(item.website, item.instagram);
             const baseData = {
                 name,
                 phone,
-                website: item.website,
+                website: contact.website,
+                instagram: contact.instagram,
                 address: item.address,
                 city: dto.city,
                 neighborhood: dto.neighborhood,
@@ -185,6 +187,7 @@ let LeadminerService = class LeadminerService {
             phone: lead.phone,
             email: lead.email,
             website: lead.website,
+            instagram: lead.instagram,
             address: lead.address,
             city: lead.city,
             neighborhood: lead.neighborhood,

@@ -2282,11 +2282,14 @@ export type CrmLeadStatus = "ACTIVE" | "FINISHED" | "NO_INTEREST";
 export interface Lead {
   id: string;
   companyId: string;
+  tenantId?: string;
+  searchSessionId?: string | null;
   organizationId?: string | null;
   name: string;
   phone: string | null;
   email: string | null;
   website: string | null;
+  instagram: string | null;
   address: string | null;
   city: string | null;
   neighborhood: string | null;

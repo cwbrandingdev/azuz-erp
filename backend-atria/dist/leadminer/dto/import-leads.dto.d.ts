@@ -3,6 +3,7 @@ export declare class LeadMinerLeadDto {
     phone: string;
     address?: string;
     website?: string;
+    instagram?: string;
     rating?: number;
     reviews?: number;
     category?: string;

@@ -14,8 +14,11 @@ import {
   LEAD_STATUS_LABELS,
 } from '../leads/lead-kanban.constants';
 import { PrismaService } from '../prisma/prisma.service';
+import { parseLeadMinerWebsiteAndInstagram } from '../leads/company-lookup/infrastructure/lead-miner.client';
 import { ImportLeadMinerLeadsDto } from './dto/import-leads.dto';
 import { SearchLeadsDTO } from './dto/search-leads.dto';
+
+const DEFAULT_LEADMINER_API = 'https://lead-miner.fly.dev';
 
 export interface LeadMinerJobStartResponse {
   job_id: string;
@@ -26,7 +29,8 @@ export interface LeadMinerLead {
   title?: string;
   phone: string;
   address?: string;
-  website?: string;
+  website?: string | null;
+  instagram?: string | null;
   rating?: number;
   reviews?: number;
   category?: string;
@@ -50,10 +54,9 @@ export class LeadminerService {
   ) {}
 
   private getLeadMinerBaseUrl(): string {
-    const baseURL = this.configService.get<string>('LEADMINER_API');
-    if (!baseURL) {
-      throw new InternalServerErrorException('LEADMINER_API is not defined');
-    }
+    const baseURL =
+      this.configService.get<string>('LEADMINER_API')?.trim() ||
+      DEFAULT_LEADMINER_API;
     return baseURL.replace(/\/$/, '');
   }
 
@@ -152,10 +155,16 @@ export class LeadminerService {
         continue;
       }
 
+      const contact = parseLeadMinerWebsiteAndInstagram(
+        item.website,
+        item.instagram,
+      );
+
       const baseData = {
         name,
         phone,
-        website: item.website,
+        website: contact.website,
+        instagram: contact.instagram,
         address: item.address,
         city: dto.city,
         neighborhood: dto.neighborhood,
@@ -222,6 +231,7 @@ export class LeadminerService {
       phone: lead.phone,
       email: lead.email,
       website: lead.website,
+      instagram: lead.instagram,
       address: lead.address,
       city: lead.city,
       neighborhood: lead.neighborhood,
