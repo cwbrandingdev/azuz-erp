@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { canAccessRoute } from "@/lib/navigation-access";
 
 const links = [
-  { href: "/settings/navigation", label: "Navegação" },
+  { href: "/settings/navigation", label: "Configurações" },
   { href: "/settings/branding", label: "Identidade" },
   { href: "/settings/appearance", label: "Aparência" },
   { href: "/settings/users", label: "Usuários" },
@@ -18,7 +18,7 @@ const links = [
 export function SettingsNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const canManageAppearance = canAccessRoute(
+  const isFullSettingsUser = canAccessRoute(
     user?.role,
     "/settings/appearance",
     user?.permissions,
@@ -26,12 +26,12 @@ export function SettingsNav() {
 
   const visibleLinks = links.filter((link) => {
     if (link.href === "/settings/navigation") {
-      return !canManageAppearance;
+      return !isFullSettingsUser;
     }
     return canAccessRoute(user?.role, link.href, user?.permissions);
   });
 
-  if (visibleLinks.length <= 1) {
+  if (visibleLinks.length === 0) {
     return null;
   }
 
