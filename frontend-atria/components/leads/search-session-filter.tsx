@@ -32,7 +32,7 @@ export function SearchSessionFilter({
       <FieldLabel htmlFor="search-session-filter">
         <span className="inline-flex items-center gap-2">
           <History className="size-4 text-[var(--atria-primary)]/60" />
-          Ver buscas anteriores
+          Buscas recentes
         </span>
       </FieldLabel>
       <Select
@@ -49,7 +49,7 @@ export function SearchSessionFilter({
         >
           <SelectValue
             placeholder={
-              loading ? "Carregando buscas..." : "Última busca realizada"
+              loading ? "Carregando buscas..." : "Selecione uma busca recente"
             }
           />
         </SelectTrigger>
