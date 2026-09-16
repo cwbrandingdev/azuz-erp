@@ -81,9 +81,10 @@ export const navSections: NavSection[] = [
       },
       {
         name: "Configurações",
-        href: "/settings/branding",
+        href: "/settings/navigation",
         icon: Settings,
         children: [
+          { name: "Navegação", href: "/settings/navigation" },
           { name: "Identidade", href: "/settings/branding" },
           { name: "Aparência", href: "/settings/appearance" },
           { name: "Integrações APIs", href: "/settings/api-integrations" },

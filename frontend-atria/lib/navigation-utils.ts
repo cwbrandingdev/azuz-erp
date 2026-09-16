@@ -27,6 +27,7 @@ const ROUTE_LABELS: Record<string, string> = {
   reports: "Relatórios",
   resumos: "Resumos",
   settings: "Configurações",
+  navigation: "Navegação",
   branding: "Identidade",
   integrations: "Integrações",
   "api-integrations": "Integrações / APIs",

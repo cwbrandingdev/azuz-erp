@@ -32,15 +32,35 @@ export function useVisibleNavSections() {
                 : null;
             }
 
-            const children = item.children.filter((child) =>
-              canAccessRoute(user?.role, child.href, user?.permissions),
+            const canManageAppearance = canAccessRoute(
+              user?.role,
+              "/settings/appearance",
+              user?.permissions,
             );
+
+            const children = item.children.filter((child) => {
+              if (
+                child.href === "/settings/navigation" &&
+                canManageAppearance
+              ) {
+                return false;
+              }
+              return canAccessRoute(
+                user?.role,
+                child.href,
+                user?.permissions,
+              );
+            });
 
             if (children.length === 0) {
               return null;
             }
 
-            return { ...item, children };
+            if (children.length === 1) {
+              return { ...item, href: children[0].href, children: undefined };
+            }
+
+            return { ...item, href: children[0].href, children };
           })
           .filter((item): item is NonNullable<typeof item> => item !== null),
       }))

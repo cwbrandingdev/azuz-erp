@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
+import { canAccessRoute } from "@/lib/navigation-access";
 
 const links = [
+  { href: "/settings/navigation", label: "Navegação" },
   { href: "/settings/branding", label: "Identidade" },
   { href: "/settings/appearance", label: "Aparência" },
   { href: "/settings/users", label: "Usuários" },
@@ -14,10 +17,27 @@ const links = [
 
 export function SettingsNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const canManageAppearance = canAccessRoute(
+    user?.role,
+    "/settings/appearance",
+    user?.permissions,
+  );
+
+  const visibleLinks = links.filter((link) => {
+    if (link.href === "/settings/navigation") {
+      return !canManageAppearance;
+    }
+    return canAccessRoute(user?.role, link.href, user?.permissions);
+  });
+
+  if (visibleLinks.length <= 1) {
+    return null;
+  }
 
   return (
     <nav className="flex flex-wrap gap-2 border-b border-[var(--atria-primary)]/10 pb-4">
-      {links.map((link) => {
+      {visibleLinks.map((link) => {
         const active = pathname === link.href;
         return (
           <Link

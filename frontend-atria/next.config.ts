@@ -99,11 +99,6 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: "/settings",
-        destination: "/settings/branding",
-        permanent: true,
-      },
-      {
         source: "/dashboard/proposals",
         destination: "/proposals",
         permanent: false,
