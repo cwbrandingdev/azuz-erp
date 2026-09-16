@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { canAccessRoute } from "@/lib/navigation-access";
+import { getHomePathForRole } from "@/lib/roles";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -19,8 +20,15 @@ export default function SettingsPage() {
       return;
     }
 
-    router.replace("/settings/navigation");
-  }, [isLoading, router, user?.permissions, user?.role]);
+    if (
+      canAccessRoute(user?.role, "/settings/navigation", user?.permissions)
+    ) {
+      router.replace("/settings/navigation");
+      return;
+    }
+
+    router.replace(getHomePathForRole(user?.role, user?.hasCrmEnabled));
+  }, [isLoading, router, user?.hasCrmEnabled, user?.permissions, user?.role]);
 
   return null;
 }

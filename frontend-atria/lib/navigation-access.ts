@@ -5,7 +5,7 @@ import {
   Permission,
   type PermissionKey,
 } from "./permissions";
-import { canAccessClientDirectory } from "./roles";
+import { canAccessClientDirectory, isClientRole, isCrmRole } from "./roles";
 
 const ADMIN_ONLY_ROUTES = new Set(["/dashboard", "/dashboard/tv", "/insights"]);
 const INTERNAL_APPROVAL_ROUTES = new Set(["/internal-approvals"]);
@@ -54,6 +54,10 @@ export function canAccessRoute(
   explicitPermissions?: string[] | null,
 ): boolean {
   const routeKey = resolveAccessRouteKey(href);
+
+  if (routeKey === "/settings/navigation" || href === "/settings") {
+    return !isClientRole(role) && !isCrmRole(role);
+  }
 
   if (ADMIN_ONLY_ROUTES.has(routeKey)) {
     return isMasterOrAdmin(role);

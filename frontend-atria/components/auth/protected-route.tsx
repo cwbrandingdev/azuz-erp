@@ -4,20 +4,27 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { canAccessRoute } from "@/lib/navigation-access";
-import {
-  canAccessClientPortal,
-  shouldBlockCrmRoutes,
-} from "@/lib/crm-access";
+import { shouldBlockCrmRoutes } from "@/lib/crm-access";
 import {
   getHomePathForRole,
   isClientRole,
   isExternalCrmRole,
 } from "@/lib/roles";
 
+function isNavigationSettingsPath(pathname: string | null) {
+  if (!pathname) return false;
+  return (
+    pathname === "/settings" ||
+    pathname === "/settings/navigation" ||
+    pathname.startsWith("/settings/navigation/")
+  );
+}
+
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const allowNavigationSettings = isNavigationSettingsPath(pathname);
 
   useEffect(() => {
     if (isLoading) return;
@@ -36,7 +43,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         }
         return;
       }
-      if (!pathname.startsWith("/leads")) {
+      if (!pathname.startsWith("/leads") && !allowNavigationSettings) {
         router.replace("/leads/kanban");
       }
       return;
@@ -48,6 +55,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       router.replace(getHomePathForRole(user.role, user.hasCrmEnabled));
     }
   }, [
+    allowNavigationSettings,
     isAuthenticated,
     isLoading,
     pathname,
@@ -71,7 +79,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (shouldBlockCrmRoutes(user?.role, user?.hasCrmEnabled)) {
       return null;
     }
-    if (!pathname.startsWith("/leads")) {
+    if (!pathname.startsWith("/leads") && !allowNavigationSettings) {
       return null;
     }
     return <>{children}</>;
