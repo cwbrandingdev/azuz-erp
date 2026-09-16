@@ -32,12 +32,12 @@ function storageKey(userId: string) {
 }
 
 function readLayout(userId: string | undefined): NavLayout {
-  if (!userId) return "classic";
+  if (!userId) return "studio";
   try {
     const stored = localStorage.getItem(storageKey(userId));
     if (isNavLayout(stored)) return stored;
   } catch {}
-  return "classic";
+  return "studio";
 }
 
 function writeLayout(userId: string, layout: NavLayout) {
@@ -49,7 +49,7 @@ function writeLayout(userId: string, layout: NavLayout) {
 export function NavLayoutProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id;
-  const [layout, setLayoutState] = useState<NavLayout>("classic");
+  const [layout, setLayoutState] = useState<NavLayout>("studio");
 
   useEffect(() => {
     setLayoutState(readLayout(userId));
