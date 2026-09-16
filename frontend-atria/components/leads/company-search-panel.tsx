@@ -7,6 +7,13 @@ import {
   CompanySearchForm,
   type CompanySearchFormValues,
 } from "@/components/leads/company-search-form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LeadsMapView } from "@/components/leads/leads-map-view";
 import { LeadsTable } from "@/components/leads/leads-table";
 import { SearchSessionFilter } from "@/components/leads/search-session-filter";
@@ -26,8 +33,12 @@ import { formatSearchSessionLabel } from "@/lib/lead-search-session";
 import { normalizeAppRole } from "@/lib/permissions";
 import { toast } from "@/lib/toast";
 import { leadsService } from "@/services";
-import type { LeadSearchQueryType } from "@/services/company-search.service";
+import {
+  searchCompanies,
+  type LeadSearchQueryType,
+} from "@/services/company-search.service";
 import type { Lead } from "@/services/types";
+import { useQueryClient } from "@tanstack/react-query";
 
 const DEFAULT_FORM_VALUES: CompanySearchFormValues = {
   queryType: "NICHO",
@@ -36,7 +47,47 @@ const DEFAULT_FORM_VALUES: CompanySearchFormValues = {
   city: "",
   uf: "SP",
   address: "",
+  batchSearchMode: "none",
+  batchTerms: "",
 };
+
+const ALL_CATEGORIES = "Todas as categorias";
+const ALL_NEIGHBORHOODS = "Todos os bairros";
+
+function parseBatchTerms(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(/[\n,;]+/)
+        .map((term) => term.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function mergeLeadsByIdentity(existing: Lead[], incoming: Lead[]) {
+  const merged = new Map<string, Lead>();
+  for (const lead of [...existing, ...incoming]) {
+    const key =
+      lead.placeId?.trim() ||
+      lead.phone?.replace(/\D/g, "") ||
+      lead.id;
+    merged.set(key, lead);
+  }
+  return Array.from(merged.values());
+}
+
+function collectDistinctValues(
+  leads: Lead[],
+  field: "category" | "neighborhood",
+) {
+  const values = new Set<string>();
+  for (const lead of leads) {
+    const value = lead[field]?.trim();
+    if (value) values.add(value);
+  }
+  return Array.from(values).sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
 
 function isCrmRole(role: string | null | undefined) {
   return normalizeAppRole(role) === "crm";
@@ -66,9 +117,16 @@ export function CompanySearchPanel() {
   const [formValues, setFormValues] =
     useState<CompanySearchFormValues>(DEFAULT_FORM_VALUES);
   const [filterQuery, setFilterQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState(ALL_CATEGORIES);
+  const [filterNeighborhood, setFilterNeighborhood] = useState(
+    ALL_NEIGHBORHOODS,
+  );
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null,
   );
+  const [hasAutoSelectedSession, setHasAutoSelectedSession] = useState(false);
+  const [batchSearching, setBatchSearching] = useState(false);
+  const queryClient = useQueryClient();
   const [activeLeads, setActiveLeads] = useState<Lead[]>([]);
   const [qualifyingId, setQualifyingId] = useState<string | null>(null);
   const [addingKanbanId, setAddingKanbanId] = useState<string | null>(null);
@@ -84,15 +142,37 @@ export function CompanySearchPanel() {
   const sessions = sessionsQuery.data ?? [];
   const loadingSessions = sessionsQuery.isLoading;
   const loadingSessionLeads = sessionLeadsQuery.isFetching;
-  const searching = searchMutation.isPending;
+  const searching = searchMutation.isPending || batchSearching;
 
   const canShowMap = Boolean(
     formValues.city.trim() && formValues.uf.trim(),
   );
 
   const hasSearchContext = Boolean(
-    selectedSessionId || searchMutation.data || activeLeads.length > 0,
+    selectedSessionId ||
+      searchMutation.data ||
+      activeLeads.length > 0 ||
+      sessions.length > 0,
   );
+
+  useEffect(() => {
+    if (
+      hasAutoSelectedSession ||
+      loadingSessions ||
+      sessions.length === 0 ||
+      selectedSessionId
+    ) {
+      return;
+    }
+
+    setSelectedSessionId(sessions[0].id);
+    setHasAutoSelectedSession(true);
+  }, [
+    hasAutoSelectedSession,
+    loadingSessions,
+    selectedSessionId,
+    sessions,
+  ]);
 
   useEffect(() => {
     if (selectedSessionId && sessionLeadsQuery.data) {
@@ -111,13 +191,46 @@ export function CompanySearchPanel() {
     }
   }, [searchMutation.data, selectedSessionId]);
 
+  const categoryOptions = useMemo(
+    () => collectDistinctValues(activeLeads, "category"),
+    [activeLeads],
+  );
+
+  const neighborhoodOptions = useMemo(
+    () => collectDistinctValues(activeLeads, "neighborhood"),
+    [activeLeads],
+  );
+
   const filteredLeads = useMemo(() => {
+    let filtered = activeLeads;
+
+    if (filterCategory !== ALL_CATEGORIES) {
+      filtered = filtered.filter(
+        (lead) =>
+          lead.category?.trim().toLowerCase() ===
+          filterCategory.trim().toLowerCase(),
+      );
+    }
+
+    if (filterNeighborhood !== ALL_NEIGHBORHOODS) {
+      filtered = filtered.filter(
+        (lead) =>
+          lead.neighborhood?.trim().toLowerCase() ===
+          filterNeighborhood.trim().toLowerCase(),
+      );
+    }
+
     const normalized = filterQuery.trim().toLowerCase();
     if (!normalized) {
-      return activeLeads;
+      return filtered;
     }
-    return activeLeads.filter((lead) => matchesQuery(lead, normalized));
-  }, [activeLeads, filterQuery]);
+    return filtered.filter((lead) => matchesQuery(lead, normalized));
+  }, [activeLeads, filterCategory, filterNeighborhood, filterQuery]);
+
+  useEffect(() => {
+    setFilterCategory(ALL_CATEGORIES);
+    setFilterNeighborhood(ALL_NEIGHBORHOODS);
+  }, [selectedSessionId]);
 
   const pendingKanbanCount = useMemo(
     () => filteredLeads.filter((lead) => !lead.kanbanTracked).length,
@@ -133,51 +246,162 @@ export function CompanySearchPanel() {
     const queryValue = formValues.queryValue.trim();
     const city = formValues.city.trim();
     const uf = formValues.uf.trim().toUpperCase();
+    const address = formValues.address.trim();
+    const batchTerms = parseBatchTerms(formValues.batchTerms);
 
-    if (!queryValue || !city || !uf) {
-      toast.error(
-        formValues.queryType === "CNAE"
-          ? "Selecione um CNAE e informe a cidade e o estado."
-          : "Preencha o nicho, a cidade e o estado.",
-      );
+    if (!city || !uf) {
+      toast.error("Informe a cidade e o estado.");
+      return;
+    }
+
+    if (formValues.queryType === "CNAE") {
+      if (!queryValue) {
+        toast.error("Selecione um CNAE e informe a cidade e o estado.");
+        return;
+      }
+    } else if (formValues.batchSearchMode === "categoria") {
+      if (batchTerms.length === 0) {
+        toast.error("Informe ao menos uma categoria na lista.");
+        return;
+      }
+    } else if (formValues.batchSearchMode === "bairro") {
+      if (!queryValue) {
+        toast.error("Informe a categoria para buscar em vários bairros.");
+        return;
+      }
+      if (batchTerms.length === 0) {
+        toast.error("Informe ao menos um bairro na lista.");
+        return;
+      }
+    } else if (!queryValue && !address) {
+      toast.error("Informe a categoria ou o bairro para buscar.");
+      return;
+    }
+
+    setFilterQuery("");
+    setFilterCategory(ALL_CATEGORIES);
+    setFilterNeighborhood(ALL_NEIGHBORHOODS);
+
+    if (
+      formValues.queryType === "NICHO" &&
+      formValues.batchSearchMode !== "none" &&
+      batchTerms.length > 0
+    ) {
+      setBatchSearching(true);
+      setSelectedSessionId(null);
+
+      void (async () => {
+        let mergedLeads: Lead[] = [];
+        let lastSessionId: string | null = null;
+        let failed = 0;
+
+        try {
+          const jobs =
+            formValues.batchSearchMode === "categoria"
+              ? batchTerms.map((category) => ({
+                  queryValue: category,
+                  address,
+                }))
+              : batchTerms.map((neighborhood) => ({
+                  queryValue,
+                  address: neighborhood,
+                }));
+
+          for (const job of jobs) {
+            try {
+              const data = await searchCompanies({
+                queryType: "NICHO",
+                queryValue: job.queryValue,
+                city,
+                uf,
+                address: job.address || undefined,
+                maxResults: 20,
+              });
+              mergedLeads = mergeLeadsByIdentity(mergedLeads, data.leads);
+              lastSessionId = data.session.id;
+              queryClient.setQueryData(
+                ["lead-search-session", data.session.id],
+                data,
+              );
+            } catch {
+              failed += 1;
+            }
+          }
+
+          await queryClient.invalidateQueries({
+            queryKey: ["lead-search-sessions"],
+          });
+
+          setActiveLeads(mergedLeads);
+          setSelectedSessionId(lastSessionId);
+          setHasAutoSelectedSession(true);
+
+          if (mergedLeads.length > 0) {
+            toast.success(
+              `${mergedLeads.length} empresa(s) encontradas em ${jobs.length} busca(s).`,
+            );
+          } else {
+            toast.info("Nenhuma empresa encontrada para os termos informados.");
+          }
+
+          if (failed > 0) {
+            toast.error(
+              `${failed} busca(s) falharam. As demais foram concluídas.`,
+            );
+          }
+        } catch {
+          toast.error(
+            "Não foi possível buscar empresas agora. Tente novamente em instantes.",
+          );
+        } finally {
+          setBatchSearching(false);
+        }
+      })();
+
       return;
     }
 
     setSelectedSessionId(null);
-    setFilterQuery("");
 
-    searchMutation.mutate(
-      {
-        queryType: formValues.queryType,
-        queryValue,
-        city,
-        uf,
-        address: formValues.address.trim() || undefined,
-        maxResults: 20,
-      },
-      {
-        onSuccess: (data) => {
-          setActiveLeads(data.leads);
-          setSelectedSessionId(data.session.id);
+    const effectiveCategory =
+      queryValue || (formValues.queryType === "NICHO" ? "comércio" : queryValue);
 
-          if (data.leads.length > 0) {
-            toast.success(
-              `Encontramos ${data.leads.length} empresa(s) em ${city}.`,
-            );
-          } else {
-            toast.info(
-              "Nenhuma empresa encontrada. Tente outro termo ou cidade próxima.",
-            );
-          }
-        },
-        onError: () => {
-          toast.error(
-            "Não foi possível buscar empresas agora. Tente novamente em instantes.",
+    void searchCompanies({
+      queryType: formValues.queryType,
+      queryValue: effectiveCategory,
+      city,
+      uf,
+      address: address || undefined,
+      maxResults: 20,
+    })
+      .then((data) => {
+        setActiveLeads(data.leads);
+        setSelectedSessionId(data.session.id);
+        setHasAutoSelectedSession(true);
+        queryClient.setQueryData(
+          ["lead-search-session", data.session.id],
+          data,
+        );
+        void queryClient.invalidateQueries({
+          queryKey: ["lead-search-sessions"],
+        });
+
+        if (data.leads.length > 0) {
+          toast.success(
+            `Encontramos ${data.leads.length} empresa(s) em ${city}.`,
           );
-        },
-      },
-    );
-  }, [formValues, searchMutation]);
+        } else {
+          toast.info(
+            "Nenhuma empresa encontrada. Tente outro termo ou cidade próxima.",
+          );
+        }
+      })
+      .catch(() => {
+        toast.error(
+          "Não foi possível buscar empresas agora. Tente novamente em instantes.",
+        );
+      });
+  }, [formValues, queryClient]);
 
   const handleQueryTypeChange = useCallback((queryType: LeadSearchQueryType) => {
     setFormValues({
@@ -351,49 +575,100 @@ export function CompanySearchPanel() {
         </Card>
       </div>
 
-      {hasSearchContext && (
-        <Card className="rounded-2xl border border-[var(--atria-primary)]/10">
-          <CardContent className="grid gap-4 pt-6 lg:grid-cols-2">
-            <SearchSessionFilter
-              sessions={sessions}
-              selectedSessionId={selectedSessionId}
-              loading={loadingSessions}
-              onChange={(sessionId) => {
-                setSelectedSessionId(sessionId);
-                setFilterQuery("");
-                if (!sessionId) {
-                  setActiveLeads(searchMutation.data?.leads ?? []);
-                  return;
-                }
-                const session = sessions.find((item) => item.id === sessionId);
-                if (session) {
-                  setFormValues((current) => ({
-                    ...current,
-                    queryType: session.queryType,
-                    queryValue: session.queryValue,
-                    cnaeLabel:
-                      session.queryType === "CNAE" ? "" : current.cnaeLabel,
-                    city: session.city,
-                    uf: session.uf,
-                    address: "",
-                  }));
-                }
-              }}
+      <Card className="rounded-2xl border border-[var(--atria-primary)]/10">
+        <CardContent className="grid gap-4 pt-6 lg:grid-cols-2">
+          <SearchSessionFilter
+            sessions={sessions}
+            selectedSessionId={selectedSessionId}
+            loading={loadingSessions}
+            onChange={(sessionId) => {
+              const nextSessionId = sessionId ?? sessions[0]?.id ?? null;
+              setSelectedSessionId(nextSessionId);
+              setFilterQuery("");
+              if (!nextSessionId) {
+                setActiveLeads(searchMutation.data?.leads ?? []);
+                return;
+              }
+              const session = sessions.find((item) => item.id === nextSessionId);
+              if (session) {
+                setFormValues((current) => ({
+                  ...current,
+                  queryType: session.queryType,
+                  queryValue: session.queryValue,
+                  cnaeLabel:
+                    session.queryType === "CNAE" ? "" : current.cnaeLabel,
+                  city: session.city,
+                  uf: session.uf,
+                  address: "",
+                  batchSearchMode: "none",
+                  batchTerms: "",
+                }));
+              }
+            }}
+          />
+          <Field>
+            <FieldLabel htmlFor="company-lead-filter">
+              Filtrar empresas na lista
+            </FieldLabel>
+            <Input
+              id="company-lead-filter"
+              value={filterQuery}
+              onChange={(event) => setFilterQuery(event.target.value)}
+              placeholder="Nome, telefone ou endereço..."
             />
+          </Field>
+          {categoryOptions.length > 0 && (
             <Field>
-              <FieldLabel htmlFor="company-lead-filter">
-                Filtrar empresas na lista
-              </FieldLabel>
-              <Input
-                id="company-lead-filter"
-                value={filterQuery}
-                onChange={(event) => setFilterQuery(event.target.value)}
-                placeholder="Nome, telefone ou endereço..."
-              />
+              <FieldLabel htmlFor="company-category-filter">Categoria</FieldLabel>
+              <Select
+                value={filterCategory}
+                onValueChange={(value) => {
+                  if (value) setFilterCategory(value);
+                }}
+              >
+                <SelectTrigger id="company-category-filter">
+                  <SelectValue placeholder={ALL_CATEGORIES} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_CATEGORIES}>
+                    {ALL_CATEGORIES}
+                  </SelectItem>
+                  {categoryOptions.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
-          </CardContent>
-        </Card>
-      )}
+          )}
+          {neighborhoodOptions.length > 0 && (
+            <Field>
+              <FieldLabel htmlFor="company-neighborhood-filter">Bairro</FieldLabel>
+              <Select
+                value={filterNeighborhood}
+                onValueChange={(value) => {
+                  if (value) setFilterNeighborhood(value);
+                }}
+              >
+                <SelectTrigger id="company-neighborhood-filter">
+                  <SelectValue placeholder={ALL_NEIGHBORHOODS} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_NEIGHBORHOODS}>
+                    {ALL_NEIGHBORHOODS}
+                  </SelectItem>
+                  {neighborhoodOptions.map((neighborhood) => (
+                    <SelectItem key={neighborhood} value={neighborhood}>
+                      {neighborhood}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+        </CardContent>
+      </Card>
 
       {selectedSession && (
         <div className="rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.03] px-4 py-3 text-sm text-[var(--atria-primary)]/80">
@@ -462,7 +737,9 @@ export function CompanySearchPanel() {
           </div>
         )}
 
-        {!loadingResults && !hasSearchContext && (
+        {!loadingResults &&
+          !hasSearchContext &&
+          filteredLeads.length === 0 && (
           <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
             Faça uma busca no formulário acima para ver as empresas aqui.
           </div>
