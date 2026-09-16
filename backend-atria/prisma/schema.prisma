@@ -50,6 +50,7 @@ model Company {
   deletionHistory            DeletionHistory[]
   deliverables               Deliverable[]
   invitationTokens           InvitationToken[]
+  leadSearchSessions         LeadSearchSession[]
   leadStages                 LeadStage[]
   leads                      Lead[]
   notifications              Notification[]
@@ -1099,6 +1100,21 @@ model CrmReminderTask {
   @@map("crm_reminder_tasks")
 }
 
+model LeadSearchSession {
+  id         String              @id @default(uuid())
+  tenantId   String              @map("tenant_id")
+  queryType  LeadSearchQueryType @map("query_type")
+  queryValue String              @map("query_value")
+  city       String
+  uf         String
+  createdAt  DateTime            @default(now()) @map("created_at")
+  company    Company             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leads      Lead[]
+
+  @@index([tenantId, createdAt])
+  @@map("lead_search_sessions")
+}
+
 model Lead {
   id             String            @id @default(uuid())
   companyId      String            @default("00000000-0000-4000-8000-000000000001")
@@ -1106,6 +1122,7 @@ model Lead {
   phone          String?
   email          String?
   website        String?
+  instagram      String?
   address        String?
   city           String?
   neighborhood   String?
@@ -1130,18 +1147,21 @@ model Lead {
   isMinimized    Boolean           @default(false) @map("is_minimized")
   organizationId String?           @map("organization_id")
   stageId        String?           @map("stage_id")
+  searchSessionId String?          @map("search_session_id")
   reminderTasks  CrmReminderTask[]
   comments       LeadComment[]
   company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deletedBy      User?             @relation("LeadDeletedBy", fields: [deletedById], references: [id])
   organization   Client?           @relation(fields: [organizationId], references: [id])
   stage          LeadStage?        @relation(fields: [stageId], references: [id])
+  searchSession  LeadSearchSession? @relation(fields: [searchSessionId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
   @@index([organizationId])
   @@index([placeId])
   @@index([status])
   @@index([stageId])
+  @@index([searchSessionId])
   @@index([kanbanTracked, status, kanbanOrder])
   @@index([city])
   @@index([deletedAt])
@@ -1404,6 +1424,11 @@ enum ClientRequestStatus {
   PENDING
   CONVERTED_TO_TASK
   REJECTED
+}
+
+enum LeadSearchQueryType {
+  NICHO
+  CNAE
 }
 
 enum LeadStatus {

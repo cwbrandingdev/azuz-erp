@@ -26,7 +26,8 @@ export interface LeadMinerLead {
   title?: string;
   phone: string;
   address?: string;
-  website?: string;
+  website?: string | null;
+  instagram?: string | null;
   rating?: number;
   reviews?: number;
   category?: string;

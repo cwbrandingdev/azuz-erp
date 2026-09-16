@@ -19,10 +19,15 @@ import { formatCurrency } from "@/lib/financial-utils";
 import { getNotificationHref } from "@/lib/notification-utils";
 import { financeService } from "@/services";
 import type { AppNotification, FinanceDueTodayAlerts } from "@/services/types";
+import { cn } from "@/lib/utils";
 
 const FINANCE_POLL_MS = 30_000;
 
-export function NotificationCenter() {
+interface NotificationCenterProps {
+  tone?: "light" | "dark";
+}
+
+export function NotificationCenter({ tone = "light" }: NotificationCenterProps) {
   const router = useRouter();
   const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } =
     useNotifications();
@@ -75,14 +80,24 @@ export function NotificationCenter() {
           <Button
             variant="ghost"
             size="icon-sm"
-            className="relative text-[var(--atria-primary)] hover:bg-[var(--atria-primary)]/5"
+            className={cn(
+              "relative",
+              tone === "dark"
+                ? "text-white/80 hover:bg-white/10 hover:text-white"
+                : "text-[var(--atria-primary)] hover:bg-[var(--atria-primary)]/5",
+            )}
             aria-label="Notificações"
           />
         }
       >
         <Bell className="size-5" />
         {badgeCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[var(--atria-accent)] px-1 text-[10px] font-bold text-[var(--atria-primary)] ring-2 ring-[var(--atria-base)]">
+          <span
+            className={cn(
+              "absolute -right-0.5 -top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[var(--atria-accent)] px-1 text-[10px] font-bold text-[var(--atria-primary)] ring-2",
+              tone === "dark" ? "ring-[var(--atria-sidebar)]" : "ring-[var(--atria-base)]",
+            )}
+          >
             {badgeCount > 9 ? "9+" : badgeCount}
           </span>
         )}

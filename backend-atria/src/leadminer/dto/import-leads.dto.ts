@@ -23,6 +23,11 @@ export class LeadMinerLeadDto {
   @MaxLength(500)
   website?: string;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  instagram?: string;
+
   @IsNumber()
   @IsOptional()
   rating?: number;

@@ -33,11 +33,14 @@ export declare class LeadsService {
         pipelineStatusColor: string;
         id: string;
         companyId: string;
+        tenantId: string;
+        searchSessionId: string | null;
         organizationId: string | null;
         name: string;
         phone: string | null;
         email: string | null;
         website: string | null;
+        instagram: string | null;
         address: string | null;
         city: string | null;
         neighborhood: string | null;
@@ -72,11 +75,14 @@ export declare class LeadsService {
             leads: {
                 id: string;
                 companyId: string;
+                tenantId: string;
+                searchSessionId: string | null;
                 organizationId: string | null;
                 name: string;
                 phone: string | null;
                 email: string | null;
                 website: string | null;
+                instagram: string | null;
                 address: string | null;
                 city: string | null;
                 neighborhood: string | null;
@@ -112,11 +118,14 @@ export declare class LeadsService {
         pipelineStatusColor: string;
         id: string;
         companyId: string;
+        tenantId: string;
+        searchSessionId: string | null;
         organizationId: string | null;
         name: string;
         phone: string | null;
         email: string | null;
         website: string | null;
+        instagram: string | null;
         address: string | null;
         city: string | null;
         neighborhood: string | null;
@@ -224,11 +233,14 @@ export declare class LeadsService {
     addToKanban(user: AuthenticatedUser, dto: AddLeadToKanbanDto): Promise<{
         id: string;
         companyId: string;
+        tenantId: string;
+        searchSessionId: string | null;
         organizationId: string | null;
         name: string;
         phone: string | null;
         email: string | null;
         website: string | null;
+        instagram: string | null;
         address: string | null;
         city: string | null;
         neighborhood: string | null;
@@ -259,11 +271,14 @@ export declare class LeadsService {
     updateLeadStage(user: AuthenticatedUser, id: string, dto: UpdateLeadStatusDto): Promise<{
         id: string;
         companyId: string;
+        tenantId: string;
+        searchSessionId: string | null;
         organizationId: string | null;
         name: string;
         phone: string | null;
         email: string | null;
         website: string | null;
+        instagram: string | null;
         address: string | null;
         city: string | null;
         neighborhood: string | null;
@@ -291,11 +306,14 @@ export declare class LeadsService {
     updateStatus(user: AuthenticatedUser, id: string, dto: UpdateLeadStatusDto): Promise<{
         id: string;
         companyId: string;
+        tenantId: string;
+        searchSessionId: string | null;
         organizationId: string | null;
         name: string;
         phone: string | null;
         email: string | null;
         website: string | null;
+        instagram: string | null;
         address: string | null;
         city: string | null;
         neighborhood: string | null;
@@ -323,11 +341,14 @@ export declare class LeadsService {
     qualify(user: AuthenticatedUser, id: string): Promise<{
         id: string;
         companyId: string;
+        tenantId: string;
+        searchSessionId: string | null;
         organizationId: string | null;
         name: string;
         phone: string | null;
         email: string | null;
         website: string | null;
+        instagram: string | null;
         address: string | null;
         city: string | null;
         neighborhood: string | null;
@@ -399,7 +420,6 @@ export declare class LeadsService {
     private resolveApifyMaxResults;
     private extractApifyErrorMessage;
     private mapOutscraperPlaces;
-    private mapApifyPlaces;
     private flattenPlaces;
     private asOptionalString;
 }

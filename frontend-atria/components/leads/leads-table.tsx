@@ -30,6 +30,10 @@ import {
 } from "@/lib/leads-kanban-utils";
 import { toast } from "@/lib/toast";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
+import {
+  formatInstagramHandle,
+  formatLeadRating,
+} from "@/lib/lead-map-utils";
 import type { Lead, LeadStatus } from "@/services/types";
 
 const STATUS_VARIANTS: Record<
@@ -192,6 +196,11 @@ export function LeadsTable({
                       {lead.category}
                     </p>
                   )}
+                  {formatLeadRating(lead.rating, lead.reviewsCount) && (
+                    <p className="mt-0.5 text-xs text-[var(--atria-primary)]/50">
+                      {formatLeadRating(lead.rating, lead.reviewsCount)}
+                    </p>
+                  )}
                 </div>
                 <Badge variant={STATUS_VARIANTS[lead.status]}>
                   {lead.statusLabel ?? getLeadStatusLabel(lead.status)}
@@ -220,6 +229,30 @@ export function LeadsTable({
                     </Button>
                   )}
                 </div>
+                {lead.website && (
+                  <a
+                    href={
+                      lead.website.startsWith("http")
+                        ? lead.website
+                        : `https://${lead.website}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block truncate text-xs text-[var(--atria-primary)]/50 underline-offset-2 hover:underline"
+                  >
+                    {lead.website}
+                  </a>
+                )}
+                {lead.instagram && (
+                  <a
+                    href={lead.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block truncate text-xs text-[var(--atria-primary)]/50 underline-offset-2 hover:underline"
+                  >
+                    {formatInstagramHandle(lead.instagram)}
+                  </a>
+                )}
                 {(lead.neighborhood || lead.city || lead.address) && (
                   <LeadLocationText
                     lead={lead}
@@ -302,6 +335,9 @@ export function LeadsTable({
                 <TableHead className="hidden text-[var(--atria-primary)]/60 lg:table-cell">
                   Categoria
                 </TableHead>
+                <TableHead className="hidden text-[var(--atria-primary)]/60 md:table-cell">
+                  Avaliação
+                </TableHead>
                 <TableHead className="text-[var(--atria-primary)]/60">
                   Status
                 </TableHead>
@@ -371,6 +407,16 @@ export function LeadsTable({
                             {lead.email}
                           </span>
                         )}
+                        {lead.instagram && (
+                          <a
+                            href={lead.instagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="min-w-0 truncate text-xs text-[var(--atria-primary)]/45 underline-offset-2 hover:underline"
+                          >
+                            {formatInstagramHandle(lead.instagram)}
+                          </a>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="w-[180px] max-w-[180px] text-[var(--atria-primary)]/70">
@@ -380,6 +426,9 @@ export function LeadsTable({
                       <span className="block min-w-0 truncate">
                         {lead.category ?? "—"}
                       </span>
+                    </TableCell>
+                    <TableCell className="hidden text-[var(--atria-primary)]/70 md:table-cell">
+                      {formatLeadRating(lead.rating, lead.reviewsCount) ?? "—"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={STATUS_VARIANTS[lead.status]}>

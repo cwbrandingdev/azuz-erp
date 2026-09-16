@@ -23,6 +23,10 @@ import { addBusinessDays } from './business-days';
 import { CrmScopeService } from './crm-scope.service';
 import { LeadNotificationService } from './lead-notification.service';
 import { CreateCrmLeadDto } from '../crm/dto/create-crm-lead.dto';
+import {
+  buildApifyActorInput,
+  mapApifyPlaces,
+} from './maps-scraper/apify-place.mapper';
 import { FetchMapsLeadsDto } from './dto/fetch-maps-leads.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { LeadSearchDto } from './dto/lead-search.dto';
@@ -35,7 +39,6 @@ const SCRAPER_TIMEOUT_MS = 120_000;
 const OUTSCRAPER_TIMEOUT_MS = 180_000;
 const OUTSCRAPER_LIMIT = 25;
 const APIFY_TIMEOUT_MS = 180_000;
-const APIFY_DEFAULT_LANGUAGE = 'pt-BR';
 const APIFY_DEFAULT_MAX_RESULTS = 25;
 const APIFY_MAX_RESULTS_LIMIT = 120;
 
@@ -59,30 +62,12 @@ interface OutscraperPlace {
   [key: string]: unknown;
 }
 
-interface ApifyPlace {
-  title?: string;
-  name?: string;
-  phone?: string;
-  phoneUnformatted?: string;
-  email?: string;
-  website?: string;
-  address?: string;
-  city?: string;
-  neighborhood?: string;
-  categoryName?: string;
-  category?: string;
-  placeId?: string;
-  totalScore?: number;
-  reviewsCount?: number;
-  location?: { lat?: number; lng?: number };
-  [key: string]: unknown;
-}
-
 interface MappedPlace {
   name: string;
   phone?: string;
   email?: string;
   website?: string;
+  instagram?: string;
   address?: string;
   city?: string;
   neighborhood?: string;
@@ -184,6 +169,7 @@ export class LeadsService {
           phone: place.phone,
           email: place.email,
           website: place.website,
+          instagram: place.instagram,
           address: place.address,
           city: place.city ?? dto.city,
           neighborhood: place.neighborhood ?? dto.neighborhood,
@@ -906,11 +892,14 @@ export class LeadsService {
     return {
       id: lead.id,
       companyId: lead.companyId,
+      tenantId: lead.companyId,
+      searchSessionId: lead.searchSessionId,
       organizationId: lead.organizationId,
       name: lead.name,
       phone: lead.phone,
       email: lead.email,
       website: lead.website,
+      instagram: lead.instagram,
       address: lead.address,
       city: lead.city,
       neighborhood: lead.neighborhood,
@@ -1087,7 +1076,7 @@ export class LeadsService {
         );
       }
 
-      return this.mapApifyPlaces(body, dto);
+      return mapApifyPlaces(body, dto);
     } catch (error) {
       if (error instanceof BadGatewayException) throw error;
 
@@ -1105,16 +1094,7 @@ export class LeadsService {
   }
 
   private buildApifyActorInput(dto: FetchMapsLeadsDto) {
-    const category = dto.category.trim();
-    const neighborhood = dto.neighborhood.trim();
-    const city = dto.city.trim();
-
-    return {
-      searchStringsArray: [`${category} em ${neighborhood}, ${city}`],
-      locationQuery: `${neighborhood}, ${city}, Brasil`,
-      language: APIFY_DEFAULT_LANGUAGE,
-      maxCrawledPlacesPerSearch: this.resolveApifyMaxResults(),
-    };
+    return buildApifyActorInput(dto, this.resolveApifyMaxResults());
   }
 
   private resolveApifyMaxResults() {
@@ -1188,49 +1168,6 @@ export class LeadsService {
         longitude:
           typeof place.longitude === 'number' ? place.longitude : undefined,
         source: 'outscraper',
-        rawData: place as Prisma.InputJsonValue,
-      });
-    }
-
-    return mapped;
-  }
-
-  private mapApifyPlaces(body: unknown, dto: FetchMapsLeadsDto): MappedPlace[] {
-    const places = (Array.isArray(body) ? body : []) as ApifyPlace[];
-    const mapped: MappedPlace[] = [];
-
-    for (const place of places) {
-      const name = this.asOptionalString(place.title ?? place.name);
-      if (!name) continue;
-
-      mapped.push({
-        name,
-        phone: this.asOptionalString(place.phone ?? place.phoneUnformatted),
-        email: this.asOptionalString(place.email),
-        website: this.asOptionalString(place.website),
-        address: this.asOptionalString(place.address),
-        city: this.asOptionalString(place.city) ?? dto.city,
-        neighborhood:
-          this.asOptionalString(place.neighborhood) ?? dto.neighborhood,
-        category:
-          this.asOptionalString(place.categoryName ?? place.category) ??
-          dto.category,
-        placeId: this.asOptionalString(place.placeId),
-        rating:
-          typeof place.totalScore === 'number' ? place.totalScore : undefined,
-        reviewsCount:
-          typeof place.reviewsCount === 'number'
-            ? place.reviewsCount
-            : undefined,
-        latitude:
-          typeof place.location?.lat === 'number'
-            ? place.location.lat
-            : undefined,
-        longitude:
-          typeof place.location?.lng === 'number'
-            ? place.location.lng
-            : undefined,
-        source: 'apify',
         rawData: place as Prisma.InputJsonValue,
       });
     }

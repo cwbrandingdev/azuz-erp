@@ -15,6 +15,28 @@ export function externalLeadId(phone: string, index: number): string {
   return `external:${index}:${phone.replace(/\D/g, "")}`;
 }
 
+function parseLeadMinerWebsiteAndInstagram(
+  website?: string | null,
+  instagram?: string | null,
+): { website: string | null; instagram: string | null } {
+  const rawWebsite = website?.trim() ?? "";
+  const rawInstagram = instagram?.trim() ?? "";
+
+  if (rawInstagram) {
+    return {
+      instagram: rawInstagram,
+      website:
+        rawWebsite && !/instagram\.com/i.test(rawWebsite) ? rawWebsite : null,
+    };
+  }
+
+  if (rawWebsite && /instagram\.com/i.test(rawWebsite)) {
+    return { instagram: rawWebsite, website: null };
+  }
+
+  return { website: rawWebsite || null, instagram: null };
+}
+
 export function leadMinerLeadToPreviewLead(
   item: LeadMinerLead,
   context: ExternalLeadSearchContext,
@@ -22,6 +44,10 @@ export function leadMinerLeadToPreviewLead(
 ): Lead {
   const phone = item.phone?.trim() ?? "";
   const name = item.title?.trim() || phone || "Lead externo";
+  const contact = parseLeadMinerWebsiteAndInstagram(
+    item.website,
+    item.instagram,
+  );
 
   return {
     id: externalLeadId(phone || String(index), index),
@@ -29,7 +55,8 @@ export function leadMinerLeadToPreviewLead(
     name,
     phone: phone || null,
     email: null,
-    website: item.website ?? null,
+    website: contact.website,
+    instagram: contact.instagram,
     address: item.address ?? null,
     city: context.city,
     neighborhood: context.neighborhood,

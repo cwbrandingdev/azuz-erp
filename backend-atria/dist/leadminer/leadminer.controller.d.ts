@@ -13,6 +13,7 @@ export declare class LeadMinerController {
         phone: string | null;
         email: string | null;
         website: string | null;
+        instagram: string | null;
         address: string | null;
         city: string | null;
         neighborhood: string | null;

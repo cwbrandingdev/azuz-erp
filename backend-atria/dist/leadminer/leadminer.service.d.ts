@@ -15,7 +15,8 @@ export interface LeadMinerLead {
     title?: string;
     phone: string;
     address?: string;
-    website?: string;
+    website?: string | null;
+    instagram?: string | null;
     rating?: number;
     reviews?: number;
     category?: string;
@@ -43,6 +44,7 @@ export declare class LeadminerService {
         phone: string | null;
         email: string | null;
         website: string | null;
+        instagram: string | null;
         address: string | null;
         city: string | null;
         neighborhood: string | null;
