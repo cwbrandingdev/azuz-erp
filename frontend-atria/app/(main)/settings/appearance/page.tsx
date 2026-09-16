@@ -11,7 +11,7 @@ export default function SettingsAppearancePage() {
           Aparência
         </h1>
         <p className="text-sm text-[var(--atria-primary)]/50">
-          Modo escuro e paletas neste dispositivo, além de cores salvas na conta
+          Modo escuro, paletas e tipo de menu neste dispositivo, além de cores salvas na conta
         </p>
       </div>
       <ThemePreferences />
