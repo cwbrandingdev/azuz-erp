@@ -8,6 +8,11 @@ export function isClientRole(role: string | null | undefined): boolean {
   return normalizeAppRole(role) === "client";
 }
 
+export function isCrmRole(role: string | null | undefined): boolean {
+  const normalized = normalizeAppRole(role);
+  return normalized === "crm" || normalized === "external_client_crm";
+}
+
 export function isExternalCrmRole(role: string | null | undefined): boolean {
   return normalizeAppRole(role) === "external_client_crm";
 }

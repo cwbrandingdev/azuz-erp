@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import { getStoredUser } from "@/lib/auth-storage";
+import { isCrmRole } from "@/lib/roles";
 
 export const NAV_LAYOUTS = ["classic", "studio"] as const;
 
@@ -31,7 +33,8 @@ function storageKey(userId: string) {
   return `${STORAGE_PREFIX}:${userId}`;
 }
 
-function readLayout(userId: string | undefined): NavLayout {
+function readLayout(userId: string | undefined, lockedClassic: boolean): NavLayout {
+  if (lockedClassic) return "classic";
   if (!userId) return "studio";
   try {
     const stored = localStorage.getItem(storageKey(userId));
@@ -46,24 +49,34 @@ function writeLayout(userId: string, layout: NavLayout) {
   } catch {}
 }
 
+function getInitialLayout(): NavLayout {
+  const storedUser = getStoredUser();
+  return readLayout(storedUser?.id, isCrmRole(storedUser?.role));
+}
+
 export function NavLayoutProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id;
-  const [layout, setLayoutState] = useState<NavLayout>("studio");
+  const lockedClassic = isCrmRole(user?.role);
+  const [layout, setLayoutState] = useState<NavLayout>(getInitialLayout);
 
   useEffect(() => {
-    setLayoutState(readLayout(userId));
-  }, [userId]);
+    setLayoutState(readLayout(userId, lockedClassic));
+  }, [lockedClassic, userId]);
 
   const setLayout = useCallback(
     (next: NavLayout) => {
+      if (lockedClassic) return;
       setLayoutState(next);
       if (userId) writeLayout(userId, next);
     },
-    [userId],
+    [lockedClassic, userId],
   );
 
-  const value = useMemo(() => ({ layout, setLayout }), [layout, setLayout]);
+  const value = useMemo(
+    () => ({ layout: lockedClassic ? "classic" : layout, setLayout }),
+    [layout, lockedClassic, setLayout],
+  );
 
   return (
     <NavLayoutContext.Provider value={value}>{children}</NavLayoutContext.Provider>
