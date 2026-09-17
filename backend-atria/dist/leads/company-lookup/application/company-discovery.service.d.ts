@@ -14,6 +14,7 @@ export declare class CompanyDiscoveryService {
     private simplifyCnaeDescription;
     private extractCnpjs;
     private matchesCnae;
+    private looksLikeCnaeCode;
     private isActive;
     private matchesCompanyLocation;
     private matchesLocation;
