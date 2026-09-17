@@ -55,7 +55,11 @@ export function canAccessRoute(
 ): boolean {
   const routeKey = resolveAccessRouteKey(href);
 
-  if (routeKey === "/settings/navigation" || href === "/settings") {
+  if (routeKey === "/settings/navigation") {
+    return !isClientRole(role);
+  }
+
+  if (href === "/settings") {
     return !isClientRole(role) && !isCrmRole(role);
   }
 

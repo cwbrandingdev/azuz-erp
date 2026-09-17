@@ -133,4 +133,9 @@ export class LeadsController {
   qualify(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.leadsService.qualify(user, id);
   }
+
+  @Post(':id/pre-qualify')
+  preQualify(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.leadsService.preQualify(user, id);
+  }
 }

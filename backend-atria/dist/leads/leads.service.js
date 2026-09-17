@@ -24,6 +24,7 @@ const apify_place_mapper_1 = require("./maps-scraper/apify-place.mapper");
 const lead_stages_service_1 = require("./lead-stages.service");
 const lead_kanban_constants_1 = require("./lead-kanban.constants");
 const lead_pipeline_zones_1 = require("./lead-pipeline-zones");
+const lead_qualification_service_1 = require("./qualification/lead-qualification.service");
 const DEFAULT_SCRAPER_URL = 'https://leadminer-one.vercel.app/api/scraper';
 const SCRAPER_TIMEOUT_MS = 120_000;
 const OUTSCRAPER_TIMEOUT_MS = 180_000;
@@ -39,8 +40,9 @@ let LeadsService = LeadsService_1 = class LeadsService {
     leadStages;
     crmScope;
     leadNotifications;
+    leadQualification;
     logger = new common_1.Logger(LeadsService_1.name);
-    constructor(configService, prisma, aiService, companySettings, leadStages, crmScope, leadNotifications) {
+    constructor(configService, prisma, aiService, companySettings, leadStages, crmScope, leadNotifications, leadQualification) {
         this.configService = configService;
         this.prisma = prisma;
         this.aiService = aiService;
@@ -48,6 +50,34 @@ let LeadsService = LeadsService_1 = class LeadsService {
         this.leadStages = leadStages;
         this.crmScope = crmScope;
         this.leadNotifications = leadNotifications;
+        this.leadQualification = leadQualification;
+    }
+    async preQualify(user, id) {
+        const lead = await this.findLeadForUser(user, id);
+        const apifyToken = await this.resolveApifyToken();
+        const result = await this.leadQualification.qualifyLead(lead, apifyToken);
+        const updated = await this.prisma.lead.update({
+            where: { id: lead.id },
+            data: {
+                aiScore: result.score,
+                aiNotes: result.notes,
+                rawData: this.leadQualification.mergeInstagramIntoRawData(lead, result.instagram ?? null),
+            },
+        });
+        return this.toLeadResponse(updated);
+    }
+    async resolveApifyToken() {
+        const envToken = this.configService.get('APIFY_API_TOKEN')?.trim();
+        if (envToken) {
+            return envToken;
+        }
+        try {
+            const credentials = await this.companySettings.getIntegrationCredentialsForCurrentTenant();
+            return credentials.apifyApiToken?.trim() || null;
+        }
+        catch {
+            return null;
+        }
     }
     async search(dto) {
         const scraperUrl = this.configService.get('LEAD_SCRAPER_URL') ?? DEFAULT_SCRAPER_URL;
@@ -919,6 +949,7 @@ exports.LeadsService = LeadsService = LeadsService_1 = __decorate([
         company_settings_service_1.CompanySettingsService,
         lead_stages_service_1.LeadStagesService,
         crm_scope_service_1.CrmScopeService,
-        lead_notification_service_1.LeadNotificationService])
+        lead_notification_service_1.LeadNotificationService,
+        lead_qualification_service_1.LeadQualificationService])
 ], LeadsService);
 //# sourceMappingURL=leads.service.js.map

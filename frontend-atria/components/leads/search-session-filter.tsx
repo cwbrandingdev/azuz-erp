@@ -16,6 +16,7 @@ interface SearchSessionFilterProps {
   sessions: LeadSearchSessionSummary[];
   selectedSessionId: string | null;
   loading?: boolean;
+  description?: string;
   onChange: (sessionId: string | null) => void;
 }
 
@@ -23,9 +24,27 @@ export function SearchSessionFilter({
   sessions,
   selectedSessionId,
   loading,
+  description,
   onChange,
 }: SearchSessionFilterProps) {
   const value = selectedSessionId ?? "all";
+  const selectedSession =
+    selectedSessionId != null
+      ? sessions.find((s) => s.id === selectedSessionId)
+      : null;
+  const selectedLabel = selectedSession
+    ? formatSearchSessionLabel(selectedSession)
+    : null;
+  const triggerDisplayText =
+    value === "all"
+      ? "Mostrar a busca mais recente"
+      : selectedLabel
+        ? `${selectedLabel}${
+            selectedSession && selectedSession.leadsCount > 0
+              ? ` (${selectedSession.leadsCount})`
+              : ""
+          }`
+        : null;
 
   return (
     <Field>
@@ -35,6 +54,11 @@ export function SearchSessionFilter({
           Buscas recentes
         </span>
       </FieldLabel>
+      {description ? (
+        <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
+          {description}
+        </p>
+      ) : null}
       <Select
         value={value}
         onValueChange={(next) => {
@@ -47,11 +71,17 @@ export function SearchSessionFilter({
           id="search-session-filter"
           className="h-11 w-full text-sm font-medium"
         >
-          <SelectValue
-            placeholder={
-              loading ? "Carregando buscas..." : "Selecione uma busca recente"
-            }
-          />
+          {triggerDisplayText ? (
+            <span className="line-clamp-1 min-w-0 flex-1 truncate text-left">
+              {triggerDisplayText}
+            </span>
+          ) : (
+            <SelectValue
+              placeholder={
+                loading ? "Carregando buscas..." : "Selecione uma busca recente"
+              }
+            />
+          )}
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Mostrar a busca mais recente</SelectItem>

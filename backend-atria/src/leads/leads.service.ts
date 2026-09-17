@@ -33,6 +33,7 @@ import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadStagesService } from './lead-stages.service';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS } from './lead-kanban.constants';
 import { assertLeadStatusMoveAllowed } from './lead-pipeline-zones';
+import { LeadQualificationService } from './qualification/lead-qualification.service';
 
 const DEFAULT_SCRAPER_URL = 'https://leadminer-one.vercel.app/api/scraper';
 const SCRAPER_TIMEOUT_MS = 120_000;
@@ -93,7 +94,44 @@ export class LeadsService {
     private readonly leadStages: LeadStagesService,
     private readonly crmScope: CrmScopeService,
     private readonly leadNotifications: LeadNotificationService,
+    private readonly leadQualification: LeadQualificationService,
   ) {}
+
+  async preQualify(user: AuthenticatedUser, id: string) {
+    const lead = await this.findLeadForUser(user, id);
+    const apifyToken = await this.resolveApifyToken();
+
+    const result = await this.leadQualification.qualifyLead(lead, apifyToken);
+
+    const updated = await this.prisma.lead.update({
+      where: { id: lead.id },
+      data: {
+        aiScore: result.score,
+        aiNotes: result.notes,
+        rawData: this.leadQualification.mergeInstagramIntoRawData(
+          lead,
+          result.instagram ?? null,
+        ),
+      },
+    });
+
+    return this.toLeadResponse(updated);
+  }
+
+  private async resolveApifyToken(): Promise<string | null> {
+    const envToken = this.configService.get<string>('APIFY_API_TOKEN')?.trim();
+    if (envToken) {
+      return envToken;
+    }
+
+    try {
+      const credentials =
+        await this.companySettings.getIntegrationCredentialsForCurrentTenant();
+      return credentials.apifyApiToken?.trim() || null;
+    } catch {
+      return null;
+    }
+  }
 
   async search(dto: LeadSearchDto): Promise<unknown> {
     const scraperUrl =

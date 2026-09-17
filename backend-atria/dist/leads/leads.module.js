@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const company_settings_module_1 = require("../company-settings/company-settings.module");
 const notifications_module_1 = require("../notifications/notifications.module");
 const company_lookup_module_1 = require("./company-lookup/company-lookup.module");
+const lead_qualification_module_1 = require("./qualification/lead-qualification.module");
 const maps_scraper_module_1 = require("./maps-scraper/maps-scraper.module");
 const crm_scope_service_1 = require("./crm-scope.service");
 const lead_notification_service_1 = require("./lead-notification.service");
@@ -24,6 +25,7 @@ exports.LeadsModule = LeadsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             company_lookup_module_1.CompanyLookupModule,
+            lead_qualification_module_1.LeadQualificationModule,
             maps_scraper_module_1.MapsScraperModule,
             company_settings_module_1.CompanySettingsModule,
             notifications_module_1.NotificationsModule,
