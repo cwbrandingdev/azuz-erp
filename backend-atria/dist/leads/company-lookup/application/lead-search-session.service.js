@@ -151,7 +151,7 @@ let LeadSearchSessionService = class LeadSearchSessionService {
             return this.discoverViaLeadMiner(params);
         }
         const cnaeClasses = await this.cnaeResolver.resolve('CNAE', params.queryValue);
-        const leadMinerCategory = cnaeClasses[0]?.description?.trim() || params.queryValue;
+        const leadMinerCategory = this.cnaeResolver.leadMinerCategory(params.queryValue, cnaeClasses);
         const [leadMinerCandidates, registryCandidates] = await Promise.all([
             this.discoverViaLeadMiner({
                 ...params,

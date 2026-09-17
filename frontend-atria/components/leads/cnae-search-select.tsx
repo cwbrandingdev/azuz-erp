@@ -15,8 +15,16 @@ interface CnaeSearchSelectProps {
   className?: string;
 }
 
+function formatCnaeCodeDisplay(id: string): string {
+  const digits = id.replace(/\D/g, "");
+  if (digits.length === 7) {
+    return `${digits.slice(0, 2)}.${digits.slice(2, 4)}-${digits[4]}/${digits.slice(5, 7)}`;
+  }
+  return id;
+}
+
 function formatCnaeLabel(id: string, description: string) {
-  return `${id} — ${description}`;
+  return `${formatCnaeCodeDisplay(id)} — ${description}`;
 }
 
 export function CnaeSearchSelect({

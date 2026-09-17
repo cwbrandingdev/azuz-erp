@@ -96,10 +96,7 @@ export declare class LeadsController {
         total: number;
         crmMoveZone: import("./lead-pipeline-zones").CrmMoveZone;
     }>;
-    searchCnae(query: CnaeSearchQueryDto): Promise<{
-        id: string;
-        description: string;
-    }[]>;
+    searchCnae(query: CnaeSearchQueryDto): Promise<import("./company-lookup/domain/company-lookup.types").CnaeClassInfo[]>;
     listSearchSessions(user: AuthenticatedUser): Promise<{
         id: string;
         tenantId: string;
@@ -280,8 +277,8 @@ export declare class LeadsController {
         createdAt: string;
         updatedAt: string;
         user: {
-            name: string;
             id: string;
+            name: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -292,8 +289,8 @@ export declare class LeadsController {
         createdAt: string;
         updatedAt: string;
         user: {
-            name: string;
             id: string;
+            name: string;
             email: string;
             avatarUrl: string | null;
         };

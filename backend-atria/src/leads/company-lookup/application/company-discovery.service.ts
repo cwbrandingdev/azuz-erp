@@ -30,7 +30,7 @@ export class CompanyDiscoveryService {
       params.queryType,
       params.queryValue,
     );
-    const cnaeCodes = cnaeClasses.map((item) => item.id);
+    const cnaeCodes = this.cnaeResolver.cnaeFilterCodes(cnaeClasses);
     const searchTerms = this.buildSearchTerms(params, cnaeClasses);
     const explicitCnpjs = this.extractCnpjs(params.queryValue);
     const discovered = new Map<string, DiscoveredCompanyCandidate>();
@@ -159,7 +159,7 @@ export class CompanyDiscoveryService {
       terms.add(queryValue);
       terms.add(`${queryValue} ${city}`);
       terms.add(`empresa ${queryValue} ${city}`);
-    } else {
+    } else if (!this.looksLikeCnaeCode(queryValue)) {
       terms.add(`${queryValue} ${city}`);
     }
 
@@ -208,7 +208,23 @@ export class CompanyDiscoveryService {
       ...record.secondaryCnaeCodes,
     ].filter(Boolean) as string[];
 
-    return cnaeCodes.some((target) =>
+    const strictTargets = cnaeCodes.filter((code) => code.length === 7);
+    const prefixTargets = cnaeCodes.filter((code) => code.length < 7);
+
+    if (strictTargets.length > 0) {
+      const strictHit = strictTargets.some((target) =>
+        companyCodes.some((code) => code === target),
+      );
+      if (!strictHit) {
+        return false;
+      }
+    }
+
+    if (prefixTargets.length === 0) {
+      return strictTargets.length > 0;
+    }
+
+    return prefixTargets.some((target) =>
       companyCodes.some(
         (code) =>
           code === target ||
@@ -216,6 +232,11 @@ export class CompanyDiscoveryService {
           target.startsWith(code),
       ),
     );
+  }
+
+  private looksLikeCnaeCode(value: string): boolean {
+    const digits = value.replace(/\D/g, '');
+    return digits.length >= 4;
   }
 
   private isActive(status?: string): boolean {

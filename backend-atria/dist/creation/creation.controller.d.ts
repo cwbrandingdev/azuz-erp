@@ -31,12 +31,12 @@ export declare class CreationController {
             clientName: string;
             clientAvatarUrl: string | null;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
-            format: "carousel" | "reels" | "static" | "story";
-            status: "draft" | "pending_approval" | "approved" | "rejected" | "scheduled" | "published";
+            format: "static" | "carousel" | "reels" | "story";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             assignee: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             } | null;
             updatedAt: string;
             scheduledDate: string | null;
@@ -54,8 +54,8 @@ export declare class CreationController {
             clientId: string;
             clientName: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
-            format: "carousel" | "reels" | "static" | "story";
-            status: "draft" | "pending_approval" | "approved" | "rejected" | "scheduled" | "published";
+            format: "static" | "carousel" | "reels" | "story";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             scheduledAt: string;
             color: string;
         } | {
@@ -124,7 +124,7 @@ export declare class CreationController {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "draft" | "approved" | "pending";
+            status: "pending" | "approved" | "draft";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -144,7 +144,7 @@ export declare class CreationController {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "draft" | "approved" | "pending";
+            status: "pending" | "approved" | "draft";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -168,7 +168,7 @@ export declare class CreationController {
                 type: string;
                 typeKey: string;
                 scheduledAt: string;
-                status: "draft" | "approved" | "pending";
+                status: "pending" | "approved" | "draft";
                 statusLabel: string;
                 referenceUrl: string | null;
                 clientId: string;
@@ -188,7 +188,7 @@ export declare class CreationController {
                 type: string;
                 typeKey: string;
                 scheduledAt: string;
-                status: "draft" | "approved" | "pending";
+                status: "pending" | "approved" | "draft";
                 statusLabel: string;
                 referenceUrl: string | null;
                 clientId: string;
@@ -213,7 +213,7 @@ export declare class CreationController {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "draft" | "approved" | "pending";
+            status: "pending" | "approved" | "draft";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -236,7 +236,7 @@ export declare class CreationController {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "draft" | "approved" | "pending";
+            status: "pending" | "approved" | "draft";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -259,7 +259,7 @@ export declare class CreationController {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "draft" | "approved" | "pending";
+            status: "pending" | "approved" | "draft";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -281,7 +281,7 @@ export declare class CreationController {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "draft" | "approved" | "pending";
+            status: "pending" | "approved" | "draft";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -304,7 +304,7 @@ export declare class CreationController {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "draft" | "approved" | "pending";
+            status: "pending" | "approved" | "draft";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -326,7 +326,7 @@ export declare class CreationController {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "draft" | "approved" | "pending";
+            status: "pending" | "approved" | "draft";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -347,7 +347,7 @@ export declare class CreationController {
         ideas: {
             title: string;
             copy: string;
-            format: "carousel" | "reels" | "static" | "story";
+            format: "static" | "carousel" | "reels" | "story";
             mediaConcept: string;
             suggestedDate: string;
         }[];
@@ -364,9 +364,9 @@ export declare class CreationController {
             clientId: string;
             client: {
                 id: string;
+                avatarUrl: string | null;
                 companyName: string;
                 instagram: string | null;
-                avatarUrl: string | null;
             };
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "carousel" | "reels" | "static" | "story";
@@ -377,22 +377,22 @@ export declare class CreationController {
             copy: string;
             referenceUrl: string | null;
             attachments: {
+                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 postId: string;
-                url: string;
                 mimeType: string | null;
             }[];
             author: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
             assignee: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             } | null;
             platformColor: string;
             createdAt: string;
@@ -430,13 +430,13 @@ export declare class CreationController {
             } | null;
             assignees: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             }[];
             createdBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
             assets: {
                 id: string;
@@ -448,8 +448,8 @@ export declare class CreationController {
                 uploadedAt: string;
                 uploadedBy: {
                     id: string;
-                    avatarUrl: string | null;
                     name: string;
+                    avatarUrl: string | null;
                 };
             }[];
             updatedAt: string;

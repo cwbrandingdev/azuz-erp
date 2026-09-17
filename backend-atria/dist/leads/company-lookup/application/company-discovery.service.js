@@ -32,7 +32,7 @@ let CompanyDiscoveryService = CompanyDiscoveryService_1 = class CompanyDiscovery
     async discover(params) {
         const maxResults = params.maxResults ?? DEFAULT_MAX_RESULTS;
         const cnaeClasses = await this.cnaeResolver.resolve(params.queryType, params.queryValue);
-        const cnaeCodes = cnaeClasses.map((item) => item.id);
+        const cnaeCodes = this.cnaeResolver.cnaeFilterCodes(cnaeClasses);
         const searchTerms = this.buildSearchTerms(params, cnaeClasses);
         const explicitCnpjs = this.extractCnpjs(params.queryValue);
         const discovered = new Map();
@@ -131,7 +131,7 @@ let CompanyDiscoveryService = CompanyDiscoveryService_1 = class CompanyDiscovery
             terms.add(`${queryValue} ${city}`);
             terms.add(`empresa ${queryValue} ${city}`);
         }
-        else {
+        else if (!this.looksLikeCnaeCode(queryValue)) {
             terms.add(`${queryValue} ${city}`);
         }
         for (const cnae of cnaeClasses) {
@@ -166,9 +166,24 @@ let CompanyDiscoveryService = CompanyDiscoveryService_1 = class CompanyDiscovery
             record.primaryCnaeCode,
             ...record.secondaryCnaeCodes,
         ].filter(Boolean);
-        return cnaeCodes.some((target) => companyCodes.some((code) => code === target ||
+        const strictTargets = cnaeCodes.filter((code) => code.length === 7);
+        const prefixTargets = cnaeCodes.filter((code) => code.length < 7);
+        if (strictTargets.length > 0) {
+            const strictHit = strictTargets.some((target) => companyCodes.some((code) => code === target));
+            if (!strictHit) {
+                return false;
+            }
+        }
+        if (prefixTargets.length === 0) {
+            return strictTargets.length > 0;
+        }
+        return prefixTargets.some((target) => companyCodes.some((code) => code === target ||
             code.startsWith(target) ||
             target.startsWith(code)));
+    }
+    looksLikeCnaeCode(value) {
+        const digits = value.replace(/\D/g, '');
+        return digits.length >= 4;
     }
     isActive(status) {
         if (!status) {
