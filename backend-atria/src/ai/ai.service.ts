@@ -40,6 +40,25 @@ export interface LeadQualificationResult {
   provider: 'openai' | 'gemini' | 'fallback';
 }
 
+export interface CommercialFitAiInput {
+  name: string;
+  category?: string | null;
+  biography?: string | null;
+  businessCategoryName?: string | null;
+  followersCount?: number | null;
+  reviewsCount?: number | null;
+  shareCapital?: number | null;
+}
+
+export interface CommercialFitAiResult {
+  segmentLabel: string;
+  estimatedRevenueBand: string;
+  revenueJustification: string;
+  recommendedAction: 'prioritize' | 'nurture' | 'do_not_prioritize';
+  oneLineReason: string;
+  provider: 'openai' | 'gemini' | 'fallback';
+}
+
 interface GeneratePlanInput {
   brief: string;
   clientName: string;
@@ -584,5 +603,195 @@ Rules:
       }`,
       provider: 'fallback',
     };
+  }
+
+  async assessCommercialFit(
+    input: CommercialFitAiInput,
+  ): Promise<CommercialFitAiResult | null> {
+    const openaiKey = this.config.get<string>('OPENAI_API_KEY');
+    const geminiKey = this.config.get<string>('GEMINI_API_KEY');
+    const provider = this.config.get<string>('AI_PROVIDER') ?? 'openai';
+
+    if (provider === 'gemini' && geminiKey) {
+      try {
+        return await this.commercialFitWithGemini(input, geminiKey);
+      } catch (error) {
+        this.logger.warn(`Gemini commercial fit failed: ${error}`);
+      }
+    }
+
+    if (openaiKey) {
+      try {
+        return await this.commercialFitWithOpenAI(input, openaiKey);
+      } catch (error) {
+        this.logger.warn(`OpenAI commercial fit failed: ${error}`);
+      }
+    }
+
+    if (geminiKey && provider !== 'gemini') {
+      try {
+        return await this.commercialFitWithGemini(input, geminiKey);
+      } catch (error) {
+        this.logger.warn(`Gemini commercial fit fallback failed: ${error}`);
+      }
+    }
+
+    return null;
+  }
+
+  private buildCommercialFitPrompt(input: CommercialFitAiInput): string {
+    return `Analise o fit comercial deste lead para uma agência de marketing (CW Branding).
+
+Pacotes mensais (referência):
+- Projeto Posicionamento: R$ 5.699/mês
+- Projeto Escala: R$ 7.999/mês
+- Projeto Liderança: R$ 9.999/mês
+
+Lead:
+- Nome: ${input.name}
+- Categoria cadastro/maps: ${input.category ?? 'não informada'}
+- Bio Instagram: ${input.biography ?? 'não informada'}
+- Categoria Instagram: ${input.businessCategoryName ?? 'não informada'}
+- Seguidores: ${input.followersCount ?? 'não informado'}
+- Avaliações Google: ${input.reviewsCount ?? 'não informado'}
+- Capital social (Receita Federal, se conhecido): ${
+      input.shareCapital != null
+        ? `R$ ${input.shareCapital.toLocaleString('pt-BR')}`
+        : 'não informado'
+    } (não é faturamento mensal)
+
+Estime o segmento (ex.: nail designer autônoma, clínica, restaurante) e se o negócio provavelmente sustenta o pacote mínimo (~R$ 5.699/mês recorrente). Microempreendedores de beleza solo costumam faturar até ~R$ 15k/mês e muitas vezes não sustentam esse ticket.
+
+Responda JSON:
+{
+  "segmentLabel": "string curta",
+  "estimatedRevenueBand": "ex: até R$ 15k/mês",
+  "revenueJustification": "2-3 frases em português explicando POR QUE estimou essa faixa (tipo de negócio, tamanho, bio, ticket do pacote CW)",
+  "recommendedAction": "prioritize" | "nurture" | "do_not_prioritize",
+  "oneLineReason": "uma frase em português sobre fit comercial"
+}`;
+  }
+
+  private parseCommercialFitAi(
+    content: string,
+    provider: 'openai' | 'gemini',
+  ): CommercialFitAiResult {
+    const parsed = JSON.parse(content) as {
+      segmentLabel?: unknown;
+      estimatedRevenueBand?: unknown;
+      revenueJustification?: unknown;
+      recommendedAction?: unknown;
+      oneLineReason?: unknown;
+    };
+
+    const actionRaw = String(parsed.recommendedAction ?? '').toLowerCase();
+    const recommendedAction =
+      actionRaw === 'prioritize' ||
+      actionRaw === 'nurture' ||
+      actionRaw === 'do_not_prioritize'
+        ? actionRaw
+        : 'nurture';
+
+    return {
+      segmentLabel:
+        typeof parsed.segmentLabel === 'string' && parsed.segmentLabel.trim()
+          ? parsed.segmentLabel.trim()
+          : 'Segmento indefinido',
+      estimatedRevenueBand:
+        typeof parsed.estimatedRevenueBand === 'string' &&
+        parsed.estimatedRevenueBand.trim()
+          ? parsed.estimatedRevenueBand.trim()
+          : 'Não estimado',
+      revenueJustification:
+        typeof parsed.revenueJustification === 'string' &&
+        parsed.revenueJustification.trim()
+          ? parsed.revenueJustification.trim()
+          : 'Estimativa baseada no perfil e nos pacotes CW.',
+      recommendedAction,
+      oneLineReason:
+        typeof parsed.oneLineReason === 'string' && parsed.oneLineReason.trim()
+          ? parsed.oneLineReason.trim()
+          : 'Análise automática sem detalhe adicional.',
+      provider,
+    };
+  }
+
+  private async commercialFitWithOpenAI(
+    input: CommercialFitAiInput,
+    apiKey: string,
+  ): Promise<CommercialFitAiResult> {
+    const model = this.config.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini';
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a JSON-only API. Respond with valid JSON matching the requested schema.',
+          },
+          { role: 'user', content: this.buildCommercialFitPrompt(input) },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`OpenAI API error ${response.status}: ${body}`);
+    }
+
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Empty OpenAI response');
+
+    return this.parseCommercialFitAi(content, 'openai');
+  }
+
+  private async commercialFitWithGemini(
+    input: CommercialFitAiInput,
+    apiKey: string,
+  ): Promise<CommercialFitAiResult> {
+    const model =
+      this.config.get<string>('GEMINI_MODEL') ?? 'gemini-1.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          { parts: [{ text: this.buildCommercialFitPrompt(input) }] },
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: 'application/json',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Gemini API error ${response.status}: ${body}`);
+    }
+
+    const data = (await response.json()) as {
+      candidates?: Array<{
+        content?: { parts?: Array<{ text?: string }> };
+      }>;
+    };
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) throw new Error('Empty Gemini response');
+
+    return this.parseCommercialFitAi(content, 'gemini');
   }
 }

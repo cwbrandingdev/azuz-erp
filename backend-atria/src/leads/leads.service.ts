@@ -108,10 +108,7 @@ export class LeadsService {
       data: {
         aiScore: result.score,
         aiNotes: result.notes,
-        rawData: this.leadQualification.mergeInstagramIntoRawData(
-          lead,
-          result.instagram ?? null,
-        ),
+        rawData: result.mergedRawData,
       },
     });
 

@@ -20,6 +20,12 @@ export interface InstagramPostSnapshot {
 export interface InstagramProfileQualificationData {
   username: string;
   profileUrl: string;
+  biography: string | null;
+  followersCount: number | null;
+  followsCount: number | null;
+  isBusinessAccount: boolean | null;
+  businessCategoryName: string | null;
+  externalUrl: string | null;
   recentPosts: InstagramPostSnapshot[];
   lastPostAt: string | null;
   daysSinceLastPost: number | null;
@@ -29,7 +35,7 @@ export interface InstagramProfileQualificationData {
   provider: 'apify';
 }
 
-interface ApifyPostRow {
+interface ApifyRow {
   likesCount?: number;
   likes?: number;
   likeCount?: number;
@@ -37,6 +43,23 @@ interface ApifyPostRow {
   takenAt?: string;
   isPinned?: boolean;
   pinned?: boolean;
+  biography?: string;
+  bio?: string;
+  followersCount?: number;
+  followers?: number;
+  followsCount?: number;
+  follows?: number;
+  isBusinessAccount?: boolean;
+  businessCategoryName?: string;
+  category?: string;
+  externalUrl?: string;
+  website?: string;
+  videoViewCount?: number;
+  viewCount?: number;
+  viewsCount?: number;
+  videoPlayCount?: number;
+  playCount?: number;
+  plays?: number;
   [key: string]: unknown;
 }
 
@@ -60,12 +83,81 @@ export class InstagramApifyEnricher {
       this.configService.get<string>('APIFY_INSTAGRAM_ACTOR')?.trim() ||
       DEFAULT_ACTOR;
 
-    const payload = {
-      directUrls: [profileUrl],
-      resultsType: 'posts',
-      resultsLimit: POSTS_FETCH_LIMIT,
-    };
+    try {
+      const [postRows, detailRows] = await Promise.all([
+        this.runActor(actorId, apifyToken, {
+          directUrls: [profileUrl],
+          resultsType: 'posts',
+          resultsLimit: POSTS_FETCH_LIMIT,
+        }),
+        this.runActor(actorId, apifyToken, {
+          directUrls: [profileUrl],
+          resultsType: 'details',
+          resultsLimit: 1,
+        }),
+      ]);
 
+      const posts = this.mapRecentNonPinnedPosts(postRows);
+      const lastPostAt = posts[0]?.timestamp ?? null;
+      const daysSinceLastPost = this.daysSince(lastPostAt);
+      const recentTwo = posts.slice(0, 2);
+      const profile = this.mapProfileDetails(detailRows, username);
+
+      return {
+        username,
+        profileUrl,
+        biography: profile.biography,
+        followersCount: profile.followersCount,
+        followsCount: profile.followsCount,
+        isBusinessAccount: profile.isBusinessAccount,
+        businessCategoryName: profile.businessCategoryName,
+        externalUrl: profile.externalUrl,
+        recentPosts: recentTwo,
+        lastPostAt,
+        daysSinceLastPost,
+        averageLikesRecent: this.averageMetric(
+          recentTwo.map((post) => post.likes),
+        ),
+        averageViewsRecent: this.averageMetric(
+          recentTwo.map((post) => post.views),
+        ),
+        fetchedAt: new Date().toISOString(),
+        provider: 'apify',
+      };
+    } catch (error) {
+      if (error instanceof BadGatewayException) {
+        throw error;
+      }
+      if (error instanceof RequestTimeoutException) {
+        throw error;
+      }
+      this.logger.warn(`Apify Instagram request failed: ${String(error)}`);
+      throw new BadGatewayException(
+        'Não foi possível conectar ao Apify para Instagram.',
+      );
+    }
+  }
+
+  extractUsername(value: string): string | null {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const fromUrl = trimmed.match(
+      /instagram\.com\/([a-zA-Z0-9._]+)/i,
+    )?.[1];
+    if (fromUrl) {
+      return fromUrl.replace(/\/$/, '').toLowerCase();
+    }
+
+    const handle = trimmed.replace(/^@/, '').split(/[/?#]/)[0]?.trim();
+    return handle ? handle.toLowerCase() : null;
+  }
+
+  private async runActor(
+    actorId: string,
+    apifyToken: string,
+    payload: Record<string, unknown>,
+  ): Promise<ApifyRow[]> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), APIFY_TIMEOUT_MS);
 
@@ -97,25 +189,7 @@ export class InstagramApifyEnricher {
         );
       }
 
-      const rows = Array.isArray(body) ? (body as ApifyPostRow[]) : [];
-      const posts = this.mapRecentNonPinnedPosts(rows);
-      const lastPostAt = posts[0]?.timestamp ?? null;
-      const daysSinceLastPost = this.daysSince(lastPostAt);
-      const recentTwo = posts.slice(0, 2);
-      const averageLikesRecent = this.averageLikes(recentTwo);
-      const averageViewsRecent = this.averageViews(recentTwo);
-
-      return {
-        username,
-        profileUrl,
-        recentPosts: recentTwo,
-        lastPostAt,
-        daysSinceLastPost,
-        averageLikesRecent,
-        averageViewsRecent,
-        fetchedAt: new Date().toISOString(),
-        provider: 'apify',
-      };
+      return Array.isArray(body) ? (body as ApifyRow[]) : [];
     } catch (error) {
       if (error instanceof BadGatewayException) {
         throw error;
@@ -125,32 +199,73 @@ export class InstagramApifyEnricher {
           'A consulta ao Instagram no Apify excedeu o tempo limite.',
         );
       }
-      this.logger.warn(`Apify Instagram request failed: ${String(error)}`);
-      throw new BadGatewayException(
-        'Não foi possível conectar ao Apify para Instagram.',
-      );
+      throw error;
     } finally {
       clearTimeout(timeout);
     }
   }
 
-  extractUsername(value: string): string | null {
-    const trimmed = value.trim();
-    if (!trimmed) return null;
+  private mapProfileDetails(
+    rows: ApifyRow[],
+    username: string,
+  ): {
+    biography: string | null;
+    followersCount: number | null;
+    followsCount: number | null;
+    isBusinessAccount: boolean | null;
+    businessCategoryName: string | null;
+    externalUrl: string | null;
+  } {
+    const row =
+      rows.find((item) => {
+        const handle = String(item.username ?? item.ownerUsername ?? '')
+          .trim()
+          .toLowerCase();
+        return !handle || handle === username;
+      }) ?? rows[0];
 
-    const fromUrl = trimmed.match(
-      /instagram\.com\/([a-zA-Z0-9._]+)/i,
-    )?.[1];
-    if (fromUrl) {
-      return fromUrl.replace(/\/$/, '').toLowerCase();
+    if (!row) {
+      return {
+        biography: null,
+        followersCount: null,
+        followsCount: null,
+        isBusinessAccount: null,
+        businessCategoryName: null,
+        externalUrl: null,
+      };
     }
 
-    const handle = trimmed.replace(/^@/, '').split(/[/?#]/)[0]?.trim();
-    return handle ? handle.toLowerCase() : null;
+    const bioRaw = row.biography ?? row.bio;
+    const biography =
+      typeof bioRaw === 'string' && bioRaw.trim() ? bioRaw.trim() : null;
+
+    const categoryRaw = row.businessCategoryName ?? row.category;
+    const businessCategoryName =
+      typeof categoryRaw === 'string' && categoryRaw.trim()
+        ? categoryRaw.trim()
+        : null;
+
+    const externalRaw = row.externalUrl ?? row.website;
+    const externalUrl =
+      typeof externalRaw === 'string' && externalRaw.trim()
+        ? externalRaw.trim()
+        : null;
+
+    return {
+      biography,
+      followersCount: this.readNumber(row.followersCount, row.followers),
+      followsCount: this.readNumber(row.followsCount, row.follows),
+      isBusinessAccount:
+        typeof row.isBusinessAccount === 'boolean'
+          ? row.isBusinessAccount
+          : null,
+      businessCategoryName,
+      externalUrl,
+    };
   }
 
   private mapRecentNonPinnedPosts(
-    rows: ApifyPostRow[],
+    rows: ApifyRow[],
   ): InstagramPostSnapshot[] {
     return rows
       .map((row) => ({
@@ -167,8 +282,7 @@ export class InstagramApifyEnricher {
       });
   }
 
-  private readLikes(row: ApifyPostRow): number | null {
-    const candidates = [row.likesCount, row.likes, row.likeCount];
+  private readNumber(...candidates: unknown[]): number | null {
     for (const value of candidates) {
       if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -177,24 +291,22 @@ export class InstagramApifyEnricher {
     return null;
   }
 
-  private readViews(row: ApifyPostRow): number | null {
-    const candidates = [
+  private readLikes(row: ApifyRow): number | null {
+    return this.readNumber(row.likesCount, row.likes, row.likeCount);
+  }
+
+  private readViews(row: ApifyRow): number | null {
+    return this.readNumber(
       row.videoViewCount,
       row.viewCount,
       row.viewsCount,
       row.videoPlayCount,
       row.playCount,
       row.plays,
-    ];
-    for (const value of candidates) {
-      if (typeof value === 'number' && Number.isFinite(value)) {
-        return value;
-      }
-    }
-    return null;
+    );
   }
 
-  private readTimestamp(row: ApifyPostRow): string | null {
+  private readTimestamp(row: ApifyRow): string | null {
     const value = row.timestamp ?? row.takenAt;
     if (typeof value === 'string' && value.trim()) {
       return value;
@@ -207,14 +319,6 @@ export class InstagramApifyEnricher {
     const ms = Date.parse(iso);
     if (!Number.isFinite(ms)) return null;
     return Math.floor((Date.now() - ms) / (1000 * 60 * 60 * 24));
-  }
-
-  private averageLikes(posts: InstagramPostSnapshot[]): number | null {
-    return this.averageMetric(posts.map((post) => post.likes));
-  }
-
-  private averageViews(posts: InstagramPostSnapshot[]): number | null {
-    return this.averageMetric(posts.map((post) => post.views));
   }
 
   private averageMetric(values: Array<number | null>): number | null {

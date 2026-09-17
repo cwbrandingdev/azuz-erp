@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Kanban, Loader2, MapPin } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, Kanban, Loader2, MapPin, Sparkles, Square } from "lucide-react";
 import { AddToKanbanOrganizationDialog } from "@/components/leads/add-to-kanban-organization-dialog";
 import {
   CompanySearchForm,
@@ -32,13 +32,11 @@ import { useSdrAssignedOrganizations } from "@/hooks/use-sdr-assigned-organizati
 import { buildAddToKanbanInput } from "@/lib/lead-external-utils";
 import { formatSearchSessionLabel } from "@/lib/lead-search-session";
 import { normalizeAppRole } from "@/lib/permissions";
+import { readCommercialFit } from "@/lib/lead-qualification-utils";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { leadsService } from "@/services";
-import {
-  searchCompanies,
-  type LeadSearchQueryType,
-} from "@/services/company-search.service";
+import type { LeadSearchQueryType } from "@/services/company-search.service";
 import type { Lead } from "@/services/types";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -142,6 +140,14 @@ export function CompanySearchPanel() {
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
   const [pendingKanbanLeads, setPendingKanbanLeads] = useState<Lead[]>([]);
   const [confirmingKanban, setConfirmingKanban] = useState(false);
+  const [bulkQualifying, setBulkQualifying] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{
+    done: number;
+    total: number;
+    name: string;
+  } | null>(null);
+  const [onlyHighCommercialFit, setOnlyHighCommercialFit] = useState(false);
+  const batchCancelRef = useRef(false);
 
   const sessionsQuery = useLeadSearchSessions();
   const sessionLeadsQuery = useLeadSearchSessionLeads(selectedSessionId);
@@ -272,6 +278,21 @@ export function CompanySearchPanel() {
     ? globalFilteredLeads
     : sessionFilteredLeads;
 
+  const leadsWithInstagramCount = useMemo(
+    () => displayLeads.filter((lead) => lead.instagram?.trim()).length,
+    [displayLeads],
+  );
+
+  const tableLeads = useMemo(() => {
+    if (!onlyHighCommercialFit) {
+      return displayLeads;
+    }
+    return displayLeads.filter((lead) => {
+      const fit = readCommercialFit(lead.rawData);
+      return fit?.verdict === "high";
+    });
+  }, [displayLeads, onlyHighCommercialFit]);
+
   useEffect(() => {
     setSessionFilterCategory(ALL_CATEGORIES);
     setSessionFilterNeighborhood(ALL_NEIGHBORHOODS);
@@ -320,25 +341,19 @@ export function CompanySearchPanel() {
       queryValue ||
       (formValues.queryType === "NICHO" ? "comércio" : queryValue);
 
-    void searchCompanies({
-      queryType: formValues.queryType,
-      queryValue: effectiveCategory,
-      city,
-      uf,
-      address: address || undefined,
-      maxResults: 20,
-    })
+    void searchMutation
+      .mutateAsync({
+        queryType: formValues.queryType,
+        queryValue: effectiveCategory,
+        city,
+        uf,
+        address: address || undefined,
+        maxResults: 20,
+      })
       .then((data) => {
         setActiveLeads(data.leads);
         setSelectedSessionId(data.session.id);
         setHasAutoSelectedSession(true);
-        queryClient.setQueryData(
-          ["lead-search-session", data.session.id],
-          data,
-        );
-        void queryClient.invalidateQueries({
-          queryKey: ["lead-search-sessions"],
-        });
         void loadAllProspectedLeads();
 
         if (data.leads.length > 0) {
@@ -356,7 +371,7 @@ export function CompanySearchPanel() {
           "Não foi possível buscar empresas agora. Tente novamente em instantes.",
         );
       });
-  }, [formValues, loadAllProspectedLeads, queryClient]);
+  }, [formValues, loadAllProspectedLeads, searchMutation]);
 
   const handleQueryTypeChange = useCallback(
     (queryType: LeadSearchQueryType) => {
@@ -454,21 +469,66 @@ export function CompanySearchPanel() {
     }
   }
 
-  async function handleQualify(lead: Lead) {
+  function applyLeadUpdate(updated: Lead) {
+    setActiveLeads((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item)),
+    );
+    setAllProspectedLeads((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item)),
+    );
+  }
+
+  async function runPreQualifyForLead(lead: Lead, silentToast = false) {
     setQualifyingId(lead.id);
     try {
       const updated = await leadsService.preQualifyLead(lead.id);
-      setActiveLeads((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
-      );
-      setAllProspectedLeads((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
-      );
-      toast.success("Qualificação concluída.");
+      applyLeadUpdate(updated);
+      if (!silentToast) {
+        toast.success("Qualificação concluída.");
+      }
     } catch {
     } finally {
       setQualifyingId(null);
     }
+  }
+
+  async function handleBatchQualify() {
+    const targets = displayLeads.filter((lead) => lead.instagram?.trim());
+    if (targets.length === 0) {
+      toast.error("Nenhuma empresa com Instagram na lista atual.");
+      return;
+    }
+
+    batchCancelRef.current = false;
+    setBulkQualifying(true);
+    setBatchProgress({ done: 0, total: targets.length, name: "" });
+
+    let done = 0;
+    for (const lead of targets) {
+      if (batchCancelRef.current) {
+        break;
+      }
+      setBatchProgress({
+        done,
+        total: targets.length,
+        name: lead.name,
+      });
+      await runPreQualifyForLead(lead, true);
+      done += 1;
+      setBatchProgress({
+        done,
+        total: targets.length,
+        name: lead.name,
+      });
+    }
+
+    setBulkQualifying(false);
+    setBatchProgress(null);
+    toast.success("Qualificação concluída.");
+  }
+
+  function handleCancelBatchQualify() {
+    batchCancelRef.current = true;
   }
 
   const loadingResults =
@@ -779,32 +839,87 @@ export function CompanySearchPanel() {
       )}
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-base font-semibold text-[var(--atria-primary)]">
             Empresas encontradas
             {displayLeads.length > 0 ? ` (${displayLeads.length})` : ""}
           </h2>
-          {displayLeads.length > 0 && pendingKanbanCount > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={bulkAddingKanban || loadingResults}
-              onClick={() =>
-                requestAddToKanban(
-                  displayLeads.filter((lead) => !lead.kanbanTracked),
-                )
-              }
-              className="gap-2"
-            >
-              {bulkAddingKanban ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Kanban className="size-4" />
-              )}
-              Adicionar todas aos leads
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {displayLeads.length > 0 && leadsWithInstagramCount > 0 && (
+              <Button
+                type="button"
+                variant="default"
+                disabled={
+                  bulkQualifying || loadingResults || qualifyingId != null
+                }
+                onClick={() => void handleBatchQualify()}
+                className="gap-2"
+              >
+                {bulkQualifying ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Sparkles className="size-4" />
+                )}
+                Qualificar com Instagram ({leadsWithInstagramCount})
+              </Button>
+            )}
+            {bulkQualifying && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCancelBatchQualify}
+                className="gap-1"
+              >
+                <Square className="size-3.5" />
+                Parar
+              </Button>
+            )}
+            {displayLeads.length > 0 && pendingKanbanCount > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={bulkAddingKanban || loadingResults || bulkQualifying}
+                onClick={() =>
+                  requestAddToKanban(
+                    displayLeads.filter((lead) => !lead.kanbanTracked),
+                  )
+                }
+                className="gap-2"
+              >
+                {bulkAddingKanban ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Kanban className="size-4" />
+                )}
+                Adicionar todas aos leads
+              </Button>
+            )}
+          </div>
         </div>
+
+        {batchProgress && (
+          <p className="text-sm text-[var(--atria-primary)]/60">
+            Qualificando{" "}
+            {Math.min(batchProgress.done + 1, batchProgress.total)} de{" "}
+            {batchProgress.total}
+            {batchProgress.name ? ` — ${batchProgress.name}` : ""}
+          </p>
+        )}
+
+        {displayLeads.some((lead) => lead.aiScore != null) && (
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--atria-primary)]/70">
+            <input
+              type="checkbox"
+              checked={onlyHighCommercialFit}
+              onChange={(event) =>
+                setOnlyHighCommercialFit(event.target.checked)
+              }
+              className="size-4 rounded border-[var(--atria-primary)]/30"
+            />
+            Mostrar só fit comercial alto
+          </label>
+        )}
 
         {loadingResults && (
           <div className="flex min-h-40 items-center justify-center rounded-2xl border border-[var(--atria-primary)]/10 bg-white/50">
@@ -817,10 +932,10 @@ export function CompanySearchPanel() {
 
         {!loadingResults && displayLeads.length > 0 && (
           <LeadsTable
-            leads={displayLeads}
+            leads={tableLeads}
             qualifyingId={qualifyingId}
             addingKanbanId={addingKanbanId}
-            onQualify={(lead) => void handleQualify(lead)}
+            onQualify={(lead) => void runPreQualifyForLead(lead)}
             onAddToKanban={(lead) => {
               if (lead.kanbanTracked) return;
               requestAddToKanban([lead]);

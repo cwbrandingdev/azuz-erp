@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,12 +59,14 @@ function SelectContent({
         <SelectPrimitive.Popup
           data-slot="select-content"
           className={cn(
-            "bg-popover text-popover-foreground z-50 max-h-60 min-w-[var(--anchor-width)] overflow-hidden rounded-lg border border-input p-1 shadow-md",
+            "bg-popover text-popover-foreground z-50 min-w-[var(--anchor-width)] overflow-hidden rounded-lg border border-input p-1 shadow-md",
             className,
           )}
           {...props}
         >
-          <SelectPrimitive.List>{children}</SelectPrimitive.List>
+          <SelectPrimitive.List className="max-h-60 overflow-y-auto overscroll-contain">
+            {children}
+          </SelectPrimitive.List>
         </SelectPrimitive.Popup>
       </SelectPrimitive.Positioner>
     </SelectPrimitive.Portal>

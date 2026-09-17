@@ -17,6 +17,7 @@ const lead_miner_client_1 = require("../infrastructure/lead-miner.client");
 const lead_miner_mapper_1 = require("../infrastructure/lead-miner.mapper");
 const cnae_resolver_service_1 = require("./cnae-resolver.service");
 const company_discovery_service_1 = require("./company-discovery.service");
+const registry_signals_util_1 = require("../../qualification/registry-signals.util");
 const DEFAULT_MAX_RESULTS = 20;
 let LeadSearchSessionService = class LeadSearchSessionService {
     prisma;
@@ -84,7 +85,8 @@ let LeadSearchSessionService = class LeadSearchSessionService {
                     rating: candidate.rating,
                     reviewsCount: candidate.reviewsCount,
                     source: candidate.source,
-                    rawData: candidate.rawData,
+                    rawData: (0, registry_signals_util_1.materializeRegistrySnapshotFromRawData)(candidate.rawData, candidate.placeId ??
+                        (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined)),
                     searchSessionId: session.id,
                     placeId: candidate.placeId ??
                         (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined),
@@ -312,7 +314,9 @@ let LeadSearchSessionService = class LeadSearchSessionService {
             placeId: candidate.placeId ??
                 (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined) ??
                 existing.placeId,
-            rawData: candidate.rawData,
+            rawData: (0, registry_signals_util_1.materializeRegistrySnapshotFromRawData)(candidate.rawData, candidate.placeId ??
+                (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined) ??
+                existing.placeId),
         };
     }
     toSessionResponse(session, leadsCount) {

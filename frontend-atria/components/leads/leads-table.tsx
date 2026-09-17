@@ -35,6 +35,11 @@ import {
   formatInstagramHandle,
   formatLeadRating,
 } from "@/lib/lead-map-utils";
+import {
+  commercialFitBadgeVariant,
+  commercialFitLabel,
+  readCommercialFit,
+} from "@/lib/lead-qualification-utils";
 import type { Lead, LeadStatus } from "@/services/types";
 
 const STATUS_VARIANTS: Record<
@@ -475,7 +480,22 @@ export function LeadsTable({
                     </TableCell>
                     <TableCell className="hidden text-[var(--atria-primary)]/70 xl:table-cell">
                       {lead.aiScore != null ? (
-                        <span className="font-medium">{lead.aiScore}</span>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium">{lead.aiScore}</span>
+                          {(() => {
+                            const fit = readCommercialFit(lead.rawData);
+                            const label = commercialFitLabel(fit?.verdict);
+                            if (!label) return null;
+                            return (
+                              <Badge
+                                variant={commercialFitBadgeVariant(fit?.verdict)}
+                                className="w-fit text-[10px]"
+                              >
+                                {label}
+                              </Badge>
+                            );
+                          })()}
+                        </div>
                       ) : (
                         "—"
                       )}

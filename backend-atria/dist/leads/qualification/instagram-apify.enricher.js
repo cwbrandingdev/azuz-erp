@@ -30,11 +30,65 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
         const profileUrl = `https://www.instagram.com/${username}/`;
         const actorId = this.configService.get('APIFY_INSTAGRAM_ACTOR')?.trim() ||
             DEFAULT_ACTOR;
-        const payload = {
-            directUrls: [profileUrl],
-            resultsType: 'posts',
-            resultsLimit: POSTS_FETCH_LIMIT,
-        };
+        try {
+            const [postRows, detailRows] = await Promise.all([
+                this.runActor(actorId, apifyToken, {
+                    directUrls: [profileUrl],
+                    resultsType: 'posts',
+                    resultsLimit: POSTS_FETCH_LIMIT,
+                }),
+                this.runActor(actorId, apifyToken, {
+                    directUrls: [profileUrl],
+                    resultsType: 'details',
+                    resultsLimit: 1,
+                }),
+            ]);
+            const posts = this.mapRecentNonPinnedPosts(postRows);
+            const lastPostAt = posts[0]?.timestamp ?? null;
+            const daysSinceLastPost = this.daysSince(lastPostAt);
+            const recentTwo = posts.slice(0, 2);
+            const profile = this.mapProfileDetails(detailRows, username);
+            return {
+                username,
+                profileUrl,
+                biography: profile.biography,
+                followersCount: profile.followersCount,
+                followsCount: profile.followsCount,
+                isBusinessAccount: profile.isBusinessAccount,
+                businessCategoryName: profile.businessCategoryName,
+                externalUrl: profile.externalUrl,
+                recentPosts: recentTwo,
+                lastPostAt,
+                daysSinceLastPost,
+                averageLikesRecent: this.averageMetric(recentTwo.map((post) => post.likes)),
+                averageViewsRecent: this.averageMetric(recentTwo.map((post) => post.views)),
+                fetchedAt: new Date().toISOString(),
+                provider: 'apify',
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.BadGatewayException) {
+                throw error;
+            }
+            if (error instanceof common_1.RequestTimeoutException) {
+                throw error;
+            }
+            this.logger.warn(`Apify Instagram request failed: ${String(error)}`);
+            throw new common_1.BadGatewayException('Não foi possível conectar ao Apify para Instagram.');
+        }
+    }
+    extractUsername(value) {
+        const trimmed = value.trim();
+        if (!trimmed)
+            return null;
+        const fromUrl = trimmed.match(/instagram\.com\/([a-zA-Z0-9._]+)/i)?.[1];
+        if (fromUrl) {
+            return fromUrl.replace(/\/$/, '').toLowerCase();
+        }
+        const handle = trimmed.replace(/^@/, '').split(/[/?#]/)[0]?.trim();
+        return handle ? handle.toLowerCase() : null;
+    }
+    async runActor(actorId, apifyToken, payload) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), APIFY_TIMEOUT_MS);
         try {
@@ -56,24 +110,7 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
                 this.logger.warn(`Apify Instagram error ${response.status}: ${bodyText.slice(0, 400)}`);
                 throw new common_1.BadGatewayException('Não foi possível buscar dados do Instagram no Apify.');
             }
-            const rows = Array.isArray(body) ? body : [];
-            const posts = this.mapRecentNonPinnedPosts(rows);
-            const lastPostAt = posts[0]?.timestamp ?? null;
-            const daysSinceLastPost = this.daysSince(lastPostAt);
-            const recentTwo = posts.slice(0, 2);
-            const averageLikesRecent = this.averageLikes(recentTwo);
-            const averageViewsRecent = this.averageViews(recentTwo);
-            return {
-                username,
-                profileUrl,
-                recentPosts: recentTwo,
-                lastPostAt,
-                daysSinceLastPost,
-                averageLikesRecent,
-                averageViewsRecent,
-                fetchedAt: new Date().toISOString(),
-                provider: 'apify',
-            };
+            return Array.isArray(body) ? body : [];
         }
         catch (error) {
             if (error instanceof common_1.BadGatewayException) {
@@ -82,23 +119,49 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
             if (error instanceof Error && error.name === 'AbortError') {
                 throw new common_1.RequestTimeoutException('A consulta ao Instagram no Apify excedeu o tempo limite.');
             }
-            this.logger.warn(`Apify Instagram request failed: ${String(error)}`);
-            throw new common_1.BadGatewayException('Não foi possível conectar ao Apify para Instagram.');
+            throw error;
         }
         finally {
             clearTimeout(timeout);
         }
     }
-    extractUsername(value) {
-        const trimmed = value.trim();
-        if (!trimmed)
-            return null;
-        const fromUrl = trimmed.match(/instagram\.com\/([a-zA-Z0-9._]+)/i)?.[1];
-        if (fromUrl) {
-            return fromUrl.replace(/\/$/, '').toLowerCase();
+    mapProfileDetails(rows, username) {
+        const row = rows.find((item) => {
+            const handle = String(item.username ?? item.ownerUsername ?? '')
+                .trim()
+                .toLowerCase();
+            return !handle || handle === username;
+        }) ?? rows[0];
+        if (!row) {
+            return {
+                biography: null,
+                followersCount: null,
+                followsCount: null,
+                isBusinessAccount: null,
+                businessCategoryName: null,
+                externalUrl: null,
+            };
         }
-        const handle = trimmed.replace(/^@/, '').split(/[/?#]/)[0]?.trim();
-        return handle ? handle.toLowerCase() : null;
+        const bioRaw = row.biography ?? row.bio;
+        const biography = typeof bioRaw === 'string' && bioRaw.trim() ? bioRaw.trim() : null;
+        const categoryRaw = row.businessCategoryName ?? row.category;
+        const businessCategoryName = typeof categoryRaw === 'string' && categoryRaw.trim()
+            ? categoryRaw.trim()
+            : null;
+        const externalRaw = row.externalUrl ?? row.website;
+        const externalUrl = typeof externalRaw === 'string' && externalRaw.trim()
+            ? externalRaw.trim()
+            : null;
+        return {
+            biography,
+            followersCount: this.readNumber(row.followersCount, row.followers),
+            followsCount: this.readNumber(row.followsCount, row.follows),
+            isBusinessAccount: typeof row.isBusinessAccount === 'boolean'
+                ? row.isBusinessAccount
+                : null,
+            businessCategoryName,
+            externalUrl,
+        };
     }
     mapRecentNonPinnedPosts(rows) {
         return rows
@@ -115,8 +178,7 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
             return bTime - aTime;
         });
     }
-    readLikes(row) {
-        const candidates = [row.likesCount, row.likes, row.likeCount];
+    readNumber(...candidates) {
         for (const value of candidates) {
             if (typeof value === 'number' && Number.isFinite(value)) {
                 return value;
@@ -124,21 +186,11 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
         }
         return null;
     }
+    readLikes(row) {
+        return this.readNumber(row.likesCount, row.likes, row.likeCount);
+    }
     readViews(row) {
-        const candidates = [
-            row.videoViewCount,
-            row.viewCount,
-            row.viewsCount,
-            row.videoPlayCount,
-            row.playCount,
-            row.plays,
-        ];
-        for (const value of candidates) {
-            if (typeof value === 'number' && Number.isFinite(value)) {
-                return value;
-            }
-        }
-        return null;
+        return this.readNumber(row.videoViewCount, row.viewCount, row.viewsCount, row.videoPlayCount, row.playCount, row.plays);
     }
     readTimestamp(row) {
         const value = row.timestamp ?? row.takenAt;
@@ -154,12 +206,6 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
         if (!Number.isFinite(ms))
             return null;
         return Math.floor((Date.now() - ms) / (1000 * 60 * 60 * 24));
-    }
-    averageLikes(posts) {
-        return this.averageMetric(posts.map((post) => post.likes));
-    }
-    averageViews(posts) {
-        return this.averageMetric(posts.map((post) => post.views));
     }
     averageMetric(values) {
         const numbers = values.filter((n) => n != null);

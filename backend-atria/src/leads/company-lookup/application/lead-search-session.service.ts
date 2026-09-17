@@ -12,6 +12,7 @@ import { mapLeadMinerRecordsToCandidates } from '../infrastructure/lead-miner.ma
 import { CnaeResolverService } from './cnae-resolver.service';
 import { CompanyDiscoveryService } from './company-discovery.service';
 import type { B2bLeadSearchDto } from '../dto/b2b-lead-search.dto';
+import { materializeRegistrySnapshotFromRawData } from '../../qualification/registry-signals.util';
 
 const DEFAULT_MAX_RESULTS = 20;
 
@@ -91,7 +92,11 @@ export class LeadSearchSessionService {
           rating: candidate.rating,
           reviewsCount: candidate.reviewsCount,
           source: candidate.source,
-          rawData: candidate.rawData as Prisma.InputJsonValue,
+          rawData: materializeRegistrySnapshotFromRawData(
+            candidate.rawData,
+            candidate.placeId ??
+              (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined),
+          ) as Prisma.InputJsonValue,
           searchSessionId: session.id,
           placeId:
             candidate.placeId ??
@@ -410,7 +415,12 @@ export class LeadSearchSessionService {
         candidate.placeId ??
         (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined) ??
         existing.placeId,
-      rawData: candidate.rawData as Prisma.InputJsonValue,
+      rawData: materializeRegistrySnapshotFromRawData(
+        candidate.rawData,
+        candidate.placeId ??
+          (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined) ??
+          existing.placeId,
+      ) as Prisma.InputJsonValue,
     };
   }
 

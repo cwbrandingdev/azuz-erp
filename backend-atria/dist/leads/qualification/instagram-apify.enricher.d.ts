@@ -8,6 +8,12 @@ export interface InstagramPostSnapshot {
 export interface InstagramProfileQualificationData {
     username: string;
     profileUrl: string;
+    biography: string | null;
+    followersCount: number | null;
+    followsCount: number | null;
+    isBusinessAccount: boolean | null;
+    businessCategoryName: string | null;
+    externalUrl: string | null;
     recentPosts: InstagramPostSnapshot[];
     lastPostAt: string | null;
     daysSinceLastPost: number | null;
@@ -22,12 +28,13 @@ export declare class InstagramApifyEnricher {
     constructor(configService: ConfigService);
     fetchProfileSignals(instagram: string, apifyToken: string): Promise<InstagramProfileQualificationData | null>;
     extractUsername(value: string): string | null;
+    private runActor;
+    private mapProfileDetails;
     private mapRecentNonPinnedPosts;
+    private readNumber;
     private readLikes;
     private readViews;
     private readTimestamp;
     private daysSince;
-    private averageLikes;
-    private averageViews;
     private averageMetric;
 }
