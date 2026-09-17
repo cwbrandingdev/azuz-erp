@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { exportLeadsToExcel } from "@/lib/leads-export";
+import { LeadQualificationDialog } from "@/components/leads/lead-qualification-dialog";
 import {
   getLeadStatusLabel,
   LEAD_STATUS_LABELS,
@@ -86,6 +87,29 @@ export function LeadsTable({
   const [exporting, setExporting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [qualificationDialogLeadId, setQualificationDialogLeadId] = useState<
+    string | null
+  >(null);
+
+  const qualificationDialogLead = useMemo(() => {
+    if (!qualificationDialogLeadId) {
+      return null;
+    }
+    return (
+      leads.find((item) => item.id === qualificationDialogLeadId) ?? null
+    );
+  }, [leads, qualificationDialogLeadId]);
+
+  function handleQualifyClick(lead: Lead) {
+    if (qualifyingId === lead.id) {
+      return;
+    }
+    if (lead.aiScore != null) {
+      setQualificationDialogLeadId(lead.id);
+      return;
+    }
+    onQualify(lead);
+  }
 
   const totalPages = Math.max(1, Math.ceil(leads.length / LEADS_PAGE_SIZE));
 
@@ -260,14 +284,26 @@ export function LeadsTable({
                     showAddress={Boolean(lead.address)}
                   />
                 )}
-                {lead.aiScore != null && (
-                  <p className="text-xs text-[var(--atria-primary)]/50">
-                    Score IA: {lead.aiScore}
-                  </p>
-                )}
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={isQualifying}
+                  onClick={() => handleQualifyClick(lead)}
+                >
+                  {isQualifying ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="size-4" />
+                  )}
+                  {lead.aiScore != null
+                    ? `Ver qualificação (${lead.aiScore})`
+                    : "Qualificar"}
+                </Button>
                 <Button
                   type="button"
                   variant={onKanban ? "secondary" : "outline"}
@@ -342,7 +378,7 @@ export function LeadsTable({
                   Status
                 </TableHead>
                 <TableHead className="hidden text-[var(--atria-primary)]/60 xl:table-cell">
-                  Score IA
+                  Score
                 </TableHead>
                 <TableHead className="min-w-[280px] text-right text-[var(--atria-primary)]/60">
                   Ações
@@ -439,23 +475,31 @@ export function LeadsTable({
                     </TableCell>
                     <TableCell className="hidden text-[var(--atria-primary)]/70 xl:table-cell">
                       {lead.aiScore != null ? (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-medium">{lead.aiScore}</span>
-                          {lead.aiNotes && (
-                            <span
-                              className="line-clamp-2 max-w-[180px] text-xs text-[var(--atria-primary)]/45"
-                              title={lead.aiNotes}
-                            >
-                              {lead.aiNotes}
-                            </span>
-                          )}
-                        </div>
+                        <span className="font-medium">{lead.aiScore}</span>
                       ) : (
                         "—"
                       )}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isQualifying}
+                          onClick={() => handleQualifyClick(lead)}
+                        >
+                          {isQualifying ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="size-4" />
+                          )}
+                          <span className="hidden sm:inline">
+                            {lead.aiScore != null
+                              ? `Ver (${lead.aiScore})`
+                              : "Qualificar"}
+                          </span>
+                        </Button>
                         <Button
                           type="button"
                           variant={onKanban ? "secondary" : "outline"}
@@ -544,6 +588,25 @@ export function LeadsTable({
           </div>
         </div>
       )}
+
+      <LeadQualificationDialog
+        lead={qualificationDialogLead}
+        open={qualificationDialogLeadId != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setQualificationDialogLeadId(null);
+          }
+        }}
+        requalifying={
+          qualificationDialogLead != null &&
+          qualifyingId === qualificationDialogLead.id
+        }
+        onRequalify={
+          qualificationDialogLead
+            ? () => onQualify(qualificationDialogLead)
+            : undefined
+        }
+      />
     </div>
   );
 }

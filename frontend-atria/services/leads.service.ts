@@ -118,6 +118,12 @@ export async function qualifyLead(id: string): Promise<Lead> {
   });
 }
 
+export async function preQualifyLead(id: string): Promise<Lead> {
+  return apiRequest<Lead>(`/leads/${id}/pre-qualify`, {
+    method: "POST",
+  });
+}
+
 export async function getLeadComments(leadId: string): Promise<LeadComment[]> {
   return apiRequest<LeadComment[]>(`/leads/${leadId}/comments`);
 }

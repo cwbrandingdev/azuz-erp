@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { useAppUpdatesAccess } from "@/hooks/use-app-updates";
 import { canAccessRoute } from "@/lib/navigation-access";
 import { isMasterRole } from "@/lib/permissions";
-import { isCrmRole } from "@/lib/roles";
 import { navSections, type NavSection } from "@/components/layout/navigation";
 
 export function useVisibleNavSections() {
@@ -43,12 +42,6 @@ export function useVisibleNavSections() {
               if (
                 child.href === "/settings/navigation" &&
                 canManageAppearance
-              ) {
-                return false;
-              }
-              if (
-                child.href === "/settings/navigation" &&
-                isCrmRole(user?.role)
               ) {
                 return false;
               }

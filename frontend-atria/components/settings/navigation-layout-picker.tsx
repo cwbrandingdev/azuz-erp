@@ -13,7 +13,7 @@ const NAV_OPTIONS: {
   {
     id: "studio",
     label: "Dock",
-    hint: "Ícones na base da tela, como o macOS",
+    hint: "Ícones na base da tela",
     icon: LayoutPanelTop,
   },
   {

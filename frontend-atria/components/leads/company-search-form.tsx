@@ -1,9 +1,6 @@
 "use client";
 
-import type { ChangeEvent } from "react";
 import { Loader2, Search } from "lucide-react";
-import { inputClassName } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,8 +17,6 @@ import { CnaeSearchSelect } from "@/components/leads/cnae-search-select";
 import { CompanySearchTabs } from "@/components/leads/company-search-tabs";
 import type { LeadSearchQueryType } from "@/services/company-search.service";
 
-export type CompanyBatchSearchMode = "none" | "categoria" | "bairro";
-
 export interface CompanySearchFormValues {
   queryType: LeadSearchQueryType;
   queryValue: string;
@@ -29,8 +24,6 @@ export interface CompanySearchFormValues {
   city: string;
   uf: string;
   address: string;
-  batchSearchMode: CompanyBatchSearchMode;
-  batchTerms: string;
 }
 
 interface CompanySearchFormProps {
@@ -93,10 +86,6 @@ export function CompanySearchForm({
                       onChange({ ...values, queryValue: event.target.value })
                     }
                     placeholder="Ex.: restaurante, clínica odontológica, academia"
-                    required={
-                      values.batchSearchMode !== "bairro" &&
-                      values.batchSearchMode !== "categoria"
-                    }
                   />
                 ) : (
                   <CnaeSearchSelect
@@ -155,71 +144,9 @@ export function CompanySearchForm({
                   onChange={(event) =>
                     onChange({ ...values, address: event.target.value })
                   }
-                  placeholder="Ex.: Pinheiros (opcional na busca simples)"
-                  disabled={values.batchSearchMode === "bairro"}
+                  placeholder="Ex.: Pinheiros (opcional)"
                 />
               </Field>
-              {isNiche && (
-                <div className="space-y-3">
-                  <FieldLabel>Buscar vários de uma vez</FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {(
-                      [
-                        { id: "none" as const, label: "Busca simples" },
-                        { id: "categoria" as const, label: "Várias categorias" },
-                        { id: "bairro" as const, label: "Vários bairros" },
-                      ] as const
-                    ).map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() =>
-                          onChange({
-                            ...values,
-                            batchSearchMode: option.id,
-                            batchTerms:
-                              option.id === "none" ? "" : values.batchTerms,
-                          })
-                        }
-                        className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                          values.batchSearchMode === option.id
-                            ? "border-[var(--atria-primary)] bg-[var(--atria-primary)]/10 text-[var(--atria-primary)]"
-                            : "border-[var(--atria-primary)]/15 text-[var(--atria-primary)]/60 hover:border-[var(--atria-primary)]/30"
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                  {values.batchSearchMode !== "none" && (
-                    <textarea
-                      id="company-batch-terms"
-                      value={values.batchTerms}
-                      onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                        onChange({ ...values, batchTerms: event.target.value })
-                      }
-                      placeholder={
-                        values.batchSearchMode === "categoria"
-                          ? "Uma categoria por linha (ex.: restaurante, pet shop)"
-                          : "Um bairro por linha (ex.: Centro, Batel)"
-                      }
-                      rows={4}
-                      className={cn(inputClassName, "min-h-24 resize-y py-2")}
-                    />
-                  )}
-                  {values.batchSearchMode === "categoria" && (
-                    <p className="text-xs text-[var(--atria-primary)]/50">
-                      O bairro acima (se informado) vale para todas as
-                      categorias.
-                    </p>
-                  )}
-                  {values.batchSearchMode === "bairro" && (
-                    <p className="text-xs text-[var(--atria-primary)]/50">
-                      A categoria acima vale para todos os bairros listados.
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           </FieldGroup>
 
