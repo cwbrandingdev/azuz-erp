@@ -51,7 +51,9 @@ export function CompanySearchForm({
     >
       <CardHeader className="space-y-4 pb-3 sm:pb-6">
         <div className="space-y-1">
-          <CardTitle className="text-base">O que você está procurando?</CardTitle>
+          <CardTitle className="text-base">
+            O que você está procurando?
+          </CardTitle>
           <p className="text-sm text-[var(--atria-primary)]/50">
             Preencha os campos abaixo e clique em buscar. Os resultados
             aparecerão no mapa ao lado e na lista abaixo.
@@ -103,20 +105,6 @@ export function CompanySearchForm({
                 )}
               </Field>
               <Field>
-                <FieldLabel htmlFor="company-city">
-                  Em qual cidade?
-                </FieldLabel>
-                <Input
-                  id="company-city"
-                  value={values.city}
-                  onChange={(event) =>
-                    onChange({ ...values, city: event.target.value })
-                  }
-                  placeholder="Ex.: Curitiba"
-                  required
-                />
-              </Field>
-              <Field>
                 <FieldLabel htmlFor="company-uf">Em qual estado?</FieldLabel>
                 <Select
                   value={values.uf}
@@ -135,6 +123,18 @@ export function CompanySearchForm({
                     ))}
                   </SelectContent>
                 </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="company-city">Em qual cidade?</FieldLabel>
+                <Input
+                  id="company-city"
+                  value={values.city}
+                  onChange={(event) =>
+                    onChange({ ...values, city: event.target.value })
+                  }
+                  placeholder="Ex.: Curitiba"
+                  required
+                />
               </Field>
               <Field>
                 <FieldLabel htmlFor="company-address">Bairro</FieldLabel>

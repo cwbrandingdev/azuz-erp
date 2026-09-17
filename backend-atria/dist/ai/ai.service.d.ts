@@ -31,6 +31,23 @@ export interface LeadQualificationResult {
     notes: string;
     provider: 'openai' | 'gemini' | 'fallback';
 }
+export interface CommercialFitAiInput {
+    name: string;
+    category?: string | null;
+    biography?: string | null;
+    businessCategoryName?: string | null;
+    followersCount?: number | null;
+    reviewsCount?: number | null;
+    shareCapital?: number | null;
+}
+export interface CommercialFitAiResult {
+    segmentLabel: string;
+    estimatedRevenueBand: string;
+    revenueJustification: string;
+    recommendedAction: 'prioritize' | 'nurture' | 'do_not_prioritize';
+    oneLineReason: string;
+    provider: 'openai' | 'gemini' | 'fallback';
+}
 interface GeneratePlanInput {
     brief: string;
     clientName: string;
@@ -61,5 +78,10 @@ export declare class AiService {
     private qualifyWithGemini;
     private parseLeadQualification;
     private qualifyFallback;
+    assessCommercialFit(input: CommercialFitAiInput): Promise<CommercialFitAiResult | null>;
+    private buildCommercialFitPrompt;
+    private parseCommercialFitAi;
+    private commercialFitWithOpenAI;
+    private commercialFitWithGemini;
 }
 export {};

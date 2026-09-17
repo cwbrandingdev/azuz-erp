@@ -19,6 +19,7 @@ export interface CompanyLookupRecord {
     primaryCnaeDescription?: string;
     secondaryCnaeCodes: string[];
     registrationStatus?: string;
+    shareCapital?: number;
     latitude?: number;
     longitude?: number;
     rawData: Record<string, unknown>;

@@ -8,6 +8,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LeadQualificationModule = void 0;
 const common_1 = require("@nestjs/common");
+const company_lookup_module_1 = require("../company-lookup/company-lookup.module");
+const commercial_fit_service_1 = require("./commercial-fit.service");
 const instagram_apify_enricher_1 = require("./instagram-apify.enricher");
 const lead_qualification_service_1 = require("./lead-qualification.service");
 let LeadQualificationModule = class LeadQualificationModule {
@@ -15,7 +17,12 @@ let LeadQualificationModule = class LeadQualificationModule {
 exports.LeadQualificationModule = LeadQualificationModule;
 exports.LeadQualificationModule = LeadQualificationModule = __decorate([
     (0, common_1.Module)({
-        providers: [instagram_apify_enricher_1.InstagramApifyEnricher, lead_qualification_service_1.LeadQualificationService],
+        imports: [company_lookup_module_1.CompanyLookupModule],
+        providers: [
+            instagram_apify_enricher_1.InstagramApifyEnricher,
+            commercial_fit_service_1.CommercialFitService,
+            lead_qualification_service_1.LeadQualificationService,
+        ],
         exports: [lead_qualification_service_1.LeadQualificationService],
     })
 ], LeadQualificationModule);

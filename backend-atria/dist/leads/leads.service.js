@@ -61,7 +61,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
             data: {
                 aiScore: result.score,
                 aiNotes: result.notes,
-                rawData: this.leadQualification.mergeInstagramIntoRawData(lead, result.instagram ?? null),
+                rawData: result.mergedRawData,
             },
         });
         return this.toLeadResponse(updated);

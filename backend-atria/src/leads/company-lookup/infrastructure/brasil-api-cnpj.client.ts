@@ -23,6 +23,7 @@ interface BrasilApiCnpjResponse {
   cnaes_secundarios?: Array<{ codigo?: number; descricao?: string }>;
   descricao_situacao_cadastral?: string;
   situacao_cadastral?: number;
+  capital_social?: number;
 }
 
 @Injectable()
@@ -92,8 +93,16 @@ export class BrasilApiCnpjClient {
       registrationStatus:
         data.descricao_situacao_cadastral?.trim() ||
         String(data.situacao_cadastral ?? ''),
+      shareCapital: this.parseShareCapital(data.capital_social),
       rawData: data as Record<string, unknown>,
     };
+  }
+
+  private parseShareCapital(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+      return value;
+    }
+    return undefined;
   }
 
   private buildPhone(value?: string): string | undefined {

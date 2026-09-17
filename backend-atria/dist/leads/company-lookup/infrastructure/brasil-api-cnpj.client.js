@@ -66,8 +66,15 @@ let BrasilApiCnpjClient = BrasilApiCnpjClient_1 = class BrasilApiCnpjClient {
             secondaryCnaeCodes,
             registrationStatus: data.descricao_situacao_cadastral?.trim() ||
                 String(data.situacao_cadastral ?? ''),
+            shareCapital: this.parseShareCapital(data.capital_social),
             rawData: data,
         };
+    }
+    parseShareCapital(value) {
+        if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+            return value;
+        }
+        return undefined;
     }
     buildPhone(value) {
         if (!value?.trim()) {
