@@ -2,9 +2,11 @@
 
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
+  type FocusEvent as ReactFocusEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import Link from "next/link";
@@ -30,6 +32,12 @@ const PADDING_X = 12;
 const MAGNIFY_RADIUS = 120;
 const MAX_SCALE = 1.85;
 const TRAY_HEIGHT = ICON_SIZE + 13;
+const DOCK_BOTTOM_GAP = 12;
+const PEEK_HEIGHT = 10;
+const PEEK_HIT_HEIGHT = 22;
+const HIDE_DELAY_MS = 800;
+const INITIAL_HIDE_DELAY_MS = 1800;
+const HIDDEN_TRANSLATE = TRAY_HEIGHT + DOCK_BOTTOM_GAP - PEEK_HEIGHT;
 
 type DockEntry =
   | { kind: "item"; key: string; item: NavItem }
@@ -138,7 +146,11 @@ export function StudioDock() {
   const [scales, setScales] = useState<number[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [bouncingKey, setBouncingKey] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(true);
   const frameRef = useRef(0);
+  const hideTimerRef = useRef(0);
+  const hoveringRef = useRef(false);
+  const menuOpenRef = useRef(false);
 
   const entries = useMemo<DockEntry[]>(() => {
     const next: DockEntry[] = [];
@@ -174,16 +186,71 @@ export function StudioDock() {
     [entries, unscaledWidth],
   );
 
+  const resetMagnify = useCallback(() => {
+    if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    setHoveredKey(null);
+    applyMagnify(null);
+  }, [applyMagnify]);
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = 0;
+    }
+  }, []);
+
+  const reveal = useCallback(() => {
+    hoveringRef.current = true;
+    clearHideTimer();
+    setRevealed(true);
+  }, [clearHideTimer]);
+
+  const scheduleHide = useCallback(
+    (delay = HIDE_DELAY_MS) => {
+      hoveringRef.current = false;
+      clearHideTimer();
+      hideTimerRef.current = window.setTimeout(() => {
+        if (hoveringRef.current || menuOpenRef.current) return;
+        setRevealed(false);
+        resetMagnify();
+      }, delay);
+    },
+    [clearHideTimer, resetMagnify],
+  );
+
+  useEffect(() => {
+    hideTimerRef.current = window.setTimeout(() => {
+      if (hoveringRef.current || menuOpenRef.current) return;
+      setRevealed(false);
+    }, INITIAL_HIDE_DELAY_MS);
+    return () => clearHideTimer();
+  }, [clearHideTimer]);
+
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const x = event.clientX;
     if (frameRef.current) cancelAnimationFrame(frameRef.current);
     frameRef.current = requestAnimationFrame(() => applyMagnify(x));
   };
 
-  const handlePointerLeave = () => {
-    if (frameRef.current) cancelAnimationFrame(frameRef.current);
-    setHoveredKey(null);
-    applyMagnify(null);
+  const handleDockPointerLeave = () => {
+    resetMagnify();
+    if (!revealed) scheduleHide();
+  };
+
+  const handleShellBlur = (event: ReactFocusEvent<HTMLDivElement>) => {
+    const next = event.relatedTarget as Node | null;
+    if (next && event.currentTarget.contains(next)) return;
+    scheduleHide();
+  };
+
+  const handleMenuOpenChange = (open: boolean) => {
+    menuOpenRef.current = open;
+    if (open) {
+      clearHideTimer();
+      setRevealed(true);
+      return;
+    }
+    if (!hoveringRef.current) scheduleHide();
   };
 
   const bounce = (key: string) => {
@@ -196,14 +263,40 @@ export function StudioDock() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="pointer-events-none fixed inset-x-0 bottom-3 z-40 hidden justify-center lg:flex"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 hidden justify-center lg:flex"
     >
-      <div className="pointer-events-auto select-none pt-16">
+      <div
+        aria-hidden
+        className="pointer-events-auto absolute bottom-0 left-1/2 -translate-x-1/2"
+        style={{
+          width: unscaledWidth,
+          height: revealed ? PEEK_HEIGHT : PEEK_HIT_HEIGHT,
+        }}
+        onPointerEnter={reveal}
+        onPointerLeave={() => scheduleHide()}
+      />
+      <div
+        className={cn(
+          "relative select-none pb-3 pt-16 will-change-transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+          revealed ? "pointer-events-auto" : "pointer-events-none",
+        )}
+        style={{
+          transform: revealed ? "translateY(0)" : `translateY(${HIDDEN_TRANSLATE}px)`,
+        }}
+        onPointerEnter={reveal}
+        onPointerLeave={() => scheduleHide()}
+        onFocusCapture={reveal}
+        onBlurCapture={handleShellBlur}
+      >
         <div
           ref={dockRef}
           onPointerMove={handlePointerMove}
-          onPointerLeave={handlePointerLeave}
-          className="studio-dock flex items-end overflow-visible"
+          onPointerEnter={reveal}
+          onPointerLeave={handleDockPointerLeave}
+          className={cn(
+            "studio-dock flex items-end",
+            revealed ? "overflow-visible" : "overflow-hidden",
+          )}
           style={{
             height: TRAY_HEIGHT,
             paddingLeft: PADDING_X,
@@ -263,7 +356,7 @@ export function StudioDock() {
                   onPointerEnter={() => setHoveredKey(entry.key)}
                 >
                   {showName ? <DockName name={item.name} lift={size} /> : null}
-                  <DropdownMenu>
+                  <DropdownMenu onOpenChange={handleMenuOpenChange}>
                     <DropdownMenuTrigger
                       render={
                         <button
