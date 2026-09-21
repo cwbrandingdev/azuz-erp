@@ -33,10 +33,6 @@ export function toNativeCallHref(
 ): string | null {
   const e164 = toE164(phone);
   if (!e164) return null;
-  // Chrome often hijacks tel: on Windows ("Open Google Chrome?"). Phone Link
-  // owns ms-phone: instead.
-  if (detectNativeDialerPlatform() === "windows") {
-    return `ms-phone:navigate?PhoneNumber=${encodeURIComponent(e164)}`;
-  }
+  // Phone Link only receives the number via tel:. ms-phone: opens the app empty.
   return `tel:${e164}`;
 }
