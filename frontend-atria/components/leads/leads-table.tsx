@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
+import { NativeTelButton } from "@/components/leads/native-tel-button";
 import { exportLeadsToExcel } from "@/lib/leads-export";
 import { LeadQualificationDialog } from "@/components/leads/lead-qualification-dialog";
 import { useOptionalDialer } from "@/contexts/dialer-context";
@@ -235,8 +236,13 @@ export function LeadsTable({
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           {dialer && dialableLeads.length > 0 && (
-            <Button
-              type="button"
+            <NativeTelButton
+              phone={
+                dialer.mode === "native" &&
+                (dialer.status === "idle" || dialer.queue.length === 0)
+                  ? (selectedLeads[0] ?? dialableLeads[0])?.phone
+                  : null
+              }
               variant="outline"
               onClick={handleDialSelected}
               className="w-full gap-2 sm:w-auto"
@@ -245,7 +251,7 @@ export function LeadsTable({
               {selectedLeads.length > 0
                 ? `Discar ${selectedLeads.length}`
                 : `Discar ${dialableLeads.length} com telefone`}
-            </Button>
+            </NativeTelButton>
           )}
           <Button
             type="button"

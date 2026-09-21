@@ -19,8 +19,7 @@ const LINK_TO_WINDOWS =
   "https://play.google.com/store/apps/details?id=com.microsoft.appmanager";
 const KDE_CONNECT_ANDROID =
   "https://play.google.com/store/apps/details?id=org.kde.kdeconnect_tp";
-const GSCONNECT =
-  "https://extensions.gnome.org/extension/1319/gsconnect/";
+const GSCONNECT = "https://extensions.gnome.org/extension/1319/gsconnect/";
 
 function stepsFor(platform: NativeDialerPlatform) {
   if (platform === "linux") {
@@ -73,8 +72,8 @@ function stepsFor(platform: NativeDialerPlatform) {
         (em Samsung costuma vir instalado).
       </>,
       "No PC, abra o app Phone Link, entre com a mesma conta Microsoft e ative Chamadas. Bluetooth ligado, celular perto.",
-      "Em Configurações → Apps → Apps padrão, associe tel ao Phone Link.",
-      "No Chrome, ao clicar Ligar, escolha Phone Link e marque sempre.",
+      "Em Configurações → Apps → Apps padrão → escolha padrões por tipo de link → TEL → Phone Link. Sem isso o Chrome não mostra popup e o Ligar não faz nada.",
+      "Volte no Atria e clique em Ligar. Se o Chrome perguntar, escolha Phone Link e marque sempre.",
     ],
   };
 }

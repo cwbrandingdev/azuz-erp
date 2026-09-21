@@ -12,7 +12,7 @@ import {
 } from "react";
 import type { Call, Device } from "@twilio/voice-sdk";
 import { isDialablePhone } from "@/lib/lead-phone";
-import { openNativeDialer } from "@/lib/native-dialer";
+import { detectNativeDialerPlatform } from "@/lib/native-dialer";
 import { toast } from "@/lib/toast";
 import { ApiError, voiceService } from "@/services";
 import type { DialerLead, DialerMode, LeadCallOutcome } from "@/services/types";
@@ -154,12 +154,14 @@ export function DialerProvider({ children }: { children: ReactNode }) {
       setStatus("connecting");
       try {
         if (mode === "native") {
-          // Fire tel: in the same click so Windows Phone Link / Linux
-          // GSConnect can open the Android dialer before await drops activation.
-          openNativeDialer(lead.phone);
           const log = await voiceService.startLeadCall(lead.id);
           callLogIdRef.current = log.id;
           setStatus("in-call");
+          if (detectNativeDialerPlatform() === "windows") {
+            toast.info(
+              "Se o Windows não abriu o telefone, clique em Abrir Phone Link no painel.",
+            );
+          }
           return;
         }
         const log = await voiceService.startLeadCall(lead.id);
@@ -221,13 +223,12 @@ export function DialerProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const busy =
-        statusRef.current !== "idle" && queueRef.current.length > 0;
+      const busy = statusRef.current !== "idle" && queueRef.current.length > 0;
       if (busy) {
         const existing = new Set(queueRef.current.map((item) => item.id));
         const appended = incoming.filter((item) => !existing.has(item.id));
         if (appended.length === 0) {
-        toast.info("Esses leads já estão na fila.");
+          toast.info("Esses leads já estão na fila.");
           return;
         }
         setQueue((current) => [...current, ...appended]);
