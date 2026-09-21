@@ -44,7 +44,7 @@ const OUTCOMES: Array<{
 
 const NATIVE_HINT: Record<string, string> = {
   windows:
-    "O Windows abre o Phone Link e liga com o Android. Se perguntar, escolha Phone Link.",
+    "O Windows deve abrir o Phone Link (não o Chrome). Se perguntar, escolha Phone Link.",
   linux:
     "O número abre no discador do celular. Se o Ubuntu perguntar, escolha GSConnect.",
   android: "O discador deste celular deve abrir.",

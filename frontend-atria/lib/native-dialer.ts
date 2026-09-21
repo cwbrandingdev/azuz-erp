@@ -1,4 +1,4 @@
-import { toTelHref } from "@/lib/lead-phone";
+import { toE164 } from "@/lib/lead-phone";
 
 export type NativeDialerPlatform =
   | "windows"
@@ -28,24 +28,15 @@ export function markNativeDialerSetupSeen(): void {
   window.localStorage.setItem(SETUP_STORAGE_KEY, "1");
 }
 
-export function openNativeDialer(phone: string | null | undefined): boolean {
-  const href = toTelHref(phone);
-  if (!href || typeof document === "undefined") return false;
-
-  const anchor = document.createElement("a");
-  anchor.href = href;
-  // Off-screen instead of display:none — Chrome on Windows ignores hidden tel: clicks.
-  Object.assign(anchor.style, {
-    position: "fixed",
-    left: "0",
-    top: "0",
-    width: "1px",
-    height: "1px",
-    opacity: "0",
-    pointerEvents: "none",
-  });
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  return true;
+export function toNativeCallHref(
+  phone: string | null | undefined,
+): string | null {
+  const e164 = toE164(phone);
+  if (!e164) return null;
+  // Chrome often hijacks tel: on Windows ("Open Google Chrome?"). Phone Link
+  // owns ms-phone: instead.
+  if (detectNativeDialerPlatform() === "windows") {
+    return `ms-phone:navigate?PhoneNumber=${encodeURIComponent(e164)}`;
+  }
+  return `tel:${e164}`;
 }
