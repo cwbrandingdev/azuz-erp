@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
+import { LeadCallButton } from "@/components/leads/lead-call-button";
 import {
   getLeadStatusColor,
   getLeadStatusLabel,
@@ -27,14 +28,8 @@ import {
   type CrmMoveZone,
 } from "@/lib/lead-pipeline-zones";
 import { toast } from "@/lib/toast";
+import { toWhatsAppUrl } from "@/lib/lead-phone";
 import type { Lead, LeadKanbanColumn } from "@/services/types";
-
-function toWhatsAppUrl(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  const withCountry =
-    digits.length >= 10 && !digits.startsWith("55") ? `55${digits}` : digits;
-  return `https://wa.me/${withCountry}`;
-}
 
 interface LeadKanbanCardProps {
   lead: Lead;
@@ -271,6 +266,10 @@ export function LeadKanbanCard({
               <MessagesSquare className="size-3.5" />
               Comentários
             </Button>
+
+            {!portalClientView && (
+              <LeadCallButton lead={lead} className="w-full" />
+            )}
 
             {lead.phone ? (
               <Button

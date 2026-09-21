@@ -46,6 +46,7 @@ import { SuggestionsModule } from './suggestions/suggestions.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { UserGroupsModule } from './user-groups/user-groups.module';
 import { UsersModule } from './users/users.module';
+import { VoiceModule } from './voice/voice.module';
 import { LeadMinerModule } from './leadminer/leadminer.module';
 
 @Module({
@@ -101,6 +102,7 @@ import { LeadMinerModule } from './leadminer/leadminer.module';
     SuggestionsModule,
     UserGroupsModule,
     UsersModule,
+    VoiceModule,
     SlaModule,
   ],
   providers: [

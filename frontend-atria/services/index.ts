@@ -27,6 +27,7 @@ export * as settingsService from "./settings.service";
 export * as companySettingsService from "./company-settings.service";
 export * as slaService from "./sla.service";
 export * as usersService from "./users.service";
+export * as voiceService from "./voice.service";
 export * as organizationsService from "./organizations.service";
 export * as userGroupsService from "./user-groups.service";
 export * as contentService from "./content.service";

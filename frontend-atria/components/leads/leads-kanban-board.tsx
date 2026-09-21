@@ -7,7 +7,7 @@ import {
   Droppable,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { Bell, Search } from "lucide-react";
+import { Bell, Phone, Search } from "lucide-react";
 import { CrmDisabledEmptyState } from "@/components/leads/crm-disabled-empty-state";
 import { CrmReminderKanban } from "@/components/leads/crm-reminder-kanban";
 import { LeadDetailDialog } from "@/components/leads/lead-detail-dialog";
@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
+import { useOptionalDialer } from "@/contexts/dialer-context";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useSdrAssignedOrganizations } from "@/hooks/use-sdr-assigned-organizations";
 import {
@@ -56,6 +57,7 @@ import {
   markPortalCrmSeenNow,
 } from "@/lib/portal-crm-notifications";
 import { toast } from "@/lib/toast";
+import { isDialablePhone } from "@/lib/lead-phone";
 import { clientPortalService, leadsService, organizationsService } from "@/services";
 import type {
   CrmReminderBoard,
@@ -93,6 +95,7 @@ export function LeadsKanbanBoard({
   initialOrganizationId,
 }: LeadsKanbanBoardProps) {
   const { user } = useAuth();
+  const dialer = useOptionalDialer();
   const { isMasterOrAdmin } = usePermissions();
   const isCrmUser = normalizeAppRole(user?.role) === "crm";
   const showClientFilter =
@@ -169,6 +172,14 @@ export function LeadsKanbanBoard({
 
   const filteredTotal = useMemo(
     () => filteredColumns.reduce((sum, column) => sum + column.leads.length, 0),
+    [filteredColumns],
+  );
+
+  const dialableVisible = useMemo(
+    () =>
+      filteredColumns
+        .flatMap((column) => column.leads)
+        .filter((lead) => isDialablePhone(lead.phone)),
     [filteredColumns],
   );
 
@@ -476,6 +487,25 @@ export function LeadsKanbanBoard({
           <div className="flex flex-wrap gap-2">
             {view === "funnel" && (
               <>
+                {!portalClientView && dialer && dialableVisible.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      dialer.enqueue(
+                        dialableVisible.map((lead) => ({
+                          id: lead.id,
+                          name: lead.name,
+                          phone: lead.phone as string,
+                        })),
+                      )
+                    }
+                  >
+                    <Phone className="size-3.5" />
+                    Discar {dialableVisible.length} visíveis
+                  </Button>
+                )}
                 <LeadKanbanImportDialog onSuccess={() => void loadBoard()} />
                 <LeadKanbanFormDialog onSuccess={() => void loadBoard()} />
               </>

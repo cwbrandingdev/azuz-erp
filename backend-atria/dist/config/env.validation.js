@@ -42,6 +42,14 @@ const envSchema = zod_1.z
     EMAILJS_PUBLIC_KEY: zod_1.z.string().optional().or(zod_1.z.literal('')),
     EMAILJS_USER_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
     EMAILJS_PRIVATE_KEY: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    TWILIO_ACCOUNT_SID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    TWILIO_AUTH_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    TWILIO_API_KEY_SID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    TWILIO_API_KEY_SECRET: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    TWILIO_TWIML_APP_SID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    TWILIO_CALLER_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    TWILIO_WEBHOOK_BASE_URL: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    DIALER_MODE: zod_1.z.enum(['native', 'twilio']).optional(),
 })
     .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);

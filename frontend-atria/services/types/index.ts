@@ -2426,6 +2426,54 @@ export interface LeadComment {
   };
 }
 
+export type LeadCallOutcome =
+  | "INITIATED"
+  | "NO_ANSWER"
+  | "BUSY"
+  | "FAILED"
+  | "COMPLETED"
+  | "NO_INTEREST"
+  | "INTERESTED"
+  | "WHATSAPP"
+  | "MEETING"
+  | "SKIPPED";
+
+export interface LeadCall {
+  id: string;
+  leadId: string;
+  leadName: string | null;
+  phone: string;
+  status: string;
+  outcome: LeadCallOutcome | string;
+  durationSeconds: number | null;
+  notes: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  createdAt: string;
+  user: { id: string; name: string } | null;
+}
+
+export type DialerMode = "native" | "twilio";
+
+export interface VoiceConfig {
+  configured: boolean;
+  mode: DialerMode;
+  callerId: string | null;
+}
+
+export interface VoiceToken {
+  token: string;
+  identity: string;
+  ttl: number;
+  callerId: string;
+}
+
+export interface DialerLead {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 export type DeliverableItemStatus =
   | "pending"
   | "approved"

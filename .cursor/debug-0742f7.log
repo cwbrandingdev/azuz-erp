@@ -1,0 +1,2 @@
+{"sessionId":"0742f7","hypothesisId":"D","location":"company-search.service.ts:companySearchRequest","message":"leads/search HTTP ok","data":{"status":200,"endpoint":"/leads/sessions","leadCount":null},"timestamp":1789912252731}
+{"sessionId":"0742f7","hypothesisId":"D","location":"company-search.service.ts:companySearchRequest","message":"leads/search HTTP ok","data":{"status":200,"endpoint":"/leads/sessions/35b3aa09-2c8f-4ef7-9b5d-7c915562ce3d","leadCount":3},"timestamp":1789912253187}

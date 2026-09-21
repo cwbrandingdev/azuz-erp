@@ -9,7 +9,9 @@ import { AppNavbar } from "./navbar";
 import { NavStudio } from "./nav-studio";
 import { FinanceDueAlertsWatcher } from "@/components/financial/finance-due-alerts-watcher";
 import { TaskDetailProvider } from "@/components/kanban/task-detail-provider";
+import { DialerPanel } from "@/components/leads/dialer-panel";
 import { NotificationsProvider } from "@/contexts/notifications-context";
+import { DialerProvider } from "@/contexts/dialer-context";
 import { NavLayoutProvider, useNavLayout } from "@/contexts/nav-layout-context";
 import { SidebarProvider } from "@/contexts/sidebar-context";
 
@@ -88,7 +90,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <NotificationsProvider>
         <SidebarProvider>
           <NavLayoutProvider>
-            <AppChrome>{children}</AppChrome>
+            <DialerProvider>
+              <AppChrome>{children}</AppChrome>
+              <DialerPanel />
+            </DialerProvider>
           </NavLayoutProvider>
         </SidebarProvider>
       </NotificationsProvider>

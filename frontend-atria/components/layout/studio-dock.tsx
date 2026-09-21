@@ -2,9 +2,11 @@
 
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
+  type FocusEvent as ReactFocusEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import Link from "next/link";
@@ -30,6 +32,9 @@ const PADDING_X = 12;
 const MAGNIFY_RADIUS = 120;
 const MAX_SCALE = 1.85;
 const TRAY_HEIGHT = ICON_SIZE + 13;
+const PEEK_PX = 14;
+const HIDE_DELAY_MS = 220;
+const DOCK_BOTTOM_GAP = 12;
 
 type DockEntry =
   | { kind: "item"; key: string; item: NavItem }
@@ -135,9 +140,12 @@ export function StudioDock() {
   const router = useRouter();
   const { sections, appUpdatesBadgeCount } = useVisibleNavSections();
   const dockRef = useRef<HTMLDivElement>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | 0>(0);
+  const menuOpenRef = useRef(false);
   const [scales, setScales] = useState<number[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [bouncingKey, setBouncingKey] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(false);
   const frameRef = useRef(0);
 
   const entries = useMemo<DockEntry[]>(() => {
@@ -174,6 +182,30 @@ export function StudioDock() {
     [entries, unscaledWidth],
   );
 
+  const resetMagnify = useCallback(() => {
+    if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    setHoveredKey(null);
+    applyMagnify(null);
+  }, [applyMagnify]);
+
+  const showDock = useCallback(() => {
+    window.clearTimeout(hideTimerRef.current);
+    setRevealed(true);
+  }, []);
+
+  const scheduleHideDock = useCallback(() => {
+    window.clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = window.setTimeout(() => {
+      if (menuOpenRef.current) return;
+      setRevealed(false);
+      resetMagnify();
+    }, HIDE_DELAY_MS);
+  }, [resetMagnify]);
+
+  useEffect(() => {
+    return () => window.clearTimeout(hideTimerRef.current);
+  }, []);
+
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const x = event.clientX;
     if (frameRef.current) cancelAnimationFrame(frameRef.current);
@@ -181,9 +213,22 @@ export function StudioDock() {
   };
 
   const handlePointerLeave = () => {
-    if (frameRef.current) cancelAnimationFrame(frameRef.current);
-    setHoveredKey(null);
-    applyMagnify(null);
+    resetMagnify();
+  };
+
+  const handleBlurCapture = (event: ReactFocusEvent<HTMLDivElement>) => {
+    const next = event.relatedTarget as Node | null;
+    if (next && event.currentTarget.contains(next)) return;
+    scheduleHideDock();
+  };
+
+  const handleMenuOpenChange = (open: boolean) => {
+    menuOpenRef.current = open;
+    if (open) {
+      showDock();
+      return;
+    }
+    scheduleHideDock();
   };
 
   const bounce = (key: string) => {
@@ -196,22 +241,47 @@ export function StudioDock() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="pointer-events-none fixed inset-x-0 bottom-3 z-40 hidden justify-center lg:flex"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 hidden justify-center lg:flex"
     >
-      <div className="pointer-events-auto select-none pt-16">
+      <div
+        className={cn(
+          "relative select-none",
+          revealed && "pointer-events-auto pt-16",
+        )}
+        onPointerEnter={showDock}
+        onPointerLeave={scheduleHideDock}
+        onFocusCapture={showDock}
+        onBlurCapture={handleBlurCapture}
+      >
         <div
-          ref={dockRef}
-          onPointerMove={handlePointerMove}
-          onPointerLeave={handlePointerLeave}
-          className="studio-dock flex items-end overflow-visible"
+          aria-hidden
+          className="pointer-events-auto absolute bottom-0 left-0 right-0 z-10 h-3"
+          onPointerEnter={showDock}
+        />
+        <div
+          className={cn(
+            "studio-dock-autohide",
+            !revealed && "overflow-hidden",
+          )}
           style={{
-            height: TRAY_HEIGHT,
-            paddingLeft: PADDING_X,
-            paddingRight: PADDING_X,
-            paddingBottom: 7,
-            paddingTop: 6,
+            height: revealed ? TRAY_HEIGHT + DOCK_BOTTOM_GAP : PEEK_PX,
+            paddingBottom: revealed ? DOCK_BOTTOM_GAP : 0,
           }}
         >
+          <div
+            ref={dockRef}
+            onPointerEnter={showDock}
+            onPointerMove={handlePointerMove}
+            onPointerLeave={handlePointerLeave}
+            className="studio-dock pointer-events-auto flex items-end overflow-visible"
+            style={{
+              height: TRAY_HEIGHT,
+              paddingLeft: PADDING_X,
+              paddingRight: PADDING_X,
+              paddingBottom: 7,
+              paddingTop: 6,
+            }}
+          >
           {entries.map((entry, index) => {
             if (entry.kind === "separator") {
               return (
@@ -263,7 +333,7 @@ export function StudioDock() {
                   onPointerEnter={() => setHoveredKey(entry.key)}
                 >
                   {showName ? <DockName name={item.name} lift={size} /> : null}
-                  <DropdownMenu>
+                  <DropdownMenu onOpenChange={handleMenuOpenChange}>
                     <DropdownMenuTrigger
                       render={
                         <button
@@ -312,6 +382,7 @@ export function StudioDock() {
               </div>
             );
           })}
+          </div>
         </div>
       </div>
     </nav>

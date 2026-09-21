@@ -10,6 +10,7 @@ import {
   Kanban,
   Loader2,
   MessageCircle,
+  Phone,
   Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,12 +24,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { LeadCallButton } from "@/components/leads/lead-call-button";
 import { exportLeadsToExcel } from "@/lib/leads-export";
 import { LeadQualificationDialog } from "@/components/leads/lead-qualification-dialog";
+import { useOptionalDialer } from "@/contexts/dialer-context";
 import {
   getLeadStatusLabel,
   LEAD_STATUS_LABELS,
 } from "@/lib/leads-kanban-utils";
+import { isDialablePhone, toWhatsAppUrl } from "@/lib/lead-phone";
 import { toast } from "@/lib/toast";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
 import {
@@ -56,13 +60,6 @@ const STATUS_VARIANTS: Record<
   AGUARDANDO_RESPOSTA: "outline",
 };
 
-function toWhatsAppUrl(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  const withCountry =
-    digits.length >= 10 && !digits.startsWith("55") ? `55${digits}` : digits;
-  return `https://wa.me/${withCountry}`;
-}
-
 async function copyPhone(phone: string) {
   await navigator.clipboard.writeText(phone);
   toast.success("Telefone copiado");
@@ -89,8 +86,10 @@ export function LeadsTable({
   onQualify,
   onAddToKanban,
 }: LeadsTableProps) {
+  const dialer = useOptionalDialer();
   const [exporting, setExporting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [qualificationDialogLeadId, setQualificationDialogLeadId] = useState<
     string | null
@@ -128,6 +127,7 @@ export function LeadsTable({
 
   useEffect(() => {
     setPage(1);
+    setSelectedIds(new Set());
   }, [leads]);
 
   useEffect(() => {
@@ -160,6 +160,52 @@ export function LeadsTable({
     }
   }
 
+  const dialableLeads = useMemo(
+    () => leads.filter((lead) => isDialablePhone(lead.phone)),
+    [leads],
+  );
+  const dialableOnPage = paginatedLeads.filter((lead) =>
+    isDialablePhone(lead.phone),
+  );
+  const allPageSelected =
+    dialableOnPage.length > 0 &&
+    dialableOnPage.every((lead) => selectedIds.has(lead.id));
+  const selectedLeads = leads.filter((lead) => selectedIds.has(lead.id));
+
+  function toggleSelected(lead: Lead) {
+    if (!isDialablePhone(lead.phone)) return;
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(lead.id)) next.delete(lead.id);
+      else next.add(lead.id);
+      return next;
+    });
+  }
+
+  function togglePageSelection() {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allPageSelected) {
+        for (const lead of dialableOnPage) next.delete(lead.id);
+      } else {
+        for (const lead of dialableOnPage) next.add(lead.id);
+      }
+      return next;
+    });
+  }
+
+  function handleDialSelected() {
+    if (!dialer) return;
+    const targets = (selectedLeads.length > 0 ? selectedLeads : dialableLeads)
+      .filter((lead) => isDialablePhone(lead.phone))
+      .map((lead) => ({
+        id: lead.id,
+        name: lead.name,
+        phone: lead.phone as string,
+      }));
+    dialer.enqueue(targets);
+  }
+
   if (!loading && leads.length === 0) {
     return (
       <Card className="rounded-2xl border border-dashed border-[var(--atria-primary)]/20 bg-white px-6 py-12 text-center">
@@ -187,20 +233,35 @@ export function LeadsTable({
               : null}
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={exporting || leads.length === 0}
-          onClick={() => void handleExport()}
-          className="w-full gap-2 border-[#D4BA97] bg-[#D4BA97]/20 text-[#004A4A] hover:bg-[#D4BA97]/35 sm:w-auto"
-        >
-          {exporting ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Download className="size-4" />
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          {dialer && dialableLeads.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDialSelected}
+              className="w-full gap-2 sm:w-auto"
+            >
+              <Phone className="size-4" />
+              {selectedLeads.length > 0
+                ? `Discar ${selectedLeads.length}`
+                : `Discar ${dialableLeads.length} com telefone`}
+            </Button>
           )}
-          {exporting ? "Exportando..." : "Exportar Excel"}
-        </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={exporting || leads.length === 0}
+            onClick={() => void handleExport()}
+            className="w-full gap-2 border-[#D4BA97] bg-[#D4BA97]/20 text-[#004A4A] hover:bg-[#D4BA97]/35 sm:w-auto"
+          >
+            {exporting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            {exporting ? "Exportando..." : "Exportar Excel"}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 md:hidden">
@@ -216,10 +277,20 @@ export function LeadsTable({
               className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-[var(--atria-primary)]">
-                    {lead.name}
-                  </p>
+                <div className="flex min-w-0 items-start gap-2">
+                  {dialer && isDialablePhone(lead.phone) && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(lead.id)}
+                      onChange={() => toggleSelected(lead)}
+                      className="mt-1 size-4 rounded border-[var(--atria-primary)]/30"
+                      aria-label={`Selecionar ${lead.name}`}
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[var(--atria-primary)]">
+                      {lead.name}
+                    </p>
                   {lead.category && (
                     <p className="mt-0.5 text-xs text-[var(--atria-primary)]/50">
                       {lead.category}
@@ -230,6 +301,7 @@ export function LeadsTable({
                       {formatLeadRating(lead.rating, lead.reviewsCount)}
                     </p>
                   )}
+                  </div>
                 </div>
                 <Badge variant={STATUS_VARIANTS[lead.status]}>
                   {lead.statusLabel ?? getLeadStatusLabel(lead.status)}
@@ -324,6 +396,7 @@ export function LeadsTable({
                   )}
                   {onKanban ? "Adicionado ao kanban" : "Adicionar ao kanban"}
                 </Button>
+                <LeadCallButton lead={lead} className="w-full" />
                 {lead.phone ? (
                   <Button
                     type="button"
@@ -364,6 +437,17 @@ export function LeadsTable({
           <Table>
             <TableHeader>
               <TableRow className="bg-[var(--atria-primary)]/5 hover:bg-[var(--atria-primary)]/5">
+                {dialer ? (
+                  <TableHead className="w-10 text-[var(--atria-primary)]/60">
+                    <input
+                      type="checkbox"
+                      checked={allPageSelected}
+                      onChange={togglePageSelection}
+                      className="size-4 rounded border-[var(--atria-primary)]/30"
+                      aria-label="Selecionar todos com telefone nesta página"
+                    />
+                  </TableHead>
+                ) : null}
                 <TableHead className="min-w-[180px] text-[var(--atria-primary)]/60">
                   Empresa
                 </TableHead>
@@ -399,6 +483,19 @@ export function LeadsTable({
 
                 return (
                   <TableRow key={lead.id}>
+                    {dialer ? (
+                      <TableCell className="w-10">
+                        {isDialablePhone(lead.phone) ? (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(lead.id)}
+                            onChange={() => toggleSelected(lead)}
+                            className="size-4 rounded border-[var(--atria-primary)]/30"
+                            aria-label={`Selecionar ${lead.name}`}
+                          />
+                        ) : null}
+                      </TableCell>
+                    ) : null}
                     <TableCell className="max-w-[220px]">
                       <div className="min-w-0">
                         <div className="truncate font-medium text-[var(--atria-primary)]">
@@ -538,6 +635,7 @@ export function LeadsTable({
                               : "Adicionar ao kanban"}
                           </span>
                         </Button>
+                        <LeadCallButton lead={lead} compact />
                         {lead.phone ? (
                           <Button
                             type="button"
