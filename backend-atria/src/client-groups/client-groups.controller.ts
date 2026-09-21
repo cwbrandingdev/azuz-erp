@@ -8,7 +8,10 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { CLIENT_DIRECTORY_ROLES } from '../auth/constants/roles';
+import {
+  CLIENT_DIRECTORY_ROLES,
+  CLIENT_VIEW_AND_CREATE_ROLES,
+} from '../auth/constants/roles';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -26,11 +29,13 @@ export class ClientGroupsController {
   constructor(private readonly clientGroupsService: ClientGroupsService) {}
 
   @Get()
+  @Roles(...CLIENT_VIEW_AND_CREATE_ROLES)
   findAll() {
     return this.clientGroupsService.findAll();
   }
 
   @Get(':id')
+  @Roles(...CLIENT_VIEW_AND_CREATE_ROLES)
   findOne(@Param('id') id: string) {
     return this.clientGroupsService.findOne(id);
   }

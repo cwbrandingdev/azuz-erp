@@ -14,7 +14,10 @@ import {
   resolvePermissions,
   type PermissionKey,
 } from "@/lib/permissions";
-import { canAccessClientDirectory } from "@/lib/roles";
+import {
+  canAccessClientDirectory,
+  canManageClientDirectory,
+} from "@/lib/roles";
 
 export function usePermissions() {
   const { user } = useAuth();
@@ -45,6 +48,7 @@ export function usePermissions() {
       isMasterOrAdmin: () => isMasterOrAdmin(role),
       canPerformInternalApproval: () => canPerformInternalApproval(role),
       canAccessClientDirectory: () => canAccessClientDirectory(role),
+      canManageClientDirectory: () => canManageClientDirectory(role),
     };
   }, [user?.id, user?.permissions, user?.role]);
 }

@@ -17,6 +17,7 @@ import { ClientSummaryBanner } from "@/components/clients/client-summary-banner"
 import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { DeactivateClientButton } from "@/components/clients/deactivate-client-button";
 import { Button } from "@/components/ui/button";
+import { usePermissions } from "@/hooks/use-permissions";
 import { clientsService } from "@/services";
 import type {
   Client360Assets,
@@ -30,6 +31,8 @@ import type {
 export function Client360View() {
   const params = useParams<{ id: string }>();
   const clientId = params.id;
+  const { canManageClientDirectory } = usePermissions();
+  const canManageClients = canManageClientDirectory();
 
   const [activeTab, setActiveTab] = useState<Client360Tab>("pipeline");
   const [summary, setSummary] = useState<Client360Summary | null>(null);
@@ -144,13 +147,15 @@ export function Client360View() {
             client={summary.client}
             onUpdated={handleRefresh}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditOpen(true)}
-          >
-            Editar cliente
-          </Button>
+          {canManageClients && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditOpen(true)}
+            >
+              Editar cliente
+            </Button>
+          )}
         </div>
       </div>
 

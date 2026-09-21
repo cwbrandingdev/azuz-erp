@@ -18,6 +18,7 @@ import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { ClientRequestsDrawer } from "@/components/clients/client-requests-drawer";
 import { DeactivateClientButton } from "@/components/clients/deactivate-client-button";
 import { ClientName } from "@/components/ui/client-name";
+import { usePermissions } from "@/hooks/use-permissions";
 import type { Client } from "@/services/types";
 
 function getInitials(name: string) {
@@ -40,6 +41,8 @@ export function ClientCard({
   onUpdate,
   hasCrmModuleEnabled = false,
 }: ClientCardProps) {
+  const { canManageClientDirectory } = usePermissions();
+  const canManageClients = canManageClientDirectory();
   const [editOpen, setEditOpen] = useState(false);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const pendingCount = client.pendingRequestCount ?? 0;
@@ -101,13 +104,15 @@ export function ClientCard({
                 )}
             </div>
           </Link>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setEditOpen(true)}
-          >
-            <Pencil className="size-4" />
-          </Button>
+          {canManageClients && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setEditOpen(true)}
+            >
+              <Pencil className="size-4" />
+            </Button>
+          )}
         </div>
 
         <div className="mb-4 flex flex-col gap-2 text-sm text-[var(--atria-primary)]/70">
