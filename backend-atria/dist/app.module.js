@@ -55,6 +55,7 @@ const suggestions_module_1 = require("./suggestions/suggestions.module");
 const supabase_module_1 = require("./supabase/supabase.module");
 const user_groups_module_1 = require("./user-groups/user-groups.module");
 const users_module_1 = require("./users/users.module");
+const voice_module_1 = require("./voice/voice.module");
 const leadminer_module_1 = require("./leadminer/leadminer.module");
 let AppModule = class AppModule {
 };
@@ -113,6 +114,7 @@ exports.AppModule = AppModule = __decorate([
             suggestions_module_1.SuggestionsModule,
             user_groups_module_1.UserGroupsModule,
             users_module_1.UsersModule,
+            voice_module_1.VoiceModule,
             sla_module_1.SlaModule,
         ],
         providers: [

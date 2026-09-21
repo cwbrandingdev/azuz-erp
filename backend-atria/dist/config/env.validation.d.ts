@@ -1,9 +1,9 @@
 import { z } from 'zod';
 declare const envSchema: z.ZodPipe<z.ZodObject<{
     NODE_ENV: z.ZodDefault<z.ZodEnum<{
-        production: "production";
         development: "development";
         test: "test";
+        production: "production";
     }>>;
     PORT: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     DATABASE_URL: z.ZodString;
@@ -12,8 +12,8 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     SUPABASE_ANON_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     SUPABASE_SERVICE_ROLE_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     SUPABASE_DB_SCHEMA: z.ZodDefault<z.ZodEnum<{
-        public: "public";
         dev: "dev";
+        public: "public";
     }>>;
     SUPABASE_STORAGE_BUCKET: z.ZodOptional<z.ZodString>;
     SUPABASE_DELIVERABLES_BUCKET: z.ZodOptional<z.ZodString>;
@@ -43,13 +43,24 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     EMAILJS_PUBLIC_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     EMAILJS_USER_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     EMAILJS_PRIVATE_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    TWILIO_ACCOUNT_SID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    TWILIO_AUTH_TOKEN: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    TWILIO_API_KEY_SID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    TWILIO_API_KEY_SECRET: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    TWILIO_TWIML_APP_SID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    TWILIO_CALLER_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    TWILIO_WEBHOOK_BASE_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    DIALER_MODE: z.ZodOptional<z.ZodEnum<{
+        native: "native";
+        twilio: "twilio";
+    }>>;
 }, z.core.$strip>, z.ZodTransform<{
     DIRECT_URL: string;
     SUPABASE_URL: string | undefined;
     SUPABASE_ANON_KEY: string | undefined;
     SUPABASE_SERVICE_ROLE_KEY: string | undefined;
-    SUPABASE_DB_SCHEMA: "public" | "dev";
-    NODE_ENV: "production" | "development" | "test";
+    SUPABASE_DB_SCHEMA: "dev" | "public";
+    NODE_ENV: "development" | "test" | "production";
     PORT: number;
     DATABASE_URL: string;
     JWT_ACCESS_SECRET: string;
@@ -80,11 +91,19 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     EMAILJS_PUBLIC_KEY?: string | undefined;
     EMAILJS_USER_ID?: string | undefined;
     EMAILJS_PRIVATE_KEY?: string | undefined;
+    TWILIO_ACCOUNT_SID?: string | undefined;
+    TWILIO_AUTH_TOKEN?: string | undefined;
+    TWILIO_API_KEY_SID?: string | undefined;
+    TWILIO_API_KEY_SECRET?: string | undefined;
+    TWILIO_TWIML_APP_SID?: string | undefined;
+    TWILIO_CALLER_ID?: string | undefined;
+    TWILIO_WEBHOOK_BASE_URL?: string | undefined;
+    DIALER_MODE?: "native" | "twilio" | undefined;
 }, {
-    NODE_ENV: "production" | "development" | "test";
+    NODE_ENV: "development" | "test" | "production";
     PORT: number;
     DATABASE_URL: string;
-    SUPABASE_DB_SCHEMA: "public" | "dev";
+    SUPABASE_DB_SCHEMA: "dev" | "public";
     JWT_ACCESS_SECRET: string;
     JWT_REFRESH_SECRET: string;
     JWT_ACCESS_EXPIRATION: string;
@@ -117,6 +136,14 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     EMAILJS_PUBLIC_KEY?: string | undefined;
     EMAILJS_USER_ID?: string | undefined;
     EMAILJS_PRIVATE_KEY?: string | undefined;
+    TWILIO_ACCOUNT_SID?: string | undefined;
+    TWILIO_AUTH_TOKEN?: string | undefined;
+    TWILIO_API_KEY_SID?: string | undefined;
+    TWILIO_API_KEY_SECRET?: string | undefined;
+    TWILIO_TWIML_APP_SID?: string | undefined;
+    TWILIO_CALLER_ID?: string | undefined;
+    TWILIO_WEBHOOK_BASE_URL?: string | undefined;
+    DIALER_MODE?: "native" | "twilio" | undefined;
 }>>;
 export type AppEnv = z.infer<typeof envSchema>;
 export declare function validateEnv(config: Record<string, unknown>): AppEnv;

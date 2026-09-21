@@ -57,6 +57,7 @@ model Company {
   systemSuggestions          SystemSuggestion[]
   appUpdates                 AppUpdate[]
   tasks                      Task[]
+  leadCalls                  LeadCall[]
 }
 
 model Role {
@@ -125,6 +126,7 @@ model User {
   crmScopes                    UserCrmScope[]
   systemSuggestions            SystemSuggestion[]
   appUpdatesCreated            AppUpdate[]
+  leadCalls                    LeadCall[]
 
   @@unique([companyId, email])
   @@index([clientId])
@@ -1150,6 +1152,7 @@ model Lead {
   searchSessionId String?          @map("search_session_id")
   reminderTasks  CrmReminderTask[]
   comments       LeadComment[]
+  calls          LeadCall[]
   company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deletedBy      User?             @relation("LeadDeletedBy", fields: [deletedById], references: [id])
   organization   Client?           @relation(fields: [organizationId], references: [id])
@@ -1181,6 +1184,31 @@ model LeadComment {
   @@index([leadId, createdAt])
   @@index([userId])
   @@map("lead_comments")
+}
+
+model LeadCall {
+  id              String    @id @default(uuid())
+  companyId       String    @map("company_id")
+  leadId          String    @map("lead_id")
+  userId          String    @map("user_id")
+  phone           String
+  twilioCallSid   String?   @unique @map("twilio_call_sid")
+  status          String    @default("queued")
+  outcome         String    @default("INITIATED")
+  durationSeconds Int?      @map("duration_seconds")
+  notes           String?
+  startedAt       DateTime  @default(now()) @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead            Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@index([companyId])
+  @@index([userId])
+  @@map("lead_calls")
 }
 
 model DeletionHistory {

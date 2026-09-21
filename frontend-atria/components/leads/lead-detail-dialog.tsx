@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, MessageCircle, Send } from "lucide-react";
+import { Loader2, MessageCircle, Phone, Send } from "lucide-react";
+import { LeadCallButton } from "@/components/leads/lead-call-button";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -20,8 +21,8 @@ import {
 } from "@/lib/leads-kanban-utils";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { toast } from "@/lib/toast";
-import { clientPortalService, leadsService } from "@/services";
-import type { Lead, LeadComment } from "@/services/types";
+import { clientPortalService, leadsService, voiceService } from "@/services";
+import type { Lead, LeadCall, LeadComment } from "@/services/types";
 
 function formatCommentDate(value: string) {
   return new Date(value).toLocaleString("pt-BR", {
@@ -31,6 +32,19 @@ function formatCommentDate(value: string) {
     minute: "2-digit",
   });
 }
+
+const CALL_OUTCOME_LABEL: Record<string, string> = {
+  INITIATED: "Iniciada",
+  NO_ANSWER: "Não atendeu",
+  BUSY: "Ocupado",
+  FAILED: "Falhou",
+  COMPLETED: "Atendeu",
+  NO_INTEREST: "Sem interesse",
+  INTERESTED: "Interessado",
+  WHATSAPP: "WhatsApp",
+  MEETING: "Reunião",
+  SKIPPED: "Pulado",
+};
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
@@ -46,7 +60,9 @@ export function LeadDetailDialog({
   portalClientView = false,
 }: LeadDetailDialogProps) {
   const [comments, setComments] = useState<LeadComment[]>([]);
+  const [calls, setCalls] = useState<LeadCall[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [loadingCalls, setLoadingCalls] = useState(false);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -71,6 +87,23 @@ export function LeadDetailDialog({
       .finally(() => {
         if (!cancelled) setLoadingComments(false);
       });
+
+    if (!portalClientView) {
+      setLoadingCalls(true);
+      voiceService
+        .listLeadCalls(lead.id)
+        .then((data) => {
+          if (!cancelled) setCalls(data);
+        })
+        .catch(() => {
+          if (!cancelled) setCalls([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingCalls(false);
+        });
+    } else {
+      setCalls([]);
+    }
 
     return () => {
       cancelled = true;
@@ -148,8 +181,11 @@ export function LeadDetailDialog({
         </DialogHeader>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
-          <div className="space-y-1 text-sm text-[var(--atria-primary)]/70">
-            <p>{lead.phone ?? "Sem telefone"}</p>
+          <div className="space-y-2 text-sm text-[var(--atria-primary)]/70">
+            <div className="flex items-center justify-between gap-2">
+              <p>{lead.phone ?? "Sem telefone"}</p>
+              {!portalClientView && <LeadCallButton lead={lead} />}
+            </div>
             {lead.email && <p>{lead.email}</p>}
             {(lead.neighborhood || lead.city || lead.address) && (
               <LeadLocationText
@@ -158,6 +194,53 @@ export function LeadDetailDialog({
               />
             )}
           </div>
+
+          {!portalClientView && (
+            <section className="rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02] p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Phone className="size-4 text-[var(--atria-primary)]/60" />
+                <h3 className="text-sm font-semibold text-[var(--atria-primary)]">
+                  Ligações
+                </h3>
+              </div>
+              {loadingCalls ? (
+                <div className="flex min-h-16 items-center justify-center">
+                  <Loader2 className="size-4 animate-spin text-[var(--atria-primary)]" />
+                </div>
+              ) : calls.length === 0 ? (
+                <p className="text-xs text-[var(--atria-primary)]/45">
+                  Nenhuma ligação registrada ainda.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {calls.map((call) => (
+                    <li
+                      key={call.id}
+                      className="flex items-start justify-between gap-3 text-xs text-[var(--atria-primary)]/70"
+                    >
+                      <div>
+                        <p className="font-medium text-[var(--atria-primary)]">
+                          {CALL_OUTCOME_LABEL[call.outcome] ?? call.outcome}
+                        </p>
+                        <p>
+                          {call.user?.name ?? "Você"} ·{" "}
+                          {formatCommentDate(call.startedAt)}
+                          {call.durationSeconds
+                            ? ` · ${call.durationSeconds}s`
+                            : ""}
+                        </p>
+                        {call.notes && (
+                          <p className="mt-0.5 text-[var(--atria-primary)]/50">
+                            {call.notes}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
 
           <section className="rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02] p-4">
             <div className="mb-3 flex items-center gap-2">

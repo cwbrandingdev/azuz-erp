@@ -881,8 +881,20 @@ html:fullscreen [data-calendar-root] {
   transform-origin: bottom center;
 }
 
+.studio-dock-autohide {
+  transform-origin: bottom center;
+  will-change: height;
+  transition:
+    height 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    padding-bottom 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .studio-dock-bounce {
     animation: none;
+  }
+
+  .studio-dock-autohide {
+    transition: none;
   }
 }

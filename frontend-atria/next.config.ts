@@ -20,7 +20,7 @@ copyPdfWorker();
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["pdfjs-dist"],
-  transpilePackages: ["react-pdf"],
+  transpilePackages: ["react-pdf", "@twilio/voice-sdk"],
   turbopack: {
     resolveAlias: {
       canvas: "./lib/empty-module.ts",
