@@ -140,7 +140,7 @@ export function StudioDock() {
   const router = useRouter();
   const { sections, appUpdatesBadgeCount } = useVisibleNavSections();
   const dockRef = useRef<HTMLDivElement>(null);
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | 0>(0);
+  const hideTimerRef = useRef<number>(0);
   const menuOpenRef = useRef(false);
   const [scales, setScales] = useState<number[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
