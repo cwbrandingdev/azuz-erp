@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ComponentProps, type MouseEvent } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
 import { toE164 } from "@/lib/lead-phone";
 import {
@@ -25,21 +25,21 @@ export function NativeTelButton({
     setHref(toNativeCallHref(phone ?? null));
   }, [phone]);
 
-  function handleClick(event: MouseEvent<HTMLButtonElement>) {
-    if (detectNativeDialerPlatform() === "windows") {
-      const e164 = toE164(phone);
-      if (e164) void navigator.clipboard.writeText(e164).catch(() => undefined);
-    }
-    onClick?.(event);
-  }
-
   return (
     <Button
       {...props}
       type={href ? undefined : type}
       nativeButton={href ? false : nativeButton}
       render={href ? <a href={href} /> : undefined}
-      onClick={handleClick}
+      onClick={(event) => {
+        if (detectNativeDialerPlatform() === "windows") {
+          const e164 = toE164(phone);
+          if (e164) {
+            void navigator.clipboard.writeText(e164).catch(() => undefined);
+          }
+        }
+        onClick?.(event);
+      }}
     />
   );
 }
