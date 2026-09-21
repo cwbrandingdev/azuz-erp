@@ -159,7 +159,7 @@ export function DialerProvider({ children }: { children: ReactNode }) {
           setStatus("in-call");
           if (detectNativeDialerPlatform() === "windows") {
             toast.info(
-              "Se o Windows não abriu o telefone, clique em Abrir Phone Link no painel.",
+              "Se pedir o Chrome, escolha Phone Link. Ou clique em Abrir Phone Link no painel.",
             );
           }
           return;

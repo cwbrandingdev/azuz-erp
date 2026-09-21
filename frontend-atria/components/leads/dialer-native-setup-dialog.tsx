@@ -72,8 +72,8 @@ function stepsFor(platform: NativeDialerPlatform) {
         (em Samsung costuma vir instalado).
       </>,
       "No PC, abra o app Phone Link, entre com a mesma conta Microsoft e ative Chamadas. Bluetooth ligado, celular perto.",
-      "Em Configurações → Apps → Apps padrão → escolha padrões por tipo de link → TEL → Phone Link. Sem isso o Chrome não mostra popup e o Ligar não faz nada.",
-      "Volte no Atria e clique em Ligar. Se o Chrome perguntar, escolha Phone Link e marque sempre.",
+      "Se o Windows pedir o Google Chrome, o TEL está associado ao Chrome. Configurações → Apps → Apps padrão → TEL → Phone Link. No Atria o Ligar agora abre o Phone Link direto.",
+      "Volte no Atria, atualize a página e clique em Ligar. Se perguntar, escolha Phone Link (não o Chrome) e marque sempre.",
     ],
   };
 }
