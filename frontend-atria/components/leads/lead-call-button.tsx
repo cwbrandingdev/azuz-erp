@@ -1,7 +1,7 @@
 "use client";
 
 import { Phone } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { NativeTelButton } from "@/components/leads/native-tel-button";
 import { useOptionalDialer } from "@/contexts/dialer-context";
 import { isDialablePhone } from "@/lib/lead-phone";
 
@@ -20,8 +20,8 @@ export function LeadCallButton({
   if (!dialer || !isDialablePhone(lead.phone)) return null;
 
   return (
-    <Button
-      type="button"
+    <NativeTelButton
+      phone={dialer.mode === "native" ? lead.phone : null}
       variant="outline"
       size="sm"
       className={className}
@@ -36,6 +36,6 @@ export function LeadCallButton({
     >
       <Phone className="size-3.5" />
       {compact ? null : "Ligar"}
-    </Button>
+    </NativeTelButton>
   );
 }

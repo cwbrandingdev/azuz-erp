@@ -15,6 +15,7 @@ import { LeadFunnelSettingsDrawer } from "@/components/leads/lead-funnel-setting
 import { LeadKanbanFormDialog } from "@/components/leads/lead-kanban-form-dialog";
 import { LeadKanbanImportDialog } from "@/components/leads/lead-kanban-import-dialog";
 import { LeadKanbanCard } from "@/components/leads/lead-kanban-card";
+import { NativeTelButton } from "@/components/leads/native-tel-button";
 import { KanbanHorizontalScroll } from "@/components/kanban/kanban-horizontal-scroll";
 import { PortalCrmSdrLeadsBanner } from "@/components/portal/portal-crm-sdr-leads-banner";
 import { Button } from "@/components/ui/button";
@@ -488,8 +489,13 @@ export function LeadsKanbanBoard({
             {view === "funnel" && (
               <>
                 {!portalClientView && dialer && dialableVisible.length > 0 && (
-                  <Button
-                    type="button"
+                  <NativeTelButton
+                    phone={
+                      dialer.mode === "native" &&
+                      (dialer.status === "idle" || dialer.queue.length === 0)
+                        ? dialableVisible[0]?.phone
+                        : null
+                    }
                     variant="outline"
                     size="sm"
                     onClick={() =>
@@ -504,7 +510,7 @@ export function LeadsKanbanBoard({
                   >
                     <Phone className="size-3.5" />
                     Discar {dialableVisible.length} visíveis
-                  </Button>
+                  </NativeTelButton>
                 )}
                 <LeadKanbanImportDialog onSuccess={() => void loadBoard()} />
                 <LeadKanbanFormDialog onSuccess={() => void loadBoard()} />
