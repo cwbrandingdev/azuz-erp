@@ -19,9 +19,14 @@ export const CLIENT_DIRECTORY_ROLES = [
   RoleName.CRM,
 ] as const;
 
-export const CLIENT_LOOKUP_ROLES = [
+/** Roles that can list, open, and create clients. */
+export const CLIENT_VIEW_AND_CREATE_ROLES = [
   ...CLIENT_DIRECTORY_ROLES,
   RoleName.DESIGNER_MASTER,
+] as const;
+
+export const CLIENT_LOOKUP_ROLES = [
+  ...CLIENT_VIEW_AND_CREATE_ROLES,
   RoleName.DESIGNER_JUNIOR,
 ] as const;
 

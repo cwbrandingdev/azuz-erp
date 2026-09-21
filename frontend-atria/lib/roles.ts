@@ -38,6 +38,18 @@ export function canAccessClientDirectory(
 ): boolean {
   const normalized = normalizeAppRole(role);
   return (
+    normalized === "master" ||
+    normalized === "admin" ||
+    normalized === "crm" ||
+    normalized === "designer_master"
+  );
+}
+
+export function canManageClientDirectory(
+  role: string | null | undefined,
+): boolean {
+  const normalized = normalizeAppRole(role);
+  return (
     normalized === "master" || normalized === "admin" || normalized === "crm"
   );
 }

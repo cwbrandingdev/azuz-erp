@@ -20,6 +20,7 @@ import { PORTAL_REQUEST_CONTENT_TYPE_LABELS } from "@/lib/portal-request-content
 import { resolveMediaUrl } from "@/lib/media-url";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 import { clientRequestsService } from "@/services";
 import type {
   ClientRequest,
@@ -76,6 +77,8 @@ export function ClientRequestsWorkspace({
   onUpdated,
   layout = "page",
 }: ClientRequestsWorkspaceProps) {
+  const { canManageClientDirectory } = usePermissions();
+  const canManageClients = canManageClientDirectory();
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<PortalRequestStatus | "all">(
@@ -306,34 +309,36 @@ export function ClientRequestsWorkspace({
                           Ver tarefa
                         </Link>
                       ) : (
-                        <>
-                          <Button
-                            type="button"
-                            className="gap-2 bg-[var(--atria-primary)] text-white hover:bg-[var(--atria-primary)]/90"
-                            disabled={
-                              convertingId === selected.id ||
-                              selected.status === "rejected"
-                            }
-                            onClick={() => setConvertTarget(selected)}
-                          >
-                            {convertingId === selected.id ? (
-                              <Loader2 className="size-4 animate-spin" />
-                            ) : (
-                              <Sparkles className="size-4" />
-                            )}
-                            Converter em Tarefa
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="gap-2 border-red-200 text-red-700 hover:bg-red-50"
-                            disabled={selected.status === "rejected"}
-                            onClick={() => setRejectTarget(selected)}
-                          >
-                            <XCircle className="size-4" />
-                            Recusar Solicitação
-                          </Button>
-                        </>
+                        canManageClients && (
+                          <>
+                            <Button
+                              type="button"
+                              className="gap-2 bg-[var(--atria-primary)] text-white hover:bg-[var(--atria-primary)]/90"
+                              disabled={
+                                convertingId === selected.id ||
+                                selected.status === "rejected"
+                              }
+                              onClick={() => setConvertTarget(selected)}
+                            >
+                              {convertingId === selected.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <Sparkles className="size-4" />
+                              )}
+                              Converter em Tarefa
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="gap-2 border-red-200 text-red-700 hover:bg-red-50"
+                              disabled={selected.status === "rejected"}
+                              onClick={() => setRejectTarget(selected)}
+                            >
+                              <XCircle className="size-4" />
+                              Recusar Solicitação
+                            </Button>
+                          </>
+                        )
                       )}
                     </div>
                   </div>
@@ -452,28 +457,30 @@ export function ClientRequestsWorkspace({
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <textarea
-                      value={comment}
-                      onChange={(event) => setComment(event.target.value)}
-                      rows={2}
-                      placeholder="Responder ao cliente..."
-                      className="min-h-[44px] flex-1 rounded-xl border border-[var(--atria-primary)]/15 px-3 py-2 text-sm outline-none focus:border-[var(--atria-primary)]/35"
-                    />
-                    <Button
-                      type="button"
-                      className="gap-2 sm:self-end"
-                      disabled={sendingComment || !comment.trim()}
-                      onClick={() => void handleSendComment()}
-                    >
-                      {sendingComment ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <SendHorizontal className="size-4" />
-                      )}
-                      Enviar
-                    </Button>
-                  </div>
+                  {canManageClients && (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <textarea
+                        value={comment}
+                        onChange={(event) => setComment(event.target.value)}
+                        rows={2}
+                        placeholder="Responder ao cliente..."
+                        className="min-h-[44px] flex-1 rounded-xl border border-[var(--atria-primary)]/15 px-3 py-2 text-sm outline-none focus:border-[var(--atria-primary)]/35"
+                      />
+                      <Button
+                        type="button"
+                        className="gap-2 sm:self-end"
+                        disabled={sendingComment || !comment.trim()}
+                        onClick={() => void handleSendComment()}
+                      >
+                        {sendingComment ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <SendHorizontal className="size-4" />
+                        )}
+                        Enviar
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               ) : (
                 <Card className="min-w-0 rounded-2xl border-dashed p-12 text-center text-sm text-[var(--atria-primary)]/50">

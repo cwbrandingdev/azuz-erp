@@ -6,10 +6,13 @@ import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { ClientsImportDialog } from "@/components/clients/clients-import-dialog";
 import { ClientGroupFilter } from "@/components/clients/client-group-filter";
 import { ClientGroupsManager } from "@/components/clients/client-groups-manager";
+import { usePermissions } from "@/hooks/use-permissions";
 import { clientsService, companySettingsService } from "@/services";
 import type { Client } from "@/services/types";
 
 export default function ClientsPage() {
+  const { canManageClientDirectory } = usePermissions();
+  const canManageClients = canManageClientDirectory();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [groupFilter, setGroupFilter] = useState("");
@@ -55,8 +58,12 @@ export default function ClientsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <ClientGroupsManager onChange={() => void loadClients()} />
-          <ClientsImportDialog onSuccess={() => void loadClients()} />
+          {canManageClients && (
+            <>
+              <ClientGroupsManager onChange={() => void loadClients()} />
+              <ClientsImportDialog onSuccess={() => void loadClients()} />
+            </>
+          )}
           <ClientFormDialog onSuccess={() => void loadClients()} />
         </div>
       </div>

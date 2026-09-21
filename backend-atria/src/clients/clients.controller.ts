@@ -10,7 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { RoleName } from '@prisma/client';
-import { CLIENT_DIRECTORY_ROLES, CLIENT_LOOKUP_ROLES } from '../auth/constants/roles';
+import {
+  CLIENT_DIRECTORY_ROLES,
+  CLIENT_LOOKUP_ROLES,
+  CLIENT_VIEW_AND_CREATE_ROLES,
+} from '../auth/constants/roles';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -45,6 +49,7 @@ export class ClientsController {
   }
 
   @Get(':id/requests')
+  @Roles(...CLIENT_VIEW_AND_CREATE_ROLES)
   getClientRequests(
     @Param('id') id: string,
     @Query() query: QueryClientRequestsDto,
@@ -53,6 +58,7 @@ export class ClientsController {
   }
 
   @Get(':id/360')
+  @Roles(...CLIENT_VIEW_AND_CREATE_ROLES)
   getClient360(@Param('id') id: string, @Query() query: QueryClient360Dto) {
     return this.client360Service.getSection(
       id,
@@ -61,6 +67,7 @@ export class ClientsController {
   }
 
   @Get(':id')
+  @Roles(...CLIENT_VIEW_AND_CREATE_ROLES)
   findOne(@Param('id') id: string) {
     return this.clientsService.findOne(id);
   }
@@ -71,6 +78,7 @@ export class ClientsController {
   }
 
   @Post()
+  @Roles(...CLIENT_VIEW_AND_CREATE_ROLES)
   create(@Body() dto: CreateClientDto) {
     return this.clientsService.create(dto);
   }
