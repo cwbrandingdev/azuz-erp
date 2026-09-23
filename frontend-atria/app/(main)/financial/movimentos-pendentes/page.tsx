@@ -93,7 +93,10 @@ export default function MovimentosPendentesPage() {
   return (
     <div className="flex flex-col gap-6">
       <FinanceSubnav />
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        data-tour="finance-mov-header"
+        className="flex flex-wrap items-center justify-between gap-3"
+      >
         <div>
           <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Movimentos Pendentes</h1>
           <p className="text-sm text-[var(--atria-primary)]/50">
@@ -106,7 +109,7 @@ export default function MovimentosPendentesPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div data-tour="finance-mov-actions" className="flex flex-wrap items-center gap-3">
         <select
           className="h-8 rounded-lg border px-2 text-sm"
           value={bankAccountId}
@@ -129,7 +132,10 @@ export default function MovimentosPendentesPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <section className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4">
+        <section
+          data-tour="finance-mov-bank-lines"
+          className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4"
+        >
           <h2 className="mb-3 font-semibold text-[var(--atria-primary)]">Lançamentos Banco</h2>
           {(data?.lines.length ?? 0) === 0 ? (
             <p className="py-16 text-center text-sm text-[var(--atria-primary)]/50">
@@ -175,7 +181,10 @@ export default function MovimentosPendentesPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4">
+        <section
+          data-tour="finance-mov-atria-lines"
+          className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4"
+        >
           <h2 className="mb-3 font-semibold text-[var(--atria-primary)]">Lançamentos Atria</h2>
           {(data?.transactions.length ?? 0) === 0 ? (
             <p className="py-16 text-center text-sm text-[var(--atria-primary)]/50">

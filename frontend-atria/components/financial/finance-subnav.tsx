@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { HelpCircle } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { useFinanceTutorial } from "@/components/financial/finance-tutorial-provider";
+import { pathnameToFinanceTutorialTab } from "@/components/financial/finance-tutorial-steps";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -16,9 +20,15 @@ const LINKS = [
 
 export function FinanceSubnav() {
   const pathname = usePathname();
+  const { startTour } = useFinanceTutorial();
+  const tabId = pathnameToFinanceTutorialTab(pathname);
 
   return (
-    <nav className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--atria-primary)]/10 bg-white p-1">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <nav
+        data-tour="finance-subnav"
+        className="flex min-w-0 flex-1 gap-1 overflow-x-auto rounded-xl border border-[var(--atria-primary)]/10 bg-white p-1"
+      >
       {LINKS.map((link) => {
         const active =
           link.href === "/financial"
@@ -40,6 +50,19 @@ export function FinanceSubnav() {
           </Link>
         );
       })}
-    </nav>
+      </nav>
+      {tabId ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 rounded-lg border-violet-200 text-violet-700 hover:bg-violet-50"
+          onClick={() => startTour(tabId, { force: true })}
+        >
+          <HelpCircle className="size-4" />
+          Tutorial
+        </Button>
+      ) : null}
+    </div>
   );
 }

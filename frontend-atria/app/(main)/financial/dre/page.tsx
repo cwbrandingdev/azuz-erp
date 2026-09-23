@@ -68,7 +68,10 @@ export default function DrePage() {
   return (
     <div className="flex flex-col gap-6">
       <FinanceSubnav />
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        data-tour="finance-dre-header"
+        className="flex flex-wrap items-center justify-between gap-3"
+      >
         <div>
           <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Demonstração do Resultado</h1>
           <p className="text-sm text-[var(--atria-primary)]/50">
@@ -98,6 +101,7 @@ export default function DrePage() {
         </div>
       </div>
 
+      <div data-tour="finance-dre-table" className="flex flex-col gap-4">
       {data?.sections.map((section) => (
         <section key={section.title} className="overflow-x-auto rounded-2xl border border-[var(--atria-primary)]/10 bg-white">
           <h2 className="px-4 py-3 text-sm font-semibold text-[var(--atria-primary)]">{section.title}</h2>
@@ -150,6 +154,7 @@ export default function DrePage() {
           <ResultRow label="ACUMULADO DO ANO" values={data.availableBalance} />
         </section>
       )}
+      </div>
     </div>
   );
 }

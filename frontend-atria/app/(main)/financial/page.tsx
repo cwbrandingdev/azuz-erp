@@ -552,7 +552,10 @@ export default function FinancialPage() {
   }, [viewMode]);
 
   const viewToggle = (
-    <div className="flex gap-1 rounded-xl border border-[var(--atria-primary)]/15 bg-white p-0.5">
+    <div
+      data-tour="finance-view-toggle"
+      className="flex gap-1 rounded-xl border border-[var(--atria-primary)]/15 bg-white p-0.5"
+    >
       <Button
         type="button"
         variant={viewMode === "dashboard" ? "default" : "ghost"}
@@ -628,11 +631,13 @@ export default function FinancialPage() {
           <h1 className="text-2xl font-bold text-[var(--atria-primary)]">
             Dashboard
           </h1>
-          <MonthSwitcher
-            period={period}
-            onChange={handlePeriodChange}
-            compact
-          />
+          <div data-tour="finance-period">
+            <MonthSwitcher
+              period={period}
+              onChange={handlePeriodChange}
+              compact
+            />
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {viewToggle}
@@ -642,18 +647,20 @@ export default function FinancialPage() {
         </div>
       </div>
 
-      {overview ? (
-        <KpiCards overview={overview} />
-      ) : loadingOverview ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-36 animate-pulse rounded-2xl border border-[var(--atria-primary)]/10 bg-white"
-            />
-          ))}
-        </div>
-      ) : null}
+      <div data-tour="finance-kpi">
+        {overview ? (
+          <KpiCards overview={overview} />
+        ) : loadingOverview ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-36 animate-pulse rounded-2xl border border-[var(--atria-primary)]/10 bg-white"
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       <FinanceDashboard />
     </div>

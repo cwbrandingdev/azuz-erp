@@ -109,7 +109,7 @@ export function FinanceDashboard() {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className={`${cardClass} p-5`}>
+        <section data-tour="finance-balance" className={`${cardClass} p-5`}>
           <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400">
             SALDO DISPONÍVEL
           </p>
@@ -263,7 +263,7 @@ export function FinanceDashboard() {
         </section>
       </div>
 
-      <section className={`${cardClass} p-5`}>
+      <section data-tour="finance-period-filter" className={`${cardClass} p-5`}>
         <div className="mb-4 flex items-center justify-between gap-3">
           <p className="inline-flex items-center gap-2 text-sm font-medium text-slate-500">
             <Filter className="size-4" />

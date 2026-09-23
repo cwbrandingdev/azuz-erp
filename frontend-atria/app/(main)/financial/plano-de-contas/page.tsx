@@ -38,13 +38,13 @@ export default function PlanoDeContasPage() {
   return (
     <div className="flex flex-col gap-6">
       <FinanceSubnav />
-      <div>
+      <div data-tour="finance-coa-header">
         <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Plano de Contas</h1>
         <p className="text-sm text-[var(--atria-primary)]/50">
           Contas já usadas nos lançamentos continuam aqui, classificadas no grupo correspondente.
         </p>
       </div>
-      <div className="flex flex-col gap-4">
+      <div data-tour="finance-coa-groups" className="flex flex-col gap-4">
         {groups.map((group) => {
           const children = leaves.filter((account) => account.parentId === group.id);
           const nested = leaves.filter(

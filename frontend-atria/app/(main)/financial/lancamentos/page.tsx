@@ -197,16 +197,22 @@ export default function LancamentosPage() {
   return (
     <div className="flex flex-col gap-6">
       <FinanceSubnav />
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        data-tour="finance-lancamentos-header"
+        className="flex flex-wrap items-center justify-between gap-3"
+      >
         <div>
           <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Lançamentos</h1>
           <p className="text-sm text-[var(--atria-primary)]/50">
             Entradas e saídas no mesmo livro-caixa
           </p>
         </div>
-        <BankAccountsDialog onChange={() => setReload((value) => value + 1)} />
+        <div data-tour="finance-lancamentos-banks">
+          <BankAccountsDialog onChange={() => setReload((value) => value + 1)} />
+        </div>
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
+        <div data-tour="finance-lancamentos-income">
         <EntryForm
           title="Entradas"
           description="Entrada de dinheiro"
@@ -216,6 +222,8 @@ export default function LancamentosPage() {
           submitLabel="Salvar receita"
           onSaved={() => setReload((value) => value + 1)}
         />
+        </div>
+        <div data-tour="finance-lancamentos-expense">
         <EntryForm
           title="Saídas"
           description="Saída de dinheiro"
@@ -225,6 +233,7 @@ export default function LancamentosPage() {
           submitLabel="Salvar despesa"
           onSaved={() => setReload((value) => value + 1)}
         />
+        </div>
       </div>
     </div>
   );
