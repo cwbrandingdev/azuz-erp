@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Loader2, MessageSquareWarning, Play, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Loader2,
+  MessageSquareWarning,
+  Play,
+  Trash2,
+} from "lucide-react";
 import { MediaRevisionDrawer } from "@/components/deliverables/media-revision-drawer";
 import {
   MediaLightbox,
@@ -10,6 +18,7 @@ import {
 } from "@/components/deliverables/media-lightbox";
 import { Button } from "@/components/ui/button";
 import { MediaPreview } from "@/components/ui/media-preview";
+import { useCarouselKeyboard } from "@/hooks/use-carousel-keyboard";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { isPdfSource } from "@/lib/pdf-utils";
 import { toast } from "@/lib/toast";
@@ -84,7 +93,7 @@ export function DeliverableMediaGrid({
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const sortedItems = useMemo(
@@ -97,13 +106,30 @@ export function DeliverableMediaGrid({
     [sortedItems],
   );
 
+  const hasMultiple = sortedItems.length > 1;
+  const activeItem = sortedItems[activeIndex] ?? sortedItems[0] ?? null;
+
+  useEffect(() => {
+    setActiveIndex((current) => {
+      if (sortedItems.length === 0) return 0;
+      return Math.min(current, sortedItems.length - 1);
+    });
+  }, [sortedItems.length]);
+
+  const { goPrev, goNext } = useCarouselKeyboard({
+    enabled: hasMultiple && !lightboxOpen,
+    itemCount: sortedItems.length,
+    index: activeIndex,
+    onIndexChange: setActiveIndex,
+  });
+
   function openRevision(item: DeliverableItem) {
     setRevisionItem(item);
     setRevisionOpen(true);
   }
 
   function openLightbox(index: number) {
-    setLightboxIndex(index);
+    setActiveIndex(index);
     setLightboxOpen(true);
   }
 
@@ -233,6 +259,99 @@ export function DeliverableMediaGrid({
         </div>
       )}
 
+      {hasMultiple && activeItem && (
+        <div
+          className="relative overflow-hidden rounded-2xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.03]"
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Pré-visualização do carrossel"
+        >
+          <div className="relative flex min-h-[min(50vh,420px)] items-center justify-center px-12 py-4 sm:px-16">
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="absolute left-2 z-10 size-10 rounded-full bg-white/90 text-[var(--atria-primary)] shadow-sm hover:bg-white sm:left-4"
+              onClick={goPrev}
+              aria-label="Slide anterior"
+            >
+              <ChevronLeft className="size-5" />
+            </Button>
+
+            <button
+              type="button"
+              className="flex h-full w-full cursor-zoom-in items-center justify-center"
+              onClick={() => openLightbox(activeIndex)}
+              aria-label={`Abrir ${activeItem.fileName ?? "mídia"} em tela cheia`}
+            >
+              {(() => {
+                const previewUrl =
+                  resolveMediaUrlProp?.(activeItem.mediaUrl) ??
+                  resolveMediaUrl(activeItem.mediaUrl) ??
+                  activeItem.mediaUrl;
+
+                if (activeItem.mediaType === "video") {
+                  return (
+                    <div className="relative aspect-[4/3] w-full max-w-3xl bg-black">
+                      <video
+                        src={previewUrl}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="h-full w-full rounded-xl object-contain"
+                      />
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <span className="flex size-14 items-center justify-center rounded-full bg-black/55 text-white shadow-lg">
+                          <Play className="ml-0.5 size-7 fill-current" />
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <MediaPreview
+                    url={previewUrl}
+                    mimeType={
+                      activeItem.mediaType === "image"
+                        ? "image/jpeg"
+                        : isPdfSource(
+                              activeItem.mediaUrl,
+                              null,
+                              activeItem.fileName,
+                            )
+                          ? "application/pdf"
+                          : undefined
+                    }
+                    name={activeItem.fileName ?? undefined}
+                    className="max-h-[min(50vh,420px)] w-full max-w-3xl rounded-xl object-contain"
+                  />
+                );
+              })()}
+            </button>
+
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="absolute right-2 z-10 size-10 rounded-full bg-white/90 text-[var(--atria-primary)] shadow-sm hover:bg-white sm:right-4"
+              onClick={goNext}
+              aria-label="Próximo slide"
+            >
+              <ChevronRight className="size-5" />
+            </Button>
+          </div>
+
+          <p className="border-t border-[var(--atria-primary)]/10 px-4 py-2 text-center text-xs text-[var(--atria-primary)]/55">
+            {activeIndex + 1} / {sortedItems.length}
+            <span className="hidden sm:inline">
+              {" "}
+              · use as setas ← → do teclado para navegar
+            </span>
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {sortedItems.map((item, index) => {
           const previewUrl =
@@ -251,7 +370,13 @@ export function DeliverableMediaGrid({
                 duration: 0.25,
                 delay: Math.min(index * 0.04, 0.24),
               }}
-              className="group relative overflow-hidden rounded-2xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02]"
+              className={cn(
+                "group relative overflow-hidden rounded-2xl border bg-[var(--atria-primary)]/[0.02]",
+                index === activeIndex && hasMultiple
+                  ? "border-[var(--atria-primary)]/35 ring-2 ring-[var(--atria-primary)]/15"
+                  : "border-[var(--atria-primary)]/10",
+              )}
+              onMouseEnter={() => setActiveIndex(index)}
             >
               <button
                 type="button"
@@ -378,10 +503,10 @@ export function DeliverableMediaGrid({
 
       <MediaLightbox
         items={lightboxItems}
-        index={lightboxIndex}
+        index={activeIndex}
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
-        onIndexChange={setLightboxIndex}
+        onIndexChange={setActiveIndex}
         onDownload={(item) => handleDownload(item)}
         onRequestAdjustment={
           allowItemAdjustment
