@@ -8,6 +8,7 @@ import { TransactionDialog } from "@/components/financial/transaction-dialog";
 import { TransactionsImportDialog } from "@/components/financial/transactions-import-dialog";
 import { CategoryManagementDrawer } from "@/components/financial/category-management-drawer";
 import { FinanceSheetView } from "@/components/financial/finance-sheet-view";
+import { KpiCards } from "@/components/financial/kpi-cards";
 import { MonthSwitcher } from "@/components/financial/month-switcher";
 import { Button } from "@/components/ui/button";
 import { financeService } from "@/services";
@@ -623,10 +624,15 @@ export default function FinancialPage() {
     <div className="flex flex-col gap-6">
       <FinanceSubnav />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold text-[var(--atria-primary)]">
             Dashboard
           </h1>
+          <MonthSwitcher
+            period={period}
+            onChange={handlePeriodChange}
+            compact
+          />
         </div>
         <div className="flex flex-wrap gap-2">
           {viewToggle}
@@ -635,6 +641,19 @@ export default function FinancialPage() {
           <TransactionDialog onSuccess={handleTransactionSaved} />
         </div>
       </div>
+
+      {overview ? (
+        <KpiCards overview={overview} />
+      ) : loadingOverview ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-36 animate-pulse rounded-2xl border border-[var(--atria-primary)]/10 bg-white"
+            />
+          ))}
+        </div>
+      ) : null}
 
       <FinanceDashboard />
     </div>
