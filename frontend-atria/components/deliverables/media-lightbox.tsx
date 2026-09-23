@@ -142,7 +142,7 @@ export function MediaLightbox({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex h-dvh max-h-screen flex-col overflow-hidden bg-black/90 backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex h-dvh max-h-screen flex-col overflow-hidden bg-black/90 backdrop-blur-md"
         >
           <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <div className="min-w-0">
