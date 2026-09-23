@@ -11,6 +11,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { TransactionStatus, TransactionType } from '@prisma/client';
 import { IsEntityId } from '../../common/validation/entity-id';
@@ -63,6 +64,10 @@ export class CreateTransactionDto {
   @Min(1)
   @Max(60)
   recurrenceMonths?: number;
+
+  @IsOptional()
+  @IsUUID()
+  bankAccountId?: string;
 }
 
 export class UpdateTransactionDto {
@@ -103,6 +108,11 @@ export class UpdateTransactionDto {
 
   @IsEntityId({ optional: true })
   clientId?: string | null;
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID()
+  bankAccountId?: string | null;
 }
 
 export enum TransactionSortField {

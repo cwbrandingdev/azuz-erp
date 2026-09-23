@@ -23,15 +23,74 @@ const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const permissions_guard_1 = require("../auth/guards/permissions.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
 const category_dto_1 = require("./dto/category.dto");
+const bank_dto_1 = require("./dto/bank.dto");
+const finance_reports_dto_1 = require("./dto/finance-reports.dto");
 const transaction_dto_1 = require("./dto/transaction.dto");
 const import_transactions_dto_1 = require("./dto/import-transactions.dto");
 const query_finance_dto_1 = require("./dto/query-finance.dto");
 const query_finance_calendar_dto_1 = require("./dto/query-finance-calendar.dto");
+const finance_banks_service_1 = require("./finance-banks.service");
+const finance_legacy_service_1 = require("./finance-legacy.service");
+const finance_reports_service_1 = require("./finance-reports.service");
 const finance_service_1 = require("./finance.service");
 let FinanceController = class FinanceController {
     financeService;
-    constructor(financeService) {
+    financeReportsService;
+    financeBanksService;
+    financeLegacyService;
+    constructor(financeService, financeReportsService, financeBanksService, financeLegacyService) {
         this.financeService = financeService;
+        this.financeReportsService = financeReportsService;
+        this.financeBanksService = financeBanksService;
+        this.financeLegacyService = financeLegacyService;
+    }
+    getChartOfAccounts() {
+        return this.financeService.getCategories();
+    }
+    getManagementDashboard(query) {
+        return this.financeReportsService.getManagementDashboard(query);
+    }
+    getCashFlowStatement(query) {
+        return this.financeReportsService.getCashFlowStatement(query);
+    }
+    getProjectedCashFlow(query) {
+        return this.financeReportsService.getProjectedCashFlow(query);
+    }
+    getAnnualDre(query) {
+        return this.financeReportsService.getAnnualDre(query);
+    }
+    listBanks() {
+        return this.financeBanksService.listAccounts();
+    }
+    createBank(dto) {
+        return this.financeBanksService.createAccount(dto);
+    }
+    updateBank(id, dto) {
+        return this.financeBanksService.updateAccount(id, dto);
+    }
+    deleteBank(id) {
+        return this.financeBanksService.deleteAccount(id);
+    }
+    importOfx(id, dto) {
+        return this.financeBanksService.importOfx(id, dto);
+    }
+    getReconciliation(bankAccountId) {
+        return this.financeBanksService.getReconciliation(bankAccountId);
+    }
+    matchStatement(dto) {
+        return this.financeBanksService.match(dto);
+    }
+    ignoreStatement(dto) {
+        return this.financeBanksService.ignore(dto);
+    }
+    getLegacyCategories(type) {
+        return this.financeLegacyService.getCategories(type);
+    }
+    getLegacyOverview(query) {
+        return this.financeLegacyService.getOverview(query);
+    }
+    getLegacyTransactions(query) {
+        return this.financeLegacyService.getTransactions(query);
     }
     getOverview(user, query) {
         return this.financeService.getOverview(user.userId, query);
@@ -71,6 +130,118 @@ let FinanceController = class FinanceController {
     }
 };
 exports.FinanceController = FinanceController;
+__decorate([
+    (0, common_1.Get)('chart-of-accounts'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "getChartOfAccounts", null);
+__decorate([
+    (0, common_1.Get)('management-dashboard'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [finance_reports_dto_1.QueryDateRangeDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "getManagementDashboard", null);
+__decorate([
+    (0, common_1.Get)('cash-flow-statement'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [finance_reports_dto_1.QueryCashFlowStatementDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "getCashFlowStatement", null);
+__decorate([
+    (0, common_1.Get)('projected-cash-flow'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [finance_reports_dto_1.QueryProjectedCashFlowDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "getProjectedCashFlow", null);
+__decorate([
+    (0, common_1.Get)('dre'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [finance_reports_dto_1.QueryAnnualDreDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "getAnnualDre", null);
+__decorate([
+    (0, common_1.Get)('banks'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "listBanks", null);
+__decorate([
+    (0, common_1.Post)('banks'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [bank_dto_1.CreateBankAccountDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "createBank", null);
+__decorate([
+    (0, common_1.Patch)('banks/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, bank_dto_1.UpdateBankAccountDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "updateBank", null);
+__decorate([
+    (0, common_1.Delete)('banks/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "deleteBank", null);
+__decorate([
+    (0, common_1.Post)('banks/:id/ofx'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, bank_dto_1.ImportOfxDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "importOfx", null);
+__decorate([
+    (0, common_1.Get)('reconciliation'),
+    __param(0, (0, common_1.Query)('bankAccountId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "getReconciliation", null);
+__decorate([
+    (0, common_1.Post)('reconciliation/match'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [bank_dto_1.MatchStatementDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "matchStatement", null);
+__decorate([
+    (0, common_1.Post)('reconciliation/ignore'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [bank_dto_1.IgnoreStatementLinesDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "ignoreStatement", null);
+__decorate([
+    (0, common_1.Get)('legacy/categories'),
+    __param(0, (0, common_1.Query)('type')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "getLegacyCategories", null);
+__decorate([
+    (0, common_1.Get)('legacy/overview'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [query_finance_dto_1.QueryFinanceDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "getLegacyOverview", null);
+__decorate([
+    (0, common_1.Get)('legacy/transactions'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [transaction_dto_1.QueryTransactionsDto]),
+    __metadata("design:returntype", void 0)
+], FinanceController.prototype, "getLegacyTransactions", null);
 __decorate([
     (0, common_1.Get)('overview'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
@@ -170,6 +341,9 @@ exports.FinanceController = FinanceController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard, permissions_guard_1.PermissionsGuard),
     (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN),
     (0, permissions_decorator_1.Permissions)(permissions_1.Permission.FINANCE_ACCESS),
-    __metadata("design:paramtypes", [finance_service_1.FinanceService])
+    __metadata("design:paramtypes", [finance_service_1.FinanceService,
+        finance_reports_service_1.FinanceReportsService,
+        finance_banks_service_1.FinanceBanksService,
+        finance_legacy_service_1.FinanceLegacyService])
 ], FinanceController);
 //# sourceMappingURL=finance.controller.js.map

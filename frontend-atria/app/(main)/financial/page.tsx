@@ -2,14 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutDashboard, Table2 } from "lucide-react";
-import { KpiCards } from "@/components/financial/kpi-cards";
-import { CashFlowChart } from "@/components/financial/cash-flow-chart";
-import { ExpenseDistributionChart } from "@/components/financial/expense-distribution-chart";
-import { TransactionsTable } from "@/components/financial/transactions-table";
+import { FinanceDashboard } from "@/components/financial/finance-dashboard";
+import { FinanceSubnav } from "@/components/financial/finance-subnav";
 import { TransactionDialog } from "@/components/financial/transaction-dialog";
 import { TransactionsImportDialog } from "@/components/financial/transactions-import-dialog";
 import { CategoryManagementDrawer } from "@/components/financial/category-management-drawer";
-import { FiltersToolbar } from "@/components/financial/filters-toolbar";
 import { FinanceSheetView } from "@/components/financial/finance-sheet-view";
 import { MonthSwitcher } from "@/components/financial/month-switcher";
 import { Button } from "@/components/ui/button";
@@ -553,14 +550,6 @@ export default function FinancialPage() {
     };
   }, [viewMode]);
 
-  if (loadingOverview && !overview) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
-      </div>
-    );
-  }
-
   const viewToggle = (
     <div className="flex gap-1 rounded-xl border border-[var(--atria-primary)]/15 bg-white p-0.5">
       <Button
@@ -632,14 +621,12 @@ export default function FinancialPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <FinanceSubnav />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--atria-primary)]">
-            Financeiro
+            Dashboard
           </h1>
-          <p className="text-sm text-[var(--atria-primary)]/50">
-            Receitas, despesas e fluxo de caixa com visão mensal
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {viewToggle}
@@ -649,43 +636,7 @@ export default function FinancialPage() {
         </div>
       </div>
 
-      <MonthSwitcher period={period} onChange={handlePeriodChange} />
-
-      {overview && <KpiCards overview={overview} />}
-
-      {overview && (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <CashFlowChart
-            key={overview.monthlyCashFlow
-              .map((item) => `${item.month}:${item.income}:${item.expense}`)
-              .join("|")}
-            data={overview.monthlyCashFlow}
-            period={period}
-          />
-          <ExpenseDistributionChart data={overview.expenseByCategory} />
-        </div>
-      )}
-
-      <FiltersToolbar
-        filters={filters}
-        categories={categories}
-        onChange={handleFiltersChange}
-        onClear={handleClearFilters}
-      />
-
-      <TransactionsTable
-        transactions={transactions}
-        filters={filters}
-        onSortChange={(sortBy, sortOrder) =>
-          handleFiltersChange({ ...filters, sortBy, sortOrder })
-        }
-        onPageChange={setPage}
-        onRefresh={handleRefresh}
-        onTransactionSaved={handleTransactionSaved}
-        onMarkAsPaid={handleOptimisticMarkPaid}
-        onDelete={handleOptimisticDelete}
-        loading={loadingTransactions && transactions.data.length === 0}
-      />
+      <FinanceDashboard />
     </div>
   );
 }

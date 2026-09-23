@@ -8,7 +8,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FinanceModule = void 0;
 const common_1 = require("@nestjs/common");
+const mail_module_1 = require("../mail/mail.module");
+const finance_banks_service_1 = require("./finance-banks.service");
+const finance_daily_digest_service_1 = require("./finance-daily-digest.service");
+const finance_legacy_service_1 = require("./finance-legacy.service");
 const finance_controller_1 = require("./finance.controller");
+const finance_reports_service_1 = require("./finance-reports.service");
 const finance_service_1 = require("./finance.service");
 const finances_api_controller_1 = require("./finances-api.controller");
 let FinanceModule = class FinanceModule {
@@ -16,8 +21,15 @@ let FinanceModule = class FinanceModule {
 exports.FinanceModule = FinanceModule;
 exports.FinanceModule = FinanceModule = __decorate([
     (0, common_1.Module)({
+        imports: [mail_module_1.MailModule],
         controllers: [finance_controller_1.FinanceController, finances_api_controller_1.FinancesApiController],
-        providers: [finance_service_1.FinanceService],
+        providers: [
+            finance_service_1.FinanceService,
+            finance_reports_service_1.FinanceReportsService,
+            finance_banks_service_1.FinanceBanksService,
+            finance_daily_digest_service_1.FinanceDailyDigestService,
+            finance_legacy_service_1.FinanceLegacyService,
+        ],
         exports: [finance_service_1.FinanceService],
     })
 ], FinanceModule);

@@ -25,6 +25,7 @@ export declare class FinancesApiController {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         overdue: {
@@ -47,6 +48,7 @@ export declare class FinancesApiController {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         alerts: {
@@ -69,6 +71,7 @@ export declare class FinancesApiController {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         totals: {

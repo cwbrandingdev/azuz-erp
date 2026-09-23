@@ -18,7 +18,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { financeService, ApiError } from "@/services";
 import { toast } from "@/lib/toast";
 import { formatLocalDate, toLocalDateIso } from "@/lib/financial-utils";
-import type { FinanceCategory, FinanceTransaction } from "@/services/types";
+import type { ChartAccount, FinanceTransaction } from "@/services/types";
 import { NumericFormat } from "react-number-format";
 
 interface TransactionDialogProps {
@@ -47,7 +47,7 @@ export function TransactionDialog({
   const submittingRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [allCategories, setAllCategories] = useState<FinanceCategory[]>([]);
+  const [allCategories, setAllCategories] = useState<ChartAccount[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
   const [description, setDescription] = useState("");
@@ -61,7 +61,9 @@ export function TransactionDialog({
   const [recurrenceMonths, setRecurrenceMonths] = useState("12");
 
   const previousTypeRef = useRef<"income" | "expense" | null>(null);
-  const categories = allCategories.filter((category) => category.type === type);
+  const categories = allCategories.filter(
+    (category) => category.code && !category.isGroup && category.type === type,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -88,7 +90,7 @@ export function TransactionDialog({
     setCategoriesLoading(true);
 
     financeService
-      .getCategories()
+      .getChartOfAccounts()
       .then((cats) => {
         if (cancelled) return;
         setAllCategories(cats);
@@ -326,7 +328,11 @@ export function TransactionDialog({
                 placeholder="Selecione a categoria"
                 options={categories.map((cat) => ({
                   value: cat.id,
-                  label: cat.name,
+                  label:
+                    cat.code &&
+                    !cat.name.toLowerCase().startsWith(`${cat.code.toLowerCase()} `)
+                      ? `${cat.code} ${cat.name}`
+                      : cat.name,
                 }))}
               />
             </Field>

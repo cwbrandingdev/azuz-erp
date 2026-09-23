@@ -26,6 +26,7 @@ class CreateTransactionDto {
     clientId;
     recurrenceDay;
     recurrenceMonths;
+    bankAccountId;
 }
 exports.CreateTransactionDto = CreateTransactionDto;
 __decorate([
@@ -87,6 +88,11 @@ __decorate([
     (0, class_validator_1.Max)(60),
     __metadata("design:type", Number)
 ], CreateTransactionDto.prototype, "recurrenceMonths", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], CreateTransactionDto.prototype, "bankAccountId", void 0);
 class UpdateTransactionDto {
     title;
     description;
@@ -97,6 +103,7 @@ class UpdateTransactionDto {
     dueDate;
     categoryId;
     clientId;
+    bankAccountId;
 }
 exports.UpdateTransactionDto = UpdateTransactionDto;
 __decorate([
@@ -146,6 +153,12 @@ __decorate([
     (0, entity_id_1.IsEntityId)({ optional: true }),
     __metadata("design:type", Object)
 ], UpdateTransactionDto.prototype, "clientId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateIf)((_, value) => value !== null),
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", Object)
+], UpdateTransactionDto.prototype, "bankAccountId", void 0);
 var TransactionSortField;
 (function (TransactionSortField) {
     TransactionSortField["DATE"] = "date";

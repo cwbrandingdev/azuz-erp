@@ -1,9 +1,9 @@
 import { z } from 'zod';
 declare const envSchema: z.ZodPipe<z.ZodObject<{
     NODE_ENV: z.ZodDefault<z.ZodEnum<{
+        production: "production";
         development: "development";
         test: "test";
-        production: "production";
     }>>;
     PORT: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     DATABASE_URL: z.ZodString;
@@ -12,8 +12,8 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     SUPABASE_ANON_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     SUPABASE_SERVICE_ROLE_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     SUPABASE_DB_SCHEMA: z.ZodDefault<z.ZodEnum<{
-        dev: "dev";
         public: "public";
+        dev: "dev";
     }>>;
     SUPABASE_STORAGE_BUCKET: z.ZodOptional<z.ZodString>;
     SUPABASE_DELIVERABLES_BUCKET: z.ZodOptional<z.ZodString>;
@@ -59,8 +59,8 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     SUPABASE_URL: string | undefined;
     SUPABASE_ANON_KEY: string | undefined;
     SUPABASE_SERVICE_ROLE_KEY: string | undefined;
-    SUPABASE_DB_SCHEMA: "dev" | "public";
-    NODE_ENV: "development" | "test" | "production";
+    SUPABASE_DB_SCHEMA: "public" | "dev";
+    NODE_ENV: "production" | "development" | "test";
     PORT: number;
     DATABASE_URL: string;
     JWT_ACCESS_SECRET: string;
@@ -100,10 +100,10 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     TWILIO_WEBHOOK_BASE_URL?: string | undefined;
     DIALER_MODE?: "native" | "twilio" | undefined;
 }, {
-    NODE_ENV: "development" | "test" | "production";
+    NODE_ENV: "production" | "development" | "test";
     PORT: number;
     DATABASE_URL: string;
-    SUPABASE_DB_SCHEMA: "dev" | "public";
+    SUPABASE_DB_SCHEMA: "public" | "dev";
     JWT_ACCESS_SECRET: string;
     JWT_REFRESH_SECRET: string;
     JWT_ACCESS_EXPIRATION: string;

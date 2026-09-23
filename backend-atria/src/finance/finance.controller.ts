@@ -22,6 +22,19 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 import {
+  CreateBankAccountDto,
+  IgnoreStatementLinesDto,
+  ImportOfxDto,
+  MatchStatementDto,
+  UpdateBankAccountDto,
+} from './dto/bank.dto';
+import {
+  QueryAnnualDreDto,
+  QueryCashFlowStatementDto,
+  QueryDateRangeDto,
+  QueryProjectedCashFlowDto,
+} from './dto/finance-reports.dto';
+import {
   CreateTransactionDto,
   QueryTransactionsDto,
   UpdateTransactionDto,
@@ -29,6 +42,9 @@ import {
 import { BulkImportTransactionsDto } from './dto/import-transactions.dto';
 import { QueryFinanceDto } from './dto/query-finance.dto';
 import { QueryFinanceCalendarDto } from './dto/query-finance-calendar.dto';
+import { FinanceBanksService } from './finance-banks.service';
+import { FinanceLegacyService } from './finance-legacy.service';
+import { FinanceReportsService } from './finance-reports.service';
 import { FinanceService } from './finance.service';
 
 @Controller(['finance', 'financial'])
@@ -36,7 +52,92 @@ import { FinanceService } from './finance.service';
 @Roles(RoleName.MASTER, RoleName.ADMIN)
 @Permissions(Permission.FINANCE_ACCESS)
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService) {}
+  constructor(
+    private readonly financeService: FinanceService,
+    private readonly financeReportsService: FinanceReportsService,
+    private readonly financeBanksService: FinanceBanksService,
+    private readonly financeLegacyService: FinanceLegacyService,
+  ) {}
+
+  @Get('chart-of-accounts')
+  getChartOfAccounts() {
+    return this.financeService.getCategories();
+  }
+
+  @Get('management-dashboard')
+  getManagementDashboard(@Query() query: QueryDateRangeDto) {
+    return this.financeReportsService.getManagementDashboard(query);
+  }
+
+  @Get('cash-flow-statement')
+  getCashFlowStatement(@Query() query: QueryCashFlowStatementDto) {
+    return this.financeReportsService.getCashFlowStatement(query);
+  }
+
+  @Get('projected-cash-flow')
+  getProjectedCashFlow(@Query() query: QueryProjectedCashFlowDto) {
+    return this.financeReportsService.getProjectedCashFlow(query);
+  }
+
+  @Get('dre')
+  getAnnualDre(@Query() query: QueryAnnualDreDto) {
+    return this.financeReportsService.getAnnualDre(query);
+  }
+
+  @Get('banks')
+  listBanks() {
+    return this.financeBanksService.listAccounts();
+  }
+
+  @Post('banks')
+  createBank(@Body() dto: CreateBankAccountDto) {
+    return this.financeBanksService.createAccount(dto);
+  }
+
+  @Patch('banks/:id')
+  updateBank(@Param('id') id: string, @Body() dto: UpdateBankAccountDto) {
+    return this.financeBanksService.updateAccount(id, dto);
+  }
+
+  @Delete('banks/:id')
+  deleteBank(@Param('id') id: string) {
+    return this.financeBanksService.deleteAccount(id);
+  }
+
+  @Post('banks/:id/ofx')
+  importOfx(@Param('id') id: string, @Body() dto: ImportOfxDto) {
+    return this.financeBanksService.importOfx(id, dto);
+  }
+
+  @Get('reconciliation')
+  getReconciliation(@Query('bankAccountId') bankAccountId?: string) {
+    return this.financeBanksService.getReconciliation(bankAccountId);
+  }
+
+  @Post('reconciliation/match')
+  matchStatement(@Body() dto: MatchStatementDto) {
+    return this.financeBanksService.match(dto);
+  }
+
+  @Post('reconciliation/ignore')
+  ignoreStatement(@Body() dto: IgnoreStatementLinesDto) {
+    return this.financeBanksService.ignore(dto);
+  }
+
+  @Get('legacy/categories')
+  getLegacyCategories(@Query('type') type?: TransactionType) {
+    return this.financeLegacyService.getCategories(type);
+  }
+
+  @Get('legacy/overview')
+  getLegacyOverview(@Query() query: QueryFinanceDto) {
+    return this.financeLegacyService.getOverview(query);
+  }
+
+  @Get('legacy/transactions')
+  getLegacyTransactions(@Query() query: QueryTransactionsDto) {
+    return this.financeLegacyService.getTransactions(query);
+  }
 
   @Get('overview')
   getOverview(

@@ -28,8 +28,18 @@ let FinanceService = class FinanceService {
         client_1.TransactionStatus.PENDING,
         client_1.TransactionStatus.OVERDUE,
     ];
+    chartSync = null;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    ensureChartOfAccounts() {
+        if (!this.chartSync) {
+            this.chartSync = (0, finance_category_defaults_1.syncFinancialCategories)(this.prisma, company_constants_1.DEFAULT_COMPANY_ID).catch((error) => {
+                this.chartSync = null;
+                throw error;
+            });
+        }
+        return this.chartSync;
     }
     activeTransactionWhere(_userId, criteria = {}) {
         return {
@@ -45,9 +55,10 @@ let FinanceService = class FinanceService {
         };
     }
     async getCategories(type) {
+        await this.ensureChartOfAccounts();
         const categories = await this.prisma.financialCategory.findMany({
             where: type ? { type } : undefined,
-            orderBy: { name: 'asc' },
+            orderBy: [{ code: 'asc' }, { name: 'asc' }],
         });
         return categories;
     }
@@ -62,13 +73,18 @@ let FinanceService = class FinanceService {
         if (existing) {
             throw new common_1.BadRequestException('Já existe uma categoria com este nome');
         }
-        return this.prisma.financialCategory.create({
+        const created = await this.prisma.financialCategory.create({
             data: {
                 companyId: company_constants_1.DEFAULT_COMPANY_ID,
                 name: dto.name.trim(),
                 type: dto.type,
                 color: dto.color ?? '#004949',
             },
+        });
+        this.chartSync = null;
+        await this.ensureChartOfAccounts();
+        return this.prisma.financialCategory.findUniqueOrThrow({
+            where: { id: created.id },
         });
     }
     async updateCategory(id, dto) {
@@ -85,6 +101,12 @@ let FinanceService = class FinanceService {
         });
         if (transactionCount > 0) {
             throw new common_1.BadRequestException('Não é possível excluir uma categoria com transações vinculadas');
+        }
+        const childCount = await this.prisma.financialCategory.count({
+            where: { parentId: id },
+        });
+        if (childCount > 0) {
+            throw new common_1.BadRequestException('Não é possível excluir uma conta que possui subcontas');
         }
         await this.prisma.financialCategory.delete({ where: { id } });
     }
@@ -379,6 +401,8 @@ let FinanceService = class FinanceService {
         await this.validateCategoryType(dto.categoryId, dto.type);
         if (dto.clientId)
             await this.ensureClientExists(dto.clientId);
+        if (dto.bankAccountId)
+            await this.ensureBankAccount(dto.bankAccountId);
         const status = this.resolveStatus(dto.status ?? client_1.TransactionStatus.PENDING, this.parseDateOnly(dto.date), dto.dueDate ? this.parseDateOnly(dto.dueDate) : undefined);
         const recurrenceMonths = dto.recurrenceMonths ?? 0;
         const recurrenceDay = dto.recurrenceDay;
@@ -398,10 +422,11 @@ let FinanceService = class FinanceService {
                         type: dto.type,
                         status: index === 0 ? status : client_1.TransactionStatus.PENDING,
                         date: occurrence,
-                        dueDate: dto.dueDate ? this.parseDateOnly(dto.dueDate) : null,
+                        dueDate: occurrence,
                         categoryId: dto.categoryId,
                         userId,
                         clientId: dto.clientId,
+                        bankAccountId: dto.bankAccountId ?? null,
                     },
                     include: { category: true },
                 });
@@ -421,6 +446,7 @@ let FinanceService = class FinanceService {
                 categoryId: dto.categoryId,
                 userId,
                 clientId: dto.clientId,
+                bankAccountId: dto.bankAccountId ?? null,
             },
             include: { category: true },
         });
@@ -435,6 +461,8 @@ let FinanceService = class FinanceService {
         }
         if (dto.clientId)
             await this.ensureClientExists(dto.clientId);
+        if (dto.bankAccountId)
+            await this.ensureBankAccount(dto.bankAccountId);
         const date = dto.date ? this.parseDateOnly(dto.date) : existing.date;
         const dueDate = dto.dueDate !== undefined
             ? dto.dueDate
@@ -464,6 +492,7 @@ let FinanceService = class FinanceService {
                         : null
                     : undefined,
                 status,
+                bankAccountId: dto.bankAccountId === undefined ? undefined : dto.bankAccountId,
             },
             include: { category: true },
         });
@@ -749,10 +778,22 @@ let FinanceService = class FinanceService {
         }
         return category;
     }
+    async ensureBankAccount(id) {
+        const account = await this.prisma.bankAccount.findFirst({
+            where: { id, companyId: company_constants_1.DEFAULT_COMPANY_ID },
+        });
+        if (!account) {
+            throw new common_1.NotFoundException('Conta bancária não encontrada');
+        }
+        return account;
+    }
     async validateCategoryType(categoryId, type) {
         const category = await this.ensureCategoryExists(categoryId);
         if (category.type !== type) {
             throw new common_1.BadRequestException('Transaction type does not match category type');
+        }
+        if (category.isGroup || !category.code) {
+            throw new common_1.BadRequestException('Selecione uma conta do plano de contas');
         }
     }
     async ensureClientExists(clientId) {
@@ -790,6 +831,7 @@ let FinanceService = class FinanceService {
             categoryColor: tx.category?.color ?? '#94A3B8',
             clientId: tx.clientId,
             contractId: tx.contractId,
+            bankAccountId: tx.bankAccountId,
             createdAt: tx.createdAt.toISOString(),
         };
     }

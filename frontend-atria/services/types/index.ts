@@ -503,6 +503,7 @@ export interface FinanceTransaction {
   categoryColor?: string;
   clientId?: string | null;
   contractId?: string | null;
+  bankAccountId?: string | null;
   createdAt?: string;
   client?: {
     id: string;
@@ -540,6 +541,132 @@ export interface FinanceMonthlyCashflow {
     month: number | null;
     year: number;
   };
+}
+
+export interface ChartAccount {
+  id: string;
+  name: string;
+  type: "income" | "expense";
+  color: string;
+  code: string | null;
+  parentId: string | null;
+  dreGroup: string | null;
+  cashFlowBlock: string;
+  isGroup: boolean;
+}
+
+export interface ManagementDashboard {
+  period: { from: string; to: string };
+  availableBalance: number;
+  banks: { id: string; name: string; balance: number }[];
+  unassignedBalance: number;
+  overdue: {
+    incomeCount: number;
+    incomeAmount: number;
+    expenseCount: number;
+    expenseAmount: number;
+  };
+  projection: { days: number; income: number; expense: number; balance: number }[];
+  breakEven: number;
+  aboveEquilibrium: boolean;
+  profitability: number;
+  statement: {
+    label: string;
+    amount: number;
+    percent: number;
+    emphasize?: boolean;
+  }[];
+  monthly: { month: string; label: string; income: number; expense: number; result: number }[];
+}
+
+export interface CashFlowEntry {
+  id: string;
+  date: string;
+  dueDate: string | null;
+  description: string;
+  type: "income" | "expense";
+  status: "paid" | "pending" | "overdue";
+  amount: number;
+  categoryId: string;
+  categoryName: string;
+  categoryCode: string | null;
+  bankAccountId: string | null;
+  bankName: string | null;
+}
+
+export interface CashFlowStatement {
+  period: { from: string; to: string };
+  blocks: {
+    key: string;
+    title: string;
+    entries: CashFlowEntry[];
+    income: number;
+    expense: number;
+    balance: number;
+  }[];
+  netVariation: number;
+}
+
+export interface ProjectedCashFlow {
+  currentBalance: number;
+  days: {
+    date: string;
+    income: number;
+    expense: number;
+    balance: number;
+    items: CashFlowEntry[];
+  }[];
+}
+
+export interface AnnualDre {
+  year: number;
+  months: string[];
+  sections: {
+    title: string;
+    rows: {
+      categoryId: string;
+      code: string | null;
+      name: string;
+      months: number[];
+      total: number;
+    }[];
+    totals: number[];
+    yearTotal: number;
+  }[];
+  managerialResult: number[];
+  finalResult: number[];
+  availableBalance: number[];
+}
+
+export interface BankAccount {
+  id: string;
+  name: string;
+  institution: string | null;
+  initialBalance: number;
+}
+
+export interface ReconciliationData {
+  accounts: BankAccount[];
+  lines: {
+    id: string;
+    bankAccountId: string;
+    bankName: string;
+    postedAt: string;
+    amount: number;
+    description: string;
+    type: "income" | "expense";
+  }[];
+  transactions: {
+    id: string;
+    date: string;
+    dueDate: string | null;
+    description: string;
+    amount: number;
+    type: "income" | "expense";
+    status: string;
+    categoryName: string;
+    bankName: string | null;
+  }[];
 }
 
 export interface ClientPortalFinances {
@@ -613,6 +740,7 @@ export interface CreateTransactionInput {
   categoryId: string;
   recurrenceDay?: number;
   recurrenceMonths?: number;
+  bankAccountId?: string;
 }
 
 export interface ImportFinanceTransactionInput {

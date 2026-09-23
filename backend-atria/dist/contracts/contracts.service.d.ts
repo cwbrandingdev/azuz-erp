@@ -196,6 +196,7 @@ export declare class ContractsService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
     }>;
