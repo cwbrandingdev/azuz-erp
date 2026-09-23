@@ -10,7 +10,9 @@ export declare class FinanceService {
     private readonly prisma;
     private static readonly CASH_FLOW_STATUSES;
     private static readonly PENDING_ALERT_STATUSES;
+    private chartSync;
     constructor(prisma: PrismaService);
+    ensureChartOfAccounts(): Promise<void>;
     private activeTransactionWhere;
     private activeTransactionScope;
     getCategories(type?: TransactionType): Promise<{
@@ -19,8 +21,13 @@ export declare class FinanceService {
         updatedAt: Date;
         companyId: string;
         name: string;
+        code: string | null;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
+        parentId: string | null;
+        dreGroup: import("@prisma/client").$Enums.DreGroup | null;
+        cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
+        isGroup: boolean;
     }[]>;
     createCategory(dto: CreateCategoryDto): Promise<{
         id: string;
@@ -28,8 +35,13 @@ export declare class FinanceService {
         updatedAt: Date;
         companyId: string;
         name: string;
+        code: string | null;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
+        parentId: string | null;
+        dreGroup: import("@prisma/client").$Enums.DreGroup | null;
+        cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
+        isGroup: boolean;
     }>;
     updateCategory(id: string, dto: UpdateCategoryDto): Promise<{
         id: string;
@@ -37,8 +49,13 @@ export declare class FinanceService {
         updatedAt: Date;
         companyId: string;
         name: string;
+        code: string | null;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
+        parentId: string | null;
+        dreGroup: import("@prisma/client").$Enums.DreGroup | null;
+        cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
+        isGroup: boolean;
     }>;
     deleteCategory(id: string): Promise<void>;
     getCashFlow(userId: string, period?: FinancePeriodOptions): Promise<{
@@ -168,6 +185,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         totalRevenue: number;
@@ -207,6 +225,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         meta: {
@@ -235,6 +254,7 @@ export declare class FinanceService {
         categoryColor: string;
         clientId: string | null;
         contractId: string | null;
+        bankAccountId: string | null;
         createdAt: string;
     }>;
     createTransaction(userId: string, dto: CreateTransactionDto): Promise<{
@@ -251,6 +271,7 @@ export declare class FinanceService {
         categoryColor: string;
         clientId: string | null;
         contractId: string | null;
+        bankAccountId: string | null;
         createdAt: string;
     }>;
     updateTransaction(userId: string, id: string, dto: UpdateTransactionDto): Promise<{
@@ -267,6 +288,7 @@ export declare class FinanceService {
         categoryColor: string;
         clientId: string | null;
         contractId: string | null;
+        bankAccountId: string | null;
         createdAt: string;
     }>;
     deleteTransaction(userId: string, id: string): Promise<void>;
@@ -290,6 +312,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
     }>;
@@ -309,6 +332,7 @@ export declare class FinanceService {
         categoryColor: string;
         clientId: string | null;
         contractId: string | null;
+        bankAccountId: string | null;
         createdAt: string;
     }[]>;
     private resolveIncomeCategory;
@@ -325,6 +349,7 @@ export declare class FinanceService {
     private formatCalendarDateKey;
     private toCalendarTransaction;
     private ensureCategoryExists;
+    private ensureBankAccount;
     private validateCategoryType;
     private ensureClientExists;
     private findUserTransaction;
@@ -350,6 +375,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         overdue: {
@@ -372,6 +398,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         alerts: {
@@ -394,6 +421,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         totals: {
@@ -448,6 +476,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         paid: {
@@ -464,6 +493,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         overdue: {
@@ -480,6 +510,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         invoices: {
@@ -496,6 +527,7 @@ export declare class FinanceService {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         totals: {

@@ -115,6 +115,7 @@ export declare class PortalController {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         paid: {
@@ -131,6 +132,7 @@ export declare class PortalController {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         overdue: {
@@ -147,6 +149,7 @@ export declare class PortalController {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         invoices: {
@@ -163,6 +166,7 @@ export declare class PortalController {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
         totals: {
@@ -339,6 +343,7 @@ export declare class PortalController {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
     }>;

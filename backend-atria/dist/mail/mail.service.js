@@ -144,6 +144,11 @@ let MailService = MailService_1 = class MailService {
                 subject: input.subject,
                 html: input.html,
                 text: input.text,
+                attachments: input.attachments?.map((file) => ({
+                    filename: file.filename,
+                    content: file.content.toString('base64'),
+                    content_type: file.contentType,
+                })),
             }),
         });
         if (!response.ok) {
@@ -159,6 +164,11 @@ let MailService = MailService_1 = class MailService {
             subject: input.subject,
             html: input.html,
             text: input.text,
+            attachments: input.attachments?.map((file) => ({
+                filename: file.filename,
+                content: file.content,
+                contentType: file.contentType,
+            })),
         });
     }
     getSmtpTransporter() {
@@ -191,6 +201,9 @@ let MailService = MailService_1 = class MailService {
             this.config.get('EMAILJS_USER_ID')?.trim();
         if (!serviceId || !templateId || !publicKey) {
             throw new Error('EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID and EMAILJS_PUBLIC_KEY are required');
+        }
+        if (input.attachments?.length) {
+            this.logger.warn(`EmailJS does not support the spreadsheet attachment for "${input.subject}"`);
         }
         const privateKey = this.config.get('EMAILJS_PRIVATE_KEY')?.trim();
         const recipients = Array.isArray(input.to) ? input.to : [input.to];

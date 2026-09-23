@@ -48,12 +48,14 @@ let ClientGroupsController = class ClientGroupsController {
 exports.ClientGroupsController = ClientGroupsController;
 __decorate([
     (0, common_1.Get)(),
+    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_VIEW_AND_CREATE_ROLES),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], ClientGroupsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_VIEW_AND_CREATE_ROLES),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

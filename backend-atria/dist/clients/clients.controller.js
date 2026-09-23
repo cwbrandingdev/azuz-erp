@@ -78,6 +78,7 @@ __decorate([
 ], ClientsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id/requests'),
+    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_VIEW_AND_CREATE_ROLES),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
@@ -86,6 +87,7 @@ __decorate([
 ], ClientsController.prototype, "getClientRequests", null);
 __decorate([
     (0, common_1.Get)(':id/360'),
+    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_VIEW_AND_CREATE_ROLES),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
@@ -94,6 +96,7 @@ __decorate([
 ], ClientsController.prototype, "getClient360", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_VIEW_AND_CREATE_ROLES),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -108,6 +111,7 @@ __decorate([
 ], ClientsController.prototype, "bulkImport", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_VIEW_AND_CREATE_ROLES),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [client_dto_1.CreateClientDto]),

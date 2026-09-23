@@ -123,6 +123,11 @@ export class MailService {
         subject: input.subject,
         html: input.html,
         text: input.text,
+        attachments: input.attachments?.map((file) => ({
+          filename: file.filename,
+          content: file.content.toString('base64'),
+          content_type: file.contentType,
+        })),
       }),
     });
 
@@ -140,6 +145,11 @@ export class MailService {
       subject: input.subject,
       html: input.html,
       text: input.text,
+      attachments: input.attachments?.map((file) => ({
+        filename: file.filename,
+        content: file.content,
+        contentType: file.contentType,
+      })),
     });
   }
 
@@ -185,6 +195,12 @@ export class MailService {
     if (!serviceId || !templateId || !publicKey) {
       throw new Error(
         'EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID and EMAILJS_PUBLIC_KEY are required',
+      );
+    }
+
+    if (input.attachments?.length) {
+      this.logger.warn(
+        `EmailJS does not support the spreadsheet attachment for "${input.subject}"`,
       );
     }
 

@@ -65,6 +65,7 @@ interface TransactionsTableProps {
   onMarkAsPaid?: (transaction: FinanceTransaction) => void;
   onDelete?: (transaction: FinanceTransaction) => void;
   loading?: boolean;
+  readOnly?: boolean;
 }
 
 const SORTABLE_COLUMNS: {
@@ -87,6 +88,7 @@ export function TransactionsTable({
   onMarkAsPaid,
   onDelete,
   loading,
+  readOnly = false,
 }: TransactionsTableProps) {
   const { data, meta } = transactions;
   const [editingTransaction, setEditingTransaction] =
@@ -182,14 +184,16 @@ export function TransactionsTable({
               <TableHead className="text-[var(--atria-primary)]/50">
                 Categoria
               </TableHead>
-              <TableHead className="w-12 text-[var(--atria-primary)]/50" />
+              {readOnly ? null : (
+                <TableHead className="w-12 text-[var(--atria-primary)]/50" />
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={readOnly ? 5 : 6}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   Carregando...
@@ -198,7 +202,7 @@ export function TransactionsTable({
             ) : data.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={readOnly ? 5 : 6}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   Nenhuma transação encontrada
@@ -243,6 +247,7 @@ export function TransactionsTable({
                       color={tx.categoryColor ?? "#8B5CF6"}
                     />
                   </TableCell>
+                  {readOnly ? null : (
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger
@@ -275,6 +280,7 @@ export function TransactionsTable({
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

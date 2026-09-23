@@ -190,6 +190,7 @@ export declare class ContractsController {
             categoryColor: string;
             clientId: string | null;
             contractId: string | null;
+            bankAccountId: string | null;
             createdAt: string;
         }[];
     }>;

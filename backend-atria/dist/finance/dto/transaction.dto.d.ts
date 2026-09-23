@@ -11,6 +11,7 @@ export declare class CreateTransactionDto {
     clientId?: string;
     recurrenceDay?: number;
     recurrenceMonths?: number;
+    bankAccountId?: string;
 }
 export declare class UpdateTransactionDto {
     title?: string | null;
@@ -22,6 +23,7 @@ export declare class UpdateTransactionDto {
     dueDate?: string;
     categoryId?: string;
     clientId?: string | null;
+    bankAccountId?: string | null;
 }
 export declare enum TransactionSortField {
     DATE = "date",
