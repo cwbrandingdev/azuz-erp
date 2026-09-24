@@ -143,6 +143,20 @@ export interface ProvisionUserResult {
   };
 }
 
+export interface ClientLegacyPortalAccess {
+  email: string;
+  mustChangePassword: boolean;
+  loginUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientAccessBundle {
+  users: ManagedUser[];
+  legacyPortal: ClientLegacyPortalAccess | null;
+  platformLoginUrl: string;
+}
+
 export interface CreateUserGroupInput {
   name: string;
   description?: string;
@@ -814,6 +828,12 @@ export interface Client {
   updatedAt: string;
 }
 
+export interface CreateClientInitialAccessInput {
+  email: string;
+  password: string;
+  name?: string;
+}
+
 export interface CreateClientInput {
   companyName: string;
   contactName?: string;
@@ -833,7 +853,19 @@ export interface CreateClientInput {
   notes?: string;
   avatarUrl?: string;
   clientGroupId?: string;
+  initialAccess?: CreateClientInitialAccessInput;
 }
+
+export interface CreateClientAccessResult {
+  userId: string;
+  email: string;
+  password: string;
+  loginUrl: string;
+}
+
+export type CreateClientResult = Client & {
+  access?: CreateClientAccessResult;
+};
 
 export interface UpdateClientInput extends Partial<CreateClientInput> {}
 

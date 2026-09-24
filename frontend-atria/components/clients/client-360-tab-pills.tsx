@@ -2,13 +2,19 @@
 
 import { cn } from "@/lib/utils";
 
-export type Client360Tab = "pipeline" | "financial" | "calendar" | "requests";
+export type Client360Tab =
+  | "pipeline"
+  | "financial"
+  | "calendar"
+  | "requests"
+  | "access";
 
 const TABS: Array<{ id: Client360Tab; label: string }> = [
   { id: "pipeline", label: "Pipeline de Conteúdo" },
   { id: "financial", label: "Financeiro & Contratos" },
   { id: "calendar", label: "Calendário & Agenda" },
   { id: "requests", label: "Solicitações / Ideias" },
+  { id: "access", label: "Acessos" },
 ];
 
 interface Client360TabPillsProps {

@@ -82,6 +82,90 @@ export declare class UsersService {
             color: string;
         }[];
     }[]>;
+    findUsersForClient(clientId: string): Promise<{
+        portalAccess: string;
+        activeDeliverableCount: number;
+        createdAt: string;
+        crmIncludeInternal: boolean;
+        crmScopeClientIds: string[];
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        category: string;
+        permissions: string[];
+        avatarUrl: string | null;
+        clientId: string | null;
+        client: {
+            id: string;
+            companyName: string;
+        } | null;
+        monthlySalary: number | null;
+        mustChangePassword: boolean;
+        hasChangedPassword: boolean;
+        isActive: boolean;
+        isFirstLogin: boolean;
+        temporaryPassword: string | null;
+        userGroup: {
+            id: string;
+            name: string;
+            description: string | null;
+            color: string;
+        } | null;
+        userGroups: {
+            id: string;
+            name: string;
+            description: string | null;
+            color: string;
+        }[];
+    }[]>;
+    getClientAccessBundle(clientId: string): Promise<{
+        users: {
+            portalAccess: string;
+            activeDeliverableCount: number;
+            createdAt: string;
+            crmIncludeInternal: boolean;
+            crmScopeClientIds: string[];
+            id: string;
+            name: string;
+            email: string;
+            role: string;
+            category: string;
+            permissions: string[];
+            avatarUrl: string | null;
+            clientId: string | null;
+            client: {
+                id: string;
+                companyName: string;
+            } | null;
+            monthlySalary: number | null;
+            mustChangePassword: boolean;
+            hasChangedPassword: boolean;
+            isActive: boolean;
+            isFirstLogin: boolean;
+            temporaryPassword: string | null;
+            userGroup: {
+                id: string;
+                name: string;
+                description: string | null;
+                color: string;
+            } | null;
+            userGroups: {
+                id: string;
+                name: string;
+                description: string | null;
+                color: string;
+            }[];
+        }[];
+        legacyPortal: {
+            email: string;
+            mustChangePassword: boolean;
+            loginUrl: string;
+            createdAt: string;
+            updatedAt: string;
+        } | null;
+        platformLoginUrl: string;
+    }>;
     findClients(): Promise<{
         portalAccess: string;
         activeDeliverableCount: number;

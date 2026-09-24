@@ -3,7 +3,9 @@ import type {
   Client,
   Client360Data,
   Client360Section,
+  ClientAccessBundle,
   CreateClientInput,
+  CreateClientResult,
   UpdateClientInput,
 } from "./types";
 
@@ -45,8 +47,12 @@ export async function getClient360<T extends Client360Data = Client360Data>(
   return apiRequest<T>(`/clients/${id}/360?section=${section}`);
 }
 
-export async function createClient(data: CreateClientInput): Promise<Client> {
-  return apiRequest<Client>("/clients", {
+export async function getClientAccess(id: string): Promise<ClientAccessBundle> {
+  return apiRequest<ClientAccessBundle>(`/clients/${id}/access`);
+}
+
+export async function createClient(data: CreateClientInput): Promise<CreateClientResult> {
+  return apiRequest<CreateClientResult>("/clients", {
     method: "POST",
     body: data,
   });

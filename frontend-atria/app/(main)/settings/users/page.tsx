@@ -10,7 +10,15 @@ export default function SettingsUsersPage() {
           Usuários e Acessos
         </h1>
         <p className="text-sm text-[var(--atria-primary)]/50">
-          Gerencie membros internos, usuários cliente e grupos de equipe
+          Gerencie membros internos e grupos de equipe. Logins de clientes e
+          representantes ficam em{" "}
+          <a
+            href="/clients"
+            className="font-medium text-[var(--atria-primary)] underline-offset-2 hover:underline"
+          >
+            Clientes
+          </a>
+          , na aba Acessos de cada empresa.
         </p>
       </div>
 

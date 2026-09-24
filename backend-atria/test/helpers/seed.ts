@@ -29,10 +29,20 @@ type PrismaLike = Pick<
 
 export async function cleanupE2EData(prisma: PrismaLike, runId: string) {
   await prisma.contentPost.deleteMany({
-    where: { title: { contains: runId } },
+    where: {
+      OR: [
+        { title: { contains: runId } },
+        { client: { companyName: { contains: runId } } },
+      ],
+    },
   });
   await prisma.kanbanTask.deleteMany({
-    where: { title: { contains: runId } },
+    where: {
+      OR: [
+        { title: { contains: runId } },
+        { client: { companyName: { contains: runId } } },
+      ],
+    },
   });
   await prisma.calendarEvent.deleteMany({
     where: { title: { contains: runId } },
@@ -57,15 +67,27 @@ export async function cleanupE2EData(prisma: PrismaLike, runId: string) {
       companyName: { contains: runId },
     },
   });
+
+  const e2eEmails = [
+    TEST_ADMIN.email,
+    TEST_CLIENT_USER.email,
+    TEST_DESIGNER.email,
+    TEST_DESIGNER_MASTER.email,
+  ];
+  const e2eUsers = await prisma.user.findMany({
+    where: { email: { in: e2eEmails } },
+    select: { id: true },
+  });
+  if (e2eUsers.length > 0) {
+    await prisma.kanbanTask.deleteMany({
+      where: { createdById: { in: e2eUsers.map((user) => user.id) } },
+    });
+  }
+
   await prisma.user.deleteMany({
     where: {
       email: {
-        in: [
-          TEST_ADMIN.email,
-          TEST_CLIENT_USER.email,
-          TEST_DESIGNER.email,
-          TEST_DESIGNER_MASTER.email,
-        ],
+        in: e2eEmails,
       },
     },
   });

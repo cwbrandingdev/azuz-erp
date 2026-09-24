@@ -1,3 +1,8 @@
+export declare class CreateClientInitialAccessDto {
+    email: string;
+    password: string;
+    name?: string;
+}
 export declare class CreateClientDto {
     companyName: string;
     contactName?: string;
@@ -17,6 +22,7 @@ export declare class CreateClientDto {
     notes?: string;
     avatarUrl?: string;
     clientGroupId?: string;
+    initialAccess?: CreateClientInitialAccessDto;
 }
 export declare class UpdateClientDto {
     companyName?: string;

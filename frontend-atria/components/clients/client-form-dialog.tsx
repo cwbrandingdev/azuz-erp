@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { Copy, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +15,8 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { clientsService, clientGroupsService, ApiError } from "@/services";
 import { toast } from "@/lib/toast";
-import type { Client, ClientGroup } from "@/services/types";
+import { usePermissions } from "@/hooks/use-permissions";
+import type { Client, ClientGroup, CreateClientAccessResult } from "@/services/types";
 import {
   formatDocument,
   formatZipCode,
@@ -67,6 +68,16 @@ export function ClientFormDialog({
   const [avatarUrl, setAvatarUrl] = useState("");
   const [clientGroupId, setClientGroupId] = useState("");
   const [groups, setGroups] = useState<ClientGroup[]>([]);
+  const [accessLoginEmail, setAccessLoginEmail] = useState("");
+  const [accessPassword, setAccessPassword] = useState("");
+  const [accessDisplayName, setAccessDisplayName] = useState("");
+  const [createdAccess, setCreatedAccess] = useState<CreateClientAccessResult | null>(
+    null,
+  );
+  const [copiedAccess, setCopiedAccess] = useState(false);
+
+  const { canManageUsers } = usePermissions();
+  const canCreateLogin = canManageUsers();
 
   const isEditing = Boolean(client);
 
@@ -121,6 +132,11 @@ export function ClientFormDialog({
     setNotes("");
     setAvatarUrl("");
     setClientGroupId("");
+    setAccessLoginEmail("");
+    setAccessPassword("");
+    setAccessDisplayName("");
+    setCreatedAccess(null);
+    setCopiedAccess(false);
     setError(null);
   }
 
@@ -177,9 +193,22 @@ export function ClientFormDialog({
     setLoading(true);
     setError(null);
 
+    if (!isEditing && canCreateLogin) {
+      if (!accessLoginEmail.trim()) {
+        setError("Informe o e-mail de login do cliente.");
+        setLoading(false);
+        return;
+      }
+      if (accessPassword.length < 6) {
+        setError("A senha de acesso deve ter pelo menos 6 caracteres.");
+        setLoading(false);
+        return;
+      }
+    }
+
     const payload = {
       companyName,
-      contactName: contactName || undefined,
+      contactName: isEditing ? contactName || undefined : undefined,
       document: onlyDigits(document) || undefined,
       email: email || undefined,
       phone: phone || undefined,
@@ -196,19 +225,39 @@ export function ClientFormDialog({
       notes: notes || undefined,
       avatarUrl: avatarUrl || undefined,
       clientGroupId: clientGroupId || undefined,
+      ...(!isEditing && canCreateLogin
+        ? {
+            initialAccess: {
+              email: accessLoginEmail.trim().toLowerCase(),
+              password: accessPassword,
+              name:
+                accessDisplayName.trim() ||
+                companyName.trim(),
+            },
+          }
+        : {}),
     };
 
     try {
       if (isEditing && client) {
-        await clientsService.updateClient(client.id, payload);
+        const { initialAccess: _ignored, ...updatePayload } = payload;
+        await clientsService.updateClient(client.id, updatePayload);
+        resetForm();
+        setOpen(false);
+        onSuccess();
+        toast.success("Cliente atualizado!");
       } else {
-        await clientsService.createClient(payload);
+        const created = await clientsService.createClient(payload);
+        onSuccess();
+        if (created.access) {
+          setCreatedAccess(created.access);
+          toast.success("Cliente e login criados!");
+        } else {
+          resetForm();
+          setOpen(false);
+          toast.success("Cliente cadastrado!");
+        }
       }
-
-      resetForm();
-      setOpen(false);
-      onSuccess();
-      toast.success(isEditing ? "Cliente atualizado!" : "Cliente cadastrado!");
     } catch (err) {
       if (!(err instanceof ApiError)) {
         setError("Não foi possível salvar o cliente.");
@@ -218,8 +267,74 @@ export function ClientFormDialog({
     }
   }
 
+  async function copyAccessCredentials() {
+    if (!createdAccess) return;
+    const loginUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${createdAccess.loginUrl}`
+        : createdAccess.loginUrl;
+    await navigator.clipboard.writeText(
+      `Portal: ${loginUrl}\nE-mail: ${createdAccess.email}\nSenha: ${createdAccess.password}`,
+    );
+    setCopiedAccess(true);
+    setTimeout(() => setCopiedAccess(false), 2000);
+  }
+
+  function finishAfterAccessCreated() {
+    resetForm();
+    setOpen(false);
+  }
+
   const dialogContent = (
     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      {createdAccess ? (
+        <>
+          <DialogHeader>
+            <DialogTitle className="text-[var(--atria-primary)]">
+              Cliente criado com login
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-[var(--atria-primary)]/70">
+              Compartilhe as credenciais abaixo. O cliente entra em{" "}
+              <strong>/login</strong> com a senha definida por você.
+            </p>
+            <div className="rounded-xl border border-[var(--atria-accent)]/50 bg-[var(--atria-accent)]/10 p-4 text-sm">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--atria-primary)]/50">
+                    E-mail
+                  </p>
+                  <p className="font-mono text-[var(--atria-primary)]">
+                    {createdAccess.email}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--atria-primary)]/50">
+                    Senha
+                  </p>
+                  <p className="font-mono text-[var(--atria-primary)]">
+                    {createdAccess.password}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={copyAccessCredentials}>
+              <Copy className="size-4" />
+              {copiedAccess ? "Copiado!" : "Copiar credenciais"}
+            </Button>
+            <Button
+              type="button"
+              className="bg-[var(--atria-primary)] text-white"
+              onClick={finishAfterAccessCreated}
+            >
+              Concluir
+            </Button>
+          </DialogFooter>
+        </>
+      ) : (
       <form onSubmit={handleSubmit}>
         <DialogHeader>
           <DialogTitle className="text-[var(--atria-primary)]">
@@ -267,23 +382,31 @@ export function ClientFormDialog({
             </p>
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="client-contact">Contato</FieldLabel>
-            <Input
-              id="client-contact"
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-            />
-          </Field>
+          {isEditing ? (
+            <Field>
+              <FieldLabel htmlFor="client-contact">Contato</FieldLabel>
+              <Input
+                id="client-contact"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+              />
+            </Field>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
             <Field>
-              <FieldLabel htmlFor="client-email">E-mail</FieldLabel>
+              <FieldLabel htmlFor="client-email">E-mail comercial</FieldLabel>
               <Input
                 id="client-email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setEmail(next);
+                  if (!isEditing && canCreateLogin && !accessLoginEmail.trim()) {
+                    setAccessLoginEmail(next);
+                  }
+                }}
               />
             </Field>
             <Field>
@@ -295,6 +418,57 @@ export function ClientFormDialog({
               />
             </Field>
           </div>
+
+          {!isEditing && canCreateLogin ? (
+            <div className="space-y-3 rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.03] p-4">
+              <div>
+                <p className="text-sm font-semibold text-[var(--atria-primary)]">
+                  Login na plataforma
+                </p>
+                <p className="mt-1 text-xs text-[var(--atria-primary)]/55">
+                  Cria o login para acessar o portal do cliente e aprovar os
+                  conteúdos. A senha abaixo já fica ativa no primeiro acesso.
+                </p>
+              </div>
+              <Field>
+                <FieldLabel htmlFor="client-access-name">
+                  Nome do representante
+                </FieldLabel>
+                <Input
+                  id="client-access-name"
+                  value={accessDisplayName}
+                  onChange={(e) => setAccessDisplayName(e.target.value)}
+                  placeholder={companyName || "Nome da empresa"}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="client-access-email">
+                  E-mail de login *
+                </FieldLabel>
+                <Input
+                  id="client-access-email"
+                  type="email"
+                  value={accessLoginEmail}
+                  onChange={(e) => setAccessLoginEmail(e.target.value)}
+                  required
+                  placeholder="contato@empresa.com"
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="client-access-password">Senha *</FieldLabel>
+                <Input
+                  id="client-access-password"
+                  type="password"
+                  value={accessPassword}
+                  onChange={(e) => setAccessPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </Field>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
             <Field>
@@ -448,6 +622,7 @@ export function ClientFormDialog({
           </Button>
         </DialogFooter>
       </form>
+      )}
     </DialogContent>
   );
 

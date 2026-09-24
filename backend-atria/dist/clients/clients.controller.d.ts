@@ -1,3 +1,4 @@
+import { type AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { ClientRequestsService } from '../client-requests/client-requests.service';
 import { QueryClientRequestsDto } from '../client-requests/dto/client-request.dto';
 import { Client360Service } from './client-360.service';
@@ -5,11 +6,13 @@ import { ClientsService } from './clients.service';
 import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
 import { BulkImportClientsDto } from './dto/bulk-import.dto';
 import { QueryClient360Dto } from './dto/client-360.dto';
+import { UsersService } from '../users/users.service';
 export declare class ClientsController {
     private readonly clientsService;
     private readonly client360Service;
     private readonly clientRequestsService;
-    constructor(clientsService: ClientsService, client360Service: Client360Service, clientRequestsService: ClientRequestsService);
+    private readonly usersService;
+    constructor(clientsService: ClientsService, client360Service: Client360Service, clientRequestsService: ClientRequestsService, usersService: UsersService);
     findAll(clientGroupId?: string, activeOnly?: string): Promise<{
         id: string;
         companyName: string;
@@ -414,6 +417,53 @@ export declare class ClientsController {
             }[];
         };
     }>;
+    getClientAccess(id: string): Promise<{
+        users: {
+            portalAccess: string;
+            activeDeliverableCount: number;
+            createdAt: string;
+            crmIncludeInternal: boolean;
+            crmScopeClientIds: string[];
+            id: string;
+            name: string;
+            email: string;
+            role: string;
+            category: string;
+            permissions: string[];
+            avatarUrl: string | null;
+            clientId: string | null;
+            client: {
+                id: string;
+                companyName: string;
+            } | null;
+            monthlySalary: number | null;
+            mustChangePassword: boolean;
+            hasChangedPassword: boolean;
+            isActive: boolean;
+            isFirstLogin: boolean;
+            temporaryPassword: string | null;
+            userGroup: {
+                id: string;
+                name: string;
+                description: string | null;
+                color: string;
+            } | null;
+            userGroups: {
+                id: string;
+                name: string;
+                description: string | null;
+                color: string;
+            }[];
+        }[];
+        legacyPortal: {
+            email: string;
+            mustChangePassword: boolean;
+            loginUrl: string;
+            createdAt: string;
+            updatedAt: string;
+        } | null;
+        platformLoginUrl: string;
+    }>;
     findOne(id: string): Promise<{
         id: string;
         companyName: string;
@@ -456,7 +506,47 @@ export declare class ClientsController {
             message: string;
         }[];
     }>;
-    create(dto: CreateClientDto): Promise<{
+    create(user: AuthenticatedUser, dto: CreateClientDto): Promise<{
+        id: string;
+        companyName: string;
+        contactName: string | null;
+        document: string | null;
+        email: string | null;
+        phone: string | null;
+        instagram: string | null;
+        instagramUserId: string | null;
+        hasMetaAccessToken: boolean;
+        website: string | null;
+        street: string | null;
+        number: string | null;
+        neighborhood: string | null;
+        city: string | null;
+        state: string | null;
+        zipCode: string | null;
+        address: string | null;
+        notes: string | null;
+        avatarUrl: string | null;
+        isActive: boolean;
+        hasCrmEnabled: boolean;
+        clientGroup: {
+            id: string;
+            name: string;
+            description: string | null;
+            color: string;
+        } | null;
+        postCount: number;
+        requestCount: number;
+        pendingRequestCount: number;
+        activeRequestCount: number;
+        createdAt: string;
+        updatedAt: string;
+    } | {
+        access: {
+            userId: string;
+            email: string;
+            password: string;
+            loginUrl: string;
+        };
         id: string;
         companyName: string;
         contactName: string | null;

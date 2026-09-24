@@ -122,6 +122,85 @@ export class UsersService {
     }));
   }
 
+  async findUsersForClient(clientId: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true },
+    });
+    if (!client) {
+      throw new NotFoundException('Client not found');
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: { clientId },
+      orderBy: { name: 'asc' },
+      include: {
+        role: true,
+        userGroup: true,
+        userGroups: { include: { userGroup: true } },
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            _count: {
+              select: {
+                deliverables: {
+                  where: {
+                    approvalStatus: {
+                      in: ['DRAFT', 'PENDING_APPROVAL', 'REQUIRES_ADJUSTMENT'],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return users.map((user) => {
+      const base = this.toUserResponse(user);
+      const portalAccess = !user.clientId
+        ? 'unlinked'
+        : user.mustChangePassword
+          ? 'pending'
+          : 'active';
+
+      return {
+        ...base,
+        portalAccess,
+        activeDeliverableCount: user.client?._count.deliverables ?? 0,
+      };
+    });
+  }
+
+  async getClientAccessBundle(clientId: string) {
+    const users = await this.findUsersForClient(clientId);
+    const legacyPortal = await this.prisma.clientPortalUser.findUnique({
+      where: { clientId },
+      select: {
+        email: true,
+        mustChangePassword: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      users,
+      legacyPortal: legacyPortal
+        ? {
+            email: legacyPortal.email,
+            mustChangePassword: legacyPortal.mustChangePassword,
+            loginUrl: '/portal/login',
+            createdAt: legacyPortal.createdAt.toISOString(),
+            updatedAt: legacyPortal.updatedAt.toISOString(),
+          }
+        : null,
+      platformLoginUrl: '/login',
+    };
+  }
+
   async findClients() {
     const users = await this.prisma.user.findMany({
       where: { category: UserCategory.CLIENT },

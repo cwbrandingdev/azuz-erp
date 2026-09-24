@@ -2,12 +2,10 @@
 
 import { cn } from "@/lib/utils";
 
-export type UsersDirectoryTab = "members" | "clients" | "groups" | "representatives";
+export type UsersDirectoryTab = "members" | "groups";
 
 const TABS: Array<{ id: UsersDirectoryTab; label: string }> = [
   { id: "members", label: "Membros" },
-  { id: "clients", label: "Clientes" },
-  { id: "representatives", label: "Representantes das Empresas" },
   { id: "groups", label: "Grupos" },
 ];
 

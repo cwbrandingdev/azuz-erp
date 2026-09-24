@@ -6,7 +6,26 @@ import {
   IsUrl,
   IsUUID,
   MaxLength,
+  MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CreateClientInitialAccessDto {
+  @IsEmail()
+  @MaxLength(255)
+  email: string;
+
+  @IsString()
+  @MinLength(6)
+  @MaxLength(128)
+  password: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  name?: string;
+}
 
 export class CreateClientDto {
   @IsString()
@@ -94,6 +113,11 @@ export class CreateClientDto {
   @IsUUID()
   @IsOptional()
   clientGroupId?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateClientInitialAccessDto)
+  initialAccess?: CreateClientInitialAccessDto;
 }
 
 export class UpdateClientDto {
