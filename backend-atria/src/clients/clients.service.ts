@@ -1,11 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ClientRequestStatus, Prisma } from '@prisma/client';
+import { ClientRequestStatus, Prisma, RoleName } from '@prisma/client';
 import {
   encryptSecret,
   shouldPreserveMaskedSecret,
 } from '../common/crypto/secret-crypto';
+import {
+  Permission,
+  hasPermission,
+} from '../auth/constants/permissions';
+import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
+import { UsersService } from '../users/users.service';
 import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
 
 @Injectable()
@@ -13,6 +19,7 @@ export class ClientsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly usersService: UsersService,
   ) {}
 
   async findAll(clientGroupId?: string, activeOnly = false) {
@@ -43,20 +50,73 @@ export class ClientsService {
     return this.toClientResponse(client, requestCounts.get(client.id));
   }
 
-  async create(dto: CreateClientDto) {
-    if (dto.clientGroupId) {
-      await this.ensureClientGroupExists(dto.clientGroupId);
+  async create(dto: CreateClientDto, actor?: AuthenticatedUser) {
+    const { initialAccess, ...clientFields } = dto;
+
+    if (initialAccess) {
+      if (!actor) {
+        throw new ForbiddenException(
+          'Autenticação necessária para criar login do cliente',
+        );
+      }
+      if (!hasPermission(actor.role, Permission.USERS_MANAGE)) {
+        throw new ForbiddenException(
+          'Sem permissão para criar login do cliente',
+        );
+      }
+    }
+
+    if (clientFields.clientGroupId) {
+      await this.ensureClientGroupExists(clientFields.clientGroupId);
     }
 
     const client = await this.prisma.client.create({
-      data: this.toPersistence(dto) as Prisma.ClientUncheckedCreateInput,
+      data: this.toPersistence(clientFields) as Prisma.ClientUncheckedCreateInput,
       include: {
         clientGroup: true,
         _count: { select: { posts: true } },
       },
     });
     const requestCounts = await this.getRequestCountsByClient([client.id]);
-    return this.toClientResponse(client, requestCounts.get(client.id));
+    const response = this.toClientResponse(client, requestCounts.get(client.id));
+
+    if (!initialAccess || !actor) {
+      return response;
+    }
+
+    const accessName =
+      initialAccess.name?.trim() ||
+      clientFields.contactName?.trim() ||
+      clientFields.companyName;
+
+    const provisioned = await this.usersService.provision(
+      {
+        name: accessName,
+        role: RoleName.CLIENT,
+        clientId: client.id,
+        email: initialAccess.email.trim().toLowerCase(),
+        password: initialAccess.password,
+      },
+      actor.userId,
+    );
+
+    await this.prisma.user.update({
+      where: { id: provisioned.user.id },
+      data: {
+        mustChangePassword: false,
+        temporaryPassword: null,
+      },
+    });
+
+    return {
+      ...response,
+      access: {
+        userId: provisioned.user.id,
+        email: provisioned.credentials.email,
+        password: initialAccess.password,
+        loginUrl: '/login',
+      },
+    };
   }
 
   async update(id: string, dto: UpdateClientDto) {

@@ -14,6 +14,7 @@ import { ClientOpenTasks } from "@/components/clients/client-open-tasks";
 import { ClientPipelineTab } from "@/components/clients/client-pipeline-tab";
 import { ClientRequestsTab } from "@/components/clients/client-requests-tab";
 import { ClientSummaryBanner } from "@/components/clients/client-summary-banner";
+import { ClientAccessTab } from "@/components/clients/client-access-tab";
 import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { DeactivateClientButton } from "@/components/clients/deactivate-client-button";
 import { Button } from "@/components/ui/button";
@@ -79,7 +80,7 @@ export function Client360View() {
 
   const loadTab = useCallback(
     async (tab: Client360Tab) => {
-      if (!clientId || tab === "requests") return;
+      if (!clientId || tab === "requests" || tab === "access") return;
       setLoadingTab(true);
       try {
         const data = await clientsService.getClient360(clientId, tab);
@@ -170,6 +171,11 @@ export function Client360View() {
               clientId={clientId}
               clientName={summary.client.companyName}
               onUpdated={handleRefresh}
+            />
+          ) : activeTab === "access" ? (
+            <ClientAccessTab
+              clientId={clientId}
+              companyName={summary.client.companyName}
             />
           ) : loadingTab ? (
             <div className="flex min-h-[240px] items-center justify-center">

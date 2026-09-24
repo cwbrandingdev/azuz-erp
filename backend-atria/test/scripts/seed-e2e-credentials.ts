@@ -9,7 +9,7 @@ async function main() {
   try {
     await seedE2EData(prisma);
 
-    const outDir = join(__dirname, '../../..', 'atria-erp-nextjs', 'e2e');
+    const outDir = join(__dirname, '../../..', 'frontend-atria', 'e2e');
     mkdirSync(outDir, { recursive: true });
     writeFileSync(
       join(outDir, '.credentials.json'),

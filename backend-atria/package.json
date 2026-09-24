@@ -25,7 +25,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "seed:master": "ts-node prisma/scripts/create-master-user.ts"
+    "seed:master": "ts-node prisma/scripts/create-master-user.ts",
+    "copy:client-logins": "node scripts/copy-client-logins-from-public.mjs",
+    "test:client-portal-live": "node scripts/test-client-portal-live.mjs"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

@@ -28,6 +28,8 @@ type ProvisionMode = "member" | "client";
 interface ProvisionUserDialogProps {
   mode?: ProvisionMode;
   onSuccess: () => void;
+  fixedClientId?: string;
+  fixedClientName?: string;
 }
 
 const MEMBER_ROLE_OPTIONS = [
@@ -43,6 +45,8 @@ type MemberRole = (typeof MEMBER_ROLE_OPTIONS)[number]["value"];
 export function ProvisionUserDialog({
   mode = "member",
   onSuccess,
+  fixedClientId,
+  fixedClientName,
 }: ProvisionUserDialogProps) {
   const isClientMode = mode === "client";
   const [open, setOpen] = useState(false);
@@ -71,6 +75,9 @@ export function ProvisionUserDialog({
 
   useEffect(() => {
     if (!open) return;
+    if (fixedClientId) {
+      setClientId(fixedClientId);
+    }
     let cancelled = false;
     setOptionsLoading(true);
     const load = isClientMode
@@ -100,13 +107,13 @@ export function ProvisionUserDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, isClientMode]);
+  }, [open, isClientMode, fixedClientId]);
 
   function resetForm() {
     setName("");
     setRole("DESIGNER_JUNIOR");
     setUserGroupId("");
-    setClientId("");
+    setClientId(fixedClientId ?? "");
     setClientEmail("");
     setMemberEmail("");
     setMonthlySalary("");
@@ -224,7 +231,7 @@ export function ProvisionUserDialog({
         {isClientMode ? (
           <>
             <Building2 className="size-4" />
-            Adicionar Cliente
+            {fixedClientId ? "Adicionar representante" : "Adicionar Cliente"}
           </>
         ) : (
           <>
@@ -350,25 +357,34 @@ export function ProvisionUserDialog({
 
               {isClientMode ? (
                 <>
-                  <Field>
-                    <FieldLabel htmlFor="pu-client">Empresa *</FieldLabel>
-                    <SearchableSelect
-                      id="pu-client"
-                      value={clientId}
-                      onValueChange={setClientId}
-                      loading={optionsLoading}
-                      placeholder="Selecione o cliente..."
-                      searchPlaceholder="Buscar empresa..."
-                      emptyLabel="Nenhuma empresa encontrada"
-                      options={clients.map((client) => ({
-                        value: client.id,
-                        label: client.companyName,
-                      }))}
-                    />
-                    <p className="mt-1.5 text-[11px] text-[var(--atria-primary)]/45">
-                      O portal filtrará conteúdo e entregas desta empresa.
-                    </p>
-                  </Field>
+                  {!fixedClientId ? (
+                    <Field>
+                      <FieldLabel htmlFor="pu-client">Empresa *</FieldLabel>
+                      <SearchableSelect
+                        id="pu-client"
+                        value={clientId}
+                        onValueChange={setClientId}
+                        loading={optionsLoading}
+                        placeholder="Selecione o cliente..."
+                        searchPlaceholder="Buscar empresa..."
+                        emptyLabel="Nenhuma empresa encontrada"
+                        options={clients.map((client) => ({
+                          value: client.id,
+                          label: client.companyName,
+                        }))}
+                      />
+                      <p className="mt-1.5 text-[11px] text-[var(--atria-primary)]/45">
+                        O portal filtrará conteúdo e entregas desta empresa.
+                      </p>
+                    </Field>
+                  ) : (
+                    <Field>
+                      <FieldLabel>Empresa</FieldLabel>
+                      <p className="rounded-lg border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/3 px-3 py-2 text-sm text-[var(--atria-primary)]">
+                        {fixedClientName ?? "Cliente selecionado"}
+                      </p>
+                    </Field>
+                  )}
                   <Field>
                     <FieldLabel htmlFor="pu-email">E-mail de acesso *</FieldLabel>
                     <Input

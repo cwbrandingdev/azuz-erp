@@ -121,7 +121,10 @@ export default function FluxoDeCaixaPage() {
       <div>
         <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Fluxo de Caixa</h1>
       </div>
-      <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4">
+      <section
+        data-tour="finance-fc-filters"
+        className="flex flex-wrap items-end gap-3 rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4"
+      >
         <label className="flex flex-col gap-1 text-xs">DATA INICIAL<Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
         <label className="flex flex-col gap-1 text-xs">DATA FINAL<Input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
         <label className="flex flex-col gap-1 text-xs">TIPO
@@ -165,7 +168,11 @@ export default function FluxoDeCaixaPage() {
         <Button type="button" variant="outline" onClick={exportPdf}>PDF</Button>
       </section>
 
-      {data?.blocks.map((block) => (
+      <div
+        data-tour="finance-fc-blocks"
+        className="flex min-h-24 flex-col gap-4"
+      >
+      {(data?.blocks ?? []).map((block) => (
         <section key={block.key} className="overflow-hidden rounded-2xl border border-[var(--atria-primary)]/10 bg-white">
           <div className="bg-[var(--atria-primary)] px-4 py-3 text-sm font-semibold text-white">
             {block.title}
@@ -223,13 +230,17 @@ export default function FluxoDeCaixaPage() {
           </div>
         </section>
       ))}
+      </div>
 
-      {data && (
-        <section className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5">
-          <p className="text-xs font-semibold text-[var(--atria-primary)]/50">VARIAÇÃO LÍQUIDA DO CAIXA</p>
-          <p className="text-2xl font-bold text-[var(--atria-primary)]">{formatCurrency(data.netVariation)}</p>
-        </section>
-      )}
+      <section
+        data-tour="finance-fc-net"
+        className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5"
+      >
+        <p className="text-xs font-semibold text-[var(--atria-primary)]/50">VARIAÇÃO LÍQUIDA DO CAIXA</p>
+        <p className="text-2xl font-bold text-[var(--atria-primary)]">
+          {formatCurrency(data?.netVariation ?? 0)}
+        </p>
+      </section>
     </div>
   );
 }

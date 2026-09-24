@@ -4,10 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
-  Clock3,
-  Link2Off,
   ListTodo,
-  Package,
   Trash2,
   Users,
 } from "lucide-react";
@@ -24,49 +21,16 @@ import {
 } from "@/components/users/users-directory-tabs";
 import { useConfirm } from "@/contexts/confirm-context";
 import { ApiError, userGroupsService, usersService } from "@/services";
-import type { ManagedUser, PortalAccessStatus, UserGroup } from "@/services/types";
+import type { ManagedUser, UserGroup } from "@/services/types";
 import { ROLE_LABELS } from "@/lib/permissions";
-import { cn } from "@/lib/utils";
-
-const PORTAL_ACCESS_LABELS: Record<
-  PortalAccessStatus,
-  { label: string; className: string; icon: typeof CheckCircle2 }
-> = {
-  active: {
-    label: "Portal ativo",
-    className: "bg-emerald-50 text-emerald-700",
-    icon: CheckCircle2,
-  },
-  pending: {
-    label: "Acesso pendente",
-    className: "bg-amber-50 text-amber-700",
-    icon: Clock3,
-  },
-  unlinked: {
-    label: "Sem empresa",
-    className: "bg-slate-100 text-slate-600",
-    icon: Link2Off,
-  },
-  inactive: {
-    label: "Portal inativo",
-    className: "bg-red-50 text-red-700",
-    icon: AlertCircle,
-  },
-};
 
 export function UsersAndGroupsPanel() {
   const confirm = useConfirm();
   const [tab, setTab] = useState<UsersDirectoryTab>("members");
   const [members, setMembers] = useState<ManagedUser[]>([]);
-  const [clients, setClients] = useState<ManagedUser[]>([]);
   const [groups, setGroups] = useState<UserGroup[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
-  const [clientsLoading, setClientsLoading] = useState(true);
   const [groupsLoading, setGroupsLoading] = useState(true);
-  const [representatives, setRepresentatives] = useState<
-    Awaited<ReturnType<typeof usersService.getRepresentatives>>
-  >([]);
-  const [representativesLoading, setRepresentativesLoading] = useState(true);
 
   const loadMembers = useCallback(async () => {
     setMembersLoading(true);
@@ -76,17 +40,6 @@ export function UsersAndGroupsPanel() {
       setMembers([]);
     } finally {
       setMembersLoading(false);
-    }
-  }, []);
-
-  const loadClients = useCallback(async () => {
-    setClientsLoading(true);
-    try {
-      setClients(await usersService.getClients());
-    } catch {
-      setClients([]);
-    } finally {
-      setClientsLoading(false);
     }
   }, []);
 
@@ -101,25 +54,12 @@ export function UsersAndGroupsPanel() {
     }
   }, []);
 
-  const loadRepresentatives = useCallback(async () => {
-    setRepresentativesLoading(true);
-    try {
-      setRepresentatives(await usersService.getRepresentatives());
-    } catch {
-      setRepresentatives([]);
-    } finally {
-      setRepresentativesLoading(false);
-    }
-  }, []);
-
   const [groupError, setGroupError] = useState<string | null>(null);
 
   useEffect(() => {
     void loadMembers();
-    void loadClients();
     void loadGroups();
-    void loadRepresentatives();
-  }, [loadMembers, loadClients, loadGroups, loadRepresentatives]);
+  }, [loadMembers, loadGroups]);
 
   async function handleDeleteGroup(id: string) {
     const confirmed = await confirm({
@@ -144,9 +84,7 @@ export function UsersAndGroupsPanel() {
 
   function handleRefreshAll() {
     void loadMembers();
-    void loadClients();
     void loadGroups();
-    void loadRepresentatives();
   }
 
   return (
@@ -157,10 +95,6 @@ export function UsersAndGroupsPanel() {
           onChange={setTab}
           counts={{
             members: membersLoading ? null : members.length,
-            clients: clientsLoading ? null : clients.length,
-            representatives: representativesLoading
-              ? null
-              : representatives.length,
             groups: groupsLoading ? null : groups.length,
           }}
         />
@@ -168,9 +102,6 @@ export function UsersAndGroupsPanel() {
         <div className="flex flex-wrap gap-2">
           {tab === "members" && (
             <ProvisionUserDialog mode="member" onSuccess={handleRefreshAll} />
-          )}
-          {tab === "clients" && (
-            <ProvisionUserDialog mode="client" onSuccess={handleRefreshAll} />
           )}
           {tab === "groups" && (
             <CreateUserGroupDialog onSuccess={handleRefreshAll} />
@@ -182,22 +113,6 @@ export function UsersAndGroupsPanel() {
         <MembersTable
           users={members}
           loading={membersLoading}
-          onRefresh={handleRefreshAll}
-        />
-      )}
-
-      {tab === "clients" && (
-        <ClientsTable
-          users={clients}
-          loading={clientsLoading}
-          onRefresh={handleRefreshAll}
-        />
-      )}
-
-      {tab === "representatives" && (
-        <RepresentativesTable
-          entries={representatives}
-          loading={representativesLoading}
           onRefresh={handleRefreshAll}
         />
       )}
@@ -274,138 +189,6 @@ function MembersTable({
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function RepresentativesTable({
-  entries,
-  loading,
-  onRefresh,
-}: {
-  entries: Awaited<ReturnType<typeof usersService.getRepresentatives>>;
-  loading: boolean;
-  onRefresh: () => void;
-}) {
-  if (loading) return <LoadingState />;
-  if (entries.length === 0) {
-    return (
-      <EmptyState message="Nenhum representante de empresa cadastrado." />
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/3 text-xs uppercase tracking-wide text-[var(--atria-primary)]/55">
-            <th className="px-4 py-3 font-medium">Representante</th>
-            <th className="px-4 py-3 font-medium">Empresa vinculada</th>
-            <th className="px-4 py-3 font-medium">Função</th>
-            <th className="px-4 py-3 font-medium">Cargo</th>
-            <th className="px-4 py-3 font-medium text-right">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((entry) => (
-            <tr
-              key={entry.id}
-              className="border-b border-[var(--atria-primary)]/5 hover:bg-[var(--atria-primary)]/2"
-            >
-              <td className="px-4 py-3">
-                <UserIdentity user={entry.user} />
-              </td>
-              <td className="px-4 py-3 text-[var(--atria-primary)]/75">
-                {entry.user.client?.companyName ?? "—"}
-              </td>
-              <td className="px-4 py-3">
-                <span className="rounded-full bg-[var(--atria-primary)]/8 px-2.5 py-0.5 text-xs font-medium text-[var(--atria-primary)]">
-                  {ROLE_LABELS[entry.user.role] ?? entry.user.role}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-[var(--atria-primary)]/75">
-                {entry.title ?? (entry.isPrimary ? "Principal" : "—")}
-              </td>
-              <td className="px-4 py-3 text-right">
-                <EditUserButton user={entry.user} onSuccess={onRefresh} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function ClientsTable({
-  users,
-  loading,
-  onRefresh,
-}: {
-  users: ManagedUser[];
-  loading: boolean;
-  onRefresh: () => void;
-}) {
-  if (loading) return <LoadingState />;
-  if (users.length === 0) {
-    return <EmptyState message="Nenhum usuário cliente cadastrado." />;
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/3 text-xs uppercase tracking-wide text-[var(--atria-primary)]/55">
-            <th className="px-4 py-3 font-medium">Cliente</th>
-            <th className="px-4 py-3 font-medium">Empresa</th>
-            <th className="px-4 py-3 font-medium">Portal</th>
-            <th className="px-4 py-3 font-medium">Entregas ativas</th>
-            <th className="px-4 py-3 font-medium text-right">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => {
-            const access = user.portalAccess ?? "inactive";
-            const meta = PORTAL_ACCESS_LABELS[access];
-            const Icon = meta.icon;
-            return (
-              <tr
-                key={user.id}
-                className="border-b border-[var(--atria-primary)]/5 hover:bg-[var(--atria-primary)]/2"
-              >
-                <td className="px-4 py-3">
-                  <UserIdentity user={user} />
-                </td>
-                <td className="px-4 py-3 text-[var(--atria-primary)]/75">
-                  {user.client?.companyName ?? (
-                    <span className="text-[var(--atria-primary)]/35">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      meta.className,
-                    )}
-                  >
-                    <Icon className="size-3.5" />
-                    {meta.label}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex items-center gap-1.5 text-[var(--atria-primary)]/75">
-                    <Package className="size-3.5" />
-                    {user.activeDeliverableCount ?? 0}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <EditUserButton user={user} onSuccess={onRefresh} />
-                </td>
-              </tr>
-            );
-          })}
         </tbody>
       </table>
     </div>

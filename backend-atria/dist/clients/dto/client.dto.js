@@ -9,8 +9,32 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdateClientDto = exports.CreateClientDto = void 0;
+exports.UpdateClientDto = exports.CreateClientDto = exports.CreateClientInitialAccessDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
+class CreateClientInitialAccessDto {
+    email;
+    password;
+    name;
+}
+exports.CreateClientInitialAccessDto = CreateClientInitialAccessDto;
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], CreateClientInitialAccessDto.prototype, "email", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(6),
+    (0, class_validator_1.MaxLength)(128),
+    __metadata("design:type", String)
+], CreateClientInitialAccessDto.prototype, "password", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], CreateClientInitialAccessDto.prototype, "name", void 0);
 class CreateClientDto {
     companyName;
     contactName;
@@ -30,6 +54,7 @@ class CreateClientDto {
     notes;
     avatarUrl;
     clientGroupId;
+    initialAccess;
 }
 exports.CreateClientDto = CreateClientDto;
 __decorate([
@@ -136,6 +161,12 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateClientDto.prototype, "clientGroupId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => CreateClientInitialAccessDto),
+    __metadata("design:type", CreateClientInitialAccessDto)
+], CreateClientDto.prototype, "initialAccess", void 0);
 class UpdateClientDto {
     companyName;
     contactName;

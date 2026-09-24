@@ -16,6 +16,7 @@ exports.ClientsController = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const roles_1 = require("../auth/constants/roles");
+const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
@@ -26,14 +27,17 @@ const clients_service_1 = require("./clients.service");
 const client_dto_1 = require("./dto/client.dto");
 const bulk_import_dto_1 = require("./dto/bulk-import.dto");
 const client_360_dto_1 = require("./dto/client-360.dto");
+const users_service_1 = require("../users/users.service");
 let ClientsController = class ClientsController {
     clientsService;
     client360Service;
     clientRequestsService;
-    constructor(clientsService, client360Service, clientRequestsService) {
+    usersService;
+    constructor(clientsService, client360Service, clientRequestsService, usersService) {
         this.clientsService = clientsService;
         this.client360Service = client360Service;
         this.clientRequestsService = clientRequestsService;
+        this.usersService = usersService;
     }
     findAll(clientGroupId, activeOnly) {
         return this.clientsService.findAll(clientGroupId, activeOnly === 'true');
@@ -44,14 +48,17 @@ let ClientsController = class ClientsController {
     getClient360(id, query) {
         return this.client360Service.getSection(id, query.section ?? client_360_dto_1.Client360Section.SUMMARY);
     }
+    getClientAccess(id) {
+        return this.usersService.getClientAccessBundle(id);
+    }
     findOne(id) {
         return this.clientsService.findOne(id);
     }
     bulkImport(dto) {
         return this.clientsService.bulkImport(dto);
     }
-    create(dto) {
-        return this.clientsService.create(dto);
+    create(user, dto) {
+        return this.clientsService.create(dto, user);
     }
     deactivate(id) {
         return this.clientsService.deactivate(id);
@@ -95,6 +102,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ClientsController.prototype, "getClient360", null);
 __decorate([
+    (0, common_1.Get)(':id/access'),
+    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_VIEW_AND_CREATE_ROLES),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ClientsController.prototype, "getClientAccess", null);
+__decorate([
     (0, common_1.Get)(':id'),
     (0, roles_decorator_1.Roles)(...roles_1.CLIENT_VIEW_AND_CREATE_ROLES),
     __param(0, (0, common_1.Param)('id')),
@@ -112,9 +127,10 @@ __decorate([
 __decorate([
     (0, common_1.Post)(),
     (0, roles_decorator_1.Roles)(...roles_1.CLIENT_VIEW_AND_CREATE_ROLES),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [client_dto_1.CreateClientDto]),
+    __metadata("design:paramtypes", [Object, client_dto_1.CreateClientDto]),
     __metadata("design:returntype", void 0)
 ], ClientsController.prototype, "create", null);
 __decorate([
@@ -156,6 +172,7 @@ exports.ClientsController = ClientsController = __decorate([
     (0, roles_decorator_1.Roles)(...roles_1.CLIENT_DIRECTORY_ROLES),
     __metadata("design:paramtypes", [clients_service_1.ClientsService,
         client_360_service_1.Client360Service,
-        client_requests_service_1.ClientRequestsService])
+        client_requests_service_1.ClientRequestsService,
+        users_service_1.UsersService])
 ], ClientsController);
 //# sourceMappingURL=clients.controller.js.map

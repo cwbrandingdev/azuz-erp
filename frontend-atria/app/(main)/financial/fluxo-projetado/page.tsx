@@ -79,14 +79,20 @@ export default function FluxoProjetadoPage() {
     <div className="flex flex-col gap-6">
       <FinanceSubnav />
       <h1 className="text-2xl font-bold text-[var(--atria-primary)]">FC Projetado</h1>
-      <section className="rounded-2xl border border-emerald-200 bg-white p-5">
+      <section
+        data-tour="finance-fp-balance"
+        className="rounded-2xl border border-emerald-200 bg-white p-5"
+      >
         <p className="text-xs font-semibold text-emerald-700">SALDO ATUAL (REALIZADO)</p>
         <p className="mt-2 text-3xl font-bold text-emerald-600">
           {formatCurrency(data?.currentBalance ?? 0)}
         </p>
         <p className="text-sm text-[var(--atria-primary)]/50">Soma de transações pagas até hoje</p>
       </section>
-      <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4">
+      <section
+        data-tour="finance-fp-filters"
+        className="flex flex-wrap items-end gap-3 rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4"
+      >
         <label className="flex flex-col gap-1 text-xs">DATA FINAL
           <Input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
         </label>
@@ -102,7 +108,10 @@ export default function FluxoProjetadoPage() {
         <Button type="button" variant="outline" onClick={exportExcel}>Excel</Button>
         <Button type="button" variant="outline" onClick={exportPdf}>PDF</Button>
       </section>
-      <section className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5">
+      <section
+        data-tour="finance-fp-table"
+        className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5"
+      >
         <h2 className="font-semibold text-[var(--atria-primary)]">Fluxo de Caixa Projetado</h2>
         <p className="text-sm text-[var(--atria-primary)]/50">
           De amanhã em diante, sem limite — apenas pendentes, com saldo acumulado.

@@ -14,13 +14,17 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
 const secret_crypto_1 = require("../common/crypto/secret-crypto");
+const permissions_1 = require("../auth/constants/permissions");
 const prisma_service_1 = require("../prisma/prisma.service");
+const users_service_1 = require("../users/users.service");
 let ClientsService = class ClientsService {
     prisma;
     config;
-    constructor(prisma, config) {
+    usersService;
+    constructor(prisma, config, usersService) {
         this.prisma = prisma;
         this.config = config;
+        this.usersService = usersService;
     }
     async findAll(clientGroupId, activeOnly = false) {
         const clients = await this.prisma.client.findMany({
@@ -42,19 +46,57 @@ let ClientsService = class ClientsService {
         const requestCounts = await this.getRequestCountsByClient([client.id]);
         return this.toClientResponse(client, requestCounts.get(client.id));
     }
-    async create(dto) {
-        if (dto.clientGroupId) {
-            await this.ensureClientGroupExists(dto.clientGroupId);
+    async create(dto, actor) {
+        const { initialAccess, ...clientFields } = dto;
+        if (initialAccess) {
+            if (!actor) {
+                throw new common_1.ForbiddenException('Autenticação necessária para criar login do cliente');
+            }
+            if (!(0, permissions_1.hasPermission)(actor.role, permissions_1.Permission.USERS_MANAGE)) {
+                throw new common_1.ForbiddenException('Sem permissão para criar login do cliente');
+            }
+        }
+        if (clientFields.clientGroupId) {
+            await this.ensureClientGroupExists(clientFields.clientGroupId);
         }
         const client = await this.prisma.client.create({
-            data: this.toPersistence(dto),
+            data: this.toPersistence(clientFields),
             include: {
                 clientGroup: true,
                 _count: { select: { posts: true } },
             },
         });
         const requestCounts = await this.getRequestCountsByClient([client.id]);
-        return this.toClientResponse(client, requestCounts.get(client.id));
+        const response = this.toClientResponse(client, requestCounts.get(client.id));
+        if (!initialAccess || !actor) {
+            return response;
+        }
+        const accessName = initialAccess.name?.trim() ||
+            clientFields.contactName?.trim() ||
+            clientFields.companyName;
+        const provisioned = await this.usersService.provision({
+            name: accessName,
+            role: client_1.RoleName.CLIENT,
+            clientId: client.id,
+            email: initialAccess.email.trim().toLowerCase(),
+            password: initialAccess.password,
+        }, actor.userId);
+        await this.prisma.user.update({
+            where: { id: provisioned.user.id },
+            data: {
+                mustChangePassword: false,
+                temporaryPassword: null,
+            },
+        });
+        return {
+            ...response,
+            access: {
+                userId: provisioned.user.id,
+                email: provisioned.credentials.email,
+                password: initialAccess.password,
+                loginUrl: '/login',
+            },
+        };
     }
     async update(id, dto) {
         await this.ensureClientExists(id);
@@ -284,6 +326,7 @@ exports.ClientsService = ClientsService;
 exports.ClientsService = ClientsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        users_service_1.UsersService])
 ], ClientsService);
 //# sourceMappingURL=clients.service.js.map
