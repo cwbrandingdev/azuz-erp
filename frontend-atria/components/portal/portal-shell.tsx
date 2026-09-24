@@ -2,6 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { LogOut, Menu } from "lucide-react";
+import { PortalTutorialButton } from "@/components/portal/portal-tutorial-button";
+import { PortalTutorialProvider } from "@/components/portal/portal-tutorial-provider";
 import { AgencyLogo } from "@/components/branding/agency-logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -87,18 +89,21 @@ function PortalSidebarPanel({
           ) : null}
         </div>
 
-        {onLogout ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full border-white/30 bg-white/10 text-white hover:bg-white/20"
-            onClick={onLogout}
-          >
-            <LogOut className="mr-2 size-4" />
-            Sair
-          </Button>
-        ) : null}
+        <div className="flex flex-col gap-2">
+          <PortalTutorialButton variant="sidebar" />
+          {onLogout ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full border-white/30 bg-white/10 text-white hover:bg-white/20"
+              onClick={onLogout}
+            >
+              <LogOut className="mr-2 size-4" />
+              Sair
+            </Button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -122,6 +127,7 @@ export function PortalShell({
   };
 
   return (
+    <PortalTutorialProvider activeTab={activeTab}>
     <div
       className="min-h-screen"
       style={{
@@ -154,6 +160,7 @@ export function PortalShell({
           >
             <AgencyLogo size="sm" variant="sidebar" showName />
             <div className="flex items-center gap-2">
+              <PortalTutorialButton className="border-white/30 bg-white/10 text-white hover:bg-white/20" />
               <ThemeToggle
                 className="border border-white/30 bg-white/10 text-white hover:bg-white/20"
                 iconClassName="text-white"
@@ -164,6 +171,7 @@ export function PortalShell({
                 size="icon-sm"
                 className="border-white/30 bg-white/10 text-white hover:bg-white/20"
                 onClick={() => setMobileOpen(true)}
+                data-tour="portal-nav"
                 aria-label="Abrir menu"
               >
                 <Menu className="size-4" />
@@ -215,5 +223,6 @@ export function PortalShell({
         </SheetContent>
       </Sheet>
     </div>
+    </PortalTutorialProvider>
   );
 }

@@ -159,7 +159,7 @@ export function PortalContentDashboard({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start gap-4">
+      <div data-tour="portal-content-header" className="flex items-start gap-4">
         <div className="rounded-2xl border border-[var(--atria-primary)]/10 bg-[var(--atria-accent)]/20 p-3 text-[var(--atria-primary)]">
           <ClipboardCheck className="size-6" />
         </div>
@@ -180,7 +180,7 @@ export function PortalContentDashboard({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div data-tour="portal-content-filters" className="flex flex-wrap gap-2">
         {FILTER_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -209,7 +209,7 @@ export function PortalContentDashboard({
       </div>
 
       {filteredPipeline.length === 0 ? (
-        <Card className="rounded-2xl border-[var(--atria-primary)]/10 bg-white p-12 text-center">
+        <Card data-tour="portal-content-workspace" className="rounded-2xl border-[var(--atria-primary)]/10 bg-white p-12 text-center">
           <ClipboardCheck className="mx-auto mb-3 size-8 text-[var(--atria-primary)]/30" />
           <p className="font-medium text-[var(--atria-primary)]">
             {emptyMessages[statusFilter]}
@@ -226,7 +226,7 @@ export function PortalContentDashboard({
           )}
         </Card>
       ) : (
-        <div className="grid min-h-[70vh] gap-4 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
+        <div data-tour="portal-content-workspace" className="grid min-h-[70vh] gap-4 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
           <div className="flex min-h-0 flex-col gap-2 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto xl:pr-1">
             {filteredPipeline.map((post) => (
               <PortalApprovalListItem

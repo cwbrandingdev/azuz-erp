@@ -179,7 +179,7 @@ export function PortalCalendarView({ loadCalendar }: PortalCalendarViewProps) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-      <Card className="rounded-2xl border-[var(--atria-primary)]/10 bg-white p-4 shadow-sm sm:p-6">
+      <Card data-tour="portal-calendar-month" className="rounded-2xl border-[var(--atria-primary)]/10 bg-white p-4 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <CalendarDays className="size-5 text-[var(--atria-primary)]" />
@@ -303,7 +303,7 @@ export function PortalCalendarView({ loadCalendar }: PortalCalendarViewProps) {
         )}
       </Card>
 
-      <Card className="rounded-2xl border-[var(--atria-primary)]/10 bg-white p-5 shadow-sm">
+      <Card data-tour="portal-calendar-day" className="rounded-2xl border-[var(--atria-primary)]/10 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-[var(--atria-primary)]">
           {selectedDay
             ? selectedDay.toLocaleDateString("pt-BR", {

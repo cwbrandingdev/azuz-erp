@@ -110,7 +110,7 @@ export function PortalRequestsPanel({ actions }: PortalRequestsPanelProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div data-tour="portal-requests-header" className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-[var(--atria-primary)]">
             Solicitações
@@ -121,6 +121,7 @@ export function PortalRequestsPanel({ actions }: PortalRequestsPanelProps) {
         </div>
         <Button
           type="button"
+          data-tour="portal-requests-new"
           className="h-11 gap-2 bg-[var(--atria-primary)] px-5 text-sm font-semibold text-white shadow-lg shadow-[var(--atria-primary)]/25 hover:bg-[var(--atria-primary)]/90"
           onClick={() => setFormOpen(true)}
         >
@@ -129,7 +130,7 @@ export function PortalRequestsPanel({ actions }: PortalRequestsPanelProps) {
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div data-tour="portal-requests-filters" className="flex flex-wrap gap-2">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -147,7 +148,7 @@ export function PortalRequestsPanel({ actions }: PortalRequestsPanelProps) {
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <div data-tour="portal-requests-workspace" className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="flex flex-col gap-3">
           {filtered.length === 0 ? (
             <Card className="rounded-2xl border-dashed p-8 text-center text-sm text-[var(--atria-primary)]/50">
