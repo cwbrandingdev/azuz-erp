@@ -353,4 +353,44 @@ describe('Tasks / Kanban / Calendar sync (e2e)', () => {
 
     createdTaskId = '';
   });
+
+  it('DELETE /kanban/tasks/:id — removes linked calendar event', async () => {
+    const publicationDate = new Date('2026-08-28T12:00:00.000Z').toISOString();
+
+    const created = await request(app.getHttpServer())
+      .post('/kanban/tasks')
+      .set(authHeader(ctx.admin.token))
+      .send({
+        title: `E2E Delete Calendar Sync ${E2E_RUN_ID}`,
+        clientId: ctx.client.id,
+        publicationDate,
+      })
+      .expect(201);
+
+    const taskId = created.body.id as string;
+    const calendarEventId = created.body.calendarEventId as string;
+    expect(calendarEventId).toBeTruthy();
+
+    await request(app.getHttpServer())
+      .delete(`/kanban/tasks/${taskId}`)
+      .set(authHeader(ctx.admin.token))
+      .expect(200);
+
+    const events = await request(app.getHttpServer())
+      .get('/calendar/events')
+      .query({
+        from: '2026-08-28T00:00:00.000Z',
+        to: '2026-08-28T23:59:59.999Z',
+        clientId: ctx.client.id,
+      })
+      .set(authHeader(ctx.admin.token))
+      .expect(200);
+
+    expect(
+      events.body.find(
+        (event: { id: string; kanbanTaskId: string | null }) =>
+          event.id === calendarEventId || event.kanbanTaskId === taskId,
+      ),
+    ).toBeUndefined();
+  });
 });

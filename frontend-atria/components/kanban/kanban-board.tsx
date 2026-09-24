@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
 import { calendarService, clientsService, kanbanService } from "@/services";
 import { toast } from "@/lib/toast";
-import { useCompanyId } from "@/hooks/use-company-id";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useMoveTaskMutation, useUpdateTaskStatusMutation } from "@/hooks/use-task-mutations";
 import { useTasks } from "@/hooks/use-tasks";
@@ -22,7 +21,7 @@ import { PermissionGate } from "@/components/auth/permission-gate";
 import { Permission } from "@/lib/permissions";
 import { DEFAULT_TASK_STATUS } from "@/lib/kanban-utils";
 import { matchesRecordingFilter } from "@/lib/production-phase";
-import { taskKeys } from "@/lib/query-keys";
+import { invalidateTasksCache } from "@/lib/task-cache";
 import type { Client, KanbanColumn, KanbanTask, TeamMember } from "@/services/types";
 import { ColumnHeader } from "./column-header";
 import { CreateTaskDialog } from "./create-task-dialog";
@@ -30,6 +29,7 @@ import { DeletionHistoryDrawer } from "./deletion-history-drawer";
 import {
   EMPTY_KANBAN_FILTERS,
   KanbanFilters,
+  matchesNameSearch,
   matchesTaskDateFilter,
 } from "./kanban-filters";
 import { TaskCard } from "./task-card";
@@ -42,7 +42,6 @@ export function KanbanBoard() {
   const taskIdFromQuery = searchParams.get("taskId");
   const confirm = useConfirm();
   const queryClient = useQueryClient();
-  const companyId = useCompanyId();
   const { canEditKanbanTask } = usePermissions();
   const { data: tasks = [], isLoading: tasksLoading } = useTasks();
   const moveTaskMutation = useMoveTaskMutation();
@@ -91,6 +90,7 @@ export function KanbanBoard() {
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
+      if (!matchesNameSearch(task.title, filters.search)) return false;
       if (
         filters.assigneeId &&
         !task.assignees.some((assignee) => assignee.id === filters.assigneeId)
@@ -184,11 +184,7 @@ export function KanbanBoard() {
     setClearing(true);
     try {
       const result = await kanbanService.clearTasksBoard();
-      if (companyId) {
-        await queryClient.invalidateQueries({
-          queryKey: taskKeys.all(companyId),
-        });
-      }
+      await invalidateTasksCache(queryClient);
       toast.success(
         result.deletedCount === 0
           ? "O quadro já estava vazio."
