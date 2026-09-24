@@ -1,11 +1,13 @@
+import { OnModuleInit } from '@nestjs/common';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
-export declare class FinanceDailyDigestService {
+export declare class FinanceDailyDigestService implements OnModuleInit {
     private readonly prisma;
     private readonly mail;
     private readonly logger;
-    private lastSentDay;
+    private logTableReady;
     constructor(prisma: PrismaService, mail: MailService);
+    onModuleInit(): Promise<void>;
     handleDailyAccountsEmail(): Promise<{
         sent: number;
         companies: number;
@@ -19,6 +21,9 @@ export declare class FinanceDailyDigestService {
         sent: number;
         companies: number;
     }>;
+    private wasSent;
+    private markSent;
+    private ensureLogTable;
     private loadTodayLines;
     private buildWorkbook;
     private buildText;

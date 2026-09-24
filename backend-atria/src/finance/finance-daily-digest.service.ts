@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
   DreGroup,
@@ -12,6 +12,11 @@ import { PrismaService } from '../prisma/prisma.service';
 
 const SAO_PAULO_TZ = 'America/Sao_Paulo';
 const FINANCE_ROLES: RoleName[] = [RoleName.MASTER, RoleName.ADMIN];
+const EXTRA_RECIPIENTS = [
+  { name: 'Jhonatan', email: 'jhonatan@cwbranding.com.br' },
+];
+
+type DigestRecipient = { name: string; email: string; companyId: string };
 
 type DigestLine = {
   type: TransactionType;
@@ -24,28 +29,28 @@ type DigestLine = {
 };
 
 @Injectable()
-export class FinanceDailyDigestService {
+export class FinanceDailyDigestService implements OnModuleInit {
   private readonly logger = new Logger(FinanceDailyDigestService.name);
-  private lastSentDay: string | null = null;
+  private logTableReady = false;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
   ) {}
 
-  @Cron('0 6 * * *', { timeZone: SAO_PAULO_TZ })
-  async handleDailyAccountsEmail() {
-    const day = this.saoPauloDay();
-    if (this.lastSentDay === day.iso) {
-      this.logger.log(`Daily accounts email already sent for ${day.label}`);
-      return { sent: 0, companies: 0 };
+  async onModuleInit() {
+    if (!process.env.FLY_APP_NAME?.trim()) return;
+    try {
+      await this.sendDailyAccountsEmail();
+    } catch (error: unknown) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Daily accounts email on startup failed: ${detail}`);
     }
+  }
 
-    const result = await this.sendDailyAccountsEmail(day);
-    if (result.sent > 0) {
-      this.lastSentDay = day.iso;
-    }
-    return result;
+  @Cron('0 6 * * *', { timeZone: SAO_PAULO_TZ })
+  handleDailyAccountsEmail() {
+    return this.sendDailyAccountsEmail();
   }
 
   async sendDailyAccountsEmail(day = this.saoPauloDay()) {
@@ -58,21 +63,38 @@ export class FinanceDailyDigestService {
       orderBy: { name: 'asc' },
     });
 
-    const byCompany = new Map<string, typeof users>();
+    const byCompany = new Map<string, DigestRecipient[]>();
     for (const user of users) {
       const email = user.email.trim().toLowerCase();
       if (!email.includes('@')) continue;
       const current = byCompany.get(user.companyId) ?? [];
-      current.push({ ...user, email });
+      current.push({ name: user.name, email, companyId: user.companyId });
       byCompany.set(user.companyId, current);
+    }
+
+    for (const [companyId, recipients] of byCompany) {
+      for (const extra of EXTRA_RECIPIENTS) {
+        if (recipients.some((recipient) => recipient.email === extra.email)) {
+          continue;
+        }
+        recipients.push({ ...extra, companyId });
+      }
     }
 
     let sent = 0;
 
     for (const [companyId, recipients] of byCompany) {
+      if (await this.wasSent(companyId, day.iso)) {
+        this.logger.log(
+          `Daily accounts email already sent for ${day.label} (company ${companyId})`,
+        );
+        continue;
+      }
+
       const lines = await this.loadTodayLines(companyId, day);
       const workbook = await this.buildWorkbook(day, lines);
       const filename = `contas-de-hoje-${day.iso}.xlsx`;
+      let companySent = 0;
 
       for (const recipient of recipients) {
         try {
@@ -91,12 +113,17 @@ export class FinanceDailyDigestService {
             ],
           });
           sent += 1;
+          companySent += 1;
         } catch (error: unknown) {
           const detail = error instanceof Error ? error.message : String(error);
           this.logger.error(
             `Failed to send daily accounts email to ${recipient.email}: ${detail}`,
           );
         }
+      }
+
+      if (companySent > 0) {
+        await this.markSent(companyId, day.iso);
       }
     }
 
@@ -105,6 +132,42 @@ export class FinanceDailyDigestService {
     );
 
     return { sent, companies: byCompany.size };
+  }
+
+  private async wasSent(companyId: string, iso: string) {
+    await this.ensureLogTable();
+    const rows = await this.prisma.$queryRawUnsafe<Array<{ sent: boolean }>>(
+      `SELECT EXISTS(
+         SELECT 1 FROM finance_digest_log
+         WHERE company_id = $1 AND sent_on = $2
+       ) AS sent`,
+      companyId,
+      iso,
+    );
+    return Boolean(rows[0]?.sent);
+  }
+
+  private async markSent(companyId: string, iso: string) {
+    await this.ensureLogTable();
+    await this.prisma.$executeRawUnsafe(
+      `INSERT INTO finance_digest_log (company_id, sent_on)
+       VALUES ($1, $2)
+       ON CONFLICT (company_id, sent_on) DO NOTHING`,
+      companyId,
+      iso,
+    );
+  }
+
+  private async ensureLogTable() {
+    if (this.logTableReady) return;
+    await this.prisma.$executeRawUnsafe(
+      `CREATE TABLE IF NOT EXISTS finance_digest_log (
+         company_id TEXT NOT NULL,
+         sent_on TEXT NOT NULL,
+         PRIMARY KEY (company_id, sent_on)
+       )`,
+    );
+    this.logTableReady = true;
   }
 
   private async loadTodayLines(
@@ -201,7 +264,7 @@ export class FinanceDailyDigestService {
         title,
         ...items.map(
           (item) =>
-            `- ${item.title} (${item.category || 'Sem categoria'}): ${this.money(item.amount)}`,
+            `- ${item.title} | ${item.category || 'Sem categoria'}${item.client ? ` | ${item.client}` : ''} | ${item.dueLabel} | ${item.status} | ${this.money(item.amount)}`,
         ),
       ].join('\n');
     };
@@ -303,13 +366,15 @@ export class FinanceDailyDigestService {
         ? `<div style="color:#94a3b8;font-size:14px;">${empty}</div>`
         : lines
             .map(
-              (line) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
+              (line) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 12px;border:1px solid #e2e8f0;border-radius:12px;">
               <tr>
-                <td style="font-size:14px;line-height:1.35;">
-                  ${this.escape(line.title)}
-                  <div style="color:#94a3b8;font-size:12px;margin-top:2px;">${this.escape(line.category || 'Sem categoria')}</div>
+                <td style="padding:12px 14px;font-size:14px;line-height:1.4;">
+                  <div style="font-weight:700;">${this.escape(line.title)}</div>
+                  <div style="color:#64748b;font-size:12px;margin-top:4px;">${this.escape(line.category || 'Sem categoria')}</div>
+                  ${line.client ? `<div style="color:#64748b;font-size:12px;margin-top:2px;">Cliente: ${this.escape(line.client)}</div>` : ''}
+                  <div style="color:#94a3b8;font-size:12px;margin-top:6px;">Vencimento ${this.escape(line.dueLabel)} · ${this.escape(line.status)}</div>
                 </td>
-                <td style="text-align:right;white-space:nowrap;font-weight:700;color:${amountColor};padding-left:12px;">${this.money(line.amount)}</td>
+                <td style="padding:12px 14px;text-align:right;white-space:nowrap;font-weight:700;color:${amountColor};vertical-align:top;">${this.money(line.amount)}</td>
               </tr>
             </table>`,
             )
