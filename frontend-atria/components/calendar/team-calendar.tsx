@@ -17,6 +17,7 @@ import { useTasks } from "@/hooks/use-tasks";
 import {
   EMPTY_KANBAN_FILTERS,
   KanbanFilters,
+  matchesNameSearch,
   type KanbanFiltersState,
 } from "@/components/kanban/kanban-filters";
 import { CreateEventDialog } from "./create-event-dialog";
@@ -86,7 +87,6 @@ export function TeamCalendar() {
   const [clients, setClients] = useState<Client[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [filters, setFilters] = useState<KanbanFiltersState>(EMPTY_FILTERS);
-  const [search, setSearch] = useState("");
   const [onlyPending, setOnlyPending] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
     null,
@@ -169,9 +169,7 @@ export function TeamCalendar() {
 
   const filteredEvents = useMemo(() => {
     return events.filter((evt) => {
-      const matchesSearch = evt.title
-        .toLowerCase()
-        .includes(search.toLowerCase());
+      const matchesSearch = matchesNameSearch(evt.title, filters.search);
       const matchesPending = onlyPending ? evt.isPending : true;
       if (!matchesSearch || !matchesPending) return false;
 
@@ -200,7 +198,7 @@ export function TeamCalendar() {
 
       return true;
     });
-  }, [events, search, onlyPending, filters, tasks]);
+  }, [events, onlyPending, filters, tasks]);
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
@@ -331,16 +329,21 @@ export function TeamCalendar() {
             ))}
           </div>
 
-          <div className="relative">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Pesquisar..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8 w-48 rounded-lg border border-[var(--atria-primary)]/20 bg-white pr-3 pl-9 text-sm"
-            />
-          </div>
+          {isFullscreen && (
+            <div className="relative">
+              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Buscar por nome..."
+                aria-label="Buscar por nome"
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters({ ...filters, search: e.target.value })
+                }
+                className="h-8 w-48 rounded-lg border border-[var(--atria-primary)]/20 bg-white pr-3 pl-9 text-sm"
+              />
+            </div>
+          )}
 
           <button
             type="button"

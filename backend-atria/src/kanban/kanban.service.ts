@@ -1246,13 +1246,15 @@ export class KanbanService {
     const task = await this.ensureTaskExists(id);
     assertKanbanTaskEditAccess(role, userId, task);
     const deletedAt = new Date();
+    const calendarEventId = task.calendarEventId;
 
-    await this.prisma.$transaction([
+    const operations: Prisma.PrismaPromise<unknown>[] = [
       this.prisma.kanbanTask.update({
         where: { id },
         data: {
           deletedAt,
           deletedById: userId,
+          calendarEventId: null,
         },
       }),
       this.prisma.deletionHistory.create({
@@ -1270,7 +1272,15 @@ export class KanbanService {
           deletedAt,
         },
       }),
-    ]);
+    ];
+
+    if (calendarEventId) {
+      operations.push(
+        this.prisma.calendarEvent.delete({ where: { id: calendarEventId } }),
+      );
+    }
+
+    await this.prisma.$transaction(operations);
   }
 
   async clearAllTasks(userId: string, role: string) {
@@ -1286,6 +1296,7 @@ export class KanbanService {
         status: true,
         columnId: true,
         clientId: true,
+        calendarEventId: true,
       },
     });
 
@@ -1294,13 +1305,17 @@ export class KanbanService {
     }
 
     const deletedAt = new Date();
+    const calendarEventIds = tasks
+      .map((task) => task.calendarEventId)
+      .filter((id): id is string => Boolean(id));
 
-    await this.prisma.$transaction([
+    const operations: Prisma.PrismaPromise<unknown>[] = [
       this.prisma.kanbanTask.updateMany({
         where: { id: { in: tasks.map((task) => task.id) } },
         data: {
           deletedAt,
           deletedById: userId,
+          calendarEventId: null,
         },
       }),
       this.prisma.deletionHistory.createMany({
@@ -1318,7 +1333,17 @@ export class KanbanService {
           deletedAt,
         })),
       }),
-    ]);
+    ];
+
+    if (calendarEventIds.length > 0) {
+      operations.push(
+        this.prisma.calendarEvent.deleteMany({
+          where: { id: { in: calendarEventIds } },
+        }),
+      );
+    }
+
+    await this.prisma.$transaction(operations);
 
     return { deletedCount: tasks.length };
   }

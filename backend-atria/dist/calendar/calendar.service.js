@@ -82,6 +82,7 @@ const eventInclude = {
             clientId: true,
             companyId: true,
             createdAt: true,
+            deletedAt: true,
             client: {
                 select: {
                     id: true,
@@ -123,6 +124,7 @@ let CalendarService = class CalendarService {
             include: eventInclude,
         });
         const mapped = events
+            .filter((event) => !event.kanbanTask?.deletedAt)
             .map((event) => this.toEventResponse(event))
             .sort((left, right) => new Date(left.publicationDate).getTime() -
             new Date(right.publicationDate).getTime());

@@ -869,12 +869,14 @@ let KanbanService = class KanbanService {
         const task = await this.ensureTaskExists(id);
         (0, rbac_1.assertKanbanTaskEditAccess)(role, userId, task);
         const deletedAt = new Date();
-        await this.prisma.$transaction([
+        const calendarEventId = task.calendarEventId;
+        const operations = [
             this.prisma.kanbanTask.update({
                 where: { id },
                 data: {
                     deletedAt,
                     deletedById: userId,
+                    calendarEventId: null,
                 },
             }),
             this.prisma.deletionHistory.create({
@@ -892,7 +894,11 @@ let KanbanService = class KanbanService {
                     deletedAt,
                 },
             }),
-        ]);
+        ];
+        if (calendarEventId) {
+            operations.push(this.prisma.calendarEvent.delete({ where: { id: calendarEventId } }));
+        }
+        await this.prisma.$transaction(operations);
     }
     async clearAllTasks(userId, role) {
         if (!(0, rbac_1.canEditAllKanban)(role)) {
@@ -907,18 +913,23 @@ let KanbanService = class KanbanService {
                 status: true,
                 columnId: true,
                 clientId: true,
+                calendarEventId: true,
             },
         });
         if (tasks.length === 0) {
             return { deletedCount: 0 };
         }
         const deletedAt = new Date();
-        await this.prisma.$transaction([
+        const calendarEventIds = tasks
+            .map((task) => task.calendarEventId)
+            .filter((id) => Boolean(id));
+        const operations = [
             this.prisma.kanbanTask.updateMany({
                 where: { id: { in: tasks.map((task) => task.id) } },
                 data: {
                     deletedAt,
                     deletedById: userId,
+                    calendarEventId: null,
                 },
             }),
             this.prisma.deletionHistory.createMany({
@@ -936,7 +947,13 @@ let KanbanService = class KanbanService {
                     deletedAt,
                 })),
             }),
-        ]);
+        ];
+        if (calendarEventIds.length > 0) {
+            operations.push(this.prisma.calendarEvent.deleteMany({
+                where: { id: { in: calendarEventIds } },
+            }));
+        }
+        await this.prisma.$transaction(operations);
         return { deletedCount: tasks.length };
     }
     async getDeletionHistory(query) {

@@ -1,6 +1,8 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
+import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   RECORDING_FILTER_OPTIONS,
@@ -11,6 +13,7 @@ import type { Client, KanbanTask, TeamMember } from "@/services/types";
 export type KanbanDateField = "" | "delivery" | "publication";
 
 export interface KanbanFiltersState {
+  search: string;
   assigneeId: string;
   clientId: string;
   recordingFilter: RecordingFilter;
@@ -20,6 +23,7 @@ export interface KanbanFiltersState {
 }
 
 export const EMPTY_KANBAN_FILTERS: KanbanFiltersState = {
+  search: "",
   assigneeId: "",
   clientId: "",
   recordingFilter: "",
@@ -27,6 +31,12 @@ export const EMPTY_KANBAN_FILTERS: KanbanFiltersState = {
   startDate: "",
   endDate: "",
 };
+
+export function matchesNameSearch(name: string, search: string): boolean {
+  const term = search.trim().toLowerCase();
+  if (!term) return true;
+  return name.toLowerCase().includes(term);
+}
 
 const DATE_FIELD_OPTIONS: { value: Exclude<KanbanDateField, "">; label: string }[] =
   [
@@ -103,6 +113,24 @@ export function KanbanFilters({
         showDateFilters ? "xl:grid-cols-6" : ""
       }`}
     >
+      <div className="col-span-full">
+        <p className="mb-1.5 text-xs font-medium text-[var(--atria-primary)]/50">
+          Nome
+        </p>
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--atria-primary)]/40" />
+          <Input
+            value={filters.search}
+            onChange={(event) =>
+              onChange({ ...filters, search: event.target.value })
+            }
+            placeholder="Buscar por nome..."
+            aria-label="Buscar por nome"
+            className="pl-9"
+          />
+        </div>
+      </div>
+
       <div>
         <p className="mb-1.5 text-xs font-medium text-[var(--atria-primary)]/50">
           Responsável

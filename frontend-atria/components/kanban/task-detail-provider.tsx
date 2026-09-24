@@ -53,10 +53,13 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
   const handleUpdate = useCallback(() => {
     setRefreshKey((k) => k + 1);
     void invalidateTasksCache(queryClient);
-    if (selectedTask) {
-      void kanbanService.getTask(selectedTask.id).then(setSelectedTask);
+    if (selectedTask && open) {
+      void kanbanService.getTask(selectedTask.id).then(setSelectedTask).catch(() => {
+        setSelectedTask(null);
+        setOpen(false);
+      });
     }
-  }, [selectedTask, queryClient]);
+  }, [selectedTask, queryClient, open]);
 
   const value = useMemo(
     () => ({ openTaskById, openTask }),

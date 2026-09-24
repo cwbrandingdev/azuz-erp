@@ -387,11 +387,14 @@ export function mergeCalendarEventsWithTasks(
     }
   }
 
-  const merged = events.map((event) => {
-    if (!event.kanbanTaskId) return event;
-    const task = tasks.find((entry) => entry.id === event.kanbanTaskId);
-    return task ? overlayTaskOnCalendarEvent(event, task) : event;
-  });
+  const merged = events
+    .map((event) => {
+      if (!event.kanbanTaskId) return event;
+      const task = tasks.find((entry) => entry.id === event.kanbanTaskId);
+      if (!task) return null;
+      return overlayTaskOnCalendarEvent(event, task);
+    })
+    .filter((event): event is CalendarEvent => event !== null);
 
   const extras: CalendarEvent[] = [];
   for (const task of tasks) {
