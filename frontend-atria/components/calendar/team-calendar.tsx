@@ -274,8 +274,7 @@ export function TeamCalendar() {
     }
   }
 
-  const selectedDayEvents =
-    eventsByDay.get(selectedDate.toDateString()) ?? [];
+  const selectedDayEvents = eventsByDay.get(selectedDate.toDateString()) ?? [];
 
   const showSelectedDayPanel = view !== "day" && !isFullscreen;
 
@@ -284,7 +283,8 @@ export function TeamCalendar() {
       data-calendar-root
       className={cn(
         "flex flex-col gap-6",
-        isFullscreen && "h-screen max-h-screen overflow-hidden bg-[var(--atria-base)] p-4 lg:p-6",
+        isFullscreen &&
+          "h-screen max-h-screen overflow-hidden bg-[var(--atria-base)] p-4 lg:p-6",
       )}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

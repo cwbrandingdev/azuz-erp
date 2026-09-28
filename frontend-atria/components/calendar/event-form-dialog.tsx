@@ -120,7 +120,9 @@ export function EventFormDialog({
       setStartTime(start.toTimeString().slice(0, 5));
       setEndTime(end.toTimeString().slice(0, 5));
       setCategory(event.category);
-      setAssignedGroupId(event.assignedGroupId ?? event.assignedGroup?.id ?? "");
+      setAssignedGroupId(
+        event.assignedGroupId ?? event.assignedGroup?.id ?? "",
+      );
       setAssigneeId(
         event.assignedGroupId || event.assignedGroup?.id
           ? ""
@@ -208,19 +210,6 @@ export function EventFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {trigger ? (
-        <DialogTrigger render={trigger as React.ReactElement} />
-      ) : !isEdit ? (
-        <DialogTrigger
-          render={
-            <Button className="bg-[var(--atria-primary)] text-white hover:bg-[var(--atria-primary)]/90" />
-          }
-        >
-          <Plus className="size-4" />
-          Novo Evento
-        </DialogTrigger>
-      ) : null}
-
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -331,7 +320,9 @@ export function EventFormDialog({
             </div>
 
             <Field>
-              <FieldLabel htmlFor="evt-reference">Link de Referência</FieldLabel>
+              <FieldLabel htmlFor="evt-reference">
+                Link de Referência
+              </FieldLabel>
               <Input
                 id="evt-reference"
                 type="url"

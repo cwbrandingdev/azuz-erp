@@ -22,12 +22,7 @@ import type {
   ClientRequest,
 } from "@/services/types";
 
-type OperationsTab =
-  | "pricing"
-  | "planning"
-  | "agenda"
-  | "requests"
-  | "reports";
+type OperationsTab = "pricing" | "planning" | "agenda" | "requests" | "reports";
 
 const TABS: Array<{ id: OperationsTab; label: string }> = [
   { id: "pricing", label: "Preços por tipo de arte" },
@@ -132,7 +127,9 @@ function ArtTypePricingTab() {
         <CardContent>
           <form className="flex flex-col gap-3" onSubmit={onSubmit}>
             <div className="space-y-1.5">
-              <Label className="text-[var(--atria-primary)]">Tipo de arte</Label>
+              <Label className="text-[var(--atria-primary)]">
+                Tipo de arte
+              </Label>
               <Input
                 value={artType}
                 onChange={(e) => setArtType(e.target.value)}
@@ -311,7 +308,9 @@ function CalendarEntriesTab() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[var(--atria-primary)]">Tipo de arte</Label>
+              <Label className="text-[var(--atria-primary)]">
+                Tipo de arte
+              </Label>
               <Input
                 value={artType}
                 onChange={(e) => setArtType(e.target.value)}
@@ -491,7 +490,7 @@ function AgendaEventsTab() {
       <Card className="border border-[var(--atria-primary)]/10 bg-white">
         <CardHeader>
           <CardTitle className="text-[var(--atria-primary)]">
-            Novo evento
+            Novo eveNovo eventonto
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -587,8 +586,8 @@ function AgendaEventsTab() {
                     <p className="text-sm text-[var(--atria-primary)]/60">
                       {item.eventDate}
                       {item.startTime ? ` · ${item.startTime}` : ""}
-                      {item.endTime ? `–${item.endTime}` : ""} · {item.eventType}{" "}
-                      · {item.status}
+                      {item.endTime ? `–${item.endTime}` : ""} ·{" "}
+                      {item.eventType} · {item.status}
                     </p>
                   </div>
                   <Button
@@ -795,7 +794,12 @@ function ClientReportFilesTab() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!clientId.trim() || !title.trim() || !fileUrl.trim() || !fileType.trim()) {
+    if (
+      !clientId.trim() ||
+      !title.trim() ||
+      !fileUrl.trim() ||
+      !fileType.trim()
+    ) {
       return;
     }
     setSubmitting(true);
@@ -848,7 +852,9 @@ function ClientReportFilesTab() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[var(--atria-primary)]">URL do arquivo</Label>
+              <Label className="text-[var(--atria-primary)]">
+                URL do arquivo
+              </Label>
               <Input
                 value={fileUrl}
                 onChange={(e) => setFileUrl(e.target.value)}
