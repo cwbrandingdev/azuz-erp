@@ -36,6 +36,7 @@ import {
 import { InternalReviewDto } from './dto/internal-review.dto';
 import { QueryDeletionHistoryDto } from './dto/deletion-history.dto';
 import {
+  BulkDeleteTaskAssetsDto,
   CreateTaskDto,
   MoveTaskDto,
   QueryTasksDto,
@@ -171,6 +172,21 @@ export class KanbanController {
     @Body('caption') caption?: string,
   ) {
     return this.kanbanService.uploadTaskAsset(user.userId, user.role, id, file, caption);
+  }
+
+  @Post('tasks/:id/assets/bulk-delete')
+  @HttpCode(200)
+  bulkDeleteTaskAssets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: BulkDeleteTaskAssetsDto,
+  ) {
+    return this.kanbanService.bulkDeleteTaskAssets(
+      user.userId,
+      user.role,
+      id,
+      dto.assetIds,
+    );
   }
 
   @Delete('tasks/:id/assets/:assetId')

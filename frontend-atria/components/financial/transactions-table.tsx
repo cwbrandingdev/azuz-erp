@@ -66,6 +66,7 @@ interface TransactionsTableProps {
   onDelete?: (transaction: FinanceTransaction) => void;
   loading?: boolean;
   readOnly?: boolean;
+  emptyLabel?: string;
 }
 
 const SORTABLE_COLUMNS: {
@@ -89,6 +90,7 @@ export function TransactionsTable({
   onDelete,
   loading,
   readOnly = false,
+  emptyLabel = "Nenhum lançamento neste período",
 }: TransactionsTableProps) {
   const { data, meta } = transactions;
   const [editingTransaction, setEditingTransaction] =
@@ -205,17 +207,17 @@ export function TransactionsTable({
                   colSpan={readOnly ? 5 : 6}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
-                  Nenhuma transação encontrada
+                  {emptyLabel}
                 </TableCell>
               </TableRow>
             ) : (
               data.map((tx) => (
                 <TableRow key={tx.id}>
                   <TableCell className="font-medium text-[var(--atria-primary)]">
-                    {tx.title}
+                    {tx.title?.trim() || tx.description}
                   </TableCell>
                   <TableCell className="text-[var(--atria-primary)]/60">
-                    {formatDate(tx.dueDate ?? tx.date)}
+                    {formatDate(tx.date)}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -342,7 +344,7 @@ export function TransactionsTable({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-[var(--atria-primary)]">
-              Excluir transação
+              Excluir lançamento
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-[var(--atria-primary)]/70">

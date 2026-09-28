@@ -1,239 +1,422 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BankAccountsDialog } from "@/components/financial/bank-accounts-dialog";
-import { ChartAccountField } from "@/components/financial/chart-account-field";
+import { FiltersToolbar } from "@/components/financial/filters-toolbar";
+import { FinanceScopeSwitcher } from "@/components/financial/finance-scope-switcher";
 import { FinanceSubnav } from "@/components/financial/finance-subnav";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { TransactionDialog } from "@/components/financial/transaction-dialog";
+import { TransactionsImportDialog } from "@/components/financial/transactions-import-dialog";
+import { TransactionsTable } from "@/components/financial/transactions-table";
+import {
+  buildLancamentosHref,
+  formatScopeLabel,
+  getCurrentScope,
+  getScopeBounds,
+  type FinanceScope,
+} from "@/lib/financial-utils";
 import { financeService } from "@/services";
-import type { BankAccount, ChartAccount } from "@/services/types";
+import type {
+  FinanceCategory,
+  FinanceTransaction,
+  PaginatedTransactions,
+  SortOrder,
+  TransactionFilters,
+  TransactionSortField,
+} from "@/services/types";
 
-function todayIso() {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-}
+const emptyPaginated: PaginatedTransactions = {
+  data: [],
+  meta: { total: 0, page: 1, limit: 100, totalPages: 0 },
+};
 
-function EntryForm({
-  title,
-  description,
-  type,
-  accounts,
-  banks,
-  submitLabel,
-  onSaved,
-}: {
-  title: string;
-  description: string;
-  type: "income" | "expense";
-  accounts: ChartAccount[];
-  banks: BankAccount[];
-  submitLabel: string;
-  onSaved: () => void;
-}) {
-  const [amount, setAmount] = useState("");
-  const [text, setText] = useState("");
-  const [date, setDate] = useState(todayIso);
-  const [categoryId, setCategoryId] = useState("");
-  const [bankAccountId, setBankAccountId] = useState("");
-  const [recurring, setRecurring] = useState(false);
-  const [paid, setPaid] = useState(false);
-  const [saving, setSaving] = useState(false);
+function parseScope(searchParams: URLSearchParams): FinanceScope {
+  const current = getCurrentScope();
+  const yearParam = searchParams.get("year");
+  const monthParam = searchParams.get("month");
+  const year = Number(yearParam) || current.year;
 
-  async function handleSubmit() {
-    const parsed = Number(amount.replace(/\./g, "").replace(",", "."));
-    if (!parsed || parsed <= 0) {
-      toast.error("Informe um valor maior que zero.");
-      return;
-    }
-    if (!text.trim()) {
-      toast.error("Informe a descrição.");
-      return;
-    }
-    if (!categoryId) {
-      toast.error("Selecione o plano de contas.");
-      return;
-    }
-
-    const day = Number(date.slice(8, 10));
-    setSaving(true);
-    try {
-      await financeService.createTransaction({
-        description: text.trim(),
-        amount: parsed,
-        type,
-        status: paid ? "paid" : "pending",
-        date,
-        dueDate: date,
-        categoryId,
-        bankAccountId: bankAccountId || undefined,
-        ...(recurring ? { recurrenceDay: day, recurrenceMonths: 12 } : {}),
-      });
-      setAmount("");
-      setText("");
-      setCategoryId("");
-      setRecurring(false);
-      setPaid(false);
-      toast.success(type === "income" ? "Entrada lançada." : "Saída lançada.");
-      onSaved();
-    } catch {
-      toast.error("Não foi possível salvar o lançamento.");
-    } finally {
-      setSaving(false);
-    }
+  if (monthParam === "all") {
+    return { year, month: null };
   }
 
-  return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5">
-      <div>
-        <h2 className="text-lg font-semibold text-[var(--atria-primary)]">{title}</h2>
-        <p className="text-sm text-[var(--atria-primary)]/50">{description}</p>
-      </div>
-      <label className="flex flex-col gap-1 text-sm">
-        Valor
-        <Input
-          inputMode="decimal"
-          value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-          placeholder="0,00"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Descrição
-        <Input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder={type === "income" ? "Ex: Salário do mês..." : "Ex: Conta de luz..."}
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Data
-        <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-      </label>
-      <div className="flex flex-col gap-1 text-sm">
-        Plano de Contas
-        <ChartAccountField
-          accounts={accounts}
-          type={type}
-          value={categoryId}
-          onChange={setCategoryId}
-        />
-      </div>
-      <label className="flex flex-col gap-1 text-sm">
-        Banco
-        <select
-          className="h-8 rounded-lg border border-input px-2 text-sm"
-          value={bankAccountId}
-          onChange={(event) => setBankAccountId(event.target.value)}
-        >
-          <option value="">Nenhum</option>
-          {banks.map((bank) => (
-            <option key={bank.id} value={bank.id}>
-              {bank.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={recurring}
-          onChange={(event) => setRecurring(event.target.checked)}
-        />
-        {type === "income" ? "Receita recorrente" : "Despesa recorrente"}
-      </label>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={paid}
-          onChange={(event) => setPaid(event.target.checked)}
-        />
-        {type === "income" ? "Já recebido" : "Já pago"}
-      </label>
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setAmount("");
-            setText("");
-            setCategoryId("");
-            setRecurring(false);
-            setPaid(false);
-          }}
-        >
-          Limpar
-        </Button>
-        <Button
-          type="button"
-          className={type === "expense" ? "bg-red-600 text-white hover:bg-red-700" : undefined}
-          onClick={handleSubmit}
-          disabled={saving}
-        >
-          {submitLabel}
-        </Button>
-      </div>
-    </section>
-  );
+  const monthValue = Number(monthParam);
+  if (monthValue >= 1 && monthValue <= 12) {
+    return { year, month: monthValue };
+  }
+
+  if (yearParam && !monthParam) {
+    return { year, month: null };
+  }
+
+  return current;
+}
+
+function parseType(
+  value: string | null,
+): TransactionFilters["type"] {
+  return value === "income" || value === "expense" ? value : "";
+}
+
+function parseStatus(
+  value: string | null,
+): TransactionFilters["status"] {
+  return value === "paid" || value === "pending" || value === "overdue"
+    ? value
+    : "";
+}
+
+function buildDefaultFilters(
+  scope: FinanceScope,
+  searchParams?: URLSearchParams,
+): TransactionFilters {
+  const { startDate, endDate } = getScopeBounds(scope);
+  return {
+    search: "",
+    categoryIds: [],
+    status: parseStatus(searchParams?.get("status") ?? null),
+    type: parseType(searchParams?.get("type") ?? null),
+    startDate,
+    endDate,
+    sortBy: "date",
+    sortOrder: "desc",
+  };
+}
+
+function isInRange(value: string, startDate?: string, endDate?: string) {
+  const key = value.slice(0, 10);
+  if (startDate && key < startDate) return false;
+  if (endDate && key > endDate) return false;
+  return true;
+}
+
+function transactionMatchesFilters(
+  transaction: FinanceTransaction,
+  filters: TransactionFilters,
+  search: string,
+) {
+  if (!isInRange(transaction.date, filters.startDate, filters.endDate)) {
+    return false;
+  }
+  if (
+    filters.categoryIds.length > 0 &&
+    !filters.categoryIds.includes(transaction.categoryId)
+  ) {
+    return false;
+  }
+  if (filters.status && transaction.status !== filters.status) return false;
+  if (filters.type && transaction.type !== filters.type) return false;
+  const normalized = search.trim().toLowerCase();
+  if (
+    normalized &&
+    !transaction.description.toLowerCase().includes(normalized)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function sortTransactions(
+  data: FinanceTransaction[],
+  sortBy: TransactionSortField,
+  sortOrder: SortOrder,
+) {
+  const sorted = [...data];
+  sorted.sort((left, right) => {
+    let comparison = 0;
+    switch (sortBy) {
+      case "amount":
+        comparison = left.amount - right.amount;
+        break;
+      case "description":
+        comparison = left.description.localeCompare(right.description, "pt-BR");
+        break;
+      case "status":
+        comparison = left.status.localeCompare(right.status, "pt-BR");
+        break;
+      case "date":
+      default:
+        comparison = (left.dueDate ?? left.date).localeCompare(
+          right.dueDate ?? right.date,
+        );
+        break;
+    }
+    return sortOrder === "asc" ? comparison : -comparison;
+  });
+  return sorted;
+}
+
+function upsertTransactionInList(
+  current: PaginatedTransactions,
+  transaction: FinanceTransaction,
+  sortBy: TransactionSortField,
+  sortOrder: SortOrder,
+): PaginatedTransactions {
+  const exists = current.data.some((item) => item.id === transaction.id);
+  const merged = exists
+    ? current.data.map((item) =>
+        item.id === transaction.id ? transaction : item,
+      )
+    : [...current.data, transaction];
+  const sorted = sortTransactions(merged, sortBy, sortOrder);
+  const limit = current.meta.limit;
+  const page = current.meta.page;
+  const start = (page - 1) * limit;
+  const nextTotal = exists ? current.meta.total : current.meta.total + 1;
+  return {
+    data: sorted.slice(start, start + limit),
+    meta: {
+      ...current.meta,
+      total: nextTotal,
+      totalPages: Math.max(1, Math.ceil(nextTotal / limit)),
+    },
+  };
 }
 
 export default function LancamentosPage() {
-  const [accounts, setAccounts] = useState<ChartAccount[]>([]);
-  const [banks, setBanks] = useState<BankAccount[]>([]);
-  const [reload, setReload] = useState(0);
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col gap-6">
+          <div className="h-10 animate-pulse rounded-xl bg-white" />
+          <div className="h-20 animate-pulse rounded-2xl bg-white" />
+          <div className="h-80 animate-pulse rounded-2xl bg-white" />
+        </div>
+      }
+    >
+      <LancamentosPageContent />
+    </Suspense>
+  );
+}
+
+function LancamentosPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [scope, setScope] = useState<FinanceScope>(() =>
+    parseScope(searchParams),
+  );
+  const [filters, setFilters] = useState<TransactionFilters>(() =>
+    buildDefaultFilters(parseScope(searchParams), searchParams),
+  );
+  const [categories, setCategories] = useState<FinanceCategory[]>([]);
+  const [transactions, setTransactions] =
+    useState<PaginatedTransactions>(emptyPaginated);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(
+    () => searchParams.get("create") === "1",
+  );
 
   useEffect(() => {
-    financeService.getChartOfAccounts().then(setAccounts).catch(() => {
-      toast.error("Não foi possível carregar o plano de contas.");
+    const timer = setTimeout(() => {
+      setDebouncedSearch(filters.search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filters.search]);
+
+  useEffect(() => {
+    financeService.getCategories().then(setCategories).catch(() => {
+      setCategories([]);
     });
-    financeService.getBankAccounts().then(setBanks).catch(() => {
-      setBanks([]);
-    });
-  }, [reload]);
+  }, []);
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") return;
+    setCreateOpen(true);
+    router.replace(
+      buildLancamentosHref({
+        year: scope.year,
+        month: scope.month,
+        type: filters.type,
+        status: filters.status,
+      }),
+      { scroll: false },
+    );
+  }, [filters.status, filters.type, router, scope.month, scope.year, searchParams]);
+
+  const transactionQuery = useMemo(
+    () => ({
+      page,
+      limit: 100,
+      search: debouncedSearch || undefined,
+      categoryIds:
+        filters.categoryIds.length > 0 ? filters.categoryIds : undefined,
+      status: filters.status || undefined,
+      type: filters.type || undefined,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder,
+    }),
+    [page, debouncedSearch, filters],
+  );
+
+  const loadTransactions = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      try {
+        const data = await financeService.getTransactions(transactionQuery);
+        setTransactions(data);
+      } catch {
+        if (!silent) setTransactions(emptyPaginated);
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [transactionQuery],
+  );
+
+  useEffect(() => {
+    void loadTransactions();
+  }, [loadTransactions]);
+
+  function syncUrl(nextScope: FinanceScope, nextFilters: TransactionFilters) {
+    router.replace(
+      buildLancamentosHref({
+        year: nextScope.year,
+        month: nextScope.month,
+        type: nextFilters.type,
+        status: nextFilters.status,
+      }),
+      { scroll: false },
+    );
+  }
+
+  function handleScopeChange(nextScope: FinanceScope) {
+    const nextFilters = {
+      ...filters,
+      ...getScopeBounds(nextScope),
+    };
+    setScope(nextScope);
+    setFilters(nextFilters);
+    setPage(1);
+    syncUrl(nextScope, nextFilters);
+  }
+
+  function handleFiltersChange(nextFilters: TransactionFilters) {
+    setFilters(nextFilters);
+    setPage(1);
+    syncUrl(scope, nextFilters);
+  }
+
+  function handleClearFilters() {
+    const nextFilters = buildDefaultFilters(scope);
+    setFilters(nextFilters);
+    setPage(1);
+    syncUrl(scope, nextFilters);
+  }
+
+  function handleTransactionSaved(
+    transaction: FinanceTransaction,
+    _mode: "create" | "update",
+  ) {
+    if (
+      page === 1 &&
+      transactionMatchesFilters(transaction, filters, debouncedSearch)
+    ) {
+      setTransactions((current) =>
+        upsertTransactionInList(
+          current,
+          transaction,
+          filters.sortBy,
+          filters.sortOrder,
+        ),
+      );
+    }
+    void loadTransactions(true);
+  }
+
+  function handleOptimisticMarkPaid(transaction: FinanceTransaction) {
+    setTransactions((current) => ({
+      ...current,
+      data: current.data.map((item) =>
+        item.id === transaction.id ? { ...item, status: "paid" as const } : item,
+      ),
+    }));
+    void financeService
+      .markTransactionAsPaid(transaction.id)
+      .then(() => loadTransactions(true))
+      .catch(() => loadTransactions(true));
+  }
+
+  function handleOptimisticDelete(transaction: FinanceTransaction) {
+    setTransactions((current) => ({
+      ...current,
+      data: current.data.filter((item) => item.id !== transaction.id),
+      meta: {
+        ...current.meta,
+        total: Math.max(0, current.meta.total - 1),
+      },
+    }));
+    void financeService
+      .deleteTransaction(transaction.id)
+      .then(() => loadTransactions(true))
+      .catch(() => loadTransactions(true));
+  }
+
+  const periodLabel = formatScopeLabel(scope);
 
   return (
     <div className="flex flex-col gap-6">
       <FinanceSubnav />
       <div
         data-tour="finance-lancamentos-header"
-        className="flex flex-wrap items-center justify-between gap-3"
+        className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Lançamentos</h1>
+          <h1 className="text-2xl font-bold text-[var(--atria-primary)]">
+            Lançamentos
+          </h1>
           <p className="text-sm text-[var(--atria-primary)]/50">
-            Entradas e saídas no mesmo livro-caixa
+            Receitas e despesas de {periodLabel.toLowerCase()} —{" "}
+            {transactions.meta.total} registro
+            {transactions.meta.total === 1 ? "" : "s"}
           </p>
         </div>
-        <div data-tour="finance-lancamentos-banks">
-          <BankAccountsDialog onChange={() => setReload((value) => value + 1)} />
+        <div
+          data-tour="finance-lancamentos-actions"
+          className="flex flex-wrap items-center gap-2"
+        >
+          <BankAccountsDialog />
+          <TransactionsImportDialog
+            onSuccess={() => void loadTransactions(true)}
+          />
+          <TransactionDialog
+            open={createOpen}
+            onOpenChange={setCreateOpen}
+            onSuccess={handleTransactionSaved}
+          />
         </div>
       </div>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <div data-tour="finance-lancamentos-income">
-        <EntryForm
-          title="Entradas"
-          description="Entrada de dinheiro"
-          type="income"
-          accounts={accounts}
-          banks={banks}
-          submitLabel="Salvar receita"
-          onSaved={() => setReload((value) => value + 1)}
+
+      <FinanceScopeSwitcher scope={scope} onChange={handleScopeChange} />
+
+      <div data-tour="finance-lancamentos-list" className="flex flex-col gap-4">
+        <FiltersToolbar
+          filters={filters}
+          categories={categories}
+          onChange={handleFiltersChange}
+          onClear={handleClearFilters}
         />
-        </div>
-        <div data-tour="finance-lancamentos-expense">
-        <EntryForm
-          title="Saídas"
-          description="Saída de dinheiro"
-          type="expense"
-          accounts={accounts}
-          banks={banks}
-          submitLabel="Salvar despesa"
-          onSaved={() => setReload((value) => value + 1)}
+        <TransactionsTable
+          transactions={transactions}
+          filters={filters}
+          onSortChange={(sortBy, sortOrder) => {
+            handleFiltersChange({ ...filters, sortBy, sortOrder });
+          }}
+          onPageChange={setPage}
+          onRefresh={() => {
+            void loadTransactions(true);
+          }}
+          onTransactionSaved={handleTransactionSaved}
+          onMarkAsPaid={handleOptimisticMarkPaid}
+          onDelete={handleOptimisticDelete}
+          loading={loading && transactions.data.length === 0}
+          emptyLabel={`Nenhum lançamento em ${periodLabel.toLowerCase()}. Clique em Novo lançamento para registrar o primeiro.`}
         />
-        </div>
       </div>
     </div>
   );

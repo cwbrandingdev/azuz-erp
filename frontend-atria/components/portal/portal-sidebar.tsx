@@ -59,7 +59,7 @@ export function PortalSidebarNav({
   const tabs = getPortalNavItems(hasCrmEnabled);
 
   return (
-    <nav className={cn("flex flex-col gap-1", className)}>
+    <nav data-tour="portal-nav" className={cn("flex flex-col gap-1", className)}>
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;

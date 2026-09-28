@@ -73,9 +73,9 @@ export default function DrePage() {
         className="flex flex-wrap items-center justify-between gap-3"
       >
         <div>
-          <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Demonstração do Resultado</h1>
+          <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Resultado do ano</h1>
           <p className="text-sm text-[var(--atria-primary)]/50">
-            Visão por mês e plano de contas. Competência pela data do lançamento.
+            Receita, custos e lucro mês a mês. Relatório conhecido como DRE.
           </p>
         </div>
         <div className="flex items-center gap-2">

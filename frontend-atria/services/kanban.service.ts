@@ -197,6 +197,16 @@ export async function deleteTaskAsset(taskId: string, assetId: string) {
   });
 }
 
+export async function bulkDeleteTaskAssets(taskId: string, assetIds: string[]) {
+  return apiRequest<{ deletedCount: number }>(
+    `/kanban/tasks/${taskId}/assets/bulk-delete`,
+    {
+      method: "POST",
+      body: { assetIds },
+    },
+  );
+}
+
 export function resolveTaskAssetUrl(path: string) {
   if (path.startsWith("http")) return path;
   return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;

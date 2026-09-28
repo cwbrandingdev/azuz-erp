@@ -26,23 +26,15 @@ import { formatCurrency, MONTH_NAMES_SHORT } from "@/lib/financial-utils";
 import { financeService } from "@/services";
 import type { ManagementDashboard } from "@/services/types";
 
-function isoDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function formatDisplayDate(value: string) {
   const [year, month, day] = value.split("-");
   return `${day}/${month}/${year}`;
 }
 
-function defaultRange() {
-  const now = new Date();
+function yearRange(year: number) {
   return {
-    from: isoDate(new Date(now.getFullYear(), now.getMonth(), 1)),
-    to: isoDate(now),
+    from: `${year}-01-01`,
+    to: `${year}-12-31`,
   };
 }
 
@@ -68,16 +60,23 @@ const HORIZON_PILL: Record<number, string> = {
 const cardClass =
   "rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
 
-export function FinanceDashboard() {
-  const initial = defaultRange();
-  const currentYear = new Date().getFullYear();
+export function FinanceDashboard({ year }: { year: number }) {
+  const initial = yearRange(year);
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   const [applied, setApplied] = useState(initial);
-  const [chartYear, setChartYear] = useState(currentYear);
+  const [chartYear, setChartYear] = useState(year);
   const [data, setData] = useState<ManagementDashboard | null>(null);
   const [loading, setLoading] = useState(true);
-  const years = [0, 1, 2, 3].map((offset) => currentYear - offset);
+  const years = [0, 1, 2, 3].map((offset) => new Date().getFullYear() - offset);
+
+  useEffect(() => {
+    const range = yearRange(year);
+    setFrom(range.from);
+    setTo(range.to);
+    setApplied(range);
+    setChartYear(year);
+  }, [year]);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,7 +196,7 @@ export function FinanceDashboard() {
 
           <section className={`${cardClass} p-5`}>
             <div className="flex items-start justify-between gap-3">
-              <h2 className="font-semibold text-slate-800">Projeção de Fluxo de Caixa</h2>
+              <h2 className="font-semibold text-slate-800">Previsão dos próximos dias</h2>
               <p className="text-xs text-slate-400">a partir de {todayLabel}</p>
             </div>
             <div className="mt-4 overflow-x-auto">
@@ -239,7 +238,7 @@ export function FinanceDashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <section className={`${cardClass} p-5`}>
           <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400">
-            PEO DO PERÍODO
+            PONTO DE EQUILÍBRIO
           </p>
           <p className="mt-3 text-4xl font-bold tracking-tight text-slate-900">
             {formatCurrency(data?.breakEven ?? 0)}
@@ -294,7 +293,7 @@ export function FinanceDashboard() {
             type="button"
             variant="outline"
             onClick={() => {
-              const range = defaultRange();
+              const range = yearRange(year);
               setFrom(range.from);
               setTo(range.to);
               setApplied(range);
@@ -307,7 +306,7 @@ export function FinanceDashboard() {
 
       <section className={`${cardClass} p-5`}>
         <h2 className="font-semibold text-slate-800">Análise</h2>
-        <p className="text-sm text-slate-400">Demonstração do Resultado — período filtrado</p>
+        <p className="text-sm text-slate-400">Receita, custos e lucro no período filtrado</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <tbody>
@@ -362,7 +361,7 @@ export function FinanceDashboard() {
         <div className="grid gap-6 xl:grid-cols-2">
           <div>
             <div className="mb-2 flex items-baseline justify-between">
-              <h3 className="text-sm font-semibold text-slate-700">Fluxo de Caixa por Mês</h3>
+              <h3 className="text-sm font-semibold text-slate-700">Entradas e saídas por mês</h3>
               <span className="text-xs text-slate-400">{chartYear}</span>
             </div>
             <div className="h-64">

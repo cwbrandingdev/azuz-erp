@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Info, Link2, Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Info, Link2, Loader2, Paperclip, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,7 @@ export function PortalRequestFormModal({
   const [referenceLinks, setReferenceLinks] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function resetForm() {
     setTitle("");
@@ -182,22 +183,53 @@ export function PortalRequestFormModal({
 
           <Field>
             <FieldLabel htmlFor="request-files">Anexos</FieldLabel>
-            <Input
+            <input
+              ref={fileInputRef}
               id="request-files"
               type="file"
               multiple
               accept="image/*,video/*,.pdf"
+              className="sr-only"
               onChange={(event) => {
                 const selected = Array.from(event.target.files ?? []);
                 setFiles(selected);
               }}
             />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full justify-start gap-2 rounded-xl border-[var(--atria-primary)]/15 text-[var(--atria-primary)]"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="size-4" />
+              {files.length > 0 ? "Trocar arquivos" : "Escolher arquivos"}
+            </Button>
             {files.length > 0 && (
-              <p className="mt-1 text-xs text-[var(--atria-primary)]/50">
-                {files.length} arquivo{files.length === 1 ? "" : "s"}{" "}
-                selecionado
-                {files.length === 1 ? "" : "s"}
-              </p>
+              <ul className="mt-2 flex flex-col gap-1">
+                {files.map((file) => (
+                  <li
+                    key={`${file.name}-${file.size}`}
+                    className="flex items-center gap-2 rounded-lg bg-[var(--atria-primary)]/[0.04] px-2 py-1.5 text-xs text-[var(--atria-primary)]"
+                  >
+                    <Paperclip className="size-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      className="rounded p-0.5 text-[var(--atria-primary)]/50 hover:bg-white hover:text-[var(--atria-primary)]"
+                      aria-label={`Remover ${file.name}`}
+                      onClick={() => {
+                        const next = files.filter((item) => item !== file);
+                        setFiles(next);
+                        if (fileInputRef.current && next.length === 0) {
+                          fileInputRef.current.value = "";
+                        }
+                      }}
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </Field>
         </FieldGroup>

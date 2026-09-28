@@ -194,6 +194,12 @@ export class UpdateTaskStatusDto {
   status: KanbanTaskStatus;
 }
 
+export class BulkDeleteTaskAssetsDto {
+  @IsArray()
+  @IsEntityId({ each: true })
+  assetIds: string[];
+}
+
 export class QueryTasksDto {
   @IsEntityId({ optional: true })
   columnId?: string;

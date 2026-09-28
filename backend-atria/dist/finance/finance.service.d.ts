@@ -342,6 +342,7 @@ export declare class FinanceService {
     private normalizeCategoryName;
     private resolveImportCategory;
     private ensureImportCategory;
+    private buildTransactionListDateFilter;
     private parseRangeStart;
     private parseRangeEnd;
     private resolveCalendarPeriod;

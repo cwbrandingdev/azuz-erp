@@ -417,15 +417,14 @@ export class FinanceService {
     const from = query.from ?? query.startDate;
     const to = query.to ?? query.endDate;
 
-    if (from || to) {
-      const dateRange: Prisma.DateTimeFilter = {};
-      if (from) dateRange.gte = this.parseRangeStart(from);
-      if (to) dateRange.lte = this.parseRangeEnd(to);
-
-      where.OR = [
-        { dueDate: dateRange },
-        { date: dateRange },
-      ];
+    const listDateFilter = this.buildTransactionListDateFilter(from, to);
+    if (listDateFilter) {
+      const existingAnd = where.AND
+        ? Array.isArray(where.AND)
+          ? where.AND
+          : [where.AND]
+        : [];
+      where.AND = [...existingAnd, listDateFilter];
     }
 
     if (query.search?.trim()) {
@@ -440,7 +439,7 @@ export class FinanceService {
 
     const orderBy: Prisma.FinancialTransactionOrderByWithRelationInput[] =
       sortBy === TransactionSortField.DATE
-        ? [{ dueDate: sortOrder }, { date: sortOrder }]
+        ? [{ date: sortOrder }, { dueDate: sortOrder }]
         : [{ [sortBy]: sortOrder }];
 
     const [total, transactions] = await Promise.all([
@@ -914,6 +913,20 @@ export class FinanceService {
       created,
     );
     return created;
+  }
+
+  private buildTransactionListDateFilter(
+    from?: string,
+    to?: string,
+  ): Prisma.FinancialTransactionWhereInput | undefined {
+    if (!from && !to) return undefined;
+
+    const dateRange: Prisma.DateTimeFilter = {};
+    if (from) dateRange.gte = this.parseRangeStart(from);
+    if (to) dateRange.lte = this.parseRangeEnd(to);
+
+    // Same basis as KPI totals (getCashFlow): competência (`date`) within the period.
+    return { date: dateRange };
   }
 
   private parseRangeStart(value: string): Date {

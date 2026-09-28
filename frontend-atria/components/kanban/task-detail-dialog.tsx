@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { Trash2, Upload, MessageSquareWarning } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { DeliverableMediaGrid } from "@/components/deliverables/deliverable-media-grid";
+import {
+  DeliverableMediaGrid,
+  type DeliverableBulkActionsState,
+} from "@/components/deliverables/deliverable-media-grid";
 import {
   Dialog,
   DialogClose,
@@ -163,6 +166,8 @@ export function TaskDetailDialog({
     useState<InternalReviewStatus>("not_required");
   const [isBypassingInternalReview, setIsBypassingInternalReview] =
     useState(false);
+  const [bulkDeliverableActions, setBulkDeliverableActions] =
+    useState<DeliverableBulkActionsState | null>(null);
 
   useEffect(() => {
     if (!open || !task) return;
@@ -187,6 +192,7 @@ export function TaskDetailDialog({
     setAssets(task.assets ?? []);
     setDeliverableItems([]);
     setDeliverableView(null);
+    setBulkDeliverableActions(null);
     setTab("deliverables");
     setError(null);
 
@@ -495,6 +501,53 @@ export function TaskDetailDialog({
   async function handleDeliverableItemDelete(item: DeliverableItem) {
     if (!task || !item.sourceAssetId) return;
     await handleAssetDelete(item.sourceAssetId);
+  }
+
+  async function handleBulkDeliverableDelete(items: DeliverableItem[]) {
+    if (!task) return;
+    const assetIds = items
+      .map((item) => item.sourceAssetId)
+      .filter((id): id is string => Boolean(id));
+    if (assetIds.length === 0) {
+      toast.error("Nenhum arquivo selecionado pode ser removido.");
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: "Remover entregas",
+      description:
+        assetIds.length === 1
+          ? "Remover este arquivo da tarefa?"
+          : `Remover ${assetIds.length} arquivos desta tarefa?`,
+      destructive: true,
+      confirmLabel: "Remover",
+    });
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      const result = await kanbanService.bulkDeleteTaskAssets(task.id, assetIds);
+      const removedIds = new Set(assetIds);
+      setAssets((prev) => prev.filter((asset) => !removedIds.has(asset.id)));
+      setDeliverableItems((prev) =>
+        prev.filter((item) => !item.sourceAssetId || !removedIds.has(item.sourceAssetId)),
+      );
+      onUpdate();
+      await Promise.all([loadHistory(task.id), loadDeliverableMedia(task.id)]);
+      toast.info(
+        result.deletedCount === 1
+          ? "Arquivo removido"
+          : `${result.deletedCount} arquivos removidos`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível remover os arquivos selecionados.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!task) return null;
@@ -841,6 +894,12 @@ export function TaskDetailDialog({
                 onItemsChange={setDeliverableItems}
                 onRevisionSubmitted={() => loadDeliverableMedia(task.id)}
                 onDeleteItem={canEdit ? handleDeliverableItemDelete : undefined}
+                onBulkDeleteItems={
+                  canEdit ? handleBulkDeliverableDelete : undefined
+                }
+                onBulkActionsChange={
+                  canEdit ? setBulkDeliverableActions : undefined
+                }
                 emptyMessage="Nenhuma entrega anexada ainda."
               />
             </div>
@@ -906,15 +965,34 @@ export function TaskDetailDialog({
 
         <DialogFooter className="gap-2 sm:justify-between">
           {canEdit ? (
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => void handleDelete()}
-              disabled={loading}
-            >
-              <Trash2 className="size-4" />
-              Excluir
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => void handleDelete()}
+                disabled={loading}
+              >
+                <Trash2 className="size-4" />
+                Excluir
+              </Button>
+              {tab === "deliverables" &&
+                bulkDeliverableActions &&
+                bulkDeliverableActions.selectedCount > 0 && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={bulkDeliverableActions.runBulkDelete}
+                    disabled={
+                      loading || bulkDeliverableActions.bulkDeleting
+                    }
+                  >
+                    <Trash2 className="size-4" />
+                    {bulkDeliverableActions.bulkDeleting
+                      ? "Removendo..."
+                      : `Remover selecionadas (${bulkDeliverableActions.selectedCount})`}
+                  </Button>
+                )}
+            </div>
           ) : (
             <span />
           )}

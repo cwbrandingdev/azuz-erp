@@ -85,6 +85,9 @@ let KanbanController = class KanbanController {
     uploadTaskAsset(user, id, file, caption) {
         return this.kanbanService.uploadTaskAsset(user.userId, user.role, id, file, caption);
     }
+    bulkDeleteTaskAssets(user, id, dto) {
+        return this.kanbanService.bulkDeleteTaskAssets(user.userId, user.role, id, dto.assetIds);
+    }
     deleteTaskAsset(user, id, assetId) {
         return this.kanbanService.deleteTaskAsset(user.userId, user.role, id, assetId);
     }
@@ -241,6 +244,16 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, Object, String]),
     __metadata("design:returntype", void 0)
 ], KanbanController.prototype, "uploadTaskAsset", null);
+__decorate([
+    (0, common_1.Post)('tasks/:id/assets/bulk-delete'),
+    (0, common_1.HttpCode)(200),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, task_dto_1.BulkDeleteTaskAssetsDto]),
+    __metadata("design:returntype", void 0)
+], KanbanController.prototype, "bulkDeleteTaskAssets", null);
 __decorate([
     (0, common_1.Delete)('tasks/:id/assets/:assetId'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

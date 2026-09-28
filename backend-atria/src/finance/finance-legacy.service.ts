@@ -93,10 +93,9 @@ export class FinanceLegacyService {
       const start = from ? this.parseStart(from) : null;
       const end = to ? this.parseEnd(to) : null;
       rows = rows.filter((row) => {
-        const scheduled = row.dueDate ?? row.date;
-        const matches = (value: Date) =>
-          (!start || value >= start) && (!end || value <= end);
-        return matches(scheduled) || matches(row.date);
+        return (
+          (!start || row.date >= start) && (!end || row.date <= end)
+        );
       });
     }
 

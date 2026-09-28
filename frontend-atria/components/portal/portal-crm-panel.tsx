@@ -11,7 +11,7 @@ interface PortalCrmPanelProps {
 
 export function PortalCrmPanel({ companyName }: PortalCrmPanelProps) {
   return (
-    <Card className="rounded-2xl border-[var(--atria-primary)]/10 bg-white p-8 shadow-sm">
+    <Card data-tour="portal-crm-card" className="rounded-2xl border-[var(--atria-primary)]/10 bg-white p-8 shadow-sm">
       <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
         <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--atria-accent)]/20 text-[var(--atria-primary)]">
           <KanbanSquare className="size-7" />

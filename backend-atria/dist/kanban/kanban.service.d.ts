@@ -685,6 +685,9 @@ export declare class KanbanService {
         };
     }>;
     deleteTaskAsset(userId: string, role: string, taskId: string, assetId: string): Promise<void>;
+    bulkDeleteTaskAssets(userId: string, role: string, taskId: string, assetIds: string[]): Promise<{
+        deletedCount: number;
+    }>;
     deleteTask(userId: string, role: string, id: string): Promise<void>;
     clearAllTasks(userId: string, role: string): Promise<{
         deletedCount: number;

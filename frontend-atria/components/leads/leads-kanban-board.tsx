@@ -466,7 +466,7 @@ export function LeadsKanbanBoard({
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div data-tour={portalClientView ? "portal-crm-header" : undefined}>
           <h1 className="text-xl font-bold text-[var(--atria-primary)] sm:text-2xl">
             {view === "reminders"
               ? "Lembretes CRM"
@@ -662,6 +662,10 @@ export function LeadsKanbanBoard({
           )}
 
           <DragDropContext onDragEnd={(result) => void handleDragEnd(result)}>
+            <div
+              className="min-w-0"
+              data-tour={portalClientView ? "portal-crm-board" : undefined}
+            >
             <KanbanHorizontalScroll>
               {filteredColumns.map((column) => {
                 const columnKey = leadColumnKey(column);
@@ -787,6 +791,7 @@ export function LeadsKanbanBoard({
                 );
               })}
             </KanbanHorizontalScroll>
+            </div>
           </DragDropContext>
         </>
       )}
