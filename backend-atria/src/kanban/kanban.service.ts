@@ -1242,6 +1242,45 @@ export class KanbanService {
     await this.deliverablesService.syncFromKanbanTask(taskId);
   }
 
+  async bulkDeleteTaskAssets(
+    userId: string,
+    role: string,
+    taskId: string,
+    assetIds: string[],
+  ) {
+    const task = await this.ensureTaskExists(taskId);
+    assertKanbanTaskEditAccess(role, userId, task);
+
+    const uniqueIds = [...new Set(assetIds)];
+    if (uniqueIds.length === 0) {
+      return { deletedCount: 0 };
+    }
+
+    const assets = await this.prisma.kanbanTaskAsset.findMany({
+      where: { taskId, id: { in: uniqueIds } },
+    });
+
+    if (assets.length !== uniqueIds.length) {
+      throw new NotFoundException('One or more task assets not found');
+    }
+
+    await this.prisma.kanbanTaskAsset.deleteMany({
+      where: { taskId, id: { in: uniqueIds } },
+    });
+
+    const fileNames = assets.map((asset) => asset.fileName).join(', ');
+    await this.logHistory(
+      userId,
+      taskId,
+      assets.length === 1
+        ? `Entregável removido: ${fileNames}`
+        : `Entregáveis removidos (${assets.length}): ${fileNames}`,
+    );
+    await this.deliverablesService.syncFromKanbanTask(taskId);
+
+    return { deletedCount: assets.length };
+  }
+
   async deleteTask(userId: string, role: string, id: string) {
     const task = await this.ensureTaskExists(id);
     assertKanbanTaskEditAccess(role, userId, task);

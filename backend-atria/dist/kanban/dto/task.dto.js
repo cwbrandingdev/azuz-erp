@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QueryTasksDto = exports.UpdateTaskStatusDto = exports.MoveTaskDto = exports.UpdateTaskDto = exports.CreateTaskDto = void 0;
+exports.QueryTasksDto = exports.BulkDeleteTaskAssetsDto = exports.UpdateTaskStatusDto = exports.MoveTaskDto = exports.UpdateTaskDto = exports.CreateTaskDto = void 0;
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 const client_1 = require("@prisma/client");
@@ -263,6 +263,15 @@ __decorate([
     (0, class_validator_1.IsEnum)(client_1.KanbanTaskStatus),
     __metadata("design:type", String)
 ], UpdateTaskStatusDto.prototype, "status", void 0);
+class BulkDeleteTaskAssetsDto {
+    assetIds;
+}
+exports.BulkDeleteTaskAssetsDto = BulkDeleteTaskAssetsDto;
+__decorate([
+    (0, class_validator_1.IsArray)(),
+    (0, entity_id_1.IsEntityId)({ each: true }),
+    __metadata("design:type", Array)
+], BulkDeleteTaskAssetsDto.prototype, "assetIds", void 0);
 class QueryTasksDto {
     columnId;
     clientId;

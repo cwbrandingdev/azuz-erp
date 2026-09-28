@@ -325,16 +325,14 @@ let FinanceService = class FinanceService {
         }
         const from = query.from ?? query.startDate;
         const to = query.to ?? query.endDate;
-        if (from || to) {
-            const dateRange = {};
-            if (from)
-                dateRange.gte = this.parseRangeStart(from);
-            if (to)
-                dateRange.lte = this.parseRangeEnd(to);
-            where.OR = [
-                { dueDate: dateRange },
-                { date: dateRange },
-            ];
+        const listDateFilter = this.buildTransactionListDateFilter(from, to);
+        if (listDateFilter) {
+            const existingAnd = where.AND
+                ? Array.isArray(where.AND)
+                    ? where.AND
+                    : [where.AND]
+                : [];
+            where.AND = [...existingAnd, listDateFilter];
         }
         if (query.search?.trim()) {
             where.description = {
@@ -345,7 +343,7 @@ let FinanceService = class FinanceService {
         const sortBy = query.sortBy ?? transaction_dto_1.TransactionSortField.DATE;
         const sortOrder = query.sortOrder ?? transaction_dto_1.SortOrder.ASC;
         const orderBy = sortBy === transaction_dto_1.TransactionSortField.DATE
-            ? [{ dueDate: sortOrder }, { date: sortOrder }]
+            ? [{ date: sortOrder }, { dueDate: sortOrder }]
             : [{ [sortBy]: sortOrder }];
         const [total, transactions] = await Promise.all([
             this.prisma.financialTransaction.count({ where }),
@@ -698,6 +696,16 @@ let FinanceService = class FinanceService {
         });
         categoryByKey.set(`${created.type}:${this.normalizeCategoryName(created.name)}`, created);
         return created;
+    }
+    buildTransactionListDateFilter(from, to) {
+        if (!from && !to)
+            return undefined;
+        const dateRange = {};
+        if (from)
+            dateRange.gte = this.parseRangeStart(from);
+        if (to)
+            dateRange.lte = this.parseRangeEnd(to);
+        return { date: dateRange };
     }
     parseRangeStart(value) {
         const datePart = value.slice(0, 10);

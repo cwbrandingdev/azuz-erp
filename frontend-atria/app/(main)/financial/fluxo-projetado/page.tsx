@@ -78,7 +78,12 @@ export default function FluxoProjetadoPage() {
   return (
     <div className="flex flex-col gap-6">
       <FinanceSubnav />
-      <h1 className="text-2xl font-bold text-[var(--atria-primary)]">FC Projetado</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Previsão</h1>
+        <p className="text-sm text-[var(--atria-primary)]/50">
+          Quanto sobra se os lançamentos ainda em aberto forem pagos. Fluxo de caixa projetado.
+        </p>
+      </div>
       <section
         data-tour="finance-fp-balance"
         className="rounded-2xl border border-emerald-200 bg-white p-5"
@@ -112,7 +117,7 @@ export default function FluxoProjetadoPage() {
         data-tour="finance-fp-table"
         className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-5"
       >
-        <h2 className="font-semibold text-[var(--atria-primary)]">Fluxo de Caixa Projetado</h2>
+        <h2 className="font-semibold text-[var(--atria-primary)]">O que vence daqui pra frente</h2>
         <p className="text-sm text-[var(--atria-primary)]/50">
           De amanhã em diante, sem limite — apenas pendentes, com saldo acumulado.
         </p>

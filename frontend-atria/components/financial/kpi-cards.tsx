@@ -1,3 +1,6 @@
+"use client";
+
+import Link from "next/link";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -6,13 +9,21 @@ import {
 import { Card } from "@/components/ui/card";
 import {
   FINANCE_COLORS,
-  formatCurrency,
   MONTH_NAMES_LONG,
+  formatCurrency,
 } from "@/lib/financial-utils";
 import type { FinanceOverview } from "@/services/types";
 
+type KpiKey =
+  | "totalRevenue"
+  | "totalExpenses"
+  | "netProfit"
+  | "pendingReceivables"
+  | "pendingPayables";
+
 interface KpiCardsProps {
   overview: FinanceOverview;
+  hrefFor?: (key: KpiKey) => string;
 }
 
 function getPeriodLabel(overview: FinanceOverview) {
@@ -26,56 +37,69 @@ function getPeriodLabel(overview: FinanceOverview) {
   return String(year);
 }
 
-const KPI_CONFIG = [
+const KPI_CONFIG: {
+  key: KpiKey;
+  label: string;
+  icon: typeof ArrowUpRight;
+  color: (typeof FINANCE_COLORS)[keyof typeof FINANCE_COLORS];
+  getValue: (overview: FinanceOverview) => string;
+  subtitle: (overview: FinanceOverview) => string;
+}[] = [
   {
     key: "totalRevenue",
-    label: "Receita Total",
+    label: "Receita",
     icon: ArrowUpRight,
     color: FINANCE_COLORS.income,
-    getValue: (o: FinanceOverview) => formatCurrency(o.totalRevenue),
+    getValue: (overview) => formatCurrency(overview.totalRevenue),
+    subtitle: (overview) => `Faturamento em ${getPeriodLabel(overview)}`,
   },
   {
     key: "totalExpenses",
-    label: "Despesas Totais",
+    label: "Despesas",
     icon: ArrowDownRight,
     color: FINANCE_COLORS.expense,
-    getValue: (o: FinanceOverview) => formatCurrency(o.totalExpenses),
+    getValue: (overview) => formatCurrency(overview.totalExpenses),
+    subtitle: (overview) => `Custos e gastos em ${getPeriodLabel(overview)}`,
   },
   {
     key: "netProfit",
-    label: "Saldo Líquido",
+    label: "Resultado",
     icon: TrendingUp,
     color: FINANCE_COLORS.balance,
-    getValue: (o: FinanceOverview) => formatCurrency(o.netProfit),
+    getValue: (overview) => formatCurrency(overview.netProfit),
+    subtitle: (overview) => `Receita − despesas em ${getPeriodLabel(overview)}`,
   },
   {
     key: "pendingReceivables",
-    label: "A Receber",
+    label: "A receber",
     icon: ArrowUpRight,
     color: FINANCE_COLORS.income,
-    getValue: (o: FinanceOverview) => formatCurrency(o.pendingReceivables),
-    subtitle: (o: FinanceOverview) => `Receitas pendentes em ${getPeriodLabel(o)}`,
+    getValue: (overview) => formatCurrency(overview.pendingReceivables),
+    subtitle: (overview) => `Pendências em ${getPeriodLabel(overview)}`,
   },
   {
     key: "pendingPayables",
-    label: "A Pagar",
+    label: "A pagar",
     icon: ArrowDownRight,
     color: FINANCE_COLORS.expense,
-    getValue: (o: FinanceOverview) => formatCurrency(o.pendingPayables),
-    subtitle: (o: FinanceOverview) => `Despesas pendentes em ${getPeriodLabel(o)}`,
+    getValue: (overview) => formatCurrency(overview.pendingPayables),
+    subtitle: (overview) => `Pendências em ${getPeriodLabel(overview)}`,
   },
-] as const;
+];
 
-export function KpiCards({ overview }: KpiCardsProps) {
+export function KpiCards({ overview, hrefFor }: KpiCardsProps) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {KPI_CONFIG.map((kpi) => {
         const Icon = kpi.icon;
-
-        return (
+        const href = hrefFor?.(kpi.key);
+        const card = (
           <Card
-            key={kpi.key}
-            className="relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm"
+            className={`relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm ${
+              href
+                ? "cursor-pointer transition hover:scale-[1.01] hover:shadow-md"
+                : ""
+            }`}
             style={{
               borderColor: kpi.color.border,
               boxShadow: `0 10px 30px -18px ${kpi.color.glow}`,
@@ -111,7 +135,7 @@ export function KpiCards({ overview }: KpiCardsProps) {
                     color: kpi.color.dark,
                   }}
                 >
-                  {kpi.label.split(" ")[0]}
+                  {kpi.label}
                 </span>
               </div>
 
@@ -122,15 +146,27 @@ export function KpiCards({ overview }: KpiCardsProps) {
                 {kpi.getValue(overview)}
               </p>
               <p className="mt-1 text-xs font-medium text-[var(--atria-primary)]/55">
-                {kpi.label}
+                {kpi.subtitle(overview)}
               </p>
-              {"subtitle" in kpi && kpi.subtitle && (
-                <p className="mt-1 text-[0.7rem] text-[var(--atria-primary)]/40">
-                  {kpi.subtitle(overview)}
+              {href ? (
+                <p className="mt-2 text-[11px] font-medium text-[var(--atria-primary)]/40">
+                  Ver lançamentos
                 </p>
-              )}
+              ) : null}
             </div>
           </Card>
+        );
+
+        if (!href) return <div key={kpi.key}>{card}</div>;
+
+        return (
+          <Link
+            key={kpi.key}
+            href={href}
+            className="rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--atria-primary)]"
+          >
+            {card}
+          </Link>
         );
       })}
     </div>

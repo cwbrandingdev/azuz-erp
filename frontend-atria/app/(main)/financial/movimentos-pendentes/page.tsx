@@ -98,9 +98,9 @@ export default function MovimentosPendentesPage() {
         className="flex flex-wrap items-center justify-between gap-3"
       >
         <div>
-          <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Movimentos Pendentes</h1>
+          <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Bater extrato</h1>
           <p className="text-sm text-[var(--atria-primary)]/50">
-            Concilie o extrato com os lançamentos sem alterar valor nem categoria.
+            Conferir o que o banco registrou com o que está no Atria. Isso se chama conciliação.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

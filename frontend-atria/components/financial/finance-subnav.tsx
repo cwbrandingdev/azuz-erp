@@ -11,11 +11,11 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/financial", label: "Dashboard" },
   { href: "/financial/lancamentos", label: "Lançamentos" },
-  { href: "/financial/movimentos-pendentes", label: "Mov. Pendentes" },
-  { href: "/financial/fluxo-de-caixa", label: "Fluxo de Caixa" },
-  { href: "/financial/fluxo-projetado", label: "FC Projetado" },
-  { href: "/financial/dre", label: "DRE" },
-  { href: "/financial/plano-de-contas", label: "Plano de Contas" },
+  { href: "/financial/movimentos-pendentes", label: "Bater extrato" },
+  { href: "/financial/fluxo-de-caixa", label: "Entradas e saídas" },
+  { href: "/financial/fluxo-projetado", label: "Previsão" },
+  { href: "/financial/dre", label: "Resultado do ano" },
+  { href: "/financial/plano-de-contas", label: "Categorias" },
 ];
 
 export function FinanceSubnav() {

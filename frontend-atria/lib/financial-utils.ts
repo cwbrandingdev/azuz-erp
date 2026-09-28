@@ -77,14 +77,32 @@ export interface FinancePeriod {
   year: number;
 }
 
+/** Year-first scope: `month: null` means the full calendar year. */
+export interface FinanceScope {
+  year: number;
+  month: number | null;
+}
+
 export function getCurrentPeriod(): FinancePeriod {
   const now = new Date();
   return { month: now.getMonth() + 1, year: now.getFullYear() };
 }
 
+export function getCurrentScope(): FinanceScope {
+  const period = getCurrentPeriod();
+  return { year: period.year, month: period.month };
+}
+
 export function formatPeriodLabel(period: FinancePeriod) {
   const name = MONTH_NAMES_LONG[period.month - 1] ?? "";
   return `${name} ${period.year}`;
+}
+
+export function formatScopeLabel(scope: FinanceScope) {
+  if (scope.month) {
+    return formatPeriodLabel({ month: scope.month, year: scope.year });
+  }
+  return String(scope.year);
 }
 
 export function formatMonthKey(period: FinancePeriod) {
@@ -105,6 +123,53 @@ export function getMonthBounds(period: FinancePeriod) {
     startDate: formatLocalDate(start),
     endDate: formatLocalDate(end),
   };
+}
+
+export function getYearBounds(year: number) {
+  return {
+    startDate: formatLocalDate(new Date(year, 0, 1)),
+    endDate: formatLocalDate(new Date(year, 11, 31)),
+  };
+}
+
+export function getScopeBounds(scope: FinanceScope) {
+  if (scope.month) {
+    return getMonthBounds({ month: scope.month, year: scope.year });
+  }
+  return getYearBounds(scope.year);
+}
+
+export function shiftScopeYear(scope: FinanceScope, deltaYears: number): FinanceScope {
+  return { ...scope, year: scope.year + deltaYears };
+}
+
+export function scopeToPeriod(scope: FinanceScope): FinancePeriod {
+  const now = getCurrentPeriod();
+  return {
+    year: scope.year,
+    month: scope.month ?? (scope.year === now.year ? now.month : 1),
+  };
+}
+
+export function buildLancamentosHref(params: {
+  year?: number;
+  month?: number | null;
+  type?: "" | "income" | "expense";
+  status?: "" | "paid" | "pending" | "overdue";
+  create?: boolean;
+}) {
+  const query = new URLSearchParams();
+  if (params.year) query.set("year", String(params.year));
+  if (params.month === null) {
+    query.set("month", "all");
+  } else if (params.month) {
+    query.set("month", String(params.month));
+  }
+  if (params.type) query.set("type", params.type);
+  if (params.status) query.set("status", params.status);
+  if (params.create) query.set("create", "1");
+  const suffix = query.toString();
+  return suffix ? `/financial/lancamentos?${suffix}` : "/financial/lancamentos";
 }
 
 /** Build a midday local ISO string from YYYY-MM-DD to avoid timezone day shifts. */
@@ -278,6 +343,27 @@ export function getDueDateKey(item: FinanceDueLike) {
   return getDateKey(item.dueDate ?? item.date);
 }
 
+/** Date shown in transaction lists (vencimento, or competência when absent). */
+export function getTransactionListDateKey(item: FinanceDueLike) {
+  return getDueDateKey(item);
+}
+
+export function isDateKeyInRange(
+  dateKey: string,
+  startDate: string,
+  endDate: string,
+) {
+  return dateKey >= startDate && dateKey <= endDate;
+}
+
+export function isTransactionInPeriod<T extends { date: string }>(
+  transaction: T,
+  period: FinancePeriod,
+) {
+  const { startDate, endDate } = getMonthBounds(period);
+  return isDateKeyInRange(getDateKey(transaction.date), startDate, endDate);
+}
+
 export function isUnpaidTransaction(item: { status: string }) {
   return item.status !== "paid";
 }
@@ -317,24 +403,9 @@ export function getMonthSheetRows<T extends FinanceDueLike>(
   transactions: T[],
   period: FinancePeriod,
 ) {
-  const { startDate, endDate } = getMonthBounds(period);
-  const current = getCurrentPeriod();
-  const isCurrentPeriod =
-    period.month === current.month && period.year === current.year;
-
-  return transactions.filter((transaction) => {
-    const dueKey = getDueDateKey(transaction);
-    const dateKey = getDateKey(transaction.date);
-    const inSelectedMonth =
-      (dueKey >= startDate && dueKey <= endDate) ||
-      (dateKey >= startDate && dateKey <= endDate);
-    if (inSelectedMonth) return true;
-    return (
-      isCurrentPeriod &&
-      isUnpaidTransaction(transaction) &&
-      dueKey < startDate
-    );
-  });
+  return transactions.filter((transaction) =>
+    isTransactionInPeriod(transaction, period),
+  );
 }
 
 export function getDueSheetBuckets<T extends FinanceDueLike>(
@@ -343,9 +414,6 @@ export function getDueSheetBuckets<T extends FinanceDueLike>(
   today = formatLocalDate(new Date()),
 ) {
   const { startDate, endDate } = getMonthBounds(period);
-  const current = getCurrentPeriod();
-  const isCurrentPeriod =
-    period.month === current.month && period.year === current.year;
 
   const dueNow: T[] = [];
   const monthEnd: T[] = [];
@@ -354,18 +422,14 @@ export function getDueSheetBuckets<T extends FinanceDueLike>(
     if (!isUnpaidTransaction(transaction)) continue;
 
     const dueKey = getDueDateKey(transaction);
-    const inSelectedMonth = dueKey >= startDate && dueKey <= endDate;
+    if (!isDateKeyInRange(dueKey, startDate, endDate)) continue;
 
     if (dueKey <= today) {
-      if (inSelectedMonth || (isCurrentPeriod && dueKey < startDate)) {
-        dueNow.push(transaction);
-      }
+      dueNow.push(transaction);
       continue;
     }
 
-    if (inSelectedMonth) {
-      monthEnd.push(transaction);
-    }
+    monthEnd.push(transaction);
   }
 
   return {

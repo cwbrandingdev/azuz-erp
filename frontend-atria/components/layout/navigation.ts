@@ -60,7 +60,7 @@ export const navSections: NavSection[] = [
         icon: History,
       },
       {
-        name: "Financeiro novo",
+        name: "Financeiro",
         href: "/financial",
         icon: Wallet,
       },

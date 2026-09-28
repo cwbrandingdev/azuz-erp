@@ -6,7 +6,6 @@ import {
   ArrowUpAZ,
   CalendarClock,
   CheckCircle2,
-  Columns2,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -152,35 +151,38 @@ function SheetColumnTable({
   onDelete: (transaction: FinanceTransaction) => void;
 }) {
   return (
-    <Table className="text-[11px]">
+    <Table className="text-sm">
       <TableHeader className="sticky top-0 z-10 bg-[#f8fafc]">
         <TableRow className="bg-[#f8fafc] hover:bg-[#f8fafc]">
-          <TableHead className="h-7 px-1.5 text-[10px] text-[var(--atria-primary)]/50">
+          <TableHead className="h-8 px-2 text-xs text-[var(--atria-primary)]/50">
             Descrição
           </TableHead>
-          <TableHead className="h-7 px-1.5 text-[10px] text-[var(--atria-primary)]/50">
+          <TableHead className="h-8 px-2 text-xs text-[var(--atria-primary)]/50">
+            Data
+          </TableHead>
+          <TableHead className="h-8 px-2 text-xs text-[var(--atria-primary)]/50">
             Venc.
           </TableHead>
-          <TableHead className="h-7 px-1.5 text-[10px] text-[var(--atria-primary)]/50">
+          <TableHead className="h-8 px-2 text-xs text-[var(--atria-primary)]/50">
             Status
           </TableHead>
-          <TableHead className="h-7 px-1.5 text-right text-[10px] text-[var(--atria-primary)]/50">
+          <TableHead className="h-8 px-2 text-right text-xs text-[var(--atria-primary)]/50">
             Valor
           </TableHead>
-          <TableHead className="h-7 w-8 px-1 text-[10px] text-[var(--atria-primary)]/50" />
+          <TableHead className="h-8 w-9 px-1 text-xs text-[var(--atria-primary)]/50" />
         </TableRow>
       </TableHeader>
       <TableBody>
         {loading ? (
           <TableRow>
-            <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+            <TableCell colSpan={6} className="py-4 text-center text-muted-foreground">
               Carregando...
             </TableCell>
           </TableRow>
         ) : rows.length === 0 ? (
           emptyLabel ? (
             <TableRow>
-              <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={6} className="py-4 text-center text-muted-foreground">
                 {emptyLabel}
               </TableCell>
             </TableRow>
@@ -201,21 +203,24 @@ function SheetColumnTable({
               >
                 <TableCell
                   className={cn(
-                    "max-w-0 px-1.5 py-0.5 font-medium",
+                    "max-w-0 px-2 py-1.5 font-medium",
                     isPaid ? "text-emerald-900" : "text-[var(--atria-primary)]",
                   )}
                 >
                   <p className="truncate">
                     {getTransactionLabel(transaction)}
                   </p>
-                  <p className="truncate text-[10px] font-normal opacity-60">
+                  <p className="truncate text-xs font-normal opacity-60">
                     {transaction.category}
                   </p>
                 </TableCell>
-                <TableCell className="px-1.5 py-0.5">
+                <TableCell className="whitespace-nowrap px-2 py-1.5 text-xs text-[var(--atria-primary)]/70">
+                  {formatDate(transaction.date)}
+                </TableCell>
+                <TableCell className="px-2 py-1.5">
                   <span
                     className={cn(
-                      "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-semibold",
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
                       isPaid
                         ? "bg-emerald-200 text-emerald-900"
                         : focus === "due"
@@ -223,13 +228,13 @@ function SheetColumnTable({
                           : "bg-violet-50 text-violet-800",
                     )}
                   >
-                    <ArrowRight className="size-2.5" />
+                    <ArrowRight className="size-3" />
                     {formatDate(dueKey)}
                   </span>
                 </TableCell>
-                <TableCell className="px-1.5 py-0.5">
+                <TableCell className="px-2 py-1.5">
                   <Badge
-                    className={cn(STATUS_STYLES[transaction.status], "px-1.5 py-0 text-[10px]")}
+                    className={cn(STATUS_STYLES[transaction.status], "px-2 py-0.5 text-xs")}
                     variant="outline"
                   >
                     {STATUS_LABELS[transaction.status]}
@@ -237,7 +242,7 @@ function SheetColumnTable({
                 </TableCell>
                 <TableCell
                   className={cn(
-                    "px-1.5 py-0.5 text-right font-bold",
+                    "px-2 py-1.5 text-right font-bold",
                     isPaid
                       ? transaction.type === "expense"
                         ? "text-red-600"
@@ -250,7 +255,7 @@ function SheetColumnTable({
                   {transaction.type === "expense" ? "−" : "+"}
                   {formatCurrency(transaction.amount)}
                 </TableCell>
-                <TableCell className="px-0.5 py-0.5">
+                <TableCell className="px-1 py-1.5">
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       render={<Button variant="ghost" size="icon-xs" />}
@@ -296,7 +301,6 @@ export function FinanceSheetView({
 }: FinanceSheetViewProps) {
   const [focus, setFocus] = useState<FinanceSheetFocus>("all");
   const [sort, setSort] = useState<FinanceSheetSort>("due");
-  const [twoColumns, setTwoColumns] = useState(false);
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -311,18 +315,7 @@ export function FinanceSheetView({
 
     try {
       const { startDate, endDate } = getMonthBounds(period);
-      const [pending, overdue, paid] = await Promise.all([
-        fetchAllTransactions({ status: "pending" }),
-        fetchAllTransactions({ status: "overdue" }),
-        fetchAllTransactions({ status: "paid", startDate, endDate }),
-      ]);
-
-      const byId = new Map<string, FinanceTransaction>();
-      for (const transaction of [...pending, ...overdue, ...paid]) {
-        byId.set(transaction.id, transaction);
-      }
-
-      setTransactions([...byId.values()]);
+      setTransactions(await fetchAllTransactions({ startDate, endDate }));
     } catch {
       if (!silent) setTransactions([]);
     } finally {
@@ -344,9 +337,6 @@ export function FinanceSheetView({
     [period, transactions],
   );
 
-  const currentFilter =
-    FILTER_BUTTONS.find((item) => item.id === focus) ?? FILTER_BUTTONS[0];
-
   const visibleRows = useMemo(() => {
     const source =
       focus === "all"
@@ -367,15 +357,21 @@ export function FinanceSheetView({
     return applySheetSort(filtered, sort);
   }, [buckets.dueNow, buckets.monthEnd, focus, period, search, sort, transactions]);
 
-  const midpoint = Math.ceil(visibleRows.length / 2);
-  const leftRows = visibleRows.slice(0, midpoint);
-  const rightRows = visibleRows.slice(midpoint);
+  const expenseRows = useMemo(
+    () => visibleRows.filter((transaction) => transaction.type === "expense"),
+    [visibleRows],
+  );
+  const incomeRows = useMemo(
+    () => visibleRows.filter((transaction) => transaction.type === "income"),
+    [visibleRows],
+  );
 
   const totals = useMemo(() => {
     return visibleRows.reduce(
       (acc, transaction) => {
         if (transaction.status === "paid") {
-          acc.paid += transaction.amount;
+          if (transaction.type === "income") acc.incomePaid += transaction.amount;
+          else acc.expensePaid += transaction.amount;
         } else if (transaction.type === "income") {
           acc.income += transaction.amount;
         } else {
@@ -383,7 +379,7 @@ export function FinanceSheetView({
         }
         return acc;
       },
-      { income: 0, expense: 0, paid: 0 },
+      { income: 0, expense: 0, incomePaid: 0, expensePaid: 0 },
     );
   }, [visibleRows]);
 
@@ -435,136 +431,119 @@ export function FinanceSheetView({
 
   return (
     <>
-      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
-        <div className="shrink-0 border-b border-[var(--atria-primary)]/10 bg-white px-3 py-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {FILTER_BUTTONS.map((item) => (
-              <Button
-                key={item.id}
-                type="button"
-                variant={focus === item.id ? "default" : "outline"}
-                size="xs"
-                className={cn(
-                  "rounded-lg",
-                  focus === item.id
-                    ? "bg-[var(--atria-primary)] text-white"
-                    : "border-[var(--atria-primary)]/15 text-[var(--atria-primary)]",
-                )}
-                onClick={() => setFocus(item.id)}
-                aria-pressed={focus === item.id}
-              >
-                {item.label}
-              </Button>
-            ))}
-
-            <span className="mx-1 h-4 w-px bg-[var(--atria-primary)]/15" />
-
-            {SORT_BUTTONS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Button
-                  key={item.id}
-                  type="button"
-                  variant={sort === item.id ? "default" : "outline"}
-                  size="xs"
-                  className={cn(
-                    "rounded-lg",
-                    sort === item.id
-                      ? "bg-violet-600 text-white hover:bg-violet-600"
-                      : "border-violet-200 text-violet-800 hover:bg-violet-50",
-                  )}
-                  onClick={() => setSort(item.id)}
-                  aria-pressed={sort === item.id}
-                >
-                  <Icon className="size-3.5" />
-                  {item.label}
-                </Button>
-              );
-            })}
-
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--atria-primary)]/10 bg-white px-3 py-2">
+          {FILTER_BUTTONS.map((item) => (
             <Button
+              key={item.id}
               type="button"
-              variant={twoColumns ? "default" : "outline"}
+              variant={focus === item.id ? "default" : "outline"}
               size="xs"
               className={cn(
                 "rounded-lg",
-                twoColumns
+                focus === item.id
                   ? "bg-[var(--atria-primary)] text-white"
                   : "border-[var(--atria-primary)]/15 text-[var(--atria-primary)]",
               )}
-              onClick={() => setTwoColumns((current) => !current)}
-              aria-pressed={twoColumns}
+              onClick={() => setFocus(item.id)}
+              aria-pressed={focus === item.id}
             >
-              <Columns2 className="size-3.5" />
-              {twoColumns ? "1 coluna" : "2 colunas"}
+              {item.label}
             </Button>
+          ))}
 
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar..."
-              className="h-7 max-w-[220px]"
-            />
+          <span className="mx-1 h-4 w-px bg-[var(--atria-primary)]/15" />
 
-            <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-800">
-              {visibleRows.length} {visibleRows.length === 1 ? "conta" : "contas"}
-            </span>
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-              Receber {formatCurrency(totals.income)}
-            </span>
-            <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">
-              Pagar {formatCurrency(totals.expense)}
-            </span>
-            {focus === "all" && (
-              <span className="rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                Pago {formatCurrency(totals.paid)}
-              </span>
-            )}
-          </div>
+          {SORT_BUTTONS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Button
+                key={item.id}
+                type="button"
+                variant={sort === item.id ? "default" : "outline"}
+                size="xs"
+                className={cn(
+                  "rounded-lg",
+                  sort === item.id
+                    ? "bg-violet-600 text-white hover:bg-violet-600"
+                    : "border-violet-200 text-violet-800 hover:bg-violet-50",
+                )}
+                onClick={() => setSort(item.id)}
+                aria-pressed={sort === item.id}
+              >
+                <Icon className="size-3.5" />
+                {item.label}
+              </Button>
+            );
+          })}
+
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar..."
+            className="h-7 max-w-[180px]"
+          />
         </div>
 
-        {twoColumns ? (
-          <div className="grid min-h-0 flex-1 grid-cols-2 overflow-hidden">
-            <div className="min-h-0 overflow-auto border-[var(--atria-primary)]/10 border-r">
-              <SheetColumnTable
-                rows={loading ? [] : leftRows}
-                focus={focus}
-                loading={loading}
-                emptyLabel={currentFilter.empty(period)}
-                onEdit={setEditingTransaction}
-                onMarkAsPaid={handleMarkAsPaid}
-                onDelete={setDeletingTransaction}
-              />
-            </div>
-            <div className="min-h-0 overflow-auto">
-              <SheetColumnTable
-                rows={loading ? [] : rightRows}
-                focus={focus}
-                emptyLabel=""
-                onEdit={setEditingTransaction}
-                onMarkAsPaid={handleMarkAsPaid}
-                onDelete={setDeletingTransaction}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="min-h-0 flex-1 overflow-auto">
+        <div className="grid gap-3 md:grid-cols-2">
+          <section className="overflow-hidden rounded-xl border border-red-100 bg-white">
+            <header className="flex items-center justify-between gap-2 border-b border-red-100 bg-red-50/70 px-3 py-2">
+              <div>
+                <h2 className="text-base font-semibold text-red-800">Saídas</h2>
+                <p className="text-xs text-red-700/70">
+                  {expenseRows.length} {expenseRows.length === 1 ? "lançamento" : "lançamentos"}
+                </p>
+              </div>
+              <div className="text-right text-xs font-semibold">
+                <p className="text-red-700">A pagar {formatCurrency(totals.expense)}</p>
+                {focus === "all" ? (
+                  <p className="text-red-600/70">Pago {formatCurrency(totals.expensePaid)}</p>
+                ) : null}
+              </div>
+            </header>
             <SheetColumnTable
-              rows={loading ? [] : visibleRows}
+              rows={loading ? [] : expenseRows}
               focus={focus}
               loading={loading}
-              emptyLabel={currentFilter.empty(period)}
+              emptyLabel="Nenhuma saída neste filtro"
               onEdit={setEditingTransaction}
               onMarkAsPaid={handleMarkAsPaid}
               onDelete={setDeletingTransaction}
             />
-          </div>
-        )}
+          </section>
+
+          <section className="overflow-hidden rounded-xl border border-emerald-100 bg-white">
+            <header className="flex items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/70 px-3 py-2">
+              <div>
+                <h2 className="text-base font-semibold text-emerald-800">Entradas</h2>
+                <p className="text-xs text-emerald-700/70">
+                  {incomeRows.length} {incomeRows.length === 1 ? "lançamento" : "lançamentos"}
+                </p>
+              </div>
+              <div className="text-right text-xs font-semibold">
+                <p className="text-emerald-700">A receber {formatCurrency(totals.income)}</p>
+                {focus === "all" ? (
+                  <p className="text-emerald-600/70">Recebido {formatCurrency(totals.incomePaid)}</p>
+                ) : null}
+              </div>
+            </header>
+            <SheetColumnTable
+              rows={loading ? [] : incomeRows}
+              focus={focus}
+              loading={loading}
+              emptyLabel="Nenhuma entrada neste filtro"
+              onEdit={setEditingTransaction}
+              onMarkAsPaid={handleMarkAsPaid}
+              onDelete={setDeletingTransaction}
+            />
+          </section>
+        </div>
       </div>
 
       <TransactionDialog
         transaction={editingTransaction}
         open={Boolean(editingTransaction)}
+        trigger={null}
         onOpenChange={(isOpen) => {
           if (!isOpen) setEditingTransaction(null);
         }}

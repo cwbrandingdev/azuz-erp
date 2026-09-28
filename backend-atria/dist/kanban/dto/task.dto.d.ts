@@ -43,6 +43,9 @@ export declare class MoveTaskDto {
 export declare class UpdateTaskStatusDto {
     status: KanbanTaskStatus;
 }
+export declare class BulkDeleteTaskAssetsDto {
+    assetIds: string[];
+}
 export declare class QueryTasksDto {
     columnId?: string;
     clientId?: string;

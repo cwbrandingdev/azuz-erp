@@ -119,7 +119,10 @@ export default function FluxoDeCaixaPage() {
     <div className="flex flex-col gap-6">
       <FinanceSubnav />
       <div>
-        <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Fluxo de Caixa</h1>
+        <h1 className="text-2xl font-bold text-[var(--atria-primary)]">Entradas e saídas</h1>
+        <p className="text-sm text-[var(--atria-primary)]/50">
+          O que já entrou e saiu no período, agrupado por tipo. Relatório de fluxo de caixa.
+        </p>
       </div>
       <section
         data-tour="finance-fc-filters"
@@ -134,7 +137,7 @@ export default function FluxoDeCaixaPage() {
             <option value="expense">Saídas</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs">PLANO
+        <label className="flex flex-col gap-1 text-xs">CATEGORIA
           <select className="h-8 max-w-52 rounded-lg border px-2 text-sm" value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
             <option value="">Todos</option>
             {accounts.filter((account) => account.code && !account.isGroup).map((account) => (

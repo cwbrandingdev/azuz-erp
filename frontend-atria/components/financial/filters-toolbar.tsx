@@ -63,8 +63,8 @@ export function FiltersToolbar({
               className="h-9 rounded-xl border border-amber-200 bg-amber-50/60 px-3 text-sm font-medium text-amber-800"
             >
               <option value="">Todos os status</option>
-              <option value="paid">Pago</option>
-              <option value="pending">Pendente</option>
+              <option value="paid">Recebido / pago</option>
+              <option value="pending">Em aberto</option>
             </select>
 
             <select

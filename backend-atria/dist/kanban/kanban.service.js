@@ -865,6 +865,29 @@ let KanbanService = class KanbanService {
         await this.logHistory(userId, taskId, `Entregável removido: ${asset.fileName}`);
         await this.deliverablesService.syncFromKanbanTask(taskId);
     }
+    async bulkDeleteTaskAssets(userId, role, taskId, assetIds) {
+        const task = await this.ensureTaskExists(taskId);
+        (0, rbac_1.assertKanbanTaskEditAccess)(role, userId, task);
+        const uniqueIds = [...new Set(assetIds)];
+        if (uniqueIds.length === 0) {
+            return { deletedCount: 0 };
+        }
+        const assets = await this.prisma.kanbanTaskAsset.findMany({
+            where: { taskId, id: { in: uniqueIds } },
+        });
+        if (assets.length !== uniqueIds.length) {
+            throw new common_1.NotFoundException('One or more task assets not found');
+        }
+        await this.prisma.kanbanTaskAsset.deleteMany({
+            where: { taskId, id: { in: uniqueIds } },
+        });
+        const fileNames = assets.map((asset) => asset.fileName).join(', ');
+        await this.logHistory(userId, taskId, assets.length === 1
+            ? `Entregável removido: ${fileNames}`
+            : `Entregáveis removidos (${assets.length}): ${fileNames}`);
+        await this.deliverablesService.syncFromKanbanTask(taskId);
+        return { deletedCount: assets.length };
+    }
     async deleteTask(userId, role, id) {
         const task = await this.ensureTaskExists(id);
         (0, rbac_1.assertKanbanTaskEditAccess)(role, userId, task);

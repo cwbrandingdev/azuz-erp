@@ -754,7 +754,7 @@ export interface CreateTransactionInput {
   categoryId: string;
   recurrenceDay?: number;
   recurrenceMonths?: number;
-  bankAccountId?: string;
+  bankAccountId?: string | null;
 }
 
 export interface ImportFinanceTransactionInput {

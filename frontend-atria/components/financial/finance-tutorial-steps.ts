@@ -13,16 +13,16 @@ export type FinanceTutorialStep = {
   body: string;
 };
 
-export const FINANCE_TUTORIAL_STORAGE_VERSION = "v1";
+export const FINANCE_TUTORIAL_STORAGE_VERSION = "v3";
 
 export const FINANCE_TUTORIAL_TAB_LABELS: Record<FinanceTutorialTabId, string> = {
   dashboard: "Dashboard",
   lancamentos: "Lançamentos",
-  "movimentos-pendentes": "Mov. Pendentes",
-  "fluxo-de-caixa": "Fluxo de Caixa",
-  "fluxo-projetado": "FC Projetado",
-  dre: "DRE",
-  "plano-de-contas": "Plano de Contas",
+  "movimentos-pendentes": "Bater extrato",
+  "fluxo-de-caixa": "Entradas e saídas",
+  "fluxo-projetado": "Previsão",
+  dre: "Resultado do ano",
+  "plano-de-contas": "Categorias",
 };
 
 export const FINANCE_TUTORIAL_STEPS: Record<
@@ -34,75 +34,75 @@ export const FINANCE_TUTORIAL_STEPS: Record<
       target: '[data-tour="finance-subnav"]',
       title: "Navegação do financeiro",
       body:
-        "Use estas abas para alternar entre o painel, lançamentos, conciliação, fluxos, DRE e plano de contas.",
+        "Dashboard resume o período. Lançamentos é o livro: crie, edite e veja receitas e despesas.",
     },
     {
       target: '[data-tour="finance-kpi"]',
       title: "Indicadores do período",
       body:
-        "Receita, despesas, saldo líquido e valores pendentes a receber e a pagar no mês selecionado.",
+        "Receita, despesas, resultado e valores em aberto. O padrão é o mês atual. Clique em qualquer cartão para abrir a lista correspondente.",
     },
     {
       target: '[data-tour="finance-period"]',
-      title: "Período dos indicadores",
+      title: "Mês atual ou ano todo",
       body:
-        "Troque o mês para atualizar os cartões de resumo. Os gráficos abaixo usam o filtro de datas próprio.",
+        "Começa no mês de hoje. Troque o mês ou escolha Ano todo para ver o exercício completo.",
+    },
+    {
+      target: '[data-tour="finance-recent"]',
+      title: "Últimos lançamentos",
+      body:
+        "A prévia dos movimentos mais recentes. Use Ver todos para abrir o livro completo.",
     },
     {
       target: '[data-tour="finance-view-toggle"]',
-      title: "Visão geral ou planilha",
+      title: "Modo planilha",
       body:
-        "Na visão geral você analisa saldos e gráficos. Na planilha edita lançamentos em massa, como uma planilha.",
+        "Edição em massa, no estilo planilha. O dia a dia de consultar e lançar fica em Lançamentos.",
     },
     {
       target: '[data-tour="finance-balance"]',
       title: "Saldo disponível",
       body:
-        "Soma apenas lançamentos já pagos. É o dinheiro que você tem hoje, antes das contas ainda em aberto.",
+        "Soma apenas lançamentos já pagos. É o dinheiro realizado, antes das contas ainda em aberto.",
     },
     {
       target: '[data-tour="finance-period-filter"]',
       title: "Filtro da análise",
       body:
-        "Defina o intervalo para a demonstração do resultado e os gráficos históricos do painel.",
+        "Ajuste o intervalo da análise e dos gráficos. Por padrão cobre o ano selecionado.",
     },
   ],
   lancamentos: [
     {
       target: '[data-tour="finance-subnav"]',
       title: "Onde você está",
-      body: "Volte ao dashboard ou avance para conciliação e relatórios pelas abas superiores.",
+      body: "Esta é a lista de todos os lançamentos. O dashboard resume; aqui você opera o livro.",
     },
     {
       target: '[data-tour="finance-lancamentos-header"]',
-      title: "Lançamentos rápidos",
+      title: "Livro de lançamentos",
       body:
-        "Registre entradas e saídas no livro-caixa. Cada lançamento usa plano de contas e, se quiser, um banco.",
+        "Receitas e despesas do ano — ou do mês, se filtrar. Depois de salvar, o registro aparece nesta lista.",
     },
     {
-      target: '[data-tour="finance-lancamentos-banks"]',
-      title: "Contas bancárias",
+      target: '[data-tour="finance-lancamentos-actions"]',
+      title: "Novo lançamento",
       body:
-        "Cadastre bancos e caixas e importe extratos OFX. Eles aparecem nos lançamentos e na conciliação.",
+        "Registre um recebimento ou pagamento. Informe plano de contas, vencimento e, se quiser, o banco. Dá para importar planilha ou cadastrar contas bancárias.",
     },
     {
-      target: '[data-tour="finance-lancamentos-income"]',
-      title: "Entradas",
+      target: '[data-tour="finance-lancamentos-list"]',
+      title: "Todas as transações",
       body:
-        "Receitas, recebimentos e outros créditos. Marque como já recebido ou deixe pendente para o fluxo projetado.",
-    },
-    {
-      target: '[data-tour="finance-lancamentos-expense"]',
-      title: "Saídas",
-      body:
-        "Despesas e pagamentos. Use recorrência para repetir o mesmo valor por vários meses.",
+        "Busque, filtre por tipo e status, edite, marque como pago ou exclua. Este é o lugar para conferir o que entrou.",
     },
   ],
   "movimentos-pendentes": [
     {
       target: '[data-tour="finance-subnav"]',
-      title: "Conciliação bancária",
-      body: "Esta aba liga o extrato importado aos lançamentos do sistema sem mudar valores ou categorias.",
+      title: "Bater extrato",
+      body: "Aqui você confere se o que o banco registrou é o mesmo que está no Atria.",
     },
     {
       target: '[data-tour="finance-mov-header"]',
@@ -132,8 +132,8 @@ export const FINANCE_TUTORIAL_STEPS: Record<
   "fluxo-de-caixa": [
     {
       target: '[data-tour="finance-subnav"]',
-      title: "Fluxo de caixa realizado",
-      body: "Aqui você vê o que entrou e saiu, agrupado por blocos contábeis do plano de contas.",
+      title: "Entradas e saídas",
+      body: "Lista o dinheiro que já entrou e saiu, agrupado por tipo de categoria.",
     },
     {
       target: '[data-tour="finance-fc-filters"]',
@@ -156,8 +156,8 @@ export const FINANCE_TUTORIAL_STEPS: Record<
   "fluxo-projetado": [
     {
       target: '[data-tour="finance-subnav"]',
-      title: "Projeção futura",
-      body: "Simule o caixa a partir de amanhã usando apenas lançamentos ainda não pagos.",
+      title: "Previsão",
+      body: "Mostra quanto sobra se os lançamentos ainda em aberto forem pagos daqui pra frente.",
     },
     {
       target: '[data-tour="finance-fp-balance"]',
@@ -180,8 +180,8 @@ export const FINANCE_TUTORIAL_STEPS: Record<
   dre: [
     {
       target: '[data-tour="finance-subnav"]',
-      title: "Demonstração do resultado",
-      body: "Visão anual por competência (data do lançamento), alinhada ao plano de contas.",
+      title: "Resultado do ano",
+      body: "Receita, custos e lucro mês a mês. É o relatório que o contador chama de DRE.",
     },
     {
       target: '[data-tour="finance-dre-header"]',
@@ -198,8 +198,8 @@ export const FINANCE_TUTORIAL_STEPS: Record<
   "plano-de-contas": [
     {
       target: '[data-tour="finance-subnav"]',
-      title: "Plano de contas",
-      body: "Todas as categorias usadas nos lançamentos, organizadas por grupo contábil.",
+      title: "Categorias",
+      body: "Os tipos de receita e despesa usados ao lançar. Cada um entra em um grupo do resultado do ano.",
     },
     {
       target: '[data-tour="finance-coa-header"]',

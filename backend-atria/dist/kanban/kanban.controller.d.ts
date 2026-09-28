@@ -3,7 +3,7 @@ import { CreateCommentDto } from './dto/comment.dto';
 import { CreateColumnDto, ReorderColumnsDto, UpdateColumnDto } from './dto/column.dto';
 import { InternalReviewDto } from './dto/internal-review.dto';
 import { QueryDeletionHistoryDto } from './dto/deletion-history.dto';
-import { CreateTaskDto, MoveTaskDto, QueryTasksDto, UpdateTaskDto, UpdateTaskStatusDto } from './dto/task.dto';
+import { BulkDeleteTaskAssetsDto, CreateTaskDto, MoveTaskDto, QueryTasksDto, UpdateTaskDto, UpdateTaskStatusDto } from './dto/task.dto';
 import { KanbanService } from './kanban.service';
 export declare class KanbanController {
     private readonly kanbanService;
@@ -644,6 +644,9 @@ export declare class KanbanController {
             name: string;
             avatarUrl: string | null;
         };
+    }>;
+    bulkDeleteTaskAssets(user: AuthenticatedUser, id: string, dto: BulkDeleteTaskAssetsDto): Promise<{
+        deletedCount: number;
     }>;
     deleteTaskAsset(user: AuthenticatedUser, id: string, assetId: string): Promise<void>;
     deleteTask(user: AuthenticatedUser, id: string): Promise<void>;

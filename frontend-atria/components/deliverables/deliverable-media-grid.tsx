@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ChevronLeft,
@@ -32,11 +32,19 @@ const STATUS_LABELS: Record<DeliverableItemStatus, string> = {
   requires_adjustment: "Necessita de ajustes",
 };
 
+export interface DeliverableBulkActionsState {
+  selectedCount: number;
+  bulkDeleting: boolean;
+  runBulkDelete: () => void;
+}
+
 interface DeliverableMediaGridProps {
   items: DeliverableItem[];
   onItemsChange?: (items: DeliverableItem[]) => void;
   onRevisionSubmitted?: () => void | Promise<void>;
   onDeleteItem?: (item: DeliverableItem) => void | Promise<void>;
+  onBulkDeleteItems?: (items: DeliverableItem[]) => void | Promise<void>;
+  onBulkActionsChange?: (state: DeliverableBulkActionsState | null) => void;
   onReviseItem?: (
     itemId: string,
     data: {
@@ -75,6 +83,8 @@ export function DeliverableMediaGrid({
   onItemsChange,
   onRevisionSubmitted,
   onDeleteItem,
+  onBulkDeleteItems,
+  onBulkActionsChange,
   onReviseItem,
   onApproveItem,
   onDownloadItem,
@@ -95,10 +105,21 @@ export function DeliverableMediaGrid({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const sortedItems = useMemo(
     () => [...items].sort((a, b) => a.sortOrder - b.sortOrder),
     [items],
+  );
+
+  const bulkDeleteEnabled = Boolean(onBulkDeleteItems);
+  const deletableItems = useMemo(
+    () =>
+      bulkDeleteEnabled
+        ? sortedItems.filter((item) => Boolean(item.sourceAssetId))
+        : [],
+    [bulkDeleteEnabled, sortedItems],
   );
 
   const lightboxItems = useMemo(
@@ -115,6 +136,67 @@ export function DeliverableMediaGrid({
       return Math.min(current, sortedItems.length - 1);
     });
   }, [sortedItems.length]);
+
+  useEffect(() => {
+    setSelectedIds((current) => {
+      const valid = new Set(sortedItems.map((item) => item.id));
+      const next = new Set<string>();
+      for (const id of current) {
+        if (valid.has(id)) next.add(id);
+      }
+      return next;
+    });
+  }, [sortedItems]);
+
+  const allDeletableSelected =
+    deletableItems.length > 0 &&
+    deletableItems.every((item) => selectedIds.has(item.id));
+  const selectedCount = selectedIds.size;
+
+  function toggleSelected(itemId: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }
+
+  function toggleSelectAllDeletable() {
+    if (allDeletableSelected) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(deletableItems.map((item) => item.id)));
+  }
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!onBulkDeleteItems || selectedCount === 0) return;
+    const selected = sortedItems.filter((item) => selectedIds.has(item.id));
+    setBulkDeleting(true);
+    try {
+      await onBulkDeleteItems(selected);
+      setSelectedIds(new Set());
+    } finally {
+      setBulkDeleting(false);
+    }
+  }, [onBulkDeleteItems, selectedCount, selectedIds, sortedItems]);
+
+  useEffect(() => {
+    if (!bulkDeleteEnabled || !onBulkActionsChange) return;
+    onBulkActionsChange({
+      selectedCount,
+      bulkDeleting,
+      runBulkDelete: () => void handleBulkDelete(),
+    });
+    return () => onBulkActionsChange(null);
+  }, [
+    bulkDeleteEnabled,
+    bulkDeleting,
+    handleBulkDelete,
+    onBulkActionsChange,
+    selectedCount,
+  ]);
 
   const { goPrev, goNext } = useCarouselKeyboard({
     enabled: hasMultiple && !lightboxOpen,
@@ -227,6 +309,28 @@ export function DeliverableMediaGrid({
     }
   }
 
+  function renderBulkRemoveButton() {
+    if (!bulkDeleteEnabled || selectedCount === 0) return null;
+    return (
+      <Button
+        type="button"
+        variant="destructive"
+        className="gap-2"
+        disabled={bulkDeleting}
+        onClick={() => void handleBulkDelete()}
+      >
+        {bulkDeleting ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Trash2 className="size-4" />
+        )}
+        {bulkDeleting
+          ? "Removendo..."
+          : `Remover selecionadas (${selectedCount})`}
+      </Button>
+    );
+  }
+
   if (sortedItems.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-16 text-center text-sm text-[var(--atria-primary)]/50">
@@ -239,23 +343,39 @@ export function DeliverableMediaGrid({
     <div className={cn("flex flex-col gap-5", className)}>
       {showHeaderActions && (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-[var(--atria-primary)]/55">
-            {sortedItems.length} mídia{sortedItems.length === 1 ? "" : "s"}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="gap-2"
-            disabled={downloadingAll}
-            onClick={() => void handleDownloadAll()}
-          >
-            {downloadingAll ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Download className="size-4" />
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-[var(--atria-primary)]/55">
+              {sortedItems.length} mídia{sortedItems.length === 1 ? "" : "s"}
+            </p>
+            {bulkDeleteEnabled && deletableItems.length > 0 && (
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--atria-primary)]/70">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border-input"
+                  checked={allDeletableSelected}
+                  onChange={toggleSelectAllDeletable}
+                />
+                Selecionar todas
+              </label>
             )}
-            Baixar Todos
-          </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {renderBulkRemoveButton()}
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              disabled={downloadingAll}
+              onClick={() => void handleDownloadAll()}
+            >
+              {downloadingAll ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Download className="size-4" />
+              )}
+              Baixar Todos
+            </Button>
+          </div>
         </div>
       )}
 
@@ -352,6 +472,12 @@ export function DeliverableMediaGrid({
         </div>
       )}
 
+      {bulkDeleteEnabled && selectedCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {renderBulkRemoveButton()}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {sortedItems.map((item, index) => {
           const previewUrl =
@@ -359,6 +485,9 @@ export function DeliverableMediaGrid({
             resolveMediaUrl(item.mediaUrl) ??
             item.mediaUrl;
           const isDownloading = downloadingId === item.id;
+          const canSelectForBulkDelete =
+            bulkDeleteEnabled && Boolean(item.sourceAssetId);
+          const isSelected = selectedIds.has(item.id);
 
           return (
             <motion.div
@@ -375,6 +504,7 @@ export function DeliverableMediaGrid({
                 index === activeIndex && hasMultiple
                   ? "border-[var(--atria-primary)]/35 ring-2 ring-[var(--atria-primary)]/15"
                   : "border-[var(--atria-primary)]/10",
+                isSelected && "border-red-300/80 ring-2 ring-red-200/60",
               )}
               onMouseEnter={() => setActiveIndex(index)}
             >
@@ -416,18 +546,34 @@ export function DeliverableMediaGrid({
               </button>
 
               <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
-                <span
-                  className={cn(
-                    "rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm",
-                    item.status === "requires_adjustment" &&
-                      "bg-amber-500/95 text-white",
-                    item.status === "approved" &&
-                      "bg-emerald-600/95 text-white",
-                    item.status === "pending" && "bg-zinc-900/70 text-white",
+                <div className="flex items-center gap-2">
+                  {canSelectForBulkDelete && (
+                    <label
+                      className="pointer-events-auto flex cursor-pointer items-center rounded-md bg-white/95 p-1 shadow-sm"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        className="size-4 rounded border-input"
+                        checked={isSelected}
+                        onChange={() => toggleSelected(item.id)}
+                        aria-label={`Selecionar ${item.fileName ?? "mídia"}`}
+                      />
+                    </label>
                   )}
-                >
-                  {STATUS_LABELS[item.status]}
-                </span>
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm",
+                      item.status === "requires_adjustment" &&
+                        "bg-amber-500/95 text-white",
+                      item.status === "approved" &&
+                        "bg-emerald-600/95 text-white",
+                      item.status === "pending" && "bg-zinc-900/70 text-white",
+                    )}
+                  >
+                    {STATUS_LABELS[item.status]}
+                  </span>
+                </div>
                 {onDeleteItem && (
                   <Button
                     type="button"

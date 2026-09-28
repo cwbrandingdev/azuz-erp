@@ -18,7 +18,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { financeService, ApiError } from "@/services";
 import { toast } from "@/lib/toast";
 import { formatLocalDate, toLocalDateIso } from "@/lib/financial-utils";
-import type { ChartAccount, FinanceTransaction } from "@/services/types";
+import type { BankAccount, ChartAccount, FinanceTransaction } from "@/services/types";
 import { NumericFormat } from "react-number-format";
 
 interface TransactionDialogProps {
@@ -48,6 +48,7 @@ export function TransactionDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allCategories, setAllCategories] = useState<ChartAccount[]>([]);
+  const [banks, setBanks] = useState<BankAccount[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
   const [description, setDescription] = useState("");
@@ -55,7 +56,9 @@ export function TransactionDialog({
   const [type, setType] = useState<"income" | "expense">("income");
   const [status, setStatus] = useState<"paid" | "pending">("pending");
   const [date, setDate] = useState(formatLocalDate(new Date()));
+  const [dueDate, setDueDate] = useState(formatLocalDate(new Date()));
   const [categoryId, setCategoryId] = useState("");
+  const [bankAccountId, setBankAccountId] = useState("");
   const [recurring, setRecurring] = useState(false);
   const [recurrenceDay, setRecurrenceDay] = useState("1");
   const [recurrenceMonths, setRecurrenceMonths] = useState("12");
@@ -74,7 +77,9 @@ export function TransactionDialog({
       setType(transaction.type);
       setStatus(transaction.status === "paid" ? "paid" : "pending");
       setDate(transaction.date.slice(0, 10));
+      setDueDate((transaction.dueDate ?? transaction.date).slice(0, 10));
       setCategoryId(transaction.categoryId);
+      setBankAccountId(transaction.bankAccountId ?? "");
       setRecurring(false);
       previousTypeRef.current = transaction.type;
     } else {
@@ -89,19 +94,23 @@ export function TransactionDialog({
     let cancelled = false;
     setCategoriesLoading(true);
 
-    financeService
-      .getChartOfAccounts()
-      .then((cats) => {
+    Promise.all([
+      financeService.getChartOfAccounts(),
+      financeService.getBankAccounts().catch(() => [] as BankAccount[]),
+    ])
+      .then(([cats, accounts]) => {
         if (cancelled) return;
         setAllCategories(cats);
+        setBanks(accounts);
       })
       .catch((err) => {
         if (cancelled) return;
         setAllCategories([]);
+        setBanks([]);
         toast.error(
           err instanceof ApiError
             ? err.message
-            : "Não foi possível carregar as categorias.",
+            : "Não foi possível carregar o plano de contas.",
         );
       })
       .finally(() => {
@@ -140,8 +149,11 @@ export function TransactionDialog({
     setAmount("");
     setType("income");
     setStatus("pending");
-    setDate(formatLocalDate(new Date()));
+    const today = formatLocalDate(new Date());
+    setDate(today);
+    setDueDate(today);
     setCategoryId("");
+    setBankAccountId("");
     setRecurring(false);
     setRecurrenceDay("1");
     setRecurrenceMonths("12");
@@ -162,7 +174,9 @@ export function TransactionDialog({
       type,
       status,
       date: toLocalDateIso(date),
+      dueDate: toLocalDateIso(dueDate || date),
       categoryId,
+      bankAccountId: bankAccountId ? bankAccountId : isEdit ? null : undefined,
       ...(!isEdit && recurring
         ? {
             recurrenceDay: Number(recurrenceDay) || dayFromDate,
@@ -222,15 +236,15 @@ export function TransactionDialog({
           }
         >
           <Plus className="size-4" />
-          Nova Transação
+          Novo lançamento
         </DialogTrigger>
       ) : null}
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="text-[var(--atria-primary)]">
-              {isEdit ? "Editar Transação" : "Adicionar Transação"}
+              {isEdit ? "Editar lançamento" : "Novo lançamento"}
             </DialogTitle>
           </DialogHeader>
 
@@ -292,7 +306,11 @@ export function TransactionDialog({
                   id="tx-date"
                   type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setDueDate((current) => (current === date ? next : current));
+                    setDate(next);
+                  }}
                   required
                 />
               </Field>
@@ -306,11 +324,30 @@ export function TransactionDialog({
                     setStatus(e.target.value as "paid" | "pending")
                   }
                 >
-                  <option value="paid">Pago</option>
-                  <option value="pending">Pendente</option>
+                  {type === "income" ? (
+                    <>
+                      <option value="paid">Recebido</option>
+                      <option value="pending">A receber</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="paid">Pago</option>
+                      <option value="pending">A pagar</option>
+                    </>
+                  )}
                 </NativeSelect>
               </Field>
             </div>
+
+            <Field>
+              <FieldLabel htmlFor="tx-due-date">Vencimento</FieldLabel>
+              <Input
+                id="tx-due-date"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </Field>
 
             <Field>
               <FieldLabel htmlFor="tx-category">Categoria</FieldLabel>
@@ -319,13 +356,13 @@ export function TransactionDialog({
                 value={categoryId}
                 onValueChange={setCategoryId}
                 loading={categoriesLoading}
-                loadingLabel="Carregando categorias..."
+                loadingLabel="Carregando contas..."
                 emptyLabel={
                   type === "income"
-                    ? "Nenhuma categoria de receita"
-                    : "Nenhuma categoria de despesa"
+                    ? "Nenhuma conta de receita"
+                    : "Nenhuma conta de despesa"
                 }
-                placeholder="Selecione a categoria"
+                placeholder="Selecione a conta"
                 options={categories.map((cat) => ({
                   value: cat.id,
                   label:
@@ -335,6 +372,23 @@ export function TransactionDialog({
                       : cat.name,
                 }))}
               />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="tx-bank">Conta bancária</FieldLabel>
+              <NativeSelect
+                id="tx-bank"
+                value={bankAccountId}
+                onChange={(e) => setBankAccountId(e.target.value)}
+              >
+                <option value="">Caixa / sem banco</option>
+                {banks.map((bank) => (
+                  <option key={bank.id} value={bank.id}>
+                    {bank.name}
+                    {bank.institution ? ` · ${bank.institution}` : ""}
+                  </option>
+                ))}
+              </NativeSelect>
             </Field>
 
             {!isEdit && (

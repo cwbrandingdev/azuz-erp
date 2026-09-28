@@ -359,11 +359,11 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
 
         <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--atria-primary)]/8 pt-4">
           <Link
-            href="/financial?create=1"
+            href="/financial/lancamentos?create=1"
             className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--atria-primary)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[var(--atria-primary)]/90"
           >
             <Plus className="size-3.5" />
-            Nova transação
+            Novo lançamento
           </Link>
           <Link
             href="/financial"
