@@ -11,12 +11,11 @@ exports.SDR_ZONE_STATUSES = [
     client_1.LeadStatus.PRE_VENDA,
     client_1.LeadStatus.APRESENTACAO,
     client_1.LeadStatus.REUNIAO_AGENDADA,
+    client_1.LeadStatus.AGUARDANDO_ENTREGA,
     client_1.LeadStatus.AGUARDANDO_RESPOSTA,
 ];
 exports.CLIENT_ZONE_STATUSES = [
     client_1.LeadStatus.VENDA_FINALIZADA,
-    client_1.LeadStatus.AGUARDANDO_ENTREGA,
-    client_1.LeadStatus.POS_VENDA,
     client_1.LeadStatus.NAO_TEM_INTERESSE,
     client_1.LeadStatus.AGUARDANDO_RESPOSTA,
 ];
@@ -50,7 +49,7 @@ function assertLeadStatusMoveAllowed(role, fromStatus, toStatus) {
         return;
     if (zone === 'sdr') {
         if (!isSdrZoneStatus(fromStatus) || !isSdrZoneStatus(toStatus)) {
-            throw new Error('SDR users can only move leads within pré-venda, apresentação, reunião agendada and aguardando resposta.');
+            throw new Error('SDR users can only move leads within pré-venda, apresentação, reunião agendada, aguardando documentos and aguardando resposta.');
         }
         return;
     }

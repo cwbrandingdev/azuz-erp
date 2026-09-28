@@ -128,7 +128,10 @@ export class LeadStagesService {
       orderBy: { order: 'asc' },
     });
     if (existing.length > 0) {
-      return existing;
+      await this.reconcileBuiltinStages(existing);
+      return this.prisma.leadStage.findMany({
+        orderBy: { order: 'asc' },
+      });
     }
 
     await this.prisma.leadStage.createMany({
@@ -230,5 +233,61 @@ export class LeadStagesService {
 
   private isLeadStatus(value: string): value is LeadStatus {
     return (Object.values(LeadStatus) as string[]).includes(value);
+  }
+
+  /**
+   * Keeps built-in funnel stages aligned with LEAD_KANBAN_STATUSES (order, labels, colors).
+   */
+  private async reconcileBuiltinStages(existing: LeadStage[]) {
+    const byKey = new Map(
+      existing
+        .filter((stage) => stage.key)
+        .map((stage) => [stage.key as string, stage]),
+    );
+
+    const posVendaStage = byKey.get(LeadStatus.POS_VENDA);
+    const vendaFinalizadaStage = byKey.get(LeadStatus.VENDA_FINALIZADA);
+    if (posVendaStage && vendaFinalizadaStage) {
+      await this.prisma.$transaction([
+        this.prisma.lead.updateMany({
+          where: { stageId: posVendaStage.id },
+          data: {
+            stageId: vendaFinalizadaStage.id,
+            status: LeadStatus.VENDA_FINALIZADA,
+          },
+        }),
+        this.prisma.lead.updateMany({
+          where: { status: LeadStatus.POS_VENDA },
+          data: {
+            stageId: vendaFinalizadaStage.id,
+            status: LeadStatus.VENDA_FINALIZADA,
+          },
+        }),
+        this.prisma.leadStage.delete({ where: { id: posVendaStage.id } }),
+      ]);
+      byKey.delete(LeadStatus.POS_VENDA);
+    }
+
+    const updates: Array<ReturnType<typeof this.prisma.leadStage.update>> = [];
+    for (let order = 0; order < LEAD_KANBAN_STATUSES.length; order++) {
+      const status = LEAD_KANBAN_STATUSES[order];
+      const stage = byKey.get(status);
+      if (!stage) continue;
+
+      updates.push(
+        this.prisma.leadStage.update({
+          where: { id: stage.id },
+          data: {
+            order,
+            name: LEAD_STATUS_LABELS[status],
+            color: LEAD_STATUS_COLORS[status],
+          },
+        }),
+      );
+    }
+
+    if (updates.length > 0) {
+      await this.prisma.$transaction(updates);
+    }
   }
 }

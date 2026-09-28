@@ -5,13 +5,12 @@ export const SDR_ZONE_STATUSES: readonly LeadStatus[] = [
   LeadStatus.PRE_VENDA,
   LeadStatus.APRESENTACAO,
   LeadStatus.REUNIAO_AGENDADA,
+  LeadStatus.AGUARDANDO_ENTREGA,
   LeadStatus.AGUARDANDO_RESPOSTA,
 ] as const;
 
 export const CLIENT_ZONE_STATUSES: readonly LeadStatus[] = [
   LeadStatus.VENDA_FINALIZADA,
-  LeadStatus.AGUARDANDO_ENTREGA,
-  LeadStatus.POS_VENDA,
   LeadStatus.NAO_TEM_INTERESSE,
   LeadStatus.AGUARDANDO_RESPOSTA,
 ] as const;
@@ -60,7 +59,7 @@ export function assertLeadStatusMoveAllowed(
   if (zone === 'sdr') {
     if (!isSdrZoneStatus(fromStatus) || !isSdrZoneStatus(toStatus)) {
       throw new Error(
-        'SDR users can only move leads within pré-venda, apresentação, reunião agendada and aguardando resposta.',
+        'SDR users can only move leads within pré-venda, apresentação, reunião agendada, aguardando documentos and aguardando resposta.',
       );
     }
     return;

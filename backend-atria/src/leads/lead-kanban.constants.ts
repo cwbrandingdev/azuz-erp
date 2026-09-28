@@ -4,11 +4,10 @@ export const LEAD_KANBAN_STATUSES: readonly LeadStatus[] = [
   LeadStatus.PRE_VENDA,
   LeadStatus.APRESENTACAO,
   LeadStatus.REUNIAO_AGENDADA,
-  LeadStatus.VENDA_FINALIZADA,
   LeadStatus.AGUARDANDO_ENTREGA,
-  LeadStatus.POS_VENDA,
-  LeadStatus.NAO_TEM_INTERESSE,
+  LeadStatus.VENDA_FINALIZADA,
   LeadStatus.AGUARDANDO_RESPOSTA,
+  LeadStatus.NAO_TEM_INTERESSE,
 ] as const;
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
@@ -16,7 +15,7 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   [LeadStatus.APRESENTACAO]: 'Apresentação',
   [LeadStatus.REUNIAO_AGENDADA]: 'Reunião agendada',
   [LeadStatus.VENDA_FINALIZADA]: 'Venda finalizada',
-  [LeadStatus.AGUARDANDO_ENTREGA]: 'Aguardando entrega',
+  [LeadStatus.AGUARDANDO_ENTREGA]: 'Aguardando documentos',
   [LeadStatus.POS_VENDA]: 'Pós venda',
   [LeadStatus.NAO_TEM_INTERESSE]: 'Não tem interesse',
   [LeadStatus.AGUARDANDO_RESPOSTA]: 'Aguardando resposta',
