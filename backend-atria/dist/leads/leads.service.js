@@ -620,8 +620,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
             return client_1.CrmLeadStatus.NO_INTEREST;
         }
         if (pipelineStatus === client_1.LeadStatus.VENDA_FINALIZADA ||
-            pipelineStatus === client_1.LeadStatus.POS_VENDA ||
-            pipelineStatus === client_1.LeadStatus.AGUARDANDO_ENTREGA) {
+            pipelineStatus === client_1.LeadStatus.POS_VENDA) {
             return client_1.CrmLeadStatus.FINISHED;
         }
         return client_1.CrmLeadStatus.ACTIVE;

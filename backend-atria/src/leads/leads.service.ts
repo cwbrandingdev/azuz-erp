@@ -835,8 +835,7 @@ export class LeadsService {
 
     if (
       pipelineStatus === LeadStatus.VENDA_FINALIZADA ||
-      pipelineStatus === LeadStatus.POS_VENDA ||
-      pipelineStatus === LeadStatus.AGUARDANDO_ENTREGA
+      pipelineStatus === LeadStatus.POS_VENDA
     ) {
       return CrmLeadStatus.FINISHED;
     }

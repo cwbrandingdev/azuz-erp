@@ -127,6 +127,25 @@ export function LeadsKanbanBoard({
     ? "Todas as Empresas"
     : "Todos os Meus Clientes";
 
+  const selectedClientOrganization = useMemo(
+    () =>
+      clientFilter === "all"
+        ? null
+        : organizations.find((organization) => organization.id === clientFilter),
+    [clientFilter, organizations],
+  );
+
+  const expectedClientFilterLabel = useMemo(() => {
+    if (clientFilter === "all") return allClientsLabel;
+    const name = selectedClientOrganization?.companyName?.trim();
+    return name || null;
+  }, [allClientsLabel, clientFilter, selectedClientOrganization]);
+
+  const expectedCategoryFilterLabel = useMemo(
+    () => (categoryFilter === "all" ? "Todas as categorias" : categoryFilter),
+    [categoryFilter],
+  );
+
   const pendingReminders = useMemo(
     () =>
       reminderBoard.columns.find((column) => column.status === "PENDING")
@@ -592,7 +611,13 @@ export function LeadsKanbanBoard({
                   id="kanban-client-filter"
                   className="h-11 w-full max-w-md text-sm font-medium"
                 >
-                  <SelectValue placeholder={allClientsLabel} />
+                  {expectedClientFilterLabel ? (
+                    <span className="line-clamp-1 min-w-0 flex-1 truncate text-left">
+                      {expectedClientFilterLabel}
+                    </span>
+                  ) : (
+                    <SelectValue placeholder={allClientsLabel} />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{allClientsLabel}</SelectItem>
@@ -633,7 +658,9 @@ export function LeadsKanbanBoard({
                 }}
               >
                 <SelectTrigger className="w-full sm:w-56">
-                  <SelectValue placeholder="Todas as categorias" />
+                  <span className="line-clamp-1 min-w-0 flex-1 truncate text-left">
+                    {expectedCategoryFilterLabel}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as categorias</SelectItem>

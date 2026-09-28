@@ -69,4 +69,5 @@ export declare class LeadStagesService {
     private assertUniqueName;
     private normalizeOrder;
     private isLeadStatus;
+    private reconcileBuiltinStages;
 }
