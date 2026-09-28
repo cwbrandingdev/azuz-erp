@@ -17,7 +17,7 @@ const ROUTE_LABELS: Record<string, string> = {
   dre: "Resultado do ano",
   "plano-de-contas": "Categorias",
   content: "Conteúdo",
-  management: "Gestão de Conteúdo",
+  management: "Agendamento de posts",
   insights: "Meta Insights",
   kanban: "Kanban",
   "internal-approvals": "Aprovação Interna",

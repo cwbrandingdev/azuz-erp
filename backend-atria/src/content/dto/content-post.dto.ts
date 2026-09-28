@@ -2,6 +2,7 @@ import { IsUrl } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsNotEmpty,
@@ -78,6 +79,10 @@ export class CreateContentPostDto {
   @ValidateNested({ each: true })
   @Type(() => AttachmentDto)
   attachments?: AttachmentDto[];
+
+  @IsBoolean()
+  @IsOptional()
+  publishToInstagram?: boolean;
 }
 
 export class UpdateContentPostDto {
@@ -125,6 +130,10 @@ export class UpdateContentPostDto {
   @ValidateNested({ each: true })
   @Type(() => AttachmentDto)
   attachments?: AttachmentDto[];
+
+  @IsBoolean()
+  @IsOptional()
+  publishToInstagram?: boolean;
 }
 
 export class QueryContentPostsDto {

@@ -4,6 +4,7 @@ import { IntegrationsService } from '../integrations/integrations.service';
 import { KanbanService } from '../kanban/kanban.service';
 import { MetaInsightsService } from '../meta-insights/meta-insights.service';
 import { CalendarService } from '../calendar/calendar.service';
+import { InstagramPublishingService } from '../integrations/instagram-publishing/instagram-publishing.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContentPostDto, QueryContentPostsDto, UpdateContentPostDto } from './dto/content-post.dto';
 import { CreatePostVersionDto, RejectContentPostDto } from './dto/content-workflow.dto';
@@ -15,7 +16,54 @@ export declare class ContentService {
     private readonly metaInsights;
     private readonly calendar;
     private readonly kanbanService;
-    constructor(prisma: PrismaService, notifications: NotificationsService, integrations: IntegrationsService, metaInsights: MetaInsightsService, calendar: CalendarService, kanbanService: KanbanService);
+    private readonly instagramPublishing;
+    constructor(prisma: PrismaService, notifications: NotificationsService, integrations: IntegrationsService, metaInsights: MetaInsightsService, calendar: CalendarService, kanbanService: KanbanService, instagramPublishing: InstagramPublishingService);
+    publishPostToInstagram(id: string): Promise<{
+        id: string;
+        title: string;
+        clientId: string;
+        client: {
+            id: string;
+            companyName: string;
+            instagram: string | null;
+            avatarUrl: string | null;
+        };
+        platform: "instagram" | "tiktok" | "youtube" | "linkedin";
+        format: "carousel" | "reels" | "static" | "story";
+        scheduledDate: string | null;
+        status: "draft" | "pending_approval" | "approved" | "rejected" | "scheduled" | "published";
+        internalReviewStatus: "not_required" | "pending" | "approved" | "rejected";
+        internalReviewNote: string | null;
+        copy: string;
+        referenceUrl: string | null;
+        attachments: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
+            url: string;
+            mimeType: string | null;
+        }[];
+        author: {
+            id: string;
+            avatarUrl: string | null;
+            name: string;
+        };
+        assignee: {
+            id: string;
+            avatarUrl: string | null;
+            name: string;
+        } | null;
+        platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
+        createdAt: string;
+        updatedAt: string;
+    }>;
     getManagementBoard(clientId?: string, status?: ContentPostStatus): Promise<{
         overview: {
             drafts: number;
@@ -34,8 +82,8 @@ export declare class ContentService {
                 type: "rejection_reason" | "general_note";
                 user: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
                 createdAt: string;
             } | null;
@@ -44,9 +92,9 @@ export declare class ContentService {
             clientId: string;
             client: {
                 id: string;
-                avatarUrl: string | null;
                 companyName: string;
                 instagram: string | null;
+                avatarUrl: string | null;
             };
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "carousel" | "reels" | "static" | "story";
@@ -57,24 +105,30 @@ export declare class ContentService {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 postId: string;
+                url: string;
                 mimeType: string | null;
             }[];
             author: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
             platformColor: string;
+            publishToInstagram: boolean;
+            publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+            publishedAt: string | null;
+            instagramMediaId: string | null;
+            instagramPermalink: string | null;
+            publishError: string | null;
             createdAt: string;
             updatedAt: string;
         }[];
@@ -101,9 +155,9 @@ export declare class ContentService {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -114,24 +168,30 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }[]>;
@@ -141,9 +201,9 @@ export declare class ContentService {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -154,24 +214,30 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -185,8 +251,8 @@ export declare class ContentService {
         mediaUrls: string[];
         createdBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         createdAt: string;
     }>;
@@ -196,9 +262,9 @@ export declare class ContentService {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -209,24 +275,30 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -236,9 +308,9 @@ export declare class ContentService {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -249,24 +321,30 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -276,9 +354,9 @@ export declare class ContentService {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -289,24 +367,30 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -331,8 +415,8 @@ export declare class ContentService {
             mediaUrls: string[];
             createdBy: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             createdAt: string;
         }[];
@@ -345,8 +429,8 @@ export declare class ContentService {
             type: "rejection_reason" | "general_note";
             user: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             createdAt: string;
         }[];
@@ -364,8 +448,8 @@ export declare class ContentService {
                 mediaUrls: string[];
                 createdBy: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
                 createdAt: string;
             };
@@ -382,8 +466,8 @@ export declare class ContentService {
                 type: "rejection_reason" | "general_note";
                 user: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
                 createdAt: string;
             };
@@ -395,9 +479,9 @@ export declare class ContentService {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -408,24 +492,30 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -435,9 +525,9 @@ export declare class ContentService {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -448,24 +538,30 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;

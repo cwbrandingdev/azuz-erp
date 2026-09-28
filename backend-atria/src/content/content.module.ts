@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CalendarModule } from '../calendar/calendar.module';
+import { InstagramPublishingModule } from '../integrations/instagram-publishing/instagram-publishing.module';
 import { KanbanModule } from '../kanban/kanban.module';
 import { MetaInsightsModule } from '../meta-insights/meta-insights.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -10,6 +11,7 @@ import { ContentService } from './content.service';
   imports: [
     NotificationsModule,
     MetaInsightsModule,
+    InstagramPublishingModule,
     CalendarModule,
     KanbanModule,
   ],

@@ -9,6 +9,17 @@ export const CONTENT_STATUS_LABELS: Record<ContentPostStatus, string> = {
   published: "Publicado",
 };
 
+export const INSTAGRAM_PUBLISH_STATUS_LABELS: Record<
+  string,
+  string
+> = {
+  none: "—",
+  queued: "Na fila (IG)",
+  publishing: "Publicando…",
+  published: "No Instagram",
+  failed: "Falha no IG",
+};
+
 export const CONTENT_STATUS_STYLES: Record<ContentPostStatus, string> = {
   draft: "bg-[var(--atria-primary)]/10 text-[var(--atria-primary)]",
   pending_approval: "bg-[var(--atria-accent)]/40 text-[var(--atria-primary)]",

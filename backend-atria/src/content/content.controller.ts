@@ -108,6 +108,11 @@ export class ContentController {
     return this.contentService.approvePost(id);
   }
 
+  @Post('posts/:id/publish-instagram')
+  publishPostToInstagram(@Param('id') id: string) {
+    return this.contentService.publishPostToInstagram(id);
+  }
+
   @Patch('posts/:id/reject')
   rejectPost(
     @Param('id') id: string,

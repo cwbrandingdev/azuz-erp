@@ -12,6 +12,10 @@ const INTERNAL_APPROVAL_ROUTES = new Set(["/internal-approvals"]);
 
 const ROUTE_PERMISSIONS: Record<string, PermissionKey[]> = {
   "/kanban": [Permission.KANBAN_ALL_EDIT, Permission.KANBAN_OWN_EDIT],
+  "/content/management": [
+    Permission.KANBAN_ALL_EDIT,
+    Permission.KANBAN_OWN_EDIT,
+  ],
   "/calendar": [Permission.CALENDAR_ALL_EDIT, Permission.CALENDAR_OWN_EDIT],
   "/leads": [Permission.CRM_ALL, Permission.CRM_ORG_LEADS],
   "/leads/kanban": [Permission.CRM_ALL, Permission.CRM_ORG_LEADS],
@@ -51,6 +55,9 @@ function resolveAccessRouteKey(href: string): string {
   }
   if (href === "/clients" || href.startsWith("/clients/")) {
     return "/clients";
+  }
+  if (href === "/content/management" || href.startsWith("/content/")) {
+    return "/content/management";
   }
   return href;
 }

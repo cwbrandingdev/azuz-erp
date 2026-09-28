@@ -17,6 +17,7 @@ const integrations_service_1 = require("../integrations/integrations.service");
 const kanban_service_1 = require("../kanban/kanban.service");
 const meta_insights_service_1 = require("../meta-insights/meta-insights.service");
 const calendar_service_1 = require("../calendar/calendar.service");
+const instagram_publishing_service_1 = require("../integrations/instagram-publishing/instagram-publishing.service");
 const permissions_1 = require("../auth/constants/permissions");
 const rbac_1 = require("../auth/utils/rbac");
 const prisma_service_1 = require("../prisma/prisma.service");
@@ -47,13 +48,19 @@ let ContentService = class ContentService {
     metaInsights;
     calendar;
     kanbanService;
-    constructor(prisma, notifications, integrations, metaInsights, calendar, kanbanService) {
+    instagramPublishing;
+    constructor(prisma, notifications, integrations, metaInsights, calendar, kanbanService, instagramPublishing) {
         this.prisma = prisma;
         this.notifications = notifications;
         this.integrations = integrations;
         this.metaInsights = metaInsights;
         this.calendar = calendar;
         this.kanbanService = kanbanService;
+        this.instagramPublishing = instagramPublishing;
+    }
+    async publishPostToInstagram(id) {
+        await this.instagramPublishing.publishNow(id);
+        return this.getPostById(id);
     }
     async getManagementBoard(clientId, status) {
         const where = {};
@@ -234,7 +241,11 @@ let ContentService = class ContentService {
             data: { status: client_1.ContentPostStatus.APPROVED },
             include: postInclude,
         });
-        return this.toPostResponse(post);
+        await this.instagramPublishing.syncPublishQueue(post.id);
+        return this.toPostResponse(await this.prisma.contentPost.findUniqueOrThrow({
+            where: { id: post.id },
+            include: postInclude,
+        }));
     }
     async updateInternalReview(id, userId, role, dto) {
         const existing = await this.ensurePostExists(id);
@@ -368,6 +379,7 @@ let ContentService = class ContentService {
                 referenceUrl: dto.referenceUrl,
                 userId,
                 assigneeId: dto.assigneeId,
+                publishToInstagram: dto.publishToInstagram ?? false,
                 attachments: dto.attachments?.length
                     ? { create: dto.attachments }
                     : undefined,
@@ -378,7 +390,11 @@ let ContentService = class ContentService {
             await this.notifyPostPending(post);
         }
         await this.calendar.syncEventFromPost(post, userId);
-        return this.toPostResponse(post);
+        await this.instagramPublishing.syncPublishQueue(post.id);
+        return this.toPostResponse(await this.prisma.contentPost.findUniqueOrThrow({
+            where: { id: post.id },
+            include: postInclude,
+        }));
     }
     async updatePost(id, dto) {
         const existing = await this.ensurePostExists(id);
@@ -412,6 +428,9 @@ let ContentService = class ContentService {
                 copy: dto.copy,
                 referenceUrl: dto.referenceUrl !== undefined ? dto.referenceUrl : undefined,
                 assigneeId: dto.assigneeId !== undefined ? dto.assigneeId : undefined,
+                publishToInstagram: dto.publishToInstagram !== undefined
+                    ? dto.publishToInstagram
+                    : undefined,
                 attachments: dto.attachments?.length
                     ? { create: dto.attachments }
                     : undefined,
@@ -419,7 +438,11 @@ let ContentService = class ContentService {
             include: postInclude,
         });
         await this.calendar.syncEventFromPost(post, post.userId);
-        return this.toPostResponse(post);
+        await this.instagramPublishing.syncPublishQueue(post.id);
+        return this.toPostResponse(await this.prisma.contentPost.findUniqueOrThrow({
+            where: { id: post.id },
+            include: postInclude,
+        }));
     }
     async notifyPostPending(post) {
         const recipients = [];
@@ -492,6 +515,12 @@ let ContentService = class ContentService {
             author: post.user,
             assignee: post.assignee,
             platformColor: PLATFORM_COLORS[post.platform] ?? '#004949',
+            publishToInstagram: post.publishToInstagram,
+            publishStatus: post.publishStatus.toLowerCase(),
+            publishedAt: post.publishedAt?.toISOString() ?? null,
+            instagramMediaId: post.instagramMediaId,
+            instagramPermalink: post.instagramPermalink,
+            publishError: post.publishError,
             createdAt: post.createdAt.toISOString(),
             updatedAt: post.updatedAt.toISOString(),
         };
@@ -549,6 +578,7 @@ exports.ContentService = ContentService = __decorate([
         integrations_service_1.IntegrationsService,
         meta_insights_service_1.MetaInsightsService,
         calendar_service_1.CalendarService,
-        kanban_service_1.KanbanService])
+        kanban_service_1.KanbanService,
+        instagram_publishing_service_1.InstagramPublishingService])
 ], ContentService);
 //# sourceMappingURL=content.service.js.map

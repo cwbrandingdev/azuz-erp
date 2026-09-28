@@ -37,6 +37,8 @@ const FORMAT_LABELS: Record<ContentPostFormat, string> = {
 interface PostFormDialogProps {
   clients: Client[];
   defaultClientId?: string;
+  /** Status inicial ao criar (ex.: agendamento abre como "scheduled"). */
+  defaultStatus?: ContentPostStatus;
   post?: ContentPost | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -47,6 +49,7 @@ interface PostFormDialogProps {
 export function PostFormDialog({
   clients,
   defaultClientId,
+  defaultStatus = "scheduled",
   post,
   open: controlledOpen,
   onOpenChange,
@@ -72,7 +75,7 @@ export function PostFormDialog({
     post?.format ?? "static",
   );
   const [status, setStatus] = useState<ContentPostStatus>(
-    post?.status ?? "draft",
+    post?.status ?? defaultStatus,
   );
   const [assigneeId, setAssigneeId] = useState(post?.assignee?.id ?? "");
   const [scheduledDate, setScheduledDate] = useState(
@@ -85,8 +88,13 @@ export function PostFormDialog({
   const [attachments, setAttachments] = useState<
     { name: string; url: string }[]
   >(post?.attachments.map((a) => ({ name: a.name, url: a.url })) ?? []);
+  const [publishToInstagram, setPublishToInstagram] = useState(
+    post?.publishToInstagram ?? false,
+  );
 
   const isEditing = Boolean(post);
+  const showScheduleFields =
+    status === "scheduled" || status === "approved";
   const workflowLocked =
     isEditing &&
     (status === "pending_approval" ||
@@ -119,20 +127,23 @@ export function PostFormDialog({
       setAttachments(
         post.attachments.map((a) => ({ name: a.name, url: a.url })),
       );
+      setPublishToInstagram(post.publishToInstagram ?? false);
     } else {
       setTitle("");
       setClientId(defaultClientId ?? clients[0]?.id ?? "");
       setPlatform("instagram");
       setFormat("static");
-      setStatus("draft");
+      setStatus(defaultStatus);
       setAssigneeId("");
       setScheduledDate("");
+      setPublishToInstagram(defaultStatus === "scheduled");
       setCopy("");
       setReferenceUrl("");
       setAttachments([]);
+      setPublishToInstagram(false);
     }
     setError(null);
-  }, [post, open, defaultClientId, clients]);
+  }, [post, open, defaultClientId, clients, defaultStatus]);
 
   function addAttachment() {
     setAttachments((prev) => [...prev, { name: "", url: "" }]);
@@ -154,6 +165,10 @@ export function PostFormDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (showScheduleFields && !scheduledDate.trim()) {
+      setError("Informe a data e hora da publicação.");
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -167,10 +182,14 @@ export function PostFormDialog({
       referenceUrl: referenceUrl.trim() ? referenceUrl.trim() : null,
       assigneeId: assigneeId || undefined,
       scheduledDate:
-        scheduledDate && status !== "draft"
+        scheduledDate && showScheduleFields
           ? new Date(scheduledDate).toISOString()
           : undefined,
       attachments: attachments.filter((a) => a.name && a.url),
+      publishToInstagram:
+        platform === "instagram" && format === "static"
+          ? publishToInstagram
+          : false,
     };
 
     try {
@@ -318,11 +337,10 @@ export function PostFormDialog({
                   className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
                 >
                   <option value="draft">Rascunho</option>
+                  <option value="scheduled">Agendado</option>
+                  <option value="approved">Aprovado</option>
                   {isEditing && (
-                    <>
-                      <option value="scheduled">Agendado</option>
-                      <option value="published">Publicado</option>
-                    </>
+                    <option value="published">Publicado</option>
                   )}
                 </select>
               )}
@@ -346,18 +364,63 @@ export function PostFormDialog({
             </Field>
           </div>
 
-          {status !== "draft" && (
+          {showScheduleFields && (
             <Field>
               <FieldLabel htmlFor="post-schedule">
-                Data de Publicação
+                Data e hora da publicação *
               </FieldLabel>
               <Input
                 id="post-schedule"
                 type="datetime-local"
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
-                required={status === "scheduled"}
+                required
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Horário do seu navegador (ex.: domingo 18:30).
+              </p>
+            </Field>
+          )}
+
+          {platform === "instagram" && format === "static" && showScheduleFields && (
+            <Field>
+              <label className="flex cursor-pointer items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={publishToInstagram}
+                  onChange={(e) => setPublishToInstagram(e.target.checked)}
+                />
+                <span>
+                  Publicar automaticamente no Instagram neste horário
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Requer conta IG conectada, imagem anexada e status
+                    aprovado ou agendado.
+                  </span>
+                </span>
+              </label>
+              {post?.publishStatus && post.publishStatus !== "none" && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Status Instagram:{" "}
+                  <span className="font-medium text-foreground">
+                    {post.publishStatus}
+                  </span>
+                  {post.publishError ? ` — ${post.publishError}` : null}
+                  {post.instagramPermalink ? (
+                    <>
+                      {" "}
+                      <a
+                        href={post.instagramPermalink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline"
+                      >
+                        Ver no Instagram
+                      </a>
+                    </>
+                  ) : null}
+                </p>
+              )}
             </Field>
           )}
 

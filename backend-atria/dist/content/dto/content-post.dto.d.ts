@@ -15,6 +15,7 @@ export declare class CreateContentPostDto {
     referenceUrl?: string;
     assigneeId?: string;
     attachments?: AttachmentDto[];
+    publishToInstagram?: boolean;
 }
 export declare class UpdateContentPostDto {
     title?: string;
@@ -27,6 +28,7 @@ export declare class UpdateContentPostDto {
     referenceUrl?: string | null;
     assigneeId?: string | null;
     attachments?: AttachmentDto[];
+    publishToInstagram?: boolean;
 }
 export declare class QueryContentPostsDto {
     clientId?: string;

@@ -11,6 +11,7 @@ import { IntegrationsService } from '../integrations/integrations.service';
 import { KanbanService } from '../kanban/kanban.service';
 import { MetaInsightsService } from '../meta-insights/meta-insights.service';
 import { CalendarService } from '../calendar/calendar.service';
+import { InstagramPublishingService } from '../integrations/instagram-publishing/instagram-publishing.service';
 import { isClientFacingRole } from '../auth/constants/permissions';
 import { assertCanPerformInternalApproval } from '../auth/utils/rbac';
 import { PrismaService } from '../prisma/prisma.service';
@@ -64,7 +65,13 @@ export class ContentService {
     private readonly metaInsights: MetaInsightsService,
     private readonly calendar: CalendarService,
     private readonly kanbanService: KanbanService,
+    private readonly instagramPublishing: InstagramPublishingService,
   ) {}
+
+  async publishPostToInstagram(id: string) {
+    await this.instagramPublishing.publishNow(id);
+    return this.getPostById(id);
+  }
 
   async getManagementBoard(clientId?: string, status?: ContentPostStatus) {
     const where: Prisma.ContentPostWhereInput = {};
@@ -268,7 +275,14 @@ export class ContentService {
       include: postInclude,
     });
 
-    return this.toPostResponse(post);
+    await this.instagramPublishing.syncPublishQueue(post.id);
+
+    return this.toPostResponse(
+      await this.prisma.contentPost.findUniqueOrThrow({
+        where: { id: post.id },
+        include: postInclude,
+      }),
+    );
   }
 
   async updateInternalReview(
@@ -448,6 +462,7 @@ export class ContentService {
         referenceUrl: dto.referenceUrl,
         userId,
         assigneeId: dto.assigneeId,
+        publishToInstagram: dto.publishToInstagram ?? false,
         attachments: dto.attachments?.length
           ? { create: dto.attachments }
           : undefined,
@@ -460,8 +475,14 @@ export class ContentService {
     }
 
     await this.calendar.syncEventFromPost(post, userId);
+    await this.instagramPublishing.syncPublishQueue(post.id);
 
-    return this.toPostResponse(post);
+    return this.toPostResponse(
+      await this.prisma.contentPost.findUniqueOrThrow({
+        where: { id: post.id },
+        include: postInclude,
+      }),
+    );
   }
 
   async updatePost(id: string, dto: UpdateContentPostDto) {
@@ -504,6 +525,10 @@ export class ContentService {
           dto.referenceUrl !== undefined ? dto.referenceUrl : undefined,
         assigneeId:
           dto.assigneeId !== undefined ? dto.assigneeId : undefined,
+        publishToInstagram:
+          dto.publishToInstagram !== undefined
+            ? dto.publishToInstagram
+            : undefined,
         attachments: dto.attachments?.length
           ? { create: dto.attachments }
           : undefined,
@@ -512,8 +537,14 @@ export class ContentService {
     });
 
     await this.calendar.syncEventFromPost(post, post.userId);
+    await this.instagramPublishing.syncPublishQueue(post.id);
 
-    return this.toPostResponse(post);
+    return this.toPostResponse(
+      await this.prisma.contentPost.findUniqueOrThrow({
+        where: { id: post.id },
+        include: postInclude,
+      }),
+    );
   }
 
   private async notifyPostPending(
@@ -615,6 +646,17 @@ export class ContentService {
       author: post.user,
       assignee: post.assignee,
       platformColor: PLATFORM_COLORS[post.platform] ?? '#004949',
+      publishToInstagram: post.publishToInstagram,
+      publishStatus: post.publishStatus.toLowerCase() as
+        | 'none'
+        | 'queued'
+        | 'publishing'
+        | 'published'
+        | 'failed',
+      publishedAt: post.publishedAt?.toISOString() ?? null,
+      instagramMediaId: post.instagramMediaId,
+      instagramPermalink: post.instagramPermalink,
+      publishError: post.publishError,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
     };

@@ -16,5 +16,5 @@ export default async function ContentRedirectPage({
   if (params.clientId) query.set("clientId", params.clientId);
   if (params.create) query.set("create", params.create);
 
-  redirect(`/creation${query.size ? `?${query.toString()}` : ""}`);
+  redirect(`/content/management${query.size ? `?${query.toString()}` : ""}`);
 }

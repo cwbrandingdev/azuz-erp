@@ -21,7 +21,7 @@ export declare class CreationService {
         ideas: {
             title: string;
             copy: string;
-            format: "static" | "carousel" | "reels" | "story";
+            format: "carousel" | "reels" | "static" | "story";
             mediaConcept: string;
             suggestedDate: string;
         }[];
@@ -38,9 +38,9 @@ export declare class CreationService {
             clientId: string;
             client: {
                 id: string;
-                avatarUrl: string | null;
                 companyName: string;
                 instagram: string | null;
+                avatarUrl: string | null;
             };
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "carousel" | "reels" | "static" | "story";
@@ -51,24 +51,30 @@ export declare class CreationService {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 postId: string;
+                url: string;
                 mimeType: string | null;
             }[];
             author: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
             platformColor: string;
+            publishToInstagram: boolean;
+            publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+            publishedAt: string | null;
+            instagramMediaId: string | null;
+            instagramPermalink: string | null;
+            publishError: string | null;
             createdAt: string;
             updatedAt: string;
         }[];
@@ -104,13 +110,13 @@ export declare class CreationService {
             } | null;
             assignees: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             }[];
             createdBy: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             assets: {
                 id: string;
@@ -122,8 +128,8 @@ export declare class CreationService {
                 uploadedAt: string;
                 uploadedBy: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
             }[];
             updatedAt: string;
@@ -160,7 +166,7 @@ export declare class CreationService {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "pending" | "approved" | "draft";
+            status: "draft" | "approved" | "pending";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -180,7 +186,7 @@ export declare class CreationService {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "pending" | "approved" | "draft";
+            status: "draft" | "approved" | "pending";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -204,7 +210,7 @@ export declare class CreationService {
                 type: string;
                 typeKey: string;
                 scheduledAt: string;
-                status: "pending" | "approved" | "draft";
+                status: "draft" | "approved" | "pending";
                 statusLabel: string;
                 referenceUrl: string | null;
                 clientId: string;
@@ -224,7 +230,7 @@ export declare class CreationService {
                 type: string;
                 typeKey: string;
                 scheduledAt: string;
-                status: "pending" | "approved" | "draft";
+                status: "draft" | "approved" | "pending";
                 statusLabel: string;
                 referenceUrl: string | null;
                 clientId: string;
@@ -248,7 +254,7 @@ export declare class CreationService {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "pending" | "approved" | "draft";
+            status: "draft" | "approved" | "pending";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -270,7 +276,7 @@ export declare class CreationService {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "pending" | "approved" | "draft";
+            status: "draft" | "approved" | "pending";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -294,7 +300,7 @@ export declare class CreationService {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "pending" | "approved" | "draft";
+            status: "draft" | "approved" | "pending";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -317,7 +323,7 @@ export declare class CreationService {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "pending" | "approved" | "draft";
+            status: "draft" | "approved" | "pending";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -340,7 +346,7 @@ export declare class CreationService {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "pending" | "approved" | "draft";
+            status: "draft" | "approved" | "pending";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -362,7 +368,7 @@ export declare class CreationService {
             type: string;
             typeKey: string;
             scheduledAt: string;
-            status: "pending" | "approved" | "draft";
+            status: "draft" | "approved" | "pending";
             statusLabel: string;
             referenceUrl: string | null;
             clientId: string;
@@ -410,12 +416,12 @@ export declare class CreationService {
             clientName: string;
             clientAvatarUrl: string | null;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
-            format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            format: "carousel" | "reels" | "static" | "story";
+            status: "draft" | "pending_approval" | "approved" | "rejected" | "scheduled" | "published";
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
             updatedAt: string;
             scheduledDate: string | null;
@@ -433,8 +439,8 @@ export declare class CreationService {
             clientId: string;
             clientName: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
-            format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            format: "carousel" | "reels" | "static" | "story";
+            status: "draft" | "pending_approval" | "approved" | "rejected" | "scheduled" | "published";
             scheduledAt: string;
             color: string;
         } | {

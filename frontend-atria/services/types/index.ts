@@ -786,6 +786,13 @@ export interface ContentAttachment {
 
 export type ContentPlatform = "instagram" | "tiktok" | "youtube" | "linkedin";
 export type ContentPostFormat = "carousel" | "reels" | "static" | "story";
+export type ContentPostPublishStatus =
+  | "none"
+  | "queued"
+  | "publishing"
+  | "published"
+  | "failed";
+
 export type ContentPostStatus =
   | "draft"
   | "pending_approval"
@@ -1252,6 +1259,12 @@ export interface ContentPost {
   author: { id: string; name: string; avatarUrl: string | null };
   assignee: { id: string; name: string; avatarUrl: string | null } | null;
   platformColor: string;
+  publishToInstagram?: boolean;
+  publishStatus?: ContentPostPublishStatus;
+  publishedAt?: string | null;
+  instagramMediaId?: string | null;
+  instagramPermalink?: string | null;
+  publishError?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -1471,6 +1484,7 @@ export interface CreateContentPostInput {
   copy: string;
   assigneeId?: string;
   attachments?: { name: string; url: string; mimeType?: string }[];
+  publishToInstagram?: boolean;
 }
 
 export interface PostInsights {

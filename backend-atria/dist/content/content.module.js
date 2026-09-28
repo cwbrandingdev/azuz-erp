@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContentModule = void 0;
 const common_1 = require("@nestjs/common");
 const calendar_module_1 = require("../calendar/calendar.module");
+const instagram_publishing_module_1 = require("../integrations/instagram-publishing/instagram-publishing.module");
 const kanban_module_1 = require("../kanban/kanban.module");
 const meta_insights_module_1 = require("../meta-insights/meta-insights.module");
 const notifications_module_1 = require("../notifications/notifications.module");
@@ -22,6 +23,7 @@ exports.ContentModule = ContentModule = __decorate([
         imports: [
             notifications_module_1.NotificationsModule,
             meta_insights_module_1.MetaInsightsModule,
+            instagram_publishing_module_1.InstagramPublishingModule,
             calendar_module_1.CalendarModule,
             kanban_module_1.KanbanModule,
         ],

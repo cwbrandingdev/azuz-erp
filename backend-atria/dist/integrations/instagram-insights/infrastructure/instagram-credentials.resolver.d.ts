@@ -28,6 +28,7 @@ export declare class InstagramCredentialsResolver {
     }[]>;
     syncFromMeta(): Promise<void>;
     resolveForClient(clientId: string): Promise<ResolvedInstagramCredentials>;
+    resolveForClientPublishing(clientId: string): Promise<ResolvedInstagramCredentials>;
     private upsertClientFromInstagram;
     private findMatchingClient;
     private resolveTenantAccessToken;

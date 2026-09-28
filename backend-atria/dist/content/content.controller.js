@@ -64,6 +64,9 @@ let ContentController = class ContentController {
     approvePost(id) {
         return this.contentService.approvePost(id);
     }
+    publishPostToInstagram(id) {
+        return this.contentService.publishPostToInstagram(id);
+    }
     rejectPost(id, user, dto) {
         return this.contentService.rejectPost(id, user.userId, dto);
     }
@@ -159,6 +162,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ContentController.prototype, "approvePost", null);
+__decorate([
+    (0, common_1.Post)('posts/:id/publish-instagram'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ContentController.prototype, "publishPostToInstagram", null);
 __decorate([
     (0, common_1.Patch)('posts/:id/reject'),
     __param(0, (0, common_1.Param)('id')),

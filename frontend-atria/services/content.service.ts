@@ -139,3 +139,9 @@ export async function updatePost(
 export async function deletePost(id: string): Promise<void> {
   return apiRequest<void>(`/content/posts/${id}`, { method: "DELETE" });
 }
+
+export async function publishPostToInstagram(id: string): Promise<ContentPost> {
+  return apiRequest<ContentPost>(`/content/posts/${id}/publish-instagram`, {
+    method: "POST",
+  });
+}

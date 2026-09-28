@@ -675,6 +675,14 @@ model ContentPost {
   referenceUrl         String?
   internalReviewStatus InternalReviewStatus @default(NOT_REQUIRED)
   internalReviewNote   String?
+  publishToInstagram   Boolean              @default(false)
+  publishStatus        ContentPostPublishStatus @default(NONE)
+  publishedAt          DateTime?
+  instagramMediaId     String?
+  instagramPermalink   String?
+  publishError         String?
+  publishAttempts      Int                  @default(0)
+  lastPublishAttemptAt DateTime?
   companyId            String               @default("00000000-0000-4000-8000-000000000001")
   calendarEvent        CalendarEvent?
   attachments          ContentAttachment[]
@@ -691,6 +699,7 @@ model ContentPost {
   @@index([status])
   @@index([internalReviewStatus])
   @@index([scheduledDate])
+  @@index([publishStatus, scheduledDate])
   @@index([userId])
   @@index([clientId])
   @@index([companyId])
@@ -1455,6 +1464,14 @@ enum ContentPostStatus {
   PENDING_APPROVAL
   APPROVED
   REJECTED
+}
+
+enum ContentPostPublishStatus {
+  NONE
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
 }
 
 enum PostFeedbackType {

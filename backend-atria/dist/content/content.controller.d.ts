@@ -24,8 +24,8 @@ export declare class ContentController {
                 type: "rejection_reason" | "general_note";
                 user: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
                 createdAt: string;
             } | null;
@@ -34,9 +34,9 @@ export declare class ContentController {
             clientId: string;
             client: {
                 id: string;
-                avatarUrl: string | null;
                 companyName: string;
                 instagram: string | null;
+                avatarUrl: string | null;
             };
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "carousel" | "reels" | "static" | "story";
@@ -47,24 +47,30 @@ export declare class ContentController {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 postId: string;
+                url: string;
                 mimeType: string | null;
             }[];
             author: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
             platformColor: string;
+            publishToInstagram: boolean;
+            publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+            publishedAt: string | null;
+            instagramMediaId: string | null;
+            instagramPermalink: string | null;
+            publishError: string | null;
             createdAt: string;
             updatedAt: string;
         }[];
@@ -91,9 +97,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -104,24 +110,30 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }[]>;
@@ -146,8 +158,8 @@ export declare class ContentController {
             mediaUrls: string[];
             createdBy: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             createdAt: string;
         }[];
@@ -160,8 +172,8 @@ export declare class ContentController {
             type: "rejection_reason" | "general_note";
             user: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             createdAt: string;
         }[];
@@ -179,8 +191,8 @@ export declare class ContentController {
                 mediaUrls: string[];
                 createdBy: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
                 createdAt: string;
             };
@@ -197,8 +209,8 @@ export declare class ContentController {
                 type: "rejection_reason" | "general_note";
                 user: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
                 createdAt: string;
             };
@@ -210,9 +222,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -223,24 +235,30 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -250,9 +268,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -263,24 +281,30 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -290,9 +314,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -303,24 +327,30 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -334,8 +364,8 @@ export declare class ContentController {
         mediaUrls: string[];
         createdBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         createdAt: string;
     }>;
@@ -345,9 +375,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -358,24 +388,76 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
+        createdAt: string;
+        updatedAt: string;
+    }>;
+    publishPostToInstagram(id: string): Promise<{
+        id: string;
+        title: string;
+        clientId: string;
+        client: {
+            id: string;
+            companyName: string;
+            instagram: string | null;
+            avatarUrl: string | null;
+        };
+        platform: "instagram" | "tiktok" | "youtube" | "linkedin";
+        format: "carousel" | "reels" | "static" | "story";
+        scheduledDate: string | null;
+        status: "draft" | "pending_approval" | "approved" | "rejected" | "scheduled" | "published";
+        internalReviewStatus: "not_required" | "pending" | "approved" | "rejected";
+        internalReviewNote: string | null;
+        copy: string;
+        referenceUrl: string | null;
+        attachments: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
+            url: string;
+            mimeType: string | null;
+        }[];
+        author: {
+            id: string;
+            avatarUrl: string | null;
+            name: string;
+        };
+        assignee: {
+            id: string;
+            avatarUrl: string | null;
+            name: string;
+        } | null;
+        platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -385,9 +467,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -398,24 +480,30 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -425,9 +513,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -438,24 +526,30 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
+        publishToInstagram: boolean;
+        publishStatus: "none" | "queued" | "publishing" | "published" | "failed";
+        publishedAt: string | null;
+        instagramMediaId: string | null;
+        instagramPermalink: string | null;
+        publishError: string | null;
         createdAt: string;
         updatedAt: string;
     }>;

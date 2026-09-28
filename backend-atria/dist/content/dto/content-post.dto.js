@@ -50,6 +50,7 @@ class CreateContentPostDto {
     referenceUrl;
     assigneeId;
     attachments;
+    publishToInstagram;
 }
 exports.CreateContentPostDto = CreateContentPostDto;
 __decorate([
@@ -106,6 +107,11 @@ __decorate([
     (0, class_transformer_1.Type)(() => AttachmentDto),
     __metadata("design:type", Array)
 ], CreateContentPostDto.prototype, "attachments", void 0);
+__decorate([
+    (0, class_validator_2.IsBoolean)(),
+    (0, class_validator_2.IsOptional)(),
+    __metadata("design:type", Boolean)
+], CreateContentPostDto.prototype, "publishToInstagram", void 0);
 class UpdateContentPostDto {
     title;
     clientId;
@@ -117,6 +123,7 @@ class UpdateContentPostDto {
     referenceUrl;
     assigneeId;
     attachments;
+    publishToInstagram;
 }
 exports.UpdateContentPostDto = UpdateContentPostDto;
 __decorate([
@@ -174,6 +181,11 @@ __decorate([
     (0, class_transformer_1.Type)(() => AttachmentDto),
     __metadata("design:type", Array)
 ], UpdateContentPostDto.prototype, "attachments", void 0);
+__decorate([
+    (0, class_validator_2.IsBoolean)(),
+    (0, class_validator_2.IsOptional)(),
+    __metadata("design:type", Boolean)
+], UpdateContentPostDto.prototype, "publishToInstagram", void 0);
 class QueryContentPostsDto {
     clientId;
     platform;

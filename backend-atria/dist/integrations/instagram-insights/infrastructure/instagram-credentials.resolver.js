@@ -110,6 +110,58 @@ let InstagramCredentialsResolver = InstagramCredentialsResolver_1 = class Instag
             hasMetaAccessToken: Boolean(client.metaAccessToken),
         };
     }
+    async resolveForClientPublishing(clientId) {
+        const base = await this.resolveForClient(clientId);
+        const storedId = base.instagramUserId;
+        const pages = await this.graph.listPages(base.accessToken);
+        const handle = normalizeInstagramHandleForMatch(base.instagram);
+        for (const page of pages) {
+            const ig = page.instagram_business_account;
+            const igId = ig?.id?.trim() ?? '';
+            if (igId && storedId === igId) {
+                return base;
+            }
+            if (storedId === page.id) {
+                if (!igId) {
+                    throw new common_1.BadRequestException(`A Página do Facebook "${page.name ?? page.id}" não está vinculada a uma conta Instagram no Meta. No Facebook/Meta Business, conecte o Instagram @${handle?.replace(/^@/, '') ?? 'da marca'} a esta Página e tente novamente.`);
+                }
+                await this.prisma.client.update({
+                    where: { id: clientId },
+                    data: { instagramUserId: igId },
+                });
+                fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Debug-Session-Id': 'ff56e0',
+                    },
+                    body: JSON.stringify({
+                        sessionId: 'ff56e0',
+                        location: 'instagram-credentials.resolver.ts:resolveForClientPublishing',
+                        message: 'corrected page id to instagram business id',
+                        data: { clientId, pageId: page.id, igId },
+                        hypothesisId: 'A-fix',
+                        timestamp: Date.now(),
+                        runId: 'post-fix',
+                    }),
+                }).catch(() => { });
+                return { ...base, instagramUserId: igId };
+            }
+            if (ig && igId && handle && ig.username) {
+                const pageHandle = normalizeInstagramHandleForMatch(ig.username);
+                if (pageHandle && pageHandle === handle) {
+                    if (storedId !== igId) {
+                        await this.prisma.client.update({
+                            where: { id: clientId },
+                            data: { instagramUserId: igId },
+                        });
+                    }
+                    return { ...base, instagramUserId: igId };
+                }
+            }
+        }
+        throw new common_1.BadRequestException('O Instagram User ID do cliente não corresponde a nenhuma Página/Instagram acessível com o token configurado. Atualize o token em Integrações ou corrija o ID em Clientes.');
+    }
     async upsertClientFromInstagram(page, instagram) {
         const handle = normalizeInstagramHandle(instagram.username);
         const companyName = instagram.name?.trim() || page.name?.trim() || handle || instagram.id;
@@ -210,6 +262,13 @@ exports.InstagramCredentialsResolver = InstagramCredentialsResolver = InstagramC
         company_settings_service_1.CompanySettingsService,
         instagram_graph_client_1.InstagramGraphClient])
 ], InstagramCredentialsResolver);
+function normalizeInstagramHandleForMatch(username) {
+    const trimmed = username?.trim().replace(/^@/, '').toLowerCase();
+    if (!trimmed) {
+        return null;
+    }
+    return `@${trimmed}`;
+}
 function normalizeInstagramHandle(username) {
     const trimmed = username?.trim().replace(/^@/, '');
     if (!trimmed) {

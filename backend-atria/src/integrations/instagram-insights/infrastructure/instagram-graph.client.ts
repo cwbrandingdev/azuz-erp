@@ -146,6 +146,96 @@ export class InstagramGraphClient {
     });
   }
 
+  async createImageMedia(
+    igUserId: string,
+    accessToken: string,
+    input: { imageUrl: string; caption: string },
+  ): Promise<{ id: string }> {
+    return this.postForm<{ id: string }>(`/${igUserId}/media`, {
+      image_url: input.imageUrl,
+      caption: input.caption,
+      access_token: accessToken,
+    });
+  }
+
+  async getMediaContainerStatus(
+    containerId: string,
+    accessToken: string,
+  ): Promise<{ status_code?: string; id?: string }> {
+    return this.getJson<GraphErrorBody & { status_code?: string; id?: string }>(
+      `/${containerId}`,
+      {
+        fields: 'status_code,id',
+        access_token: accessToken,
+      },
+    );
+  }
+
+  async getMediaById(
+    mediaId: string,
+    accessToken: string,
+    fields = 'id,permalink',
+  ): Promise<{ id?: string; permalink?: string }> {
+    return this.getJson<GraphErrorBody & { id?: string; permalink?: string }>(
+      `/${mediaId}`,
+      {
+      fields,
+      access_token: accessToken,
+    });
+  }
+
+  async publishMediaContainer(
+    igUserId: string,
+    accessToken: string,
+    creationId: string,
+  ): Promise<{ id: string }> {
+    return this.postForm<{ id: string }>(`/${igUserId}/media_publish`, {
+      creation_id: creationId,
+      access_token: accessToken,
+    });
+  }
+
+  private async postForm<T extends GraphErrorBody & { id?: string }>(
+    path: string,
+    params: Record<string, string>,
+  ): Promise<T> {
+    const url = new URL(`${this.graphBase()}${path}`);
+    const body = new URLSearchParams(params);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+
+    let payload: T;
+    try {
+      payload = (await response.json()) as T;
+    } catch {
+      if (response.status === 401) {
+        throw new MetaTokenExpiredError();
+      }
+      throw new Error('Falha na API do Meta');
+    }
+
+    const graphError = payload.error;
+    if (graphError) {
+      if (isMetaTokenExpired(graphError) || response.status === 401) {
+        throw new MetaTokenExpiredError();
+      }
+      throw new Error(graphError.message ?? 'Falha na API do Meta');
+    }
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new MetaTokenExpiredError();
+      }
+      throw new Error('Falha na API do Meta');
+    }
+
+    return payload;
+  }
+
   private async getJson<T extends GraphErrorBody>(
     path: string,
     params: Record<string, string>,

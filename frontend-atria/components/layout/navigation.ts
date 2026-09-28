@@ -15,6 +15,7 @@ import {
   KanbanSquareIcon,
   MessageSquarePlus,
   Megaphone,
+  CalendarClock,
 } from "lucide-react";
 
 export interface NavChild {
@@ -46,6 +47,11 @@ export const navSections: NavSection[] = [
     label: "PRODUÇÃO",
     items: [
       { name: "Kanban", href: "/kanban", icon: Kanban },
+      {
+        name: "Agendamento de posts",
+        href: "/content/management",
+        icon: CalendarClock,
+      },
       { name: "Aprovação Interna", href: "/internal-approvals", icon: ClipboardCheck },
       { name: "Calendário", href: "/calendar", icon: Calendar },
     ],
