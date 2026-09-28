@@ -110,3 +110,37 @@ export function collectLeadCategories(
   }
   return Array.from(categories).sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
+
+function toLocalDateKey(value?: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isDateKeyInRange(
+  dateKey: string | null,
+  startDate: string,
+  endDate: string,
+): boolean {
+  if (!dateKey) return false;
+  if (startDate && dateKey < startDate) return false;
+  if (endDate && dateKey > endDate) return false;
+  return true;
+}
+
+export function leadMatchesDateFilter(
+  lead: { createdAt?: string },
+  filters: { startDate: string; endDate: string },
+): boolean {
+  if (!filters.startDate && !filters.endDate) return true;
+
+  return isDateKeyInRange(
+    toLocalDateKey(lead.createdAt),
+    filters.startDate,
+    filters.endDate,
+  );
+}

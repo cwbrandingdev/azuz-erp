@@ -21,6 +21,7 @@ import { PortalCrmSdrLeadsBanner } from "@/components/portal/portal-crm-sdr-lead
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -47,6 +48,7 @@ import {
   collectLeadCategories,
   leadColumnKey,
   leadMatchesCategory,
+  leadMatchesDateFilter,
   leadMatchesSearchQuery,
   shouldLeadAutoMinimize,
 } from "@/lib/leads-kanban-utils";
@@ -115,6 +117,8 @@ export function LeadsKanbanBoard({
   const [detailOpen, setDetailOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [crmMoveZone, setCrmMoveZone] = useState<CrmMoveZone>("all");
   const [clientFilter, setClientFilter] = useState(
     initialOrganizationId?.trim() || "all",
@@ -146,6 +150,8 @@ export function LeadsKanbanBoard({
     [categoryFilter],
   );
 
+  const hasDateFilter = Boolean(startDate || endDate);
+
   const pendingReminders = useMemo(
     () =>
       reminderBoard.columns.find((column) => column.status === "PENDING")
@@ -155,7 +161,9 @@ export function LeadsKanbanBoard({
 
   const hasActiveFilters =
     !portalClientView &&
-    (searchQuery.trim().length > 0 || categoryFilter !== "all");
+    (searchQuery.trim().length > 0 ||
+      categoryFilter !== "all" ||
+      hasDateFilter);
 
   const dragDisabled =
     hasActiveFilters || isDragDisabledForZone(crmMoveZone, portalClientView);
@@ -185,10 +193,25 @@ export function LeadsKanbanBoard({
           return false;
         }
 
+        if (
+          hasDateFilter &&
+          !leadMatchesDateFilter(lead, { startDate, endDate })
+        ) {
+          return false;
+        }
+
         return leadMatchesSearchQuery(lead, normalizedQuery);
       }),
     }));
-  }, [columns, searchQuery, categoryFilter, portalClientView]);
+  }, [
+    columns,
+    searchQuery,
+    categoryFilter,
+    portalClientView,
+    hasDateFilter,
+    startDate,
+    endDate,
+  ]);
 
   const filteredTotal = useMemo(
     () => filteredColumns.reduce((sum, column) => sum + column.leads.length, 0),
@@ -641,36 +664,58 @@ export function LeadsKanbanBoard({
       ) : (
         <>
           {!portalClientView && (
-            <div className="flex flex-col gap-3 rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--atria-primary)]/40" />
-                <Input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Buscar por nome, telefone, cidade, endereço..."
-                  className="pl-9"
-                />
+            <div className="flex flex-col gap-3 rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--atria-primary)]/40" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Buscar por nome, telefone, cidade, endereço..."
+                    className="pl-9"
+                  />
+                </div>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={(value) => {
+                    if (value) setCategoryFilter(value);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-56">
+                    <span className="line-clamp-1 min-w-0 flex-1 truncate text-left">
+                      {expectedCategoryFilterLabel}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as categorias</SelectItem>
+                    {categoryOptions.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select
-                value={categoryFilter}
-                onValueChange={(value) => {
-                  if (value) setCategoryFilter(value);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-56">
-                  <span className="line-clamp-1 min-w-0 flex-1 truncate text-left">
-                    {expectedCategoryFilterLabel}
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as categorias</SelectItem>
-                  {categoryOptions.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="kanban-start-date">De</FieldLabel>
+                  <DateInput
+                    id="kanban-start-date"
+                    value={startDate}
+                    max={endDate || undefined}
+                    onChange={(event) => setStartDate(event.target.value)}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="kanban-end-date">Até</FieldLabel>
+                  <DateInput
+                    id="kanban-end-date"
+                    value={endDate}
+                    min={startDate || undefined}
+                    onChange={(event) => setEndDate(event.target.value)}
+                  />
+                </Field>
+              </div>
             </div>
           )}
 
