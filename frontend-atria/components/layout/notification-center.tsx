@@ -13,9 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/auth-context";
 import { useNotifications } from "@/contexts/notifications-context";
 import { useMarkNotificationAsRead } from "@/hooks/use-mark-notification-as-read";
 import { formatCurrency } from "@/lib/financial-utils";
+import { isMasterOrAdmin } from "@/lib/permissions";
 import { getNotificationHref } from "@/lib/notification-utils";
 import { financeService } from "@/services";
 import type { AppNotification, FinanceDueTodayAlerts } from "@/services/types";
@@ -29,6 +31,8 @@ interface NotificationCenterProps {
 
 export function NotificationCenter({ tone = "light" }: NotificationCenterProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  const showFinanceAlerts = isMasterOrAdmin(user?.role);
   const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } =
     useNotifications();
   const markNotificationAsRead = useMarkNotificationAsRead();
@@ -45,14 +49,19 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
   }, []);
 
   useEffect(() => {
+    if (!showFinanceAlerts) {
+      setFinanceAlerts(null);
+      return;
+    }
     void loadFinance();
     const interval = window.setInterval(() => void loadFinance(), FINANCE_POLL_MS);
     return () => window.clearInterval(interval);
-  }, [loadFinance]);
+  }, [loadFinance, showFinanceAlerts]);
 
-  const financeDueCount =
-    (financeAlerts?.totals.dueTodayCount ?? 0) +
-    (financeAlerts?.totals.overdueCount ?? 0);
+  const financeDueCount = showFinanceAlerts
+    ? (financeAlerts?.totals.dueTodayCount ?? 0) +
+      (financeAlerts?.totals.overdueCount ?? 0)
+    : 0;
   const badgeCount = unreadCount + financeDueCount;
   const latest = notifications.slice(0, 5);
 
@@ -71,7 +80,7 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
         setOpen(next);
         if (next) {
           void refresh();
-          void loadFinance();
+          if (showFinanceAlerts) void loadFinance();
         }
       }}
     >
@@ -122,7 +131,7 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
         </div>
         <DropdownMenuSeparator />
 
-        {financeDueCount > 0 && financeAlerts ? (
+        {showFinanceAlerts && financeDueCount > 0 && financeAlerts ? (
           <>
             <div className="px-3 py-2">
               <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--atria-primary)]/50">

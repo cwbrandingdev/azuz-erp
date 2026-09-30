@@ -33,6 +33,18 @@ export function isDesignerRole(role: string | null | undefined): boolean {
   return normalized === "designer_master" || normalized === "designer_junior";
 }
 
+export function canAccessStaffDashboard(
+  role: string | null | undefined,
+): boolean {
+  const normalized = normalizeAppRole(role);
+  return (
+    normalized === "master" ||
+    normalized === "admin" ||
+    normalized === "designer_master" ||
+    normalized === "designer_junior"
+  );
+}
+
 export function canAccessClientDirectory(
   role: string | null | undefined,
 ): boolean {
