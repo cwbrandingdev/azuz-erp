@@ -26,6 +26,7 @@ import { randomUUID } from 'crypto';
 import { readFileSync, unlinkSync } from 'fs';
 import { extname } from 'path';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { MetaPublishingService } from '../integrations/meta-publishing/meta-publishing.service';
 import { SupabaseStorageService } from '../supabase/supabase-storage.service';
 import {
   assertCanPerformInternalApproval,
@@ -94,6 +95,15 @@ const taskInclude = {
     include: { uploadedBy: { select: userSelect } },
     orderBy: { uploadedAt: 'desc' as const },
   },
+  contentPost: {
+    select: {
+      platform: true,
+      metaPublishStatus: true,
+      metaPublishError: true,
+      metaScheduledAt: true,
+      metaIgPermalink: true,
+    },
+  },
 } satisfies Prisma.KanbanTaskInclude;
 
 type DbClient = Prisma.TransactionClient | PrismaService;
@@ -142,6 +152,7 @@ export class KanbanService {
     private readonly storage: SupabaseStorageService,
     @Inject(forwardRef(() => DeliverablesService))
     private readonly deliverablesService: DeliverablesService,
+    private readonly metaPublishing: MetaPublishingService,
   ) {}
 
   async getColumns() {
@@ -616,6 +627,11 @@ export class KanbanService {
       userId,
       updated.status,
     );
+    if (dto.publicationDate !== undefined) {
+      void this.metaPublishing
+        .handlePublicationDateChange(id)
+        .catch(() => undefined);
+    }
     await this.logTaskChanges(userId, existing, withCalendar, dto);
 
     const becamePending =
@@ -857,6 +873,9 @@ export class KanbanService {
     });
 
     if (existing.contentPostId) {
+      await this.metaPublishing.cancelScheduleForContentPost(
+        existing.contentPostId,
+      );
       await this.prisma.contentPost.update({
         where: { id: existing.contentPostId },
         data: {
@@ -1029,6 +1048,9 @@ export class KanbanService {
     });
 
     if (existing.contentPostId) {
+      await this.metaPublishing.cancelScheduleForContentPost(
+        existing.contentPostId,
+      );
       await this.prisma.contentPost.update({
         where: { id: existing.contentPostId },
         data: {
@@ -1087,6 +1109,64 @@ export class KanbanService {
       taskId,
       'Cliente aprovou: movida para OK',
     );
+
+    void this.metaPublishing.tryScheduleForTask(taskId).catch(() => undefined);
+  }
+
+  async publishInstagramNow(userId: string, role: string, taskId: string) {
+    const task = await this.ensureTaskExists(taskId);
+    assertKanbanTaskEditAccess(role, userId, task);
+
+    if (!task.clientId) {
+      throw new BadRequestException(
+        'Vincule um cliente à tarefa antes de publicar no Instagram',
+      );
+    }
+
+    const assetCount = await this.prisma.kanbanTaskAsset.count({
+      where: { taskId },
+    });
+    if (assetCount === 0) {
+      throw new BadRequestException(
+        'Anexe pelo menos uma mídia na aba Entregas antes de publicar',
+      );
+    }
+
+    let contentPostId = task.contentPostId;
+    if (!contentPostId) {
+      const post = await this.prisma.contentPost.create({
+        data: {
+          title: task.title,
+          platform: ContentPlatform.INSTAGRAM,
+          format: ContentPostFormat.STATIC,
+          copy: this.resolvePostCopy(task),
+          referenceUrl: task.referenceUrl,
+          scheduledDate: task.publicationDate ?? task.dueDate,
+          status: ContentPostStatus.DRAFT,
+          clientId: task.clientId,
+          userId: task.createdById || userId,
+          assigneeId: task.assignees[0]?.userId ?? null,
+        },
+        select: { id: true },
+      });
+      contentPostId = post.id;
+      await this.prisma.kanbanTask.update({
+        where: { id: taskId },
+        data: { contentPostId },
+      });
+      if (task.calendarEventId) {
+        await this.prisma.calendarEvent.update({
+          where: { id: task.calendarEventId },
+          data: { contentPostId },
+        });
+      }
+    }
+
+    await this.syncTaskAssetsToContentPost(taskId, contentPostId);
+    await this.metaPublishing.publishNowForContentPost(contentPostId);
+    await this.logHistory(userId, taskId, 'Publicado no Instagram agora');
+
+    return this.getTask(taskId);
   }
 
   async uploadTaskAsset(
@@ -2176,6 +2256,20 @@ export class KanbanService {
         uploadedBy: asset.uploadedBy,
       })),
       updatedAt: task.updatedAt.toISOString(),
+      metaInstagram: task.contentPost
+        ? {
+            status: task.contentPost.metaPublishStatus.toLowerCase() as
+              | 'not_scheduled'
+              | 'pending'
+              | 'scheduled'
+              | 'published'
+              | 'failed',
+            error: task.contentPost.metaPublishError,
+            scheduledAt:
+              task.contentPost.metaScheduledAt?.toISOString() ?? null,
+            permalink: task.contentPost.metaIgPermalink,
+          }
+        : null,
     };
   }
 

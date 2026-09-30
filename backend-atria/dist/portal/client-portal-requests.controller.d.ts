@@ -128,6 +128,12 @@ export declare class ClientPortalRequestsController {
                 };
             }[];
             updatedAt: string;
+            metaInstagram: {
+                status: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+                error: string | null;
+                scheduledAt: string | null;
+                permalink: string | null;
+            } | null;
             id: string;
             title: string;
             description: string | null;

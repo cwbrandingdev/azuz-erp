@@ -47,11 +47,11 @@ export declare class ContentController {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                id: string;
-                name: string;
-                createdAt: Date;
-                postId: string;
                 url: string;
+                id: string;
+                createdAt: Date;
+                name: string;
+                postId: string;
                 mimeType: string | null;
             }[];
             author: {
@@ -65,6 +65,10 @@ export declare class ContentController {
                 avatarUrl: string | null;
             } | null;
             platformColor: string;
+            metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+            metaPublishError: string | null;
+            metaScheduledAt: string | null;
+            metaIgPermalink: string | null;
             createdAt: string;
             updatedAt: string;
         }[];
@@ -104,11 +108,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -122,6 +126,10 @@ export declare class ContentController {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }[]>;
@@ -223,11 +231,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -241,6 +249,10 @@ export declare class ContentController {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -263,11 +275,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -281,6 +293,10 @@ export declare class ContentController {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -303,11 +319,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -321,6 +337,10 @@ export declare class ContentController {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -358,11 +378,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -376,6 +396,10 @@ export declare class ContentController {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -398,11 +422,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -416,6 +440,10 @@ export declare class ContentController {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -438,11 +466,11 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -456,6 +484,10 @@ export declare class ContentController {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;

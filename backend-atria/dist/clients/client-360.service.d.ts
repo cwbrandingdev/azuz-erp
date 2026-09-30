@@ -21,7 +21,7 @@ export declare class Client360Service {
             title: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "scheduled" | "published" | "draft" | "pending_approval";
             scheduledDate: string | null;
             copy: string;
             referenceUrl: string | null;
@@ -116,7 +116,7 @@ export declare class Client360Service {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "scheduled" | "published" | "draft" | "pending_approval";
             assignee: null;
         })[];
         meetings: ({
@@ -146,7 +146,7 @@ export declare class Client360Service {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "scheduled" | "published" | "draft" | "pending_approval";
             assignee: null;
         })[];
         releases: ({
@@ -176,7 +176,7 @@ export declare class Client360Service {
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "scheduled" | "published" | "draft" | "pending_approval";
             assignee: null;
         })[];
     } | {

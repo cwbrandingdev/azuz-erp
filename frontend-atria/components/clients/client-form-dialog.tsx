@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Plus, Loader2 } from "lucide-react";
+import { AtSign, CheckCircle2, Copy, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { clientsService, clientGroupsService, ApiError } from "@/services";
+import {
+  clientsService,
+  clientGroupsService,
+  metaPublishingService,
+  ApiError,
+} from "@/services";
 import { toast } from "@/lib/toast";
 import { usePermissions } from "@/hooks/use-permissions";
 import type { Client, ClientGroup, CreateClientAccessResult } from "@/services/types";
@@ -75,15 +80,26 @@ export function ClientFormDialog({
     null,
   );
   const [copiedAccess, setCopiedAccess] = useState(false);
+  const [metaOAuthConfigured, setMetaOAuthConfigured] = useState(false);
+  const [metaConnectLoading, setMetaConnectLoading] = useState(false);
 
   const { canManageUsers } = usePermissions();
   const canCreateLogin = canManageUsers();
 
   const isEditing = Boolean(client);
 
+  const isInstagramConnected = Boolean(
+    (client?.hasMetaAccessToken || metaAccessToken.trim()) &&
+      (instagramUserId.trim() || client?.instagramUserId?.trim()),
+  );
+
   useEffect(() => {
     if (!open) return;
     void clientGroupsService.getClientGroups().then(setGroups).catch(() => setGroups([]));
+    void metaPublishingService
+      .getMetaOAuthConfig()
+      .then((config) => setMetaOAuthConfigured(config.configured))
+      .catch(() => setMetaOAuthConfigured(false));
   }, [open]);
 
   useEffect(() => {
@@ -489,6 +505,79 @@ export function ClientFormDialog({
               />
             </Field>
           </div>
+
+          {isInstagramConnected ? (
+            <div
+              className="flex items-start gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-3 py-2.5"
+              role="status"
+            >
+              <CheckCircle2
+                className="mt-0.5 size-5 shrink-0 text-emerald-600"
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-900">
+                  <AtSign className="size-4" aria-hidden />
+                  Instagram conectado ao Meta
+                </p>
+                <p className="mt-0.5 truncate text-xs text-emerald-800/90">
+                  {instagram || client?.instagram || "Conta vinculada"}
+                  {(instagramUserId || client?.instagramUserId) &&
+                    ` · ID ${instagramUserId || client?.instagramUserId}`}
+                </p>
+                <p className="mt-1 text-[11px] text-emerald-700/80">
+                  Token da página salvo. Publicações podem ser agendadas após
+                  aprovação do cliente na tarefa.
+                </p>
+              </div>
+            </div>
+          ) : isEditing && client ? (
+            <div
+              className="rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-xs text-amber-900"
+              role="status"
+            >
+              Instagram não conectado — use o botão abaixo ou informe ID e token
+              manualmente.
+            </div>
+          ) : null}
+
+          {isEditing && client && metaOAuthConfigured ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={metaConnectLoading}
+                onClick={async () => {
+                  setMetaConnectLoading(true);
+                  try {
+                    const { url } = await metaPublishingService.getMetaOAuthAuthorizeUrl(
+                      client.id,
+                    );
+                    window.location.href = url;
+                  } catch (err) {
+                    toast.error(
+                      err instanceof ApiError
+                        ? err.message
+                        : "Não foi possível iniciar a conexão com o Meta",
+                    );
+                  } finally {
+                    setMetaConnectLoading(false);
+                  }
+                }}
+              >
+                {metaConnectLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {isInstagramConnected
+                  ? "Reconectar Instagram (Meta)"
+                  : "Conectar Instagram (Meta)"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                OAuth com permissões de publicação; salva o token da página no cliente.
+              </p>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
             <Field>

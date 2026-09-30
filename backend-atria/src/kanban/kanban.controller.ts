@@ -151,6 +151,15 @@ export class KanbanController {
     return this.kanbanService.updateInternalReview(user.userId, user.role, id, dto);
   }
 
+  @Post('tasks/:id/publish-instagram')
+  @HttpCode(200)
+  publishInstagramNow(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.kanbanService.publishInstagramNow(user.userId, user.role, id);
+  }
+
   @Post('tasks/:id/assets')
   @UseInterceptors(
     FileInterceptor('file', {

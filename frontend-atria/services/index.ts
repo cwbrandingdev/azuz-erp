@@ -39,6 +39,7 @@ export * as appUpdatesService from "./app-updates.service";
 export * as insightsService from "./insights.service";
 export * as metaAnalyticsService from "./meta-analytics.service";
 export * as instagramInsightsService from "./instagram-insights.service";
+export * as metaPublishingService from "./meta-publishing.service";
 export * as performanceService from "./insights.service";
 export * as dashboardService from "./dashboard.service";
 /** @deprecated Use calendarService */

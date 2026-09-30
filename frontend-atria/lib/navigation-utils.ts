@@ -24,6 +24,7 @@ const ROUTE_LABELS: Record<string, string> = {
   suggestions: "Sugestões",
   "app-updates": "Atualizações",
   calendar: "Calendário",
+  schedule: "Cronograma",
   clients: "Clientes",
   leads: "Prospecção de Leads",
   assets: "Assets",
