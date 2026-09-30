@@ -97,20 +97,24 @@ function filterModeSectionClass(active: boolean) {
 }
 
 function matchesQuery(lead: Lead, query: string) {
-  if (!query) return true;
-  const haystack = [
-    lead.name,
-    lead.city,
-    lead.neighborhood,
-    lead.category,
-    lead.phone,
-    lead.email,
-    lead.address,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return haystack.includes(query);
+  const normalized = normalizeFilterText(query);
+  if (!normalized) return true;
+  const haystack = normalizeFilterText(
+    [
+      lead.name,
+      lead.city,
+      lead.neighborhood,
+      lead.category,
+      lead.phone,
+      lead.email,
+      lead.address,
+      lead.website,
+      lead.instagram,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+  return haystack.includes(normalized);
 }
 
 export function CompanySearchPanel() {
@@ -126,6 +130,7 @@ export function CompanySearchPanel() {
     useState(ALL_NEIGHBORHOODS);
   const [globalCategoryFilter, setGlobalCategoryFilter] = useState("");
   const [globalNeighborhoodFilter, setGlobalNeighborhoodFilter] = useState("");
+  const [globalFilterQuery, setGlobalFilterQuery] = useState("");
   const [allProspectedLeads, setAllProspectedLeads] = useState<Lead[]>([]);
   const [loadingAllLeads, setLoadingAllLeads] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
@@ -243,11 +248,10 @@ export function CompanySearchPanel() {
       );
     }
 
-    const normalized = sessionFilterQuery.trim().toLowerCase();
-    if (!normalized) {
+    if (!sessionFilterQuery.trim()) {
       return filtered;
     }
-    return filtered.filter((lead) => matchesQuery(lead, normalized));
+    return filtered.filter((lead) => matchesQuery(lead, sessionFilterQuery));
   }, [
     activeLeads,
     sessionFilterCategory,
@@ -256,7 +260,9 @@ export function CompanySearchPanel() {
   ]);
 
   const isGlobalFilterActive = Boolean(
-    globalCategoryFilter.trim() || globalNeighborhoodFilter.trim(),
+    globalCategoryFilter.trim() ||
+      globalNeighborhoodFilter.trim() ||
+      globalFilterQuery.trim(),
   );
 
   const globalFilteredLeads = useMemo(() => {
@@ -265,11 +271,13 @@ export function CompanySearchPanel() {
     return allProspectedLeads.filter(
       (lead) =>
         matchesLeadField(lead, globalCategoryFilter, "category") &&
-        matchesLeadField(lead, globalNeighborhoodFilter, "neighborhood"),
+        matchesLeadField(lead, globalNeighborhoodFilter, "neighborhood") &&
+        matchesQuery(lead, globalFilterQuery),
     );
   }, [
     allProspectedLeads,
     globalCategoryFilter,
+    globalFilterQuery,
     globalNeighborhoodFilter,
     isGlobalFilterActive,
   ]);
@@ -331,6 +339,7 @@ export function CompanySearchPanel() {
 
     setGlobalCategoryFilter("");
     setGlobalNeighborhoodFilter("");
+    setGlobalFilterQuery("");
     setSessionFilterQuery("");
     setSessionFilterCategory(ALL_CATEGORIES);
     setSessionFilterNeighborhood(ALL_NEIGHBORHOODS);
@@ -662,6 +671,7 @@ export function CompanySearchPanel() {
               onChange={(sessionId) => {
                 setGlobalCategoryFilter("");
                 setGlobalNeighborhoodFilter("");
+                setGlobalFilterQuery("");
                 const nextSessionId = sessionId ?? sessions[0]?.id ?? null;
                 setSelectedSessionId(nextSessionId);
                 setSessionFilterQuery("");
@@ -787,6 +797,26 @@ export function CompanySearchPanel() {
                 </Badge>
               )}
             </div>
+            <Field className="lg:col-span-2">
+              <FieldLabel htmlFor="company-global-lead-filter">
+                Buscar em todos os leads
+              </FieldLabel>
+              <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
+                Nome, telefone, e-mail, endereço ou site em todo o histórico de
+                prospecção.
+              </p>
+              <Input
+                id="company-global-lead-filter"
+                value={globalFilterQuery}
+                onChange={(event) => {
+                  setGlobalFilterQuery(event.target.value);
+                  setSessionFilterQuery("");
+                  setSessionFilterCategory(ALL_CATEGORIES);
+                  setSessionFilterNeighborhood(ALL_NEIGHBORHOODS);
+                }}
+                placeholder="Nome, telefone, endereço..."
+              />
+            </Field>
             <Field>
               <FieldLabel htmlFor="company-global-category-filter">
                 Categoria no histórico
@@ -948,9 +978,8 @@ export function CompanySearchPanel() {
           isGlobalFilterActive &&
           displayLeads.length === 0 && (
             <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
-              Nenhuma empresa no histórico corresponde a essa categoria ou
-              bairro. Ajuste os filtros ou limpe os campos para ver a busca
-              atual.
+              Nenhuma empresa no histórico corresponde aos filtros. Ajuste a
+              busca ou limpe os campos para ver a pesquisa selecionada.
             </div>
           )}
 
