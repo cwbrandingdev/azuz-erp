@@ -34,6 +34,23 @@ export function isTaskAssignedToUser(
   );
 }
 
+export function isDesignerRole(role: string): boolean {
+  const roleName = normalizeRoleName(role);
+  return (
+    roleName === RoleName.DESIGNER_MASTER ||
+    roleName === RoleName.DESIGNER_JUNIOR
+  );
+}
+
+export function canViewDashboardFinance(role: string): boolean {
+  const roleName = normalizeRoleName(role);
+  return roleName === RoleName.MASTER || roleName === RoleName.ADMIN;
+}
+
+export function canAccessStaffDashboard(role: string): boolean {
+  return canViewDashboardFinance(role) || isDesignerRole(role);
+}
+
 export function canPerformInternalApproval(role: string): boolean {
   const roleName = normalizeRoleName(role);
   return (

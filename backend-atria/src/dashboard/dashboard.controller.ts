@@ -11,16 +11,22 @@ import { DashboardService } from './dashboard.service';
 
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RoleName.MASTER, RoleName.ADMIN)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('overview')
+  @Roles(
+    RoleName.MASTER,
+    RoleName.ADMIN,
+    RoleName.DESIGNER_MASTER,
+    RoleName.DESIGNER_JUNIOR,
+  )
   getOverview(@CurrentUser() user: AuthenticatedUser) {
-    return this.dashboardService.getOverview(user.userId);
+    return this.dashboardService.getOverview(user.userId, user.role);
   }
 
   @Get('tv-monitoring')
+  @Roles(RoleName.MASTER, RoleName.ADMIN)
   getTvMonitoring() {
     return this.dashboardService.getTvMonitoring();
   }

@@ -5,9 +5,14 @@ import {
   Permission,
   type PermissionKey,
 } from "./permissions";
-import { canAccessClientDirectory, isClientRole, isCrmRole } from "./roles";
+import {
+  canAccessClientDirectory,
+  canAccessStaffDashboard,
+  isClientRole,
+  isCrmRole,
+} from "./roles";
 
-const ADMIN_ONLY_ROUTES = new Set(["/dashboard", "/dashboard/tv", "/insights"]);
+const ADMIN_ONLY_ROUTES = new Set(["/dashboard/tv", "/insights"]);
 const INTERNAL_APPROVAL_ROUTES = new Set(["/internal-approvals"]);
 
 const ROUTE_PERMISSIONS: Record<string, PermissionKey[]> = {
@@ -68,6 +73,10 @@ export function canAccessRoute(
 
   if (href === "/settings") {
     return !isClientRole(role) && !isCrmRole(role);
+  }
+
+  if (routeKey === "/dashboard") {
+    return canAccessStaffDashboard(role);
   }
 
   if (ADMIN_ONLY_ROUTES.has(routeKey)) {

@@ -7,7 +7,9 @@ import {
   CircleDollarSign,
   ClipboardList,
 } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
 import { formatCurrency } from "@/lib/financial-utils";
+import { isMasterOrAdmin } from "@/lib/permissions";
 import type { DashboardOverview } from "@/services/types";
 import { cn } from "@/lib/utils";
 
@@ -16,19 +18,25 @@ interface DashboardPulseProps {
 }
 
 export function DashboardPulse({ data }: DashboardPulseProps) {
+  const { user } = useAuth();
+  const showFinance = isMasterOrAdmin(user?.role);
   const meetingsToday = data.calendar.todayMeetings.length;
   const myTasks = data.kanban.myTasks.length;
   const scheduledPosts = data.contentAndMeta.scheduledPosts.length;
 
   const cards = [
-    {
-      label: "Resultado líquido",
-      value: formatCurrency(data.finance.netProfit),
-      hint: "resultado do mês atual",
-      href: "/financial",
-      icon: CircleDollarSign,
-      tone: "text-[var(--atria-primary)] bg-[var(--atria-accent)]/25",
-    },
+    ...(showFinance
+      ? [
+          {
+            label: "Resultado líquido",
+            value: formatCurrency(data.finance.netProfit),
+            hint: "resultado do mês atual",
+            href: "/financial",
+            icon: CircleDollarSign,
+            tone: "text-[var(--atria-primary)] bg-[var(--atria-accent)]/25",
+          },
+        ]
+      : []),
     {
       label: "Reuniões hoje",
       value: String(meetingsToday),
