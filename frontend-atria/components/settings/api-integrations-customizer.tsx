@@ -15,7 +15,11 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { resolveSecretUpdateValue } from "@/lib/secret-field";
 import { toast } from "@/lib/toast";
-import { ApiError, companySettingsService } from "@/services";
+import {
+  ApiError,
+  companySettingsService,
+  type MetaPageTokenOption,
+} from "@/services";
 import type { CompanyIntegrations } from "@/services/types";
 
 const DEFAULT_INTEGRATIONS: CompanyIntegrations = {
@@ -44,6 +48,16 @@ const EMPTY_SECRETS: SecretDrafts = {
   apifyApiToken: "",
 };
 
+function secretDraftsFromIntegrations(
+  data: CompanyIntegrations,
+): SecretDrafts {
+  return {
+    metaPageAccessToken: data.metaPageAccessToken ?? "",
+    metaAppSecret: data.metaAppSecret ?? "",
+    apifyApiToken: data.apifyApiToken ?? "",
+  };
+}
+
 export function ApiIntegrationsCustomizer() {
   const [integrations, setIntegrations] =
     useState<CompanyIntegrations>(DEFAULT_INTEGRATIONS);
@@ -51,6 +65,11 @@ export function ApiIntegrationsCustomizer() {
     useState<SecretDrafts>(EMPTY_SECRETS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [resolvingPageToken, setResolvingPageToken] = useState(false);
+  const [metaPageId, setMetaPageId] = useState("");
+  const [metaPageOptions, setMetaPageOptions] = useState<MetaPageTokenOption[]>(
+    [],
+  );
 
   useEffect(() => {
     let active = true;
@@ -60,7 +79,7 @@ export function ApiIntegrationsCustomizer() {
       .then((data) => {
         if (!active) return;
         setIntegrations(data);
-        setSecretDrafts(EMPTY_SECRETS);
+        setSecretDrafts(secretDraftsFromIntegrations(data));
       })
       .catch((error) => {
         if (!active) return;
@@ -107,6 +126,9 @@ export function ApiIntegrationsCustomizer() {
       if (metaPageAccessToken !== undefined) {
         payload.metaPageAccessToken = metaPageAccessToken;
       }
+      if (metaPageId.trim()) {
+        payload.metaPageId = metaPageId.trim();
+      }
       if (metaAppSecret !== undefined) {
         payload.metaAppSecret = metaAppSecret;
       }
@@ -117,7 +139,9 @@ export function ApiIntegrationsCustomizer() {
       const updated =
         await companySettingsService.updateCompanyIntegrations(payload);
       setIntegrations(updated);
-      setSecretDrafts(EMPTY_SECRETS);
+      setSecretDrafts(secretDraftsFromIntegrations(updated));
+      setMetaPageId("");
+      setMetaPageOptions([]);
       toast.success("Chaves de API salvas com sucesso");
     } catch (error) {
       toast.error(
@@ -127,6 +151,67 @@ export function ApiIntegrationsCustomizer() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleResolvePageToken() {
+    const userToken = secretDrafts.metaPageAccessToken.trim();
+    if (!userToken) {
+      toast.error("Cole o token gerado no Graph API Explorer antes de converter.");
+      return;
+    }
+
+    setResolvingPageToken(true);
+    try {
+      const result = await companySettingsService.resolveMetaPageAccessToken({
+        accessToken: userToken,
+        pageId: metaPageId.trim() || undefined,
+      });
+
+      setSecretDrafts((current) => ({
+        ...current,
+        metaPageAccessToken: result.pageAccessToken,
+      }));
+      setMetaPageOptions([]);
+      if (result.pageId) {
+        setMetaPageId(result.pageId);
+      }
+
+      toast.success(
+        result.convertedFromUser
+          ? `Token de Página obtido (${result.pageName || result.pageId}).`
+          : "Token já é de Página — pronto para salvar.",
+      );
+    } catch (error) {
+      if (error instanceof ApiError && error.data && typeof error.data === "object") {
+        const envelope = error.data as { message?: unknown };
+        const body =
+          envelope.message && typeof envelope.message === "object"
+            ? (envelope.message as {
+                pages?: MetaPageTokenOption[];
+                message?: string;
+              })
+            : (error.data as {
+                pages?: MetaPageTokenOption[];
+                message?: string;
+              });
+        if (body.pages?.length) {
+          setMetaPageOptions(body.pages);
+          toast.error(
+            typeof body.message === "string"
+              ? body.message
+              : "Selecione a Página do Facebook e clique em converter novamente.",
+          );
+          return;
+        }
+      }
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível converter o token para Página.",
+      );
+    } finally {
+      setResolvingPageToken(false);
     }
   }
 
@@ -176,8 +261,14 @@ export function ApiIntegrationsCustomizer() {
 
           <Field>
             <FieldLabel htmlFor="meta-page-access-token">
-              Page Access Token
+              Token de acesso da Página (Meta)
             </FieldLabel>
+            <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
+              No Graph API Explorer, o botão &quot;Generate Access Token&quot;
+              costuma gerar token de <strong>usuário</strong>. Cole aqui e use
+              &quot;Converter para token de Página&quot; — ou salve direto que o
+              sistema converte automaticamente.
+            </p>
             <SecretInput
               id="meta-page-access-token"
               value={secretDrafts.metaPageAccessToken}
@@ -187,12 +278,58 @@ export function ApiIntegrationsCustomizer() {
                   metaPageAccessToken: event.target.value,
                 }))
               }
-              placeholder={
-                integrations.hasMetaPageAccessToken
-                  ? "Token configurado — deixe em branco para manter"
-                  : "EAA..."
-              }
+              placeholder="EAA... (token de usuário ou de Página)"
               autoComplete="new-password"
+            />
+            {metaPageOptions.length > 0 ? (
+              <select
+                value={metaPageId}
+                onChange={(event) => setMetaPageId(event.target.value)}
+                className="mt-2 h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm"
+              >
+                <option value="">Selecione a Página do Facebook</option>
+                {metaPageOptions.map((page) => (
+                  <option key={page.id} value={page.id}>
+                    {page.name}
+                    {page.instagramUserId
+                      ? ` · IG ${page.instagramUserId}`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2"
+              disabled={resolvingPageToken}
+              onClick={() => void handleResolvePageToken()}
+            >
+              {resolvingPageToken
+                ? "Convertendo..."
+                : "Converter para token de Página"}
+            </Button>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="meta-app-id">App ID (Meta)</FieldLabel>
+            <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
+              ID do app no Meta for Developers (mesmo app usado no Graph API
+              Explorer). Obrigatório para publicar no Instagram e validar o
+              token.
+            </p>
+            <Input
+              id="meta-app-id"
+              value={integrations.metaAppId ?? ""}
+              onChange={(event) =>
+                setIntegrations((current) => ({
+                  ...current,
+                  metaAppId: event.target.value || null,
+                }))
+              }
+              placeholder="123456789012345"
+              autoComplete="off"
+              inputMode="numeric"
             />
           </Field>
 
@@ -207,11 +344,7 @@ export function ApiIntegrationsCustomizer() {
                   metaAppSecret: event.target.value,
                 }))
               }
-              placeholder={
-                integrations.hasMetaAppSecret
-                  ? "Secret configurado — deixe em branco para manter"
-                  : "App secret da Meta"
-              }
+              placeholder="App secret da Meta"
               autoComplete="new-password"
             />
           </Field>
@@ -245,18 +378,9 @@ export function ApiIntegrationsCustomizer() {
                   apifyApiToken: event.target.value,
                 }))
               }
-              placeholder={
-                integrations.hasApifyApiToken
-                  ? "Token configurado — deixe em branco para manter"
-                  : "apify_api_..."
-              }
+              placeholder="apify_api_..."
               autoComplete="new-password"
             />
-            {integrations.hasApifyApiToken && (
-              <p className="mt-1.5 text-xs text-[var(--atria-primary)]/45">
-                Token criptografado já salvo para este tenant.
-              </p>
-            )}
           </Field>
         </FieldGroup>
       </Card>

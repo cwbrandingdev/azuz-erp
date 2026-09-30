@@ -142,7 +142,23 @@ export interface GraphInstagramBusinessAccount {
 export interface GraphPageRow {
   id: string;
   name?: string;
+  access_token?: string;
   instagram_business_account?: GraphInstagramBusinessAccount;
+}
+
+export interface GraphDebugTokenResponse extends GraphErrorBody {
+  data?: {
+    type?: string;
+    app_id?: string;
+    profile_id?: string;
+    user_id?: string;
+    scopes?: string;
+    granular_scopes?: Array<{
+      scope?: string;
+      target_ids?: string[];
+    }>;
+    is_valid?: boolean;
+  };
 }
 
 export interface GraphPageListResponse extends GraphErrorBody {

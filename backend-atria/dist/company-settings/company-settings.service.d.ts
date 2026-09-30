@@ -1,4 +1,6 @@
 import { ConfigService } from '@nestjs/config';
+import { MetaPageAccessTokenResolver } from '../integrations/instagram-insights/infrastructure/meta-page-access-token.resolver';
+import { ResolveMetaPageAccessTokenDto } from './dto/resolve-meta-page-access-token.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateCompanyIntegrationsDto } from './dto/update-company-integrations.dto';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto';
@@ -49,7 +51,9 @@ export interface CompanyIntegrationCredentials {
 export declare class CompanySettingsService {
     private readonly prisma;
     private readonly config;
-    constructor(prisma: PrismaService, config: ConfigService);
+    private readonly metaPageAccessTokenResolver;
+    constructor(prisma: PrismaService, config: ConfigService, metaPageAccessTokenResolver: MetaPageAccessTokenResolver);
+    resolveMetaPageAccessToken(dto: ResolveMetaPageAccessTokenDto): Promise<import("../integrations/instagram-insights/infrastructure/meta-page-access-token.resolver").MetaPageAccessTokenResolveResult>;
     getSettings(): Promise<CompanySettingsResponse>;
     updateSettings(dto: UpdateCompanySettingsDto): Promise<CompanySettingsResponse>;
     getIntegrations(): Promise<CompanyIntegrationsResponse>;
@@ -65,5 +69,6 @@ export declare class CompanySettingsService {
     private decryptOptionalSecret;
     private normalizeOptionalString;
     private normalizeSecretInput;
+    private normalizeMetaPageAccessTokenInput;
     private getSecretKey;
 }

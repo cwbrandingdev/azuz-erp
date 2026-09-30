@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
+import { MetaPageAccessTokenResolver } from '../integrations/instagram-insights/infrastructure/meta-page-access-token.resolver';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
@@ -7,7 +8,8 @@ export declare class ClientsService {
     private readonly prisma;
     private readonly config;
     private readonly usersService;
-    constructor(prisma: PrismaService, config: ConfigService, usersService: UsersService);
+    private readonly metaPageAccessTokenResolver;
+    constructor(prisma: PrismaService, config: ConfigService, usersService: UsersService, metaPageAccessTokenResolver: MetaPageAccessTokenResolver);
     findAll(clientGroupId?: string, activeOnly?: boolean): Promise<{
         id: string;
         companyName: string;
@@ -273,5 +275,6 @@ export declare class ClientsService {
     private toClientResponse;
     private getRequestCountsByClient;
     private toPersistence;
+    private resolveMetaAccessTokenForStorage;
     private encryptOptionalToken;
 }

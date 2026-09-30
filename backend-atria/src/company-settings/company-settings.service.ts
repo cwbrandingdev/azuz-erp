@@ -3,6 +3,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { MetaPageAccessTokenResolver } from '../integrations/instagram-insights/infrastructure/meta-page-access-token.resolver';
+import { ResolveMetaPageAccessTokenDto } from './dto/resolve-meta-page-access-token.dto';
 import {
   decryptSecret,
   encryptSecret,
@@ -83,7 +85,23 @@ export class CompanySettingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly metaPageAccessTokenResolver: MetaPageAccessTokenResolver,
   ) {}
+
+  async resolveMetaPageAccessToken(dto: ResolveMetaPageAccessTokenDto) {
+    const company = await this.loadCurrentCompany();
+    const secretKey = this.getSecretKey();
+    const appSecret = this.decryptOptionalSecret(
+      company.metaAppSecret,
+      secretKey,
+    );
+
+    return this.metaPageAccessTokenResolver.resolve(dto.accessToken, {
+      appId: company.metaAppId,
+      appSecret,
+      pageId: dto.pageId,
+    });
+  }
 
   async getSettings(): Promise<CompanySettingsResponse> {
     const company = await this.loadCurrentCompany();
@@ -118,9 +136,11 @@ export class CompanySettingsService {
 
     if (dto.metaPageAccessToken !== undefined) {
       if (!shouldPreserveMaskedSecret(dto.metaPageAccessToken)) {
-        data.metaPageAccessToken = this.normalizeSecretInput(
+        data.metaPageAccessToken = await this.normalizeMetaPageAccessTokenInput(
           dto.metaPageAccessToken,
           secretKey,
+          company,
+          null,
         );
       }
     }
@@ -168,9 +188,16 @@ export class CompanySettingsService {
 
     if (dto.metaPageAccessToken !== undefined) {
       if (!shouldPreserveMaskedSecret(dto.metaPageAccessToken)) {
-        data.metaPageAccessToken = this.normalizeSecretInput(
+        data.metaPageAccessToken = await this.normalizeMetaPageAccessTokenInput(
           dto.metaPageAccessToken,
           secretKey,
+          company,
+          dto.metaPageId ?? null,
+          dto.metaAppId,
+          dto.metaAppSecret !== undefined &&
+            !shouldPreserveMaskedSecret(dto.metaAppSecret)
+            ? dto.metaAppSecret
+            : undefined,
         );
       }
     }
@@ -227,17 +254,27 @@ export class CompanySettingsService {
     const company = await this.loadCurrentCompany();
     const secretKey = this.getSecretKey();
 
+    const metaAppId =
+      company.metaAppId?.trim() ||
+      this.config.get<string>('META_APP_ID')?.trim() ||
+      null;
+    const storedAppSecret = this.decryptOptionalSecret(
+      company.metaAppSecret,
+      secretKey,
+    );
+    const metaAppSecret =
+      storedAppSecret?.trim() ||
+      this.config.get<string>('META_APP_SECRET')?.trim() ||
+      null;
+
     return {
       metaAdAccountId: company.metaAdAccountId,
       metaPageAccessToken: this.decryptOptionalSecret(
         company.metaPageAccessToken,
         secretKey,
       ),
-      metaAppId: company.metaAppId,
-      metaAppSecret: this.decryptOptionalSecret(
-        company.metaAppSecret,
-        secretKey,
-      ),
+      metaAppId,
+      metaAppSecret,
       apifyApiToken: this.decryptOptionalSecret(
         company.apifyApiToken,
         secretKey,
@@ -358,6 +395,33 @@ export class CompanySettingsService {
     const trimmed = value.trim();
     if (!trimmed) return null;
     return encryptSecret(trimmed, secretKey);
+  }
+
+  private async normalizeMetaPageAccessTokenInput(
+    value: string | null,
+    secretKey: string,
+    company: CompanyRecord,
+    pageId: string | null,
+    metaAppIdOverride?: string | null,
+    metaAppSecretPlain?: string | null,
+  ) {
+    if (value === null) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const appId =
+      metaAppIdOverride?.trim() || company.metaAppId?.trim() || null;
+    const appSecret =
+      metaAppSecretPlain?.trim() ||
+      this.decryptOptionalSecret(company.metaAppSecret, secretKey);
+
+    const resolved = await this.metaPageAccessTokenResolver.resolve(trimmed, {
+      appId,
+      appSecret,
+      pageId,
+    });
+
+    return encryptSecret(resolved.pageAccessToken, secretKey);
   }
 
   private getSecretKey() {

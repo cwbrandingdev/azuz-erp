@@ -20,12 +20,43 @@ let InstagramGraphClient = class InstagramGraphClient {
         this.config = config;
     }
     async listPages(accessToken) {
-        const response = await this.getJson('/me/accounts', {
+        try {
+            const response = await this.getJson('/me/accounts', {
+                fields: 'id,name,access_token,instagram_business_account{id,username,name,profile_picture_url}',
+                limit: '100',
+                access_token: accessToken,
+            });
+            return response.data ?? [];
+        }
+        catch (error) {
+            if (!this.isUserAccountsEdgeError(error)) {
+                throw error;
+            }
+            const page = await this.getPageFromPageAccessToken(accessToken);
+            return page ? [page] : [];
+        }
+    }
+    async getPageFromPageAccessToken(pageAccessToken) {
+        const response = await this.getJson('/me', {
             fields: 'id,name,instagram_business_account{id,username,name,profile_picture_url}',
-            limit: '100',
-            access_token: accessToken,
+            access_token: pageAccessToken,
         });
-        return response.data ?? [];
+        if (!response.id?.trim()) {
+            return null;
+        }
+        return {
+            id: response.id,
+            name: response.name,
+            access_token: pageAccessToken,
+            instagram_business_account: response.instagram_business_account,
+        };
+    }
+    async debugAccessToken(inputToken, appAccessToken) {
+        const response = await this.getJson('/debug_token', {
+            input_token: inputToken,
+            access_token: appAccessToken,
+        });
+        return response.data;
     }
     async getUserProfile(igUserId, accessToken) {
         return this.getJson(`/${igUserId}`, {
@@ -195,6 +226,11 @@ let InstagramGraphClient = class InstagramGraphClient {
         const version = this.config.get('META_API_VERSION')?.trim() ||
             DEFAULT_GRAPH_VERSION;
         return `https://graph.facebook.com/${version.replace(/^\/+/, '')}`;
+    }
+    isUserAccountsEdgeError(error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return (message.includes('nonexisting field (accounts)') ||
+            message.includes('node type (Page)'));
     }
 };
 exports.InstagramGraphClient = InstagramGraphClient;

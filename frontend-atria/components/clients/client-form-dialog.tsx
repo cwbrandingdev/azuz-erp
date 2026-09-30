@@ -501,14 +501,18 @@ export function ClientFormDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="client-meta-token">Token Meta</FieldLabel>
+              <FieldLabel htmlFor="client-meta-token">
+                Token Meta (Página)
+              </FieldLabel>
               <Input
                 id="client-meta-token"
                 type="password"
                 value={metaAccessToken}
                 onChange={(e) => setMetaAccessToken(e.target.value)}
                 placeholder={
-                  client?.hasMetaAccessToken ? "••••••••" : "Access token"
+                  client?.hasMetaAccessToken
+                    ? "••••••••"
+                    : "Token de usuário ou de página — convertemos ao salvar"
                 }
               />
             </Field>

@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { CompanySettingsService } from '../../../company-settings/company-settings.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { InstagramGraphClient } from './instagram-graph.client';
+export type MetaAccessTokenSource = 'client_metaAccessToken' | 'company_integrations_metaPageAccessToken_or_env' | 'none';
 export interface ResolvedInstagramCredentials {
     clientId: string;
     companyName: string;
@@ -10,6 +11,7 @@ export interface ResolvedInstagramCredentials {
     instagramUserId: string;
     accessToken: string;
     hasMetaAccessToken: boolean;
+    metaTokenSource: MetaAccessTokenSource;
 }
 export declare class InstagramCredentialsResolver {
     private readonly prisma;
@@ -28,7 +30,10 @@ export declare class InstagramCredentialsResolver {
     }[]>;
     syncFromMeta(): Promise<void>;
     resolveForClient(clientId: string): Promise<ResolvedInstagramCredentials>;
+    private metaTokenExpiredMessage;
     resolveForClientPublishing(clientId: string): Promise<ResolvedInstagramCredentials>;
+    private withPageAccessTokenForPublish;
+    private listPagesForPublishing;
     private upsertClientFromInstagram;
     private findMatchingClient;
     private resolveTenantAccessToken;

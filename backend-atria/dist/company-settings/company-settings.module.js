@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CompanySettingsModule = void 0;
 const common_1 = require("@nestjs/common");
+const instagram_graph_module_1 = require("../integrations/instagram-insights/infrastructure/instagram-graph.module");
 const company_settings_controller_1 = require("./company-settings.controller");
 const company_settings_service_1 = require("./company-settings.service");
 let CompanySettingsModule = class CompanySettingsModule {
@@ -15,6 +16,7 @@ let CompanySettingsModule = class CompanySettingsModule {
 exports.CompanySettingsModule = CompanySettingsModule;
 exports.CompanySettingsModule = CompanySettingsModule = __decorate([
     (0, common_1.Module)({
+        imports: [instagram_graph_module_1.InstagramGraphModule],
         controllers: [company_settings_controller_1.CompanySettingsController],
         providers: [company_settings_service_1.CompanySettingsService],
         exports: [company_settings_service_1.CompanySettingsService],

@@ -13,30 +13,29 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.InstagramPublishingService = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
+const company_settings_service_1 = require("../../company-settings/company-settings.service");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const instagram_credentials_resolver_1 = require("../instagram-insights/infrastructure/instagram-credentials.resolver");
 const instagram_graph_client_1 = require("../instagram-insights/infrastructure/instagram-graph.client");
 const instagram_publish_media_resolver_1 = require("./instagram-publish-media.resolver");
 const MAX_PUBLISH_ATTEMPTS = 3;
-const CONTAINER_POLL_ATTEMPTS = 12;
-const CONTAINER_POLL_MS = 2_500;
-function agentDebug(location, message, data, hypothesisId) {
-    fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Debug-Session-Id': 'ff56e0',
-        },
-        body: JSON.stringify({
-            sessionId: 'ff56e0',
-            location,
-            message,
-            data,
-            hypothesisId,
-            timestamp: Date.now(),
-            runId: 'post-fix',
-        }),
-    }).catch(() => { });
+const CONTAINER_POLL_ATTEMPTS = 5;
+const CONTAINER_POLL_MS = 3_000;
+const META_RATE_LIMIT_COOLDOWN_MS = 30 * 60 * 1000;
+function isMetaRateLimitMessage(message) {
+    if (!message) {
+        return false;
+    }
+    return (/request limit reached/i.test(message) ||
+        /rate limit/i.test(message) ||
+        /Limite de requisições/i.test(message));
+}
+function metaRateLimitCooldownRemainingMs(lastAttemptAt) {
+    if (!lastAttemptAt) {
+        return 0;
+    }
+    const elapsed = Date.now() - lastAttemptAt.getTime();
+    return Math.max(0, META_RATE_LIMIT_COOLDOWN_MS - elapsed);
 }
 const postInclude = {
     attachments: { orderBy: { createdAt: 'asc' } },
@@ -54,12 +53,14 @@ let InstagramPublishingService = InstagramPublishingService_1 = class InstagramP
     credentials;
     graph;
     mediaResolver;
+    companySettings;
     logger = new common_1.Logger(InstagramPublishingService_1.name);
-    constructor(prisma, credentials, graph, mediaResolver) {
+    constructor(prisma, credentials, graph, mediaResolver, companySettings) {
         this.prisma = prisma;
         this.credentials = credentials;
         this.graph = graph;
         this.mediaResolver = mediaResolver;
+        this.companySettings = companySettings;
     }
     async syncPublishQueue(postId) {
         const post = await this.prisma.contentPost.findUnique({
@@ -101,6 +102,16 @@ let InstagramPublishingService = InstagramPublishingService_1 = class InstagramP
         });
         if (!post) {
             throw new common_1.NotFoundException('Content post not found');
+        }
+        if (isMetaRateLimitMessage(post.publishError) &&
+            metaRateLimitCooldownRemainingMs(post.lastPublishAttemptAt) > 0) {
+            const waitMin = Math.ceil(metaRateLimitCooldownRemainingMs(post.lastPublishAttemptAt) / 60_000);
+            const message = `Limite da Meta ainda ativo. Aguarde cerca de ${waitMin} min antes de tentar novamente (evita prolongar o bloqueio).`;
+            throw new common_1.BadRequestException(message);
+        }
+        const meta = await this.companySettings.getMetaCredentialsForCurrentTenant();
+        if (!meta.metaAppId?.trim() || !meta.metaAppSecret?.trim()) {
+            throw new common_1.BadRequestException('Configure Meta App ID e App Secret em Configurações → Integrações de API antes de publicar (necessário para validar permissões do token).');
         }
         await this.prisma.contentPost.update({
             where: { id: postId },
@@ -172,66 +183,9 @@ let InstagramPublishingService = InstagramPublishingService_1 = class InstagramP
             const credentials = await this.credentials.resolveForClientPublishing(post.clientId);
             const attachment = post.attachments[0];
             const imageUrl = await this.mediaResolver.resolvePublicImageUrl(attachment.url, post.id);
-            let pageAccounts = [];
-            let igProfileOk = false;
-            let igProfileError = null;
-            try {
-                const pages = await this.graph.listPages(credentials.accessToken);
-                pageAccounts = pages.map((page) => ({
-                    pageId: page.id,
-                    pageName: page.name ?? '',
-                    igId: page.instagram_business_account?.id ?? null,
-                    igUsername: page.instagram_business_account?.username ?? null,
-                }));
-                const storedId = credentials.instagramUserId;
-                const matchesPageId = pageAccounts.some((p) => p.pageId === storedId);
-                const matchesIgId = pageAccounts.some((p) => p.igId === storedId);
-                try {
-                    await this.graph.getUserProfile(storedId, credentials.accessToken);
-                    igProfileOk = true;
-                }
-                catch (profileErr) {
-                    igProfileError =
-                        profileErr instanceof Error
-                            ? profileErr.message
-                            : String(profileErr);
-                }
-                agentDebug('instagram-publishing.service.ts:publishDuePost', 'meta token page/ig probe before createImageMedia', {
-                    postId,
-                    clientId: post.clientId,
-                    storedInstagramUserId: storedId,
-                    resolvedInstagramUserId: credentials.instagramUserId,
-                    tokenSource: credentials.hasMetaAccessToken
-                        ? 'client'
-                        : 'company_or_env',
-                    clientInstagramHandle: post.client.instagram,
-                    matchesPageId,
-                    matchesIgId,
-                    igProfileOk,
-                    igProfileError,
-                    pageAccounts,
-                    imageUrlHost: (() => {
-                        try {
-                            return new URL(imageUrl).host;
-                        }
-                        catch {
-                            return 'invalid-url';
-                        }
-                    })(),
-                }, matchesPageId && !matchesIgId ? 'A' : 'B');
-            }
-            catch (probeErr) {
-                agentDebug('instagram-publishing.service.ts:publishDuePost', 'meta listPages probe failed', {
-                    postId,
-                    clientId: post.clientId,
-                    storedInstagramUserId: credentials.instagramUserId,
-                    probeError: probeErr instanceof Error ? probeErr.message : String(probeErr),
-                }, 'C');
-            }
             const container = await this.graph.createImageMedia(credentials.instagramUserId, credentials.accessToken, { imageUrl, caption: post.copy });
             await this.waitForContainerReady(container.id, credentials.accessToken);
             const published = await this.graph.publishMediaContainer(credentials.instagramUserId, credentials.accessToken, container.id);
-            const permalink = await this.tryResolvePermalink(published.id, credentials.accessToken);
             await this.prisma.contentPost.update({
                 where: { id: postId },
                 data: {
@@ -239,21 +193,25 @@ let InstagramPublishingService = InstagramPublishingService_1 = class InstagramP
                     status: client_1.ContentPostStatus.PUBLISHED,
                     publishedAt: new Date(),
                     instagramMediaId: published.id,
-                    instagramPermalink: permalink,
+                    instagramPermalink: null,
                     publishError: null,
                 },
             });
         }
         catch (error) {
-            const message = error instanceof Error ? error.message : 'Falha ao publicar no Instagram';
-            agentDebug('instagram-publishing.service.ts:publishDuePost', 'createImageMedia or publish failed', {
-                postId,
-                clientId: post.clientId,
-                storedInstagramUserId: post.client.instagramUserId,
-                errorMessage: message,
-            }, 'E');
+            const rawMessage = error instanceof Error ? error.message : 'Falha ao publicar no Instagram';
+            const isPermission10 = rawMessage.includes('instagram_content_publish');
+            const isRateLimit = /request limit reached/i.test(rawMessage);
+            const isTokenExpired = error instanceof Error && error.name === 'MetaTokenExpiredError';
+            const message = isPermission10
+                ? 'O token da Meta não tem permissão instagram_content_publish. Gere um token de Página no Graph API Explorer com instagram_content_publish (e pages_show_list), converta em Integrações de API e salve. Cadastre também App ID e App Secret da Meta nas integrações.'
+                : isRateLimit
+                    ? 'Limite de requisições do app na Meta (rate limit). Aguarde 30–60 minutos e tente publicar uma única vez. Evite vários cliques seguidos em Publicar.'
+                    : isTokenExpired
+                        ? 'O token de acesso da Página (Meta) em Configurações → Integrações de API expirou. Gere um novo no Graph API Explorer, converta para token de Página, salve e tente novamente.'
+                        : rawMessage;
             const attempts = post.publishAttempts + 1;
-            const finalFailed = attempts >= MAX_PUBLISH_ATTEMPTS;
+            const finalFailed = isRateLimit || attempts >= MAX_PUBLISH_ATTEMPTS;
             await this.prisma.contentPost.update({
                 where: { id: postId },
                 data: {
@@ -276,15 +234,6 @@ let InstagramPublishingService = InstagramPublishingService_1 = class InstagramP
                 throw new Error(`Container de mídia do Instagram em estado ${code}`);
             }
             await this.delay(CONTAINER_POLL_MS);
-        }
-    }
-    async tryResolvePermalink(mediaId, accessToken) {
-        try {
-            const row = await this.graph.getMediaById(mediaId, accessToken);
-            return row.permalink ?? null;
-        }
-        catch {
-            return null;
         }
     }
     shouldQueueForPublish(post) {
@@ -348,6 +297,7 @@ exports.InstagramPublishingService = InstagramPublishingService = InstagramPubli
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         instagram_credentials_resolver_1.InstagramCredentialsResolver,
         instagram_graph_client_1.InstagramGraphClient,
-        instagram_publish_media_resolver_1.InstagramPublishMediaResolver])
+        instagram_publish_media_resolver_1.InstagramPublishMediaResolver,
+        company_settings_service_1.CompanySettingsService])
 ], InstagramPublishingService);
 //# sourceMappingURL=instagram-publishing.service.js.map

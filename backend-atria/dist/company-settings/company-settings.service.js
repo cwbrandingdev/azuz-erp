@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CompanySettingsService = exports.MASKED_SECRET = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const meta_page_access_token_resolver_1 = require("../integrations/instagram-insights/infrastructure/meta-page-access-token.resolver");
 const secret_crypto_1 = require("../common/crypto/secret-crypto");
 const prisma_service_1 = require("../prisma/prisma.service");
 const company_constants_1 = require("../company/company.constants");
@@ -19,9 +20,21 @@ exports.MASKED_SECRET = '********';
 let CompanySettingsService = class CompanySettingsService {
     prisma;
     config;
-    constructor(prisma, config) {
+    metaPageAccessTokenResolver;
+    constructor(prisma, config, metaPageAccessTokenResolver) {
         this.prisma = prisma;
         this.config = config;
+        this.metaPageAccessTokenResolver = metaPageAccessTokenResolver;
+    }
+    async resolveMetaPageAccessToken(dto) {
+        const company = await this.loadCurrentCompany();
+        const secretKey = this.getSecretKey();
+        const appSecret = this.decryptOptionalSecret(company.metaAppSecret, secretKey);
+        return this.metaPageAccessTokenResolver.resolve(dto.accessToken, {
+            appId: company.metaAppId,
+            appSecret,
+            pageId: dto.pageId,
+        });
     }
     async getSettings() {
         const company = await this.loadCurrentCompany();
@@ -42,7 +55,7 @@ let CompanySettingsService = class CompanySettingsService {
         }
         if (dto.metaPageAccessToken !== undefined) {
             if (!(0, secret_crypto_1.shouldPreserveMaskedSecret)(dto.metaPageAccessToken)) {
-                data.metaPageAccessToken = this.normalizeSecretInput(dto.metaPageAccessToken, secretKey);
+                data.metaPageAccessToken = await this.normalizeMetaPageAccessTokenInput(dto.metaPageAccessToken, secretKey, company, null);
             }
         }
         if (dto.metaAppSecret !== undefined) {
@@ -69,7 +82,10 @@ let CompanySettingsService = class CompanySettingsService {
         }
         if (dto.metaPageAccessToken !== undefined) {
             if (!(0, secret_crypto_1.shouldPreserveMaskedSecret)(dto.metaPageAccessToken)) {
-                data.metaPageAccessToken = this.normalizeSecretInput(dto.metaPageAccessToken, secretKey);
+                data.metaPageAccessToken = await this.normalizeMetaPageAccessTokenInput(dto.metaPageAccessToken, secretKey, company, dto.metaPageId ?? null, dto.metaAppId, dto.metaAppSecret !== undefined &&
+                    !(0, secret_crypto_1.shouldPreserveMaskedSecret)(dto.metaAppSecret)
+                    ? dto.metaAppSecret
+                    : undefined);
             }
         }
         if (dto.metaAppSecret !== undefined) {
@@ -108,11 +124,18 @@ let CompanySettingsService = class CompanySettingsService {
     async getIntegrationCredentialsForCurrentTenant() {
         const company = await this.loadCurrentCompany();
         const secretKey = this.getSecretKey();
+        const metaAppId = company.metaAppId?.trim() ||
+            this.config.get('META_APP_ID')?.trim() ||
+            null;
+        const storedAppSecret = this.decryptOptionalSecret(company.metaAppSecret, secretKey);
+        const metaAppSecret = storedAppSecret?.trim() ||
+            this.config.get('META_APP_SECRET')?.trim() ||
+            null;
         return {
             metaAdAccountId: company.metaAdAccountId,
             metaPageAccessToken: this.decryptOptionalSecret(company.metaPageAccessToken, secretKey),
-            metaAppId: company.metaAppId,
-            metaAppSecret: this.decryptOptionalSecret(company.metaAppSecret, secretKey),
+            metaAppId,
+            metaAppSecret,
             apifyApiToken: this.decryptOptionalSecret(company.apifyApiToken, secretKey),
             whatsappApiToken: this.decryptOptionalSecret(company.whatsappApiToken, secretKey),
         };
@@ -202,6 +225,22 @@ let CompanySettingsService = class CompanySettingsService {
             return null;
         return (0, secret_crypto_1.encryptSecret)(trimmed, secretKey);
     }
+    async normalizeMetaPageAccessTokenInput(value, secretKey, company, pageId, metaAppIdOverride, metaAppSecretPlain) {
+        if (value === null)
+            return null;
+        const trimmed = value.trim();
+        if (!trimmed)
+            return null;
+        const appId = metaAppIdOverride?.trim() || company.metaAppId?.trim() || null;
+        const appSecret = metaAppSecretPlain?.trim() ||
+            this.decryptOptionalSecret(company.metaAppSecret, secretKey);
+        const resolved = await this.metaPageAccessTokenResolver.resolve(trimmed, {
+            appId,
+            appSecret,
+            pageId,
+        });
+        return (0, secret_crypto_1.encryptSecret)(resolved.pageAccessToken, secretKey);
+    }
     getSecretKey() {
         return (this.config.get('TENANT_SECRETS_KEY')?.trim() ||
             this.config.getOrThrow('JWT_ACCESS_SECRET'));
@@ -211,6 +250,7 @@ exports.CompanySettingsService = CompanySettingsService;
 exports.CompanySettingsService = CompanySettingsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        meta_page_access_token_resolver_1.MetaPageAccessTokenResolver])
 ], CompanySettingsService);
 //# sourceMappingURL=company-settings.service.js.map

@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { ClientRequestStatus, Prisma, RoleName } from '@prisma/client';
 import {
+  decryptSecret,
   encryptSecret,
   shouldPreserveMaskedSecret,
 } from '../common/crypto/secret-crypto';
@@ -10,6 +11,8 @@ import {
   hasPermission,
 } from '../auth/constants/permissions';
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
+import { DEFAULT_COMPANY_ID } from '../company/company.constants';
+import { MetaPageAccessTokenResolver } from '../integrations/instagram-insights/infrastructure/meta-page-access-token.resolver';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
@@ -20,6 +23,7 @@ export class ClientsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly usersService: UsersService,
+    private readonly metaPageAccessTokenResolver: MetaPageAccessTokenResolver,
   ) {}
 
   async findAll(clientGroupId?: string, activeOnly = false) {
@@ -71,7 +75,7 @@ export class ClientsService {
     }
 
     const client = await this.prisma.client.create({
-      data: this.toPersistence(clientFields) as Prisma.ClientUncheckedCreateInput,
+      data: (await this.toPersistence(clientFields)) as Prisma.ClientUncheckedCreateInput,
       include: {
         clientGroup: true,
         _count: { select: { posts: true } },
@@ -120,7 +124,7 @@ export class ClientsService {
   }
 
   async update(id: string, dto: UpdateClientDto) {
-    await this.ensureClientExists(id);
+    const existing = await this.ensureClientExists(id);
 
     if (dto.clientGroupId) {
       await this.ensureClientGroupExists(dto.clientGroupId);
@@ -128,7 +132,10 @@ export class ClientsService {
 
     const client = await this.prisma.client.update({
       where: { id },
-      data: this.toPersistence(dto) as Prisma.ClientUncheckedUpdateInput,
+      data: (await this.toPersistence(
+        dto,
+        existing.instagramUserId,
+      )) as Prisma.ClientUncheckedUpdateInput,
       include: {
         clientGroup: true,
         _count: { select: { posts: true } },
@@ -367,22 +374,70 @@ export class ClientsService {
     return map;
   }
 
-  private toPersistence(dto: CreateClientDto | UpdateClientDto) {
+  private async toPersistence(
+    dto: CreateClientDto | UpdateClientDto,
+    fallbackInstagramUserId?: string | null,
+  ) {
     const { metaAccessToken, instagramUserId, ...rest } = dto;
     const data: Record<string, unknown> = { ...rest };
 
+    const resolvedInstagramUserId =
+      instagramUserId !== undefined
+        ? instagramUserId.trim()
+        : (fallbackInstagramUserId?.trim() ?? '');
+
     if (instagramUserId !== undefined) {
-      const trimmed = instagramUserId.trim();
-      data.instagramUserId = trimmed.length > 0 ? trimmed : null;
+      data.instagramUserId =
+        resolvedInstagramUserId.length > 0 ? resolvedInstagramUserId : null;
     }
 
     if (metaAccessToken !== undefined) {
       if (!shouldPreserveMaskedSecret(metaAccessToken)) {
-        data.metaAccessToken = this.encryptOptionalToken(metaAccessToken);
+        const resolved = await this.resolveMetaAccessTokenForStorage(
+          metaAccessToken,
+          resolvedInstagramUserId || null,
+        );
+        data.metaAccessToken = this.encryptOptionalToken(resolved);
       }
     }
 
     return data;
+  }
+
+  private async resolveMetaAccessTokenForStorage(
+    token: string,
+    instagramUserId: string | null,
+  ) {
+    const trimmed = token.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: DEFAULT_COMPANY_ID },
+      select: { metaAppId: true, metaAppSecret: true },
+    });
+
+    const secretKey =
+      this.config.get<string>('TENANT_SECRETS_KEY')?.trim() ||
+      this.config.getOrThrow<string>('JWT_ACCESS_SECRET');
+
+    let appSecret: string | null = null;
+    if (company?.metaAppSecret) {
+      try {
+        appSecret = decryptSecret(company.metaAppSecret, secretKey).trim();
+      } catch {
+        appSecret = null;
+      }
+    }
+
+    const resolved = await this.metaPageAccessTokenResolver.resolve(trimmed, {
+      appId: company?.metaAppId ?? null,
+      appSecret,
+      instagramUserId,
+    });
+
+    return resolved.pageAccessToken;
   }
 
   private encryptOptionalToken(value?: string | null) {

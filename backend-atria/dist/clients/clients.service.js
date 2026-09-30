@@ -15,16 +15,20 @@ const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
 const secret_crypto_1 = require("../common/crypto/secret-crypto");
 const permissions_1 = require("../auth/constants/permissions");
+const company_constants_1 = require("../company/company.constants");
+const meta_page_access_token_resolver_1 = require("../integrations/instagram-insights/infrastructure/meta-page-access-token.resolver");
 const prisma_service_1 = require("../prisma/prisma.service");
 const users_service_1 = require("../users/users.service");
 let ClientsService = class ClientsService {
     prisma;
     config;
     usersService;
-    constructor(prisma, config, usersService) {
+    metaPageAccessTokenResolver;
+    constructor(prisma, config, usersService, metaPageAccessTokenResolver) {
         this.prisma = prisma;
         this.config = config;
         this.usersService = usersService;
+        this.metaPageAccessTokenResolver = metaPageAccessTokenResolver;
     }
     async findAll(clientGroupId, activeOnly = false) {
         const clients = await this.prisma.client.findMany({
@@ -60,7 +64,7 @@ let ClientsService = class ClientsService {
             await this.ensureClientGroupExists(clientFields.clientGroupId);
         }
         const client = await this.prisma.client.create({
-            data: this.toPersistence(clientFields),
+            data: (await this.toPersistence(clientFields)),
             include: {
                 clientGroup: true,
                 _count: { select: { posts: true } },
@@ -99,13 +103,13 @@ let ClientsService = class ClientsService {
         };
     }
     async update(id, dto) {
-        await this.ensureClientExists(id);
+        const existing = await this.ensureClientExists(id);
         if (dto.clientGroupId) {
             await this.ensureClientGroupExists(dto.clientGroupId);
         }
         const client = await this.prisma.client.update({
             where: { id },
-            data: this.toPersistence(dto),
+            data: (await this.toPersistence(dto, existing.instagramUserId)),
             include: {
                 clientGroup: true,
                 _count: { select: { posts: true } },
@@ -295,19 +299,50 @@ let ClientsService = class ClientsService {
         }
         return map;
     }
-    toPersistence(dto) {
+    async toPersistence(dto, fallbackInstagramUserId) {
         const { metaAccessToken, instagramUserId, ...rest } = dto;
         const data = { ...rest };
+        const resolvedInstagramUserId = instagramUserId !== undefined
+            ? instagramUserId.trim()
+            : (fallbackInstagramUserId?.trim() ?? '');
         if (instagramUserId !== undefined) {
-            const trimmed = instagramUserId.trim();
-            data.instagramUserId = trimmed.length > 0 ? trimmed : null;
+            data.instagramUserId =
+                resolvedInstagramUserId.length > 0 ? resolvedInstagramUserId : null;
         }
         if (metaAccessToken !== undefined) {
             if (!(0, secret_crypto_1.shouldPreserveMaskedSecret)(metaAccessToken)) {
-                data.metaAccessToken = this.encryptOptionalToken(metaAccessToken);
+                const resolved = await this.resolveMetaAccessTokenForStorage(metaAccessToken, resolvedInstagramUserId || null);
+                data.metaAccessToken = this.encryptOptionalToken(resolved);
             }
         }
         return data;
+    }
+    async resolveMetaAccessTokenForStorage(token, instagramUserId) {
+        const trimmed = token.trim();
+        if (!trimmed) {
+            return trimmed;
+        }
+        const company = await this.prisma.company.findUnique({
+            where: { id: company_constants_1.DEFAULT_COMPANY_ID },
+            select: { metaAppId: true, metaAppSecret: true },
+        });
+        const secretKey = this.config.get('TENANT_SECRETS_KEY')?.trim() ||
+            this.config.getOrThrow('JWT_ACCESS_SECRET');
+        let appSecret = null;
+        if (company?.metaAppSecret) {
+            try {
+                appSecret = (0, secret_crypto_1.decryptSecret)(company.metaAppSecret, secretKey).trim();
+            }
+            catch {
+                appSecret = null;
+            }
+        }
+        const resolved = await this.metaPageAccessTokenResolver.resolve(trimmed, {
+            appId: company?.metaAppId ?? null,
+            appSecret,
+            instagramUserId,
+        });
+        return resolved.pageAccessToken;
     }
     encryptOptionalToken(value) {
         if (value == null) {
@@ -327,6 +362,7 @@ exports.ClientsService = ClientsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         config_1.ConfigService,
-        users_service_1.UsersService])
+        users_service_1.UsersService,
+        meta_page_access_token_resolver_1.MetaPageAccessTokenResolver])
 ], ClientsService);
 //# sourceMappingURL=clients.service.js.map

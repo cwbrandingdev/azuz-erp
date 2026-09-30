@@ -32,7 +32,7 @@ let InstagramPublishSchedulerService = InstagramPublishSchedulerService_1 = clas
 };
 exports.InstagramPublishSchedulerService = InstagramPublishSchedulerService;
 __decorate([
-    (0, schedule_1.Cron)('* * * * *', { timeZone: SAO_PAULO_TZ }),
+    (0, schedule_1.Cron)('*/5 * * * *', { timeZone: SAO_PAULO_TZ }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)

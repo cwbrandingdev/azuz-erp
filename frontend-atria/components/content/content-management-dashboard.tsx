@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   CalendarDays,
   Filter,
   List,
+  Loader2,
   MessageSquare,
   Pencil,
   RefreshCw,
@@ -24,6 +25,7 @@ import {
   CONTENT_STATUS_LABELS,
   formatContentDate,
   INSTAGRAM_PUBLISH_STATUS_LABELS,
+  isMetaPublishRateLimitMessage,
 } from "@/lib/content-utils";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { toast } from "@/lib/toast";
@@ -99,6 +101,11 @@ export function ContentManagementDashboard() {
   const [createOpen, setCreateOpen] = useState(shouldOpenCreate);
   const [editingPost, setEditingPost] = useState<ContentPost | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [publishingInstagramPostIds, setPublishingInstagramPostIds] =
+    useState<Set<string>>(() => new Set());
+  const [instagramPublishLockedPostIds, setInstagramPublishLockedPostIds] =
+    useState<Set<string>>(() => new Set());
+  const instagramPublishLockRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     clientsService.getClients().then(setClients).catch(() => setClients([]));
@@ -212,13 +219,66 @@ export function ContentManagementDashboard() {
     }
   }
 
+  function isInstagramPublishButtonDisabled(
+    post: ContentManagementPost,
+  ): boolean {
+    if (instagramPublishLockRef.current.has(post.id)) {
+      return true;
+    }
+    if (instagramPublishLockedPostIds.has(post.id)) {
+      return true;
+    }
+    if (publishingInstagramPostIds.has(post.id)) {
+      return true;
+    }
+    if (
+      post.publishStatus === "publishing" ||
+      post.publishStatus === "queued"
+    ) {
+      return true;
+    }
+    if (isMetaPublishRateLimitMessage(post.publishError)) {
+      return true;
+    }
+    return false;
+  }
+
+  function lockInstagramPublishButton(postId: string) {
+    instagramPublishLockRef.current.add(postId);
+    setInstagramPublishLockedPostIds(
+      (current) => new Set(current).add(postId),
+    );
+  }
+
+  function unlockInstagramPublishButton(postId: string) {
+    instagramPublishLockRef.current.delete(postId);
+    setInstagramPublishLockedPostIds((current) => {
+      const next = new Set(current);
+      next.delete(postId);
+      return next;
+    });
+  }
+
   async function handlePublishNow(postId: string) {
+    if (instagramPublishLockRef.current.has(postId)) {
+      return;
+    }
+
+    lockInstagramPublishButton(postId);
+    setPublishingInstagramPostIds((current) => new Set(current).add(postId));
     try {
       await contentService.publishPostToInstagram(postId);
       toast.success("Publicação enviada ao Instagram.");
+      unlockInstagramPublishButton(postId);
       handleRefresh();
     } catch {
       toast.error("Não foi possível publicar no Instagram.");
+    } finally {
+      setPublishingInstagramPostIds((current) => {
+        const next = new Set(current);
+        next.delete(postId);
+        return next;
+      });
     }
   }
 
@@ -487,11 +547,26 @@ export function ContentManagementDashboard() {
                     post.platform === "instagram" &&
                     post.publishStatus !== "published" && (
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
+                        className="gap-1"
+                        disabled={isInstagramPublishButtonDisabled(post)}
+                        aria-disabled={isInstagramPublishButtonDisabled(post)}
                         onClick={() => void handlePublishNow(post.id)}
                       >
-                        Publicar agora (IG)
+                        {publishingInstagramPostIds.has(post.id) ||
+                        post.publishStatus === "publishing" ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : null}
+                        {publishingInstagramPostIds.has(post.id) ||
+                        post.publishStatus === "publishing"
+                          ? "Publicando…"
+                          : isMetaPublishRateLimitMessage(post.publishError)
+                            ? "Limite Meta (aguarde)"
+                            : isInstagramPublishButtonDisabled(post)
+                              ? "Tentativa enviada"
+                              : "Publicar agora (IG)"}
                       </Button>
                     )}
                   <Link href={`/content/${post.id}`}>

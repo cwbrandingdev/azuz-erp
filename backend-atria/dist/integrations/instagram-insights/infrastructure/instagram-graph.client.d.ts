@@ -1,9 +1,11 @@
 import { ConfigService } from '@nestjs/config';
-import type { GraphInsightsResponse, GraphMediaRow, GraphPageRow, GraphUserProfileResponse } from '../domain/instagram-insights.types';
+import type { GraphInsightsResponse, GraphMediaRow, GraphDebugTokenResponse, GraphPageRow, GraphUserProfileResponse } from '../domain/instagram-insights.types';
 export declare class InstagramGraphClient {
     private readonly config;
     constructor(config: ConfigService);
     listPages(accessToken: string): Promise<GraphPageRow[]>;
+    getPageFromPageAccessToken(pageAccessToken: string): Promise<GraphPageRow | null>;
+    debugAccessToken(inputToken: string, appAccessToken: string): Promise<GraphDebugTokenResponse['data']>;
     getUserProfile(igUserId: string, accessToken: string): Promise<GraphUserProfileResponse>;
     getAccountInsights(igUserId: string, accessToken: string, metrics: string[], extra?: Record<string, string>): Promise<GraphInsightsResponse>;
     listMedia(igUserId: string, accessToken: string, options?: {
@@ -33,4 +35,5 @@ export declare class InstagramGraphClient {
     private postForm;
     private getJson;
     private graphBase;
+    private isUserAccountsEdgeError;
 }

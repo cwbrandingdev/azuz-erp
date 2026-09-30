@@ -10,7 +10,13 @@ import { DEFAULT_COMPANY_ID } from '../../../company/company.constants';
 import { CompanySettingsService } from '../../../company-settings/company-settings.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { GraphInstagramBusinessAccount, GraphPageRow } from '../domain/instagram-insights.types';
+import { MetaTokenExpiredError } from '../domain/meta-token-expired.error';
 import { InstagramGraphClient } from './instagram-graph.client';
+
+export type MetaAccessTokenSource =
+  | 'client_metaAccessToken'
+  | 'company_integrations_metaPageAccessToken_or_env'
+  | 'none';
 
 export interface ResolvedInstagramCredentials {
   clientId: string;
@@ -20,6 +26,7 @@ export interface ResolvedInstagramCredentials {
   instagramUserId: string;
   accessToken: string;
   hasMetaAccessToken: boolean;
+  metaTokenSource: MetaAccessTokenSource;
 }
 
 @Injectable()
@@ -100,7 +107,15 @@ export class InstagramCredentialsResolver {
     }
 
     const clientToken = this.decrypt(client.metaAccessToken);
-    const accessToken = clientToken ?? (await this.resolveTenantAccessToken());
+    const tenantToken = clientToken
+      ? null
+      : await this.resolveTenantAccessToken();
+    const accessToken = clientToken ?? tenantToken;
+    const tokenSource = clientToken
+      ? 'client_metaAccessToken'
+      : tenantToken
+        ? 'company_integrations_metaPageAccessToken_or_env'
+        : 'none';
     const instagramUserId = client.instagramUserId?.trim() ?? '';
 
     if (!instagramUserId) {
@@ -123,7 +138,22 @@ export class InstagramCredentialsResolver {
       instagramUserId,
       accessToken,
       hasMetaAccessToken: Boolean(client.metaAccessToken),
+      metaTokenSource: tokenSource,
     };
+  }
+
+  private metaTokenExpiredMessage(source: MetaAccessTokenSource): string {
+    if (source === 'client_metaAccessToken') {
+      return (
+        'O token Meta salvo neste cliente expirou. Em Clientes, atualize o campo de token Meta ' +
+        'ou remova-o para usar o token da empresa em Configurações → Integrações de API.'
+      );
+    }
+    return (
+      'O token de acesso da Página (Meta) em Configurações → Integrações de API expirou. ' +
+      'No Graph API Explorer, gere um novo token com instagram_content_publish e pages_show_list, ' +
+      'use "Converter para token de Página", salve em Integrações e tente publicar novamente.'
+    );
   }
 
   /**
@@ -135,7 +165,17 @@ export class InstagramCredentialsResolver {
   ): Promise<ResolvedInstagramCredentials> {
     const base = await this.resolveForClient(clientId);
     const storedId = base.instagramUserId;
-    const pages = await this.graph.listPages(base.accessToken);
+    let pages: GraphPageRow[];
+    try {
+      pages = await this.listPagesForPublishing(base.accessToken);
+    } catch (error) {
+      if (error instanceof MetaTokenExpiredError) {
+        throw new BadRequestException(
+          this.metaTokenExpiredMessage(base.metaTokenSource),
+        );
+      }
+      throw error;
+    }
     const handle = normalizeInstagramHandleForMatch(base.instagram);
 
     for (const page of pages) {
@@ -143,7 +183,7 @@ export class InstagramCredentialsResolver {
       const igId = ig?.id?.trim() ?? '';
 
       if (igId && storedId === igId) {
-        return base;
+        return this.withPageAccessTokenForPublish(base, page);
       }
 
       if (storedId === page.id) {
@@ -156,29 +196,7 @@ export class InstagramCredentialsResolver {
           where: { id: clientId },
           data: { instagramUserId: igId },
         });
-        // #region agent log
-        fetch(
-          'http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Debug-Session-Id': 'ff56e0',
-            },
-            body: JSON.stringify({
-              sessionId: 'ff56e0',
-              location:
-                'instagram-credentials.resolver.ts:resolveForClientPublishing',
-              message: 'corrected page id to instagram business id',
-              data: { clientId, pageId: page.id, igId },
-              hypothesisId: 'A-fix',
-              timestamp: Date.now(),
-              runId: 'post-fix',
-            }),
-          },
-        ).catch(() => {});
-        // #endregion
-        return { ...base, instagramUserId: igId };
+        return this.withPageAccessTokenForPublish(base, page, igId);
       }
 
       if (ig && igId && handle && ig.username) {
@@ -190,7 +208,7 @@ export class InstagramCredentialsResolver {
               data: { instagramUserId: igId },
             });
           }
-          return { ...base, instagramUserId: igId };
+          return this.withPageAccessTokenForPublish(base, page, igId);
         }
       }
     }
@@ -198,6 +216,34 @@ export class InstagramCredentialsResolver {
     throw new BadRequestException(
       'O Instagram User ID do cliente não corresponde a nenhuma Página/Instagram acessível com o token configurado. Atualize o token em Integrações ou corrija o ID em Clientes.',
     );
+  }
+
+  private withPageAccessTokenForPublish(
+    base: ResolvedInstagramCredentials,
+    page: GraphPageRow,
+    instagramUserId?: string,
+  ): ResolvedInstagramCredentials {
+    const pageToken = page.access_token?.trim() ?? '';
+    const accessToken = pageToken || base.accessToken;
+    return {
+      ...base,
+      accessToken,
+      instagramUserId: instagramUserId ?? base.instagramUserId,
+    };
+  }
+
+  /**
+   * Page tokens cannot use /me/accounts (extra failing call). Resolve via /me when IG is linked.
+   */
+  private async listPagesForPublishing(
+    accessToken: string,
+  ): Promise<GraphPageRow[]> {
+    const pageFromToken =
+      await this.graph.getPageFromPageAccessToken(accessToken);
+    if (pageFromToken?.instagram_business_account?.id?.trim()) {
+      return [pageFromToken];
+    }
+    return this.graph.listPages(accessToken);
   }
 
   private async upsertClientFromInstagram(

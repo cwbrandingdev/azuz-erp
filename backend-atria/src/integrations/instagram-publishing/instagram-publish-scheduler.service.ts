@@ -10,7 +10,8 @@ export class InstagramPublishSchedulerService {
 
   constructor(private readonly publishing: InstagramPublishingService) {}
 
-  @Cron('* * * * *', { timeZone: SAO_PAULO_TZ })
+  /** Every 5 minutes — avoids stacking Graph calls with manual publish retries. */
+  @Cron('*/5 * * * *', { timeZone: SAO_PAULO_TZ })
   async handleScheduledInstagramPosts() {
     try {
       await this.publishing.processDuePosts();

@@ -1,3 +1,4 @@
+import { CompanySettingsService } from '../../company-settings/company-settings.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InstagramCredentialsResolver } from '../instagram-insights/infrastructure/instagram-credentials.resolver';
 import { InstagramGraphClient } from '../instagram-insights/infrastructure/instagram-graph.client';
@@ -7,14 +8,14 @@ export declare class InstagramPublishingService {
     private readonly credentials;
     private readonly graph;
     private readonly mediaResolver;
+    private readonly companySettings;
     private readonly logger;
-    constructor(prisma: PrismaService, credentials: InstagramCredentialsResolver, graph: InstagramGraphClient, mediaResolver: InstagramPublishMediaResolver);
+    constructor(prisma: PrismaService, credentials: InstagramCredentialsResolver, graph: InstagramGraphClient, mediaResolver: InstagramPublishMediaResolver, companySettings: CompanySettingsService);
     syncPublishQueue(postId: string): Promise<void>;
     publishNow(postId: string): Promise<void>;
     processDuePosts(limit?: number): Promise<void>;
     private publishDuePost;
     private waitForContainerReady;
-    private tryResolvePermalink;
     private shouldQueueForPublish;
     private validateForPublish;
     private markFailed;

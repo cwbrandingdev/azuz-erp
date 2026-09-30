@@ -9,6 +9,20 @@ export const CONTENT_STATUS_LABELS: Record<ContentPostStatus, string> = {
   published: "Publicado",
 };
 
+export function isMetaPublishRateLimitMessage(
+  message: string | null | undefined,
+): boolean {
+  if (!message?.trim()) {
+    return false;
+  }
+  return (
+    /request limit reached/i.test(message) ||
+    /rate limit/i.test(message) ||
+    /Limite de requisições/i.test(message) ||
+    /Limite da Meta/i.test(message)
+  );
+}
+
 export const INSTAGRAM_PUBLISH_STATUS_LABELS: Record<
   string,
   string

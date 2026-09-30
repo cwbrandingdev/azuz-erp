@@ -14,6 +14,11 @@ export class UpdateCompanyIntegrationsDto {
   @IsString()
   @IsOptional()
   @MaxLength(120)
+  metaPageId?: string | null;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
   metaAppId?: string | null;
 
   @IsString()

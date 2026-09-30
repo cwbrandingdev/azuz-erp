@@ -17,6 +17,7 @@ const secret_crypto_1 = require("../../../common/crypto/secret-crypto");
 const company_constants_1 = require("../../../company/company.constants");
 const company_settings_service_1 = require("../../../company-settings/company-settings.service");
 const prisma_service_1 = require("../../../prisma/prisma.service");
+const meta_token_expired_error_1 = require("../domain/meta-token-expired.error");
 const instagram_graph_client_1 = require("./instagram-graph.client");
 let InstagramCredentialsResolver = InstagramCredentialsResolver_1 = class InstagramCredentialsResolver {
     prisma;
@@ -92,7 +93,15 @@ let InstagramCredentialsResolver = InstagramCredentialsResolver_1 = class Instag
             throw new common_1.NotFoundException('Cliente não encontrado');
         }
         const clientToken = this.decrypt(client.metaAccessToken);
-        const accessToken = clientToken ?? (await this.resolveTenantAccessToken());
+        const tenantToken = clientToken
+            ? null
+            : await this.resolveTenantAccessToken();
+        const accessToken = clientToken ?? tenantToken;
+        const tokenSource = clientToken
+            ? 'client_metaAccessToken'
+            : tenantToken
+                ? 'company_integrations_metaPageAccessToken_or_env'
+                : 'none';
         const instagramUserId = client.instagramUserId?.trim() ?? '';
         if (!instagramUserId) {
             throw new common_1.NotFoundException('Conta Instagram não configurada para este cliente');
@@ -108,18 +117,37 @@ let InstagramCredentialsResolver = InstagramCredentialsResolver_1 = class Instag
             instagramUserId,
             accessToken,
             hasMetaAccessToken: Boolean(client.metaAccessToken),
+            metaTokenSource: tokenSource,
         };
+    }
+    metaTokenExpiredMessage(source) {
+        if (source === 'client_metaAccessToken') {
+            return ('O token Meta salvo neste cliente expirou. Em Clientes, atualize o campo de token Meta ' +
+                'ou remova-o para usar o token da empresa em Configurações → Integrações de API.');
+        }
+        return ('O token de acesso da Página (Meta) em Configurações → Integrações de API expirou. ' +
+            'No Graph API Explorer, gere um novo token com instagram_content_publish e pages_show_list, ' +
+            'use "Converter para token de Página", salve em Integrações e tente publicar novamente.');
     }
     async resolveForClientPublishing(clientId) {
         const base = await this.resolveForClient(clientId);
         const storedId = base.instagramUserId;
-        const pages = await this.graph.listPages(base.accessToken);
+        let pages;
+        try {
+            pages = await this.listPagesForPublishing(base.accessToken);
+        }
+        catch (error) {
+            if (error instanceof meta_token_expired_error_1.MetaTokenExpiredError) {
+                throw new common_1.BadRequestException(this.metaTokenExpiredMessage(base.metaTokenSource));
+            }
+            throw error;
+        }
         const handle = normalizeInstagramHandleForMatch(base.instagram);
         for (const page of pages) {
             const ig = page.instagram_business_account;
             const igId = ig?.id?.trim() ?? '';
             if (igId && storedId === igId) {
-                return base;
+                return this.withPageAccessTokenForPublish(base, page);
             }
             if (storedId === page.id) {
                 if (!igId) {
@@ -129,23 +157,7 @@ let InstagramCredentialsResolver = InstagramCredentialsResolver_1 = class Instag
                     where: { id: clientId },
                     data: { instagramUserId: igId },
                 });
-                fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Debug-Session-Id': 'ff56e0',
-                    },
-                    body: JSON.stringify({
-                        sessionId: 'ff56e0',
-                        location: 'instagram-credentials.resolver.ts:resolveForClientPublishing',
-                        message: 'corrected page id to instagram business id',
-                        data: { clientId, pageId: page.id, igId },
-                        hypothesisId: 'A-fix',
-                        timestamp: Date.now(),
-                        runId: 'post-fix',
-                    }),
-                }).catch(() => { });
-                return { ...base, instagramUserId: igId };
+                return this.withPageAccessTokenForPublish(base, page, igId);
             }
             if (ig && igId && handle && ig.username) {
                 const pageHandle = normalizeInstagramHandleForMatch(ig.username);
@@ -156,11 +168,27 @@ let InstagramCredentialsResolver = InstagramCredentialsResolver_1 = class Instag
                             data: { instagramUserId: igId },
                         });
                     }
-                    return { ...base, instagramUserId: igId };
+                    return this.withPageAccessTokenForPublish(base, page, igId);
                 }
             }
         }
         throw new common_1.BadRequestException('O Instagram User ID do cliente não corresponde a nenhuma Página/Instagram acessível com o token configurado. Atualize o token em Integrações ou corrija o ID em Clientes.');
+    }
+    withPageAccessTokenForPublish(base, page, instagramUserId) {
+        const pageToken = page.access_token?.trim() ?? '';
+        const accessToken = pageToken || base.accessToken;
+        return {
+            ...base,
+            accessToken,
+            instagramUserId: instagramUserId ?? base.instagramUserId,
+        };
+    }
+    async listPagesForPublishing(accessToken) {
+        const pageFromToken = await this.graph.getPageFromPageAccessToken(accessToken);
+        if (pageFromToken?.instagram_business_account?.id?.trim()) {
+            return [pageFromToken];
+        }
+        return this.graph.listPages(accessToken);
     }
     async upsertClientFromInstagram(page, instagram) {
         const handle = normalizeInstagramHandle(instagram.username);

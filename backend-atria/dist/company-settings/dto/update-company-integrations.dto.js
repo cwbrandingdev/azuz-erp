@@ -14,6 +14,7 @@ const class_validator_1 = require("class-validator");
 class UpdateCompanyIntegrationsDto {
     metaAdAccountId;
     metaPageAccessToken;
+    metaPageId;
     metaAppId;
     metaAppSecret;
     apifyApiToken;
@@ -32,6 +33,12 @@ __decorate([
     (0, class_validator_1.MaxLength)(500),
     __metadata("design:type", Object)
 ], UpdateCompanyIntegrationsDto.prototype, "metaPageAccessToken", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.MaxLength)(120),
+    __metadata("design:type", Object)
+], UpdateCompanyIntegrationsDto.prototype, "metaPageId", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),

@@ -11,21 +11,17 @@ const common_1 = require("@nestjs/common");
 const company_settings_module_1 = require("../../company-settings/company-settings.module");
 const instagram_insights_service_1 = require("./application/instagram-insights.service");
 const instagram_credentials_resolver_1 = require("./infrastructure/instagram-credentials.resolver");
-const instagram_graph_client_1 = require("./infrastructure/instagram-graph.client");
+const instagram_graph_module_1 = require("./infrastructure/instagram-graph.module");
 const instagram_insights_controller_1 = require("./presentation/instagram-insights.controller");
 let InstagramInsightsModule = class InstagramInsightsModule {
 };
 exports.InstagramInsightsModule = InstagramInsightsModule;
 exports.InstagramInsightsModule = InstagramInsightsModule = __decorate([
     (0, common_1.Module)({
-        imports: [company_settings_module_1.CompanySettingsModule],
+        imports: [company_settings_module_1.CompanySettingsModule, instagram_graph_module_1.InstagramGraphModule],
         controllers: [instagram_insights_controller_1.InstagramInsightsController],
-        providers: [
-            instagram_graph_client_1.InstagramGraphClient,
-            instagram_credentials_resolver_1.InstagramCredentialsResolver,
-            instagram_insights_service_1.InstagramInsightsService,
-        ],
-        exports: [instagram_insights_service_1.InstagramInsightsService],
+        providers: [instagram_credentials_resolver_1.InstagramCredentialsResolver, instagram_insights_service_1.InstagramInsightsService],
+        exports: [instagram_insights_service_1.InstagramInsightsService, instagram_graph_module_1.InstagramGraphModule],
     })
 ], InstagramInsightsModule);
 //# sourceMappingURL=instagram-insights.module.js.map

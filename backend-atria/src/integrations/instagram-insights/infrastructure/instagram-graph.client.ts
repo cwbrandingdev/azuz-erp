@@ -9,6 +9,8 @@ import type {
   GraphInsightsResponse,
   GraphMediaListResponse,
   GraphMediaRow,
+  GraphDebugTokenResponse,
+  GraphInstagramBusinessAccount,
   GraphPageListResponse,
   GraphPageRow,
   GraphUserProfileResponse,
@@ -21,13 +23,66 @@ export class InstagramGraphClient {
   constructor(private readonly config: ConfigService) {}
 
   async listPages(accessToken: string): Promise<GraphPageRow[]> {
-    const response = await this.getJson<GraphPageListResponse>('/me/accounts', {
+    try {
+      const response = await this.getJson<GraphPageListResponse>(
+        '/me/accounts',
+        {
+          fields:
+            'id,name,access_token,instagram_business_account{id,username,name,profile_picture_url}',
+          limit: '100',
+          access_token: accessToken,
+        },
+      );
+      return response.data ?? [];
+    } catch (error) {
+      if (!this.isUserAccountsEdgeError(error)) {
+        throw error;
+      }
+      const page = await this.getPageFromPageAccessToken(accessToken);
+      return page ? [page] : [];
+    }
+  }
+
+  /** When the token is already a Page token, /me refers to that Page (not /me/accounts). */
+  async getPageFromPageAccessToken(
+    pageAccessToken: string,
+  ): Promise<GraphPageRow | null> {
+    type MePageResponse = GraphErrorBody & {
+      id?: string;
+      name?: string;
+      instagram_business_account?: GraphInstagramBusinessAccount;
+    };
+
+    const response = await this.getJson<MePageResponse>('/me', {
       fields:
         'id,name,instagram_business_account{id,username,name,profile_picture_url}',
-      limit: '100',
-      access_token: accessToken,
+      access_token: pageAccessToken,
     });
-    return response.data ?? [];
+
+    if (!response.id?.trim()) {
+      return null;
+    }
+
+    return {
+      id: response.id,
+      name: response.name,
+      access_token: pageAccessToken,
+      instagram_business_account: response.instagram_business_account,
+    };
+  }
+
+  async debugAccessToken(
+    inputToken: string,
+    appAccessToken: string,
+  ): Promise<GraphDebugTokenResponse['data']> {
+    const response = await this.getJson<GraphDebugTokenResponse>(
+      '/debug_token',
+      {
+        input_token: inputToken,
+        access_token: appAccessToken,
+      },
+    );
+    return response.data;
   }
 
   async getUserProfile(
@@ -279,5 +334,13 @@ export class InstagramGraphClient {
       this.config.get<string>('META_API_VERSION')?.trim() ||
       DEFAULT_GRAPH_VERSION;
     return `https://graph.facebook.com/${version.replace(/^\/+/, '')}`;
+  }
+
+  private isUserAccountsEdgeError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return (
+      message.includes('nonexisting field (accounts)') ||
+      message.includes('node type (Page)')
+    );
   }
 }

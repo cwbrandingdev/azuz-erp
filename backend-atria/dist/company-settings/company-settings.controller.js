@@ -22,6 +22,7 @@ const permissions_guard_1 = require("../auth/guards/permissions.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const company_settings_service_1 = require("./company-settings.service");
+const resolve_meta_page_access_token_dto_1 = require("./dto/resolve-meta-page-access-token.dto");
 const update_company_integrations_dto_1 = require("./dto/update-company-integrations.dto");
 const update_company_settings_dto_1 = require("./dto/update-company-settings.dto");
 let CompanySettingsController = class CompanySettingsController {
@@ -40,6 +41,9 @@ let CompanySettingsController = class CompanySettingsController {
     }
     updateIntegrations(dto) {
         return this.companySettingsService.updateIntegrations(dto);
+    }
+    resolveMetaPageAccessToken(dto) {
+        return this.companySettingsService.resolveMetaPageAccessToken(dto);
     }
 };
 exports.CompanySettingsController = CompanySettingsController;
@@ -69,6 +73,13 @@ __decorate([
     __metadata("design:paramtypes", [update_company_integrations_dto_1.UpdateCompanyIntegrationsDto]),
     __metadata("design:returntype", void 0)
 ], CompanySettingsController.prototype, "updateIntegrations", null);
+__decorate([
+    (0, common_1.Post)('integrations/resolve-meta-page-token'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [resolve_meta_page_access_token_dto_1.ResolveMetaPageAccessTokenDto]),
+    __metadata("design:returntype", void 0)
+], CompanySettingsController.prototype, "resolveMetaPageAccessToken", null);
 exports.CompanySettingsController = CompanySettingsController = __decorate([
     (0, common_1.Controller)('api/company'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard, permissions_guard_1.PermissionsGuard),
