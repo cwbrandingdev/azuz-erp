@@ -82,6 +82,9 @@ let KanbanController = class KanbanController {
     updateInternalReview(user, id, dto) {
         return this.kanbanService.updateInternalReview(user.userId, user.role, id, dto);
     }
+    publishInstagramNow(user, id) {
+        return this.kanbanService.publishInstagramNow(user.userId, user.role, id);
+    }
     uploadTaskAsset(user, id, file, caption) {
         return this.kanbanService.uploadTaskAsset(user.userId, user.role, id, file, caption);
     }
@@ -223,6 +226,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, internal_review_dto_1.InternalReviewDto]),
     __metadata("design:returntype", void 0)
 ], KanbanController.prototype, "updateInternalReview", null);
+__decorate([
+    (0, common_1.Post)('tasks/:id/publish-instagram'),
+    (0, common_1.HttpCode)(200),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], KanbanController.prototype, "publishInstagramNow", null);
 __decorate([
     (0, common_1.Post)('tasks/:id/assets'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {

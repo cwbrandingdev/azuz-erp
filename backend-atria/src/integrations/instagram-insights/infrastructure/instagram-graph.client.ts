@@ -23,7 +23,7 @@ export class InstagramGraphClient {
   async listPages(accessToken: string): Promise<GraphPageRow[]> {
     const response = await this.getJson<GraphPageListResponse>('/me/accounts', {
       fields:
-        'id,name,instagram_business_account{id,username,name,profile_picture_url}',
+        'id,name,access_token,instagram_business_account{id,username,name,profile_picture_url}',
       limit: '100',
       access_token: accessToken,
     });
@@ -146,6 +146,147 @@ export class InstagramGraphClient {
     });
   }
 
+  async createImageMediaContainer(
+    igUserId: string,
+    accessToken: string,
+    input: { imageUrl: string; caption?: string; isCarouselItem?: boolean },
+  ): Promise<{ id: string }> {
+    const body: Record<string, string> = {
+      image_url: input.imageUrl,
+      access_token: accessToken,
+    };
+    if (input.caption) {
+      body.caption = input.caption;
+    }
+    if (input.isCarouselItem) {
+      body.is_carousel_item = 'true';
+    }
+    return this.postForm<GraphErrorBody & { id: string }>(
+      `/${igUserId}/media`,
+      body,
+    );
+  }
+
+  async createVideoMediaContainer(
+    igUserId: string,
+    accessToken: string,
+    input: {
+      videoUrl: string;
+      caption?: string;
+      mediaType?: 'REELS' | 'VIDEO';
+      isCarouselItem?: boolean;
+    },
+  ): Promise<{ id: string }> {
+    const body: Record<string, string> = {
+      video_url: input.videoUrl,
+      access_token: accessToken,
+    };
+    if (input.caption) {
+      body.caption = input.caption;
+    }
+    if (input.mediaType) {
+      body.media_type = input.mediaType;
+    }
+    if (input.isCarouselItem) {
+      body.is_carousel_item = 'true';
+    }
+    return this.postForm<GraphErrorBody & { id: string }>(
+      `/${igUserId}/media`,
+      body,
+    );
+  }
+
+  async createCarouselMediaContainer(
+    igUserId: string,
+    accessToken: string,
+    input: { children: string[]; caption?: string },
+  ): Promise<{ id: string }> {
+    const body: Record<string, string> = {
+      media_type: 'CAROUSEL',
+      children: input.children.join(','),
+      access_token: accessToken,
+    };
+    if (input.caption) {
+      body.caption = input.caption;
+    }
+    return this.postForm<GraphErrorBody & { id: string }>(
+      `/${igUserId}/media`,
+      body,
+    );
+  }
+
+  async getMediaContainerStatus(
+    containerId: string,
+    accessToken: string,
+  ): Promise<{ status_code?: string; id?: string }> {
+    return this.getJson<GraphErrorBody & { status_code?: string; id?: string }>(
+      `/${containerId}`,
+      {
+        fields: 'status_code',
+        access_token: accessToken,
+      },
+    );
+  }
+
+  async publishMediaContainer(
+    igUserId: string,
+    accessToken: string,
+    input: { creationId: string; publishAtUnix?: number | null },
+  ): Promise<{ id: string }> {
+    const body: Record<string, string> = {
+      creation_id: input.creationId,
+      access_token: accessToken,
+    };
+    if (input.publishAtUnix != null) {
+      body.publish_at = String(input.publishAtUnix);
+    }
+    return this.postForm<GraphErrorBody & { id: string }>(
+      `/${igUserId}/media_publish`,
+      body,
+    );
+  }
+
+  async getMediaPermalink(
+    mediaId: string,
+    accessToken: string,
+  ): Promise<{ permalink?: string }> {
+    return this.getJson<GraphErrorBody & { permalink?: string }>(`/${mediaId}`, {
+      fields: 'permalink',
+      access_token: accessToken,
+    });
+  }
+
+  async deleteMedia(mediaId: string, accessToken: string): Promise<{ success: boolean }> {
+    return this.deleteRequest<GraphErrorBody & { success: boolean }>(
+      `/${mediaId}`,
+      accessToken,
+    );
+  }
+
+  private async postForm<T extends GraphErrorBody>(
+    path: string,
+    body: Record<string, string>,
+  ): Promise<T> {
+    const url = `${this.graphBase()}${path}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(body),
+    });
+
+    return this.parseGraphResponse<T>(response);
+  }
+
+  private async deleteRequest<T extends GraphErrorBody>(
+    path: string,
+    accessToken: string,
+  ): Promise<T> {
+    const url = new URL(`${this.graphBase()}${path}`);
+    url.searchParams.set('access_token', accessToken);
+    const response = await fetch(url, { method: 'DELETE' });
+    return this.parseGraphResponse<T>(response);
+  }
+
   private async getJson<T extends GraphErrorBody>(
     path: string,
     params: Record<string, string>,
@@ -156,6 +297,12 @@ export class InstagramGraphClient {
     }
 
     const response = await fetch(url);
+    return this.parseGraphResponse<T>(response);
+  }
+
+  private async parseGraphResponse<T extends GraphErrorBody>(
+    response: Response,
+  ): Promise<T> {
     let payload: T;
     try {
       payload = (await response.json()) as T;

@@ -9,6 +9,7 @@ import {
 import { NotificationsService } from '../notifications/notifications.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { KanbanService } from '../kanban/kanban.service';
+import { MetaPublishingService } from '../integrations/meta-publishing/meta-publishing.service';
 import { MetaInsightsService } from '../meta-insights/meta-insights.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { isClientFacingRole } from '../auth/constants/permissions';
@@ -64,6 +65,7 @@ export class ContentService {
     private readonly metaInsights: MetaInsightsService,
     private readonly calendar: CalendarService,
     private readonly kanbanService: KanbanService,
+    private readonly metaPublishing: MetaPublishingService,
   ) {}
 
   async getManagementBoard(clientId?: string, status?: ContentPostStatus) {
@@ -268,6 +270,16 @@ export class ContentService {
       include: postInclude,
     });
 
+    const task = await this.prisma.kanbanTask.findFirst({
+      where: { contentPostId: id, deletedAt: null },
+      select: { id: true },
+    });
+    if (task) {
+      void this.metaPublishing.tryScheduleForTask(task.id).catch(() => undefined);
+    } else {
+      void this.metaPublishing.tryScheduleForContentPost(id).catch(() => undefined);
+    }
+
     return this.toPostResponse(post);
   }
 
@@ -339,6 +351,8 @@ export class ContentService {
       orderBy: { versionNumber: 'desc' },
       select: { id: true },
     });
+
+    await this.metaPublishing.cancelScheduleForContentPost(id);
 
     const [post] = await this.prisma.$transaction([
       this.prisma.contentPost.update({
@@ -615,6 +629,15 @@ export class ContentService {
       author: post.user,
       assignee: post.assignee,
       platformColor: PLATFORM_COLORS[post.platform] ?? '#004949',
+      metaPublishStatus: post.metaPublishStatus.toLowerCase() as
+        | 'not_scheduled'
+        | 'pending'
+        | 'scheduled'
+        | 'published'
+        | 'failed',
+      metaPublishError: post.metaPublishError,
+      metaScheduledAt: post.metaScheduledAt?.toISOString() ?? null,
+      metaIgPermalink: post.metaIgPermalink,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
     };

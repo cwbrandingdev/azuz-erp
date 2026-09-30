@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.KanbanModule = void 0;
 const common_1 = require("@nestjs/common");
 const deliverables_module_1 = require("../deliverables/deliverables.module");
+const meta_publishing_module_1 = require("../integrations/meta-publishing/meta-publishing.module");
 const notifications_module_1 = require("../notifications/notifications.module");
 const sla_module_1 = require("../sla/sla.module");
 const kanban_controller_1 = require("./kanban.controller");
@@ -22,6 +23,7 @@ exports.KanbanModule = KanbanModule = __decorate([
         imports: [
             notifications_module_1.NotificationsModule,
             sla_module_1.SlaModule,
+            meta_publishing_module_1.MetaPublishingModule,
             (0, common_1.forwardRef)(() => deliverables_module_1.DeliverablesModule),
         ],
         controllers: [kanban_controller_1.KanbanController, tasks_controller_1.TasksController],

@@ -2,6 +2,7 @@ import { ContentPostStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { KanbanService } from '../kanban/kanban.service';
+import { MetaPublishingService } from '../integrations/meta-publishing/meta-publishing.service';
 import { MetaInsightsService } from '../meta-insights/meta-insights.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,7 +16,8 @@ export declare class ContentService {
     private readonly metaInsights;
     private readonly calendar;
     private readonly kanbanService;
-    constructor(prisma: PrismaService, notifications: NotificationsService, integrations: IntegrationsService, metaInsights: MetaInsightsService, calendar: CalendarService, kanbanService: KanbanService);
+    private readonly metaPublishing;
+    constructor(prisma: PrismaService, notifications: NotificationsService, integrations: IntegrationsService, metaInsights: MetaInsightsService, calendar: CalendarService, kanbanService: KanbanService, metaPublishing: MetaPublishingService);
     getManagementBoard(clientId?: string, status?: ContentPostStatus): Promise<{
         overview: {
             drafts: number;
@@ -57,11 +59,11 @@ export declare class ContentService {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                id: string;
-                name: string;
-                createdAt: Date;
-                postId: string;
                 url: string;
+                id: string;
+                createdAt: Date;
+                name: string;
+                postId: string;
                 mimeType: string | null;
             }[];
             author: {
@@ -75,6 +77,10 @@ export declare class ContentService {
                 avatarUrl: string | null;
             } | null;
             platformColor: string;
+            metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+            metaPublishError: string | null;
+            metaScheduledAt: string | null;
+            metaIgPermalink: string | null;
             createdAt: string;
             updatedAt: string;
         }[];
@@ -114,11 +120,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -132,6 +138,10 @@ export declare class ContentService {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }[]>;
@@ -154,11 +164,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -172,6 +182,10 @@ export declare class ContentService {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -209,11 +223,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -227,6 +241,10 @@ export declare class ContentService {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -249,11 +267,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -267,6 +285,10 @@ export declare class ContentService {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -289,11 +311,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -307,6 +329,10 @@ export declare class ContentService {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -408,11 +434,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -426,6 +452,10 @@ export declare class ContentService {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -448,11 +478,11 @@ export declare class ContentService {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            id: string;
-            name: string;
-            createdAt: Date;
-            postId: string;
             url: string;
+            id: string;
+            createdAt: Date;
+            name: string;
+            postId: string;
             mimeType: string | null;
         }[];
         author: {
@@ -466,6 +496,10 @@ export declare class ContentService {
             avatarUrl: string | null;
         } | null;
         platformColor: string;
+        metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+        metaPublishError: string | null;
+        metaScheduledAt: string | null;
+        metaIgPermalink: string | null;
         createdAt: string;
         updatedAt: string;
     }>;

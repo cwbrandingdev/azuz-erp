@@ -132,6 +132,7 @@ export interface GraphInstagramBusinessAccount {
 export interface GraphPageRow {
     id: string;
     name?: string;
+    access_token?: string;
     instagram_business_account?: GraphInstagramBusinessAccount;
 }
 export interface GraphPageListResponse extends GraphErrorBody {

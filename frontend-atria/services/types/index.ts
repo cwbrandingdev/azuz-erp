@@ -344,6 +344,20 @@ export interface KanbanAssignedGroup {
   color: string;
 }
 
+export type MetaInstagramPublishStatus =
+  | "not_scheduled"
+  | "pending"
+  | "scheduled"
+  | "published"
+  | "failed";
+
+export interface TaskMetaInstagramState {
+  status: MetaInstagramPublishStatus;
+  error: string | null;
+  scheduledAt: string | null;
+  permalink: string | null;
+}
+
 export interface KanbanTask {
   id: string;
   title: string;
@@ -381,6 +395,7 @@ export interface KanbanTask {
   createdBy: TeamMember;
   createdAt: string;
   updatedAt: string;
+  metaInstagram?: TaskMetaInstagramState | null;
 }
 
 export interface TaskComment {
@@ -1252,6 +1267,10 @@ export interface ContentPost {
   author: { id: string; name: string; avatarUrl: string | null };
   assignee: { id: string; name: string; avatarUrl: string | null } | null;
   platformColor: string;
+  metaPublishStatus?: MetaInstagramPublishStatus;
+  metaPublishError?: string | null;
+  metaScheduledAt?: string | null;
+  metaIgPermalink?: string | null;
   createdAt: string;
   updatedAt: string;
 }

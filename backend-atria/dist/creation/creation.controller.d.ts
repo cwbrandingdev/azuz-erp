@@ -32,7 +32,7 @@ export declare class CreationController {
             clientAvatarUrl: string | null;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "scheduled" | "published" | "draft" | "pending_approval";
             assignee: {
                 id: string;
                 name: string;
@@ -55,7 +55,7 @@ export declare class CreationController {
             clientName: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "scheduled" | "published" | "draft" | "pending_approval";
             scheduledAt: string;
             color: string;
         } | {
@@ -377,11 +377,11 @@ export declare class CreationController {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                id: string;
-                name: string;
-                createdAt: Date;
-                postId: string;
                 url: string;
+                id: string;
+                createdAt: Date;
+                name: string;
+                postId: string;
                 mimeType: string | null;
             }[];
             author: {
@@ -395,6 +395,10 @@ export declare class CreationController {
                 avatarUrl: string | null;
             } | null;
             platformColor: string;
+            metaPublishStatus: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+            metaPublishError: string | null;
+            metaScheduledAt: string | null;
+            metaIgPermalink: string | null;
             createdAt: string;
             updatedAt: string;
         }[];
@@ -453,6 +457,12 @@ export declare class CreationController {
                 };
             }[];
             updatedAt: string;
+            metaInstagram: {
+                status: "not_scheduled" | "pending" | "scheduled" | "published" | "failed";
+                error: string | null;
+                scheduledAt: string | null;
+                permalink: string | null;
+            } | null;
             id: string;
             title: string;
             description: string | null;

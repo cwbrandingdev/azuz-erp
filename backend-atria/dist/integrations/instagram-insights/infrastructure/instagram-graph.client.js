@@ -21,7 +21,7 @@ let InstagramGraphClient = class InstagramGraphClient {
     }
     async listPages(accessToken) {
         const response = await this.getJson('/me/accounts', {
-            fields: 'id,name,instagram_business_account{id,username,name,profile_picture_url}',
+            fields: 'id,name,access_token,instagram_business_account{id,username,name,profile_picture_url}',
             limit: '100',
             access_token: accessToken,
         });
@@ -102,12 +102,95 @@ let InstagramGraphClient = class InstagramGraphClient {
             access_token: accessToken,
         });
     }
+    async createImageMediaContainer(igUserId, accessToken, input) {
+        const body = {
+            image_url: input.imageUrl,
+            access_token: accessToken,
+        };
+        if (input.caption) {
+            body.caption = input.caption;
+        }
+        if (input.isCarouselItem) {
+            body.is_carousel_item = 'true';
+        }
+        return this.postForm(`/${igUserId}/media`, body);
+    }
+    async createVideoMediaContainer(igUserId, accessToken, input) {
+        const body = {
+            video_url: input.videoUrl,
+            access_token: accessToken,
+        };
+        if (input.caption) {
+            body.caption = input.caption;
+        }
+        if (input.mediaType) {
+            body.media_type = input.mediaType;
+        }
+        if (input.isCarouselItem) {
+            body.is_carousel_item = 'true';
+        }
+        return this.postForm(`/${igUserId}/media`, body);
+    }
+    async createCarouselMediaContainer(igUserId, accessToken, input) {
+        const body = {
+            media_type: 'CAROUSEL',
+            children: input.children.join(','),
+            access_token: accessToken,
+        };
+        if (input.caption) {
+            body.caption = input.caption;
+        }
+        return this.postForm(`/${igUserId}/media`, body);
+    }
+    async getMediaContainerStatus(containerId, accessToken) {
+        return this.getJson(`/${containerId}`, {
+            fields: 'status_code',
+            access_token: accessToken,
+        });
+    }
+    async publishMediaContainer(igUserId, accessToken, input) {
+        const body = {
+            creation_id: input.creationId,
+            access_token: accessToken,
+        };
+        if (input.publishAtUnix != null) {
+            body.publish_at = String(input.publishAtUnix);
+        }
+        return this.postForm(`/${igUserId}/media_publish`, body);
+    }
+    async getMediaPermalink(mediaId, accessToken) {
+        return this.getJson(`/${mediaId}`, {
+            fields: 'permalink',
+            access_token: accessToken,
+        });
+    }
+    async deleteMedia(mediaId, accessToken) {
+        return this.deleteRequest(`/${mediaId}`, accessToken);
+    }
+    async postForm(path, body) {
+        const url = `${this.graphBase()}${path}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(body),
+        });
+        return this.parseGraphResponse(response);
+    }
+    async deleteRequest(path, accessToken) {
+        const url = new URL(`${this.graphBase()}${path}`);
+        url.searchParams.set('access_token', accessToken);
+        const response = await fetch(url, { method: 'DELETE' });
+        return this.parseGraphResponse(response);
+    }
     async getJson(path, params) {
         const url = new URL(`${this.graphBase()}${path}`);
         for (const [key, value] of Object.entries(params)) {
             url.searchParams.set(key, value);
         }
         const response = await fetch(url);
+        return this.parseGraphResponse(response);
+    }
+    async parseGraphResponse(response) {
         let payload;
         try {
             payload = (await response.json());

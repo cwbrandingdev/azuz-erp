@@ -10,6 +10,7 @@ exports.ContentModule = void 0;
 const common_1 = require("@nestjs/common");
 const calendar_module_1 = require("../calendar/calendar.module");
 const kanban_module_1 = require("../kanban/kanban.module");
+const meta_publishing_module_1 = require("../integrations/meta-publishing/meta-publishing.module");
 const meta_insights_module_1 = require("../meta-insights/meta-insights.module");
 const notifications_module_1 = require("../notifications/notifications.module");
 const content_controller_1 = require("./content.controller");
@@ -24,6 +25,7 @@ exports.ContentModule = ContentModule = __decorate([
             meta_insights_module_1.MetaInsightsModule,
             calendar_module_1.CalendarModule,
             kanban_module_1.KanbanModule,
+            meta_publishing_module_1.MetaPublishingModule,
         ],
         controllers: [content_controller_1.ContentController],
         providers: [content_service_1.ContentService],
