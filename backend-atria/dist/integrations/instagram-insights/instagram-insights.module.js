@@ -25,7 +25,11 @@ exports.InstagramInsightsModule = InstagramInsightsModule = __decorate([
             instagram_credentials_resolver_1.InstagramCredentialsResolver,
             instagram_insights_service_1.InstagramInsightsService,
         ],
-        exports: [instagram_insights_service_1.InstagramInsightsService],
+        exports: [
+            instagram_insights_service_1.InstagramInsightsService,
+            instagram_graph_client_1.InstagramGraphClient,
+            instagram_credentials_resolver_1.InstagramCredentialsResolver,
+        ],
     })
 ], InstagramInsightsModule);
 //# sourceMappingURL=instagram-insights.module.js.map

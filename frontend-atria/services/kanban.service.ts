@@ -106,6 +106,12 @@ export async function updateTaskStatus(
   });
 }
 
+export async function publishInstagramNow(id: string): Promise<KanbanTask> {
+  return apiRequest<KanbanTask>(`/kanban/tasks/${id}/publish-instagram`, {
+    method: "POST",
+  });
+}
+
 export async function moveTask(
   id: string,
   columnId: string,

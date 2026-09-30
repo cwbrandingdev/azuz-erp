@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2, Upload, MessageSquareWarning } from "lucide-react";
+import { Loader2, Send, Trash2, Upload, MessageSquareWarning } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +48,7 @@ import { toast } from "@/lib/toast";
 import { useConfirm } from "@/contexts/confirm-context";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useUpdateTaskMutation } from "@/hooks/use-task-mutations";
+import { MetaInstagramStatusBadge } from "@/components/integrations/meta-instagram-status-badge";
 import {
   calendarService,
   clientsService,
@@ -147,6 +148,7 @@ export function TaskDetailDialog({
   const [postCaption, setPostCaption] = useState("");
   const [savingPostCaption, setSavingPostCaption] = useState(false);
   const [approvingInternal, setApprovingInternal] = useState(false);
+  const [publishingInstagram, setPublishingInstagram] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
@@ -584,6 +586,51 @@ export function TaskDetailDialog({
             )}
             {task.slaStatus && <SlaStatusBadge status={task.slaStatus} />}
           </div>
+          <MetaInstagramStatusBadge state={task.metaInstagram} />
+          {canEdit &&
+            task.clientId &&
+            task.metaInstagram?.status !== "published" && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="mt-2"
+                disabled={
+                  publishingInstagram ||
+                  (assets.length === 0 && deliverableItems.length === 0)
+                }
+                onClick={async () => {
+                  if (!task) return;
+                  const ok = await confirm({
+                    description:
+                      "Publicar agora no Instagram? A mídia será enviada imediatamente para a conta conectada ao cliente (não usa a data de publicação).",
+                    confirmLabel: "Publicar agora",
+                  });
+                  if (!ok) return;
+                  setPublishingInstagram(true);
+                  try {
+                    await kanbanService.publishInstagramNow(task.id);
+                    toast.success("Post enviado para publicação no Instagram.");
+                    onUpdate();
+                  } catch (err) {
+                    toast.error(
+                      err instanceof ApiError
+                        ? err.message
+                        : "Não foi possível publicar no Instagram.",
+                    );
+                  } finally {
+                    setPublishingInstagram(false);
+                  }
+                }}
+              >
+                {publishingInstagram ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 size-4" />
+                )}
+                Publicar agora no Instagram
+              </Button>
+            )}
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--atria-primary)]/70">
             <p>
               <span className="font-medium text-[var(--atria-primary)]/55">

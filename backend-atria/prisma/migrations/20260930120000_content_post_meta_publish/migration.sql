@@ -1,0 +1,10 @@
+-- CreateEnum
+CREATE TYPE "MetaPublishStatus" AS ENUM ('NOT_SCHEDULED', 'PENDING', 'SCHEDULED', 'PUBLISHED', 'FAILED');
+
+-- AlterTable
+ALTER TABLE "ContentPost" ADD COLUMN IF NOT EXISTS "metaIgContainerId" TEXT;
+ALTER TABLE "ContentPost" ADD COLUMN IF NOT EXISTS "metaIgMediaId" TEXT;
+ALTER TABLE "ContentPost" ADD COLUMN IF NOT EXISTS "metaPublishStatus" "MetaPublishStatus" NOT NULL DEFAULT 'NOT_SCHEDULED';
+ALTER TABLE "ContentPost" ADD COLUMN IF NOT EXISTS "metaPublishError" TEXT;
+ALTER TABLE "ContentPost" ADD COLUMN IF NOT EXISTS "metaScheduledAt" TIMESTAMP(3);
+ALTER TABLE "ContentPost" ADD COLUMN IF NOT EXISTS "metaIgPermalink" TEXT;
