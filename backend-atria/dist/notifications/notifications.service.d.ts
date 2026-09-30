@@ -50,6 +50,13 @@ export declare class NotificationsService {
     notifyContractSigned(userIds: string[], contractTitle: string, clientName: string): Promise<void>;
     notifyPostPending(userIds: string[], postTitle: string, clientName: string): Promise<void>;
     notifyPostRejected(userIds: string[], postTitle: string, clientName: string, reason: string): Promise<void>;
+    notifyMetaInstagramPublish(input: {
+        companyId: string;
+        taskId: string;
+        taskTitle: string;
+        published: boolean;
+        detail?: string;
+    }): Promise<void>;
     notifyNewRequest(userIds: string[], requestTitle: string, clientName: string, options?: {
         companyId?: string;
     }): Promise<void>;

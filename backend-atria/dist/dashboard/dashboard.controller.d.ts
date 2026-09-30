@@ -12,11 +12,11 @@ export declare class DashboardController {
             revenue: number;
             expenses: number;
             netProfit: number;
-            monthlyTrend: {
+            monthlyTrend: Array<{
                 month: string;
                 income: number;
                 expense: number;
-            }[];
+            }>;
         };
         contentAndMeta: {
             topCampaign: {

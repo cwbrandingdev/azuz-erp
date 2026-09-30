@@ -207,6 +207,26 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
     async notifyPostRejected(userIds, postTitle, clientName, reason) {
         await this.createMany(userIds, client_1.NotificationType.POST_REJECTED, 'Post rejeitado', `"${postTitle}" de ${clientName} foi rejeitado: ${reason.slice(0, 200)}`);
     }
+    async notifyMetaInstagramPublish(input) {
+        const assignees = await this.prisma.kanbanTaskAssignee.findMany({
+            where: { taskId: input.taskId },
+            select: { userId: true },
+        });
+        const userIds = assignees.map((row) => row.userId);
+        if (userIds.length === 0) {
+            return;
+        }
+        const title = input.published
+            ? 'Publicado no Instagram'
+            : 'Falha ao publicar no Instagram';
+        const message = input.published
+            ? `A tarefa "${input.taskTitle}" foi publicada no Instagram.`
+            : `A tarefa "${input.taskTitle}" não foi publicada: ${(input.detail ?? 'erro desconhecido').slice(0, 240)}`;
+        await this.createMany(userIds, client_1.NotificationType.SYSTEM, title, message, {
+            companyId: input.companyId,
+            taskId: input.taskId,
+        });
+    }
     async notifyNewRequest(userIds, requestTitle, clientName, options) {
         await this.createMany(userIds, client_1.NotificationType.NEW_REQUEST, 'Nova solicitação', `${clientName} enviou a solicitação "${requestTitle}"`, options);
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Plus, Loader2 } from "lucide-react";
+import { Copy, Plus, Loader2, AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { clientsService, clientGroupsService, ApiError } from "@/services";
+import {
+  clientsService,
+  clientGroupsService,
+  metaPublishingService,
+  ApiError,
+} from "@/services";
 import { toast } from "@/lib/toast";
 import { usePermissions } from "@/hooks/use-permissions";
 import type { Client, ClientGroup, CreateClientAccessResult } from "@/services/types";
@@ -46,6 +51,8 @@ export function ClientFormDialog({
   const setOpen = onOpenChange ?? setInternalOpen;
 
   const [loading, setLoading] = useState(false);
+  const [metaOAuthLoading, setMetaOAuthLoading] = useState(false);
+  const [metaOAuthConfigured, setMetaOAuthConfigured] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,6 +91,14 @@ export function ClientFormDialog({
   useEffect(() => {
     if (!open) return;
     void clientGroupsService.getClientGroups().then(setGroups).catch(() => setGroups([]));
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    void metaPublishingService
+      .getMetaOAuthConfig()
+      .then((config) => setMetaOAuthConfigured(config.configured))
+      .catch(() => setMetaOAuthConfigured(false));
   }, [open]);
 
   useEffect(() => {
@@ -489,6 +504,52 @@ export function ClientFormDialog({
               />
             </Field>
           </div>
+
+          {client?.instagramUserId && (client.hasMetaAccessToken || metaAccessToken) ? (
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              <AtSign className="h-4 w-4 shrink-0" />
+              Instagram conectado ao Meta
+              {client.instagram ? (
+                <span className="text-emerald-800/80">({client.instagram})</span>
+              ) : null}
+            </div>
+          ) : null}
+
+          {client?.id && metaOAuthConfigured ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2"
+              disabled={metaOAuthLoading}
+              onClick={async () => {
+                setMetaOAuthLoading(true);
+                try {
+                  const { url, error: authError } =
+                    await metaPublishingService.getMetaOAuthAuthorizeUrl(
+                      client.id,
+                    );
+                  if (!url) {
+                    toast.error(authError ?? "Não foi possível iniciar o OAuth");
+                    return;
+                  }
+                  window.location.href = url;
+                } catch (err) {
+                  if (err instanceof ApiError) {
+                    toast.error(err.message);
+                  }
+                } finally {
+                  setMetaOAuthLoading(false);
+                }
+              }}
+            >
+              {metaOAuthLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <AtSign className="h-4 w-4" />
+              )}
+              Conectar Instagram (Meta OAuth)
+            </Button>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
             <Field>

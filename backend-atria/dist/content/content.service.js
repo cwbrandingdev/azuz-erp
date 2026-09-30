@@ -15,6 +15,7 @@ const client_1 = require("@prisma/client");
 const notifications_service_1 = require("../notifications/notifications.service");
 const integrations_service_1 = require("../integrations/integrations.service");
 const kanban_service_1 = require("../kanban/kanban.service");
+const meta_publishing_service_1 = require("../integrations/meta-publishing/meta-publishing.service");
 const meta_insights_service_1 = require("../meta-insights/meta-insights.service");
 const calendar_service_1 = require("../calendar/calendar.service");
 const permissions_1 = require("../auth/constants/permissions");
@@ -47,13 +48,15 @@ let ContentService = class ContentService {
     metaInsights;
     calendar;
     kanbanService;
-    constructor(prisma, notifications, integrations, metaInsights, calendar, kanbanService) {
+    metaPublishing;
+    constructor(prisma, notifications, integrations, metaInsights, calendar, kanbanService, metaPublishing) {
         this.prisma = prisma;
         this.notifications = notifications;
         this.integrations = integrations;
         this.metaInsights = metaInsights;
         this.calendar = calendar;
         this.kanbanService = kanbanService;
+        this.metaPublishing = metaPublishing;
     }
     async getManagementBoard(clientId, status) {
         const where = {};
@@ -234,6 +237,7 @@ let ContentService = class ContentService {
             data: { status: client_1.ContentPostStatus.APPROVED },
             include: postInclude,
         });
+        void this.metaPublishing.tryScheduleForContentPost(id).catch(() => undefined);
         return this.toPostResponse(post);
     }
     async updateInternalReview(id, userId, role, dto) {
@@ -306,6 +310,7 @@ let ContentService = class ContentService {
             postId: post.id,
         });
         await this.kanbanService.applyClientReviewOutcome(id, false, dto.rejectionReason);
+        void this.metaPublishing.cancelScheduleForContentPost(id).catch(() => undefined);
         return this.toPostResponse(post);
     }
     async getPostInsights(postId) {
@@ -549,6 +554,7 @@ exports.ContentService = ContentService = __decorate([
         integrations_service_1.IntegrationsService,
         meta_insights_service_1.MetaInsightsService,
         calendar_service_1.CalendarService,
-        kanban_service_1.KanbanService])
+        kanban_service_1.KanbanService,
+        meta_publishing_service_1.MetaPublishingService])
 ], ContentService);
 //# sourceMappingURL=content.service.js.map

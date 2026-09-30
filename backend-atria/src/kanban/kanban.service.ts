@@ -26,6 +26,7 @@ import { randomUUID } from 'crypto';
 import { readFileSync, unlinkSync } from 'fs';
 import { extname } from 'path';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { MetaPublishingService } from '../integrations/meta-publishing/meta-publishing.service';
 import { SupabaseStorageService } from '../supabase/supabase-storage.service';
 import {
   assertCanPerformInternalApproval,
@@ -35,7 +36,10 @@ import {
 import { PrismaService, PRISMA_TRANSACTION_OPTIONS } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SlaService } from '../sla/sla.service';
-import { resolveTaskContentType } from './kanban-content-type';
+import {
+  contentTypeToPostFormat,
+  resolveTaskContentType,
+} from './kanban-content-type';
 import { DEFAULT_TASK_STATUS } from './kanban-defaults';
 import {
   KANBAN_STATUS_DEFINITIONS,
@@ -94,6 +98,20 @@ const taskInclude = {
     include: { uploadedBy: { select: userSelect } },
     orderBy: { uploadedAt: 'desc' as const },
   },
+  contentPost: {
+    select: {
+      id: true,
+      format: true,
+      platform: true,
+      status: true,
+      metaPublishStatus: true,
+      metaPublishError: true,
+      metaScheduledAt: true,
+      metaPublishedAt: true,
+      metaIgPermalink: true,
+      metaIgMediaId: true,
+    },
+  },
 } satisfies Prisma.KanbanTaskInclude;
 
 type DbClient = Prisma.TransactionClient | PrismaService;
@@ -142,6 +160,7 @@ export class KanbanService {
     private readonly storage: SupabaseStorageService,
     @Inject(forwardRef(() => DeliverablesService))
     private readonly deliverablesService: DeliverablesService,
+    private readonly metaPublishing: MetaPublishingService,
   ) {}
 
   async getColumns() {
@@ -631,6 +650,19 @@ export class KanbanService {
       });
     }
 
+    if (dto.publicationDate !== undefined) {
+      void this.metaPublishing
+        .handlePublicationDateChange(id)
+        .catch(() => undefined);
+    }
+
+    if (dto.contentType !== undefined && withCalendar.contentPostId) {
+      await this.prisma.contentPost.update({
+        where: { id: withCalendar.contentPostId },
+        data: { format: contentTypeToPostFormat(withCalendar.contentType) },
+      });
+    }
+
     return this.toTaskResponse(withCalendar);
   }
 
@@ -1037,6 +1069,9 @@ export class KanbanService {
           internalReviewNote: reason?.trim() || null,
         },
       });
+      void this.metaPublishing
+        .cancelScheduleForContentPost(existing.contentPostId)
+        .catch(() => undefined);
     }
 
     await this.deliverablesService.markRequiresAdjustment(taskId);
@@ -1087,6 +1122,78 @@ export class KanbanService {
       taskId,
       'Cliente aprovou: movida para OK',
     );
+
+    void this.metaPublishing.tryScheduleForTask(taskId).catch(() => undefined);
+  }
+
+  async publishInstagramNow(userId: string, role: string, taskId: string) {
+    const task = await this.ensureTaskExists(taskId);
+    assertKanbanTaskEditAccess(role, userId, task);
+
+    if (!task.clientId) {
+      throw new BadRequestException(
+        'Vincule um cliente à tarefa antes de publicar no Instagram',
+      );
+    }
+
+    const assetCount = await this.prisma.kanbanTaskAsset.count({
+      where: { taskId },
+    });
+    if (assetCount === 0) {
+      throw new BadRequestException(
+        'Anexe pelo menos uma mídia na tarefa antes de publicar',
+      );
+    }
+
+    let contentPostId = task.contentPostId;
+    const postFormat = contentTypeToPostFormat(task.contentType);
+
+    if (!contentPostId) {
+      await this.publishTaskForClientReview(taskId, userId, {
+        internalReviewStatus: task.internalReviewStatus,
+        internalReviewNote: task.internalReviewNote,
+      });
+      const refreshed = await this.ensureTaskExists(taskId);
+      contentPostId = refreshed.contentPostId;
+    }
+
+    if (!contentPostId) {
+      throw new BadRequestException('Não foi possível preparar o post de conteúdo');
+    }
+
+    await this.prisma.contentPost.update({
+      where: { id: contentPostId },
+      data: {
+        platform: ContentPlatform.INSTAGRAM,
+        format: postFormat,
+        status: ContentPostStatus.APPROVED,
+        scheduledDate: task.publicationDate ?? new Date(),
+      },
+    });
+
+    await this.syncTaskAssetsToContentPost(taskId, contentPostId);
+
+    await this.metaPublishing.publishNowForContentPost(contentPostId);
+
+    return this.toTaskResponse(await this.ensureTaskExists(taskId));
+  }
+
+  async syncInstagramPublishStatus(taskId: string) {
+    await this.ensureTaskExists(taskId);
+    await this.metaPublishing.refreshPublishStatusForTask(taskId);
+    return this.toTaskResponse(await this.ensureTaskExists(taskId));
+  }
+
+  async getInstagramPublishReadiness(taskId: string) {
+    await this.ensureTaskExists(taskId);
+    return this.metaPublishing.getTaskPublishReadiness(taskId);
+  }
+
+  async retryInstagramPublish(userId: string, role: string, taskId: string) {
+    const task = await this.ensureTaskExists(taskId);
+    assertKanbanTaskEditAccess(role, userId, task);
+    await this.metaPublishing.retryPublishForTask(taskId);
+    return this.toTaskResponse(await this.ensureTaskExists(taskId));
   }
 
   async uploadTaskAsset(
@@ -1929,6 +2036,7 @@ export class KanbanService {
         contentPostId: true,
         calendarEventId: true,
         dueDate: true,
+        contentType: true,
         createdById: true,
         assignees: { select: { userId: true }, take: 1 },
       },
@@ -1943,13 +2051,14 @@ export class KanbanService {
     }
 
     let contentPostId = task.contentPostId;
+    const postFormat = contentTypeToPostFormat(task.contentType);
 
     if (!contentPostId) {
       const post = await this.prisma.contentPost.create({
         data: {
           title: task.title,
           platform: ContentPlatform.INSTAGRAM,
-          format: ContentPostFormat.STATIC,
+          format: postFormat,
           copy: this.resolvePostCopy(task),
           referenceUrl: task.referenceUrl,
           scheduledDate: task.dueDate,
@@ -1983,6 +2092,7 @@ export class KanbanService {
           copy: this.resolvePostCopy(task),
           referenceUrl: task.referenceUrl,
           scheduledDate: task.dueDate,
+          format: postFormat,
           status: ContentPostStatus.PENDING_APPROVAL,
           internalReviewStatus: review.internalReviewStatus,
           internalReviewNote: review.internalReviewNote,
@@ -2175,6 +2285,16 @@ export class KanbanService {
         uploadedAt: asset.uploadedAt.toISOString(),
         uploadedBy: asset.uploadedBy,
       })),
+      metaInstagram: task.contentPost
+        ? {
+            status: task.contentPost.metaPublishStatus.toLowerCase(),
+            error: task.contentPost.metaPublishError,
+            scheduledAt: task.contentPost.metaScheduledAt?.toISOString() ?? null,
+            publishedAt: task.contentPost.metaPublishedAt?.toISOString() ?? null,
+            permalink: task.contentPost.metaIgPermalink,
+            format: task.contentPost.format.toLowerCase(),
+          }
+        : null,
       updatedAt: task.updatedAt.toISOString(),
     };
   }

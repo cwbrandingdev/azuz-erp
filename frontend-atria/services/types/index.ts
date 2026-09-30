@@ -378,6 +378,14 @@ export interface KanbanTask {
   slaStatus: SlaUiStatus;
   assignees: TeamMember[];
   assets: KanbanTaskAsset[];
+  metaInstagram?: {
+    status: string;
+    error: string | null;
+    scheduledAt: string | null;
+    publishedAt: string | null;
+    permalink: string | null;
+    format: string;
+  } | null;
   createdBy: TeamMember;
   createdAt: string;
   updatedAt: string;
@@ -1334,6 +1342,21 @@ export interface CreationScheduleItem {
   scheduledAt: string;
   color: string;
   referenceUrl?: string | null;
+  metaPublishStatus?: string | null;
+  metaPublishError?: string | null;
+  metaScheduledAt?: string | null;
+  metaPublishedAt?: string | null;
+}
+
+export interface InstagramPublishReadinessIssue {
+  code: string;
+  message: string;
+}
+
+export interface InstagramPublishReadiness {
+  ready: boolean;
+  blockers: InstagramPublishReadinessIssue[];
+  warnings: InstagramPublishReadinessIssue[];
 }
 
 export interface CreationBlocker {

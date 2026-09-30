@@ -339,6 +339,14 @@ export declare class ClientRequestsService {
                     avatarUrl: string | null;
                 };
             }[];
+            metaInstagram: {
+                status: string;
+                error: string | null;
+                scheduledAt: string | null;
+                publishedAt: string | null;
+                permalink: string | null;
+                format: string;
+            } | null;
             updatedAt: string;
             id: string;
             title: string;

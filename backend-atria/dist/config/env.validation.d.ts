@@ -26,6 +26,11 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COOKIE_DOMAIN: z.ZodOptional<z.ZodString>;
     TENANT_SECRETS_KEY: z.ZodOptional<z.ZodString>;
     META_API_VERSION: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    META_APP_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    META_APP_SECRET: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    META_OAUTH_REDIRECT_URI: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    META_ACCESS_TOKEN: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    META_AD_ACCOUNT_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     APP_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     FRONTEND_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     ADMIN_EMAIL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
@@ -74,6 +79,11 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COOKIE_DOMAIN?: string | undefined;
     TENANT_SECRETS_KEY?: string | undefined;
     META_API_VERSION?: string | undefined;
+    META_APP_ID?: string | undefined;
+    META_APP_SECRET?: string | undefined;
+    META_OAUTH_REDIRECT_URI?: string | undefined;
+    META_ACCESS_TOKEN?: string | undefined;
+    META_AD_ACCOUNT_ID?: string | undefined;
     APP_URL?: string | undefined;
     FRONTEND_URL?: string | undefined;
     ADMIN_EMAIL?: string | undefined;
@@ -119,6 +129,11 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     COOKIE_DOMAIN?: string | undefined;
     TENANT_SECRETS_KEY?: string | undefined;
     META_API_VERSION?: string | undefined;
+    META_APP_ID?: string | undefined;
+    META_APP_SECRET?: string | undefined;
+    META_OAUTH_REDIRECT_URI?: string | undefined;
+    META_ACCESS_TOKEN?: string | undefined;
+    META_AD_ACCOUNT_ID?: string | undefined;
     APP_URL?: string | undefined;
     FRONTEND_URL?: string | undefined;
     ADMIN_EMAIL?: string | undefined;

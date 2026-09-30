@@ -1,5 +1,6 @@
 import { KanbanTaskContentType, KanbanTaskPriority, KanbanTaskStatus, InternalReviewStatus, ProductionPhase, Prisma } from '@prisma/client';
 import { DeliverablesService } from '../deliverables/deliverables.service';
+import { MetaPublishingService } from '../integrations/meta-publishing/meta-publishing.service';
 import { SupabaseStorageService } from '../supabase/supabase-storage.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -37,7 +38,8 @@ export declare class KanbanService {
     private readonly slaService;
     private readonly storage;
     private readonly deliverablesService;
-    constructor(prisma: PrismaService, notifications: NotificationsService, slaService: SlaService, storage: SupabaseStorageService, deliverablesService: DeliverablesService);
+    private readonly metaPublishing;
+    constructor(prisma: PrismaService, notifications: NotificationsService, slaService: SlaService, storage: SupabaseStorageService, deliverablesService: DeliverablesService, metaPublishing: MetaPublishingService);
     getColumns(): Promise<{
         id: string;
         title: string;
@@ -125,6 +127,14 @@ export declare class KanbanService {
                 avatarUrl: string | null;
             };
         }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
         updatedAt: string;
         id: string;
         title: string;
@@ -196,6 +206,14 @@ export declare class KanbanService {
                 avatarUrl: string | null;
             };
         }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
         updatedAt: string;
         id: string;
         title: string;
@@ -271,6 +289,14 @@ export declare class KanbanService {
                 avatarUrl: string | null;
             };
         }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
         updatedAt: string;
         id: string;
         title: string;
@@ -365,6 +391,14 @@ export declare class KanbanService {
                 avatarUrl: string | null;
             };
         }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
         updatedAt: string;
         id: string;
         title: string;
@@ -436,6 +470,14 @@ export declare class KanbanService {
                 avatarUrl: string | null;
             };
         }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
         updatedAt: string;
         id: string;
         title: string;
@@ -507,6 +549,14 @@ export declare class KanbanService {
                 avatarUrl: string | null;
             };
         }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
         updatedAt: string;
         id: string;
         title: string;
@@ -578,6 +628,14 @@ export declare class KanbanService {
                 avatarUrl: string | null;
             };
         }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
         updatedAt: string;
         id: string;
         title: string;
@@ -649,6 +707,14 @@ export declare class KanbanService {
                 avatarUrl: string | null;
             };
         }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
         updatedAt: string;
         id: string;
         title: string;
@@ -670,6 +736,244 @@ export declare class KanbanService {
     applyInternalAdjustment(taskId: string, userId?: string | null, reason?: string | null): Promise<void>;
     applyClientRejection(taskId: string, userId?: string | null, reason?: string | null): Promise<void>;
     applyClientApproval(taskId: string, userId?: string | null): Promise<void>;
+    publishInstagramNow(userId: string, role: string, taskId: string): Promise<{
+        postCaption: string | null;
+        referenceUrl: string | null;
+        columnId: string;
+        column: {
+            id: string;
+            title: string;
+            order: number;
+            color: string;
+            type: "to_do" | "in_progress" | "done" | "custom" | null;
+            statusKey: import("./kanban-status").KanbanTaskStatusApi | null;
+        } | null;
+        contentPostId: string | null;
+        calendarEventId: string | null;
+        internalReviewStatus: "not_required" | "pending" | "approved" | "rejected";
+        internalReviewNote: string | null;
+        isBypassingInternalReview: boolean;
+        priority: "critical" | "high" | "medium" | "low" | "planned";
+        order: number;
+        slaResponseDueAt: string | null;
+        slaResolutionDueAt: string | null;
+        firstResponseAt: string | null;
+        resolvedAt: string | null;
+        slaStatus: import("../sla/sla.utils").SlaUiStatus;
+        assignedGroupId: string | null;
+        assignedGroup: {
+            id: string;
+            name: string;
+            color: string;
+        } | null;
+        assignees: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+        }[];
+        createdBy: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+        };
+        assets: {
+            id: string;
+            fileName: string;
+            fileUrl: string;
+            fileType: string;
+            fileSize: number | null;
+            caption: string | null;
+            uploadedAt: string;
+            uploadedBy: {
+                id: string;
+                name: string;
+                avatarUrl: string | null;
+            };
+        }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
+        updatedAt: string;
+        id: string;
+        title: string;
+        description: string | null;
+        status: import("./kanban-status").KanbanTaskStatusApi;
+        productionPhase: import("./production-phase").ProductionPhaseApi | null;
+        contentType: import("./kanban-content-type").KanbanTaskContentTypeApi;
+        statusColor: string;
+        statusLabel: string;
+        dueDate: string | null;
+        publicationDate: string | null;
+        deliveryDate: string | null;
+        clientId: string | null;
+        companyId: string;
+        client: import("./kanban-task.mapper").UnifiedTaskClient | null;
+        createdAt: string;
+    }>;
+    syncInstagramPublishStatus(taskId: string): Promise<{
+        postCaption: string | null;
+        referenceUrl: string | null;
+        columnId: string;
+        column: {
+            id: string;
+            title: string;
+            order: number;
+            color: string;
+            type: "to_do" | "in_progress" | "done" | "custom" | null;
+            statusKey: import("./kanban-status").KanbanTaskStatusApi | null;
+        } | null;
+        contentPostId: string | null;
+        calendarEventId: string | null;
+        internalReviewStatus: "not_required" | "pending" | "approved" | "rejected";
+        internalReviewNote: string | null;
+        isBypassingInternalReview: boolean;
+        priority: "critical" | "high" | "medium" | "low" | "planned";
+        order: number;
+        slaResponseDueAt: string | null;
+        slaResolutionDueAt: string | null;
+        firstResponseAt: string | null;
+        resolvedAt: string | null;
+        slaStatus: import("../sla/sla.utils").SlaUiStatus;
+        assignedGroupId: string | null;
+        assignedGroup: {
+            id: string;
+            name: string;
+            color: string;
+        } | null;
+        assignees: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+        }[];
+        createdBy: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+        };
+        assets: {
+            id: string;
+            fileName: string;
+            fileUrl: string;
+            fileType: string;
+            fileSize: number | null;
+            caption: string | null;
+            uploadedAt: string;
+            uploadedBy: {
+                id: string;
+                name: string;
+                avatarUrl: string | null;
+            };
+        }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
+        updatedAt: string;
+        id: string;
+        title: string;
+        description: string | null;
+        status: import("./kanban-status").KanbanTaskStatusApi;
+        productionPhase: import("./production-phase").ProductionPhaseApi | null;
+        contentType: import("./kanban-content-type").KanbanTaskContentTypeApi;
+        statusColor: string;
+        statusLabel: string;
+        dueDate: string | null;
+        publicationDate: string | null;
+        deliveryDate: string | null;
+        clientId: string | null;
+        companyId: string;
+        client: import("./kanban-task.mapper").UnifiedTaskClient | null;
+        createdAt: string;
+    }>;
+    getInstagramPublishReadiness(taskId: string): Promise<import("../integrations/meta-publishing/domain/meta-publish-readiness").TaskPublishReadiness>;
+    retryInstagramPublish(userId: string, role: string, taskId: string): Promise<{
+        postCaption: string | null;
+        referenceUrl: string | null;
+        columnId: string;
+        column: {
+            id: string;
+            title: string;
+            order: number;
+            color: string;
+            type: "to_do" | "in_progress" | "done" | "custom" | null;
+            statusKey: import("./kanban-status").KanbanTaskStatusApi | null;
+        } | null;
+        contentPostId: string | null;
+        calendarEventId: string | null;
+        internalReviewStatus: "not_required" | "pending" | "approved" | "rejected";
+        internalReviewNote: string | null;
+        isBypassingInternalReview: boolean;
+        priority: "critical" | "high" | "medium" | "low" | "planned";
+        order: number;
+        slaResponseDueAt: string | null;
+        slaResolutionDueAt: string | null;
+        firstResponseAt: string | null;
+        resolvedAt: string | null;
+        slaStatus: import("../sla/sla.utils").SlaUiStatus;
+        assignedGroupId: string | null;
+        assignedGroup: {
+            id: string;
+            name: string;
+            color: string;
+        } | null;
+        assignees: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+        }[];
+        createdBy: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+        };
+        assets: {
+            id: string;
+            fileName: string;
+            fileUrl: string;
+            fileType: string;
+            fileSize: number | null;
+            caption: string | null;
+            uploadedAt: string;
+            uploadedBy: {
+                id: string;
+                name: string;
+                avatarUrl: string | null;
+            };
+        }[];
+        metaInstagram: {
+            status: string;
+            error: string | null;
+            scheduledAt: string | null;
+            publishedAt: string | null;
+            permalink: string | null;
+            format: string;
+        } | null;
+        updatedAt: string;
+        id: string;
+        title: string;
+        description: string | null;
+        status: import("./kanban-status").KanbanTaskStatusApi;
+        productionPhase: import("./production-phase").ProductionPhaseApi | null;
+        contentType: import("./kanban-content-type").KanbanTaskContentTypeApi;
+        statusColor: string;
+        statusLabel: string;
+        dueDate: string | null;
+        publicationDate: string | null;
+        deliveryDate: string | null;
+        clientId: string | null;
+        companyId: string;
+        client: import("./kanban-task.mapper").UnifiedTaskClient | null;
+        createdAt: string;
+    }>;
     uploadTaskAsset(userId: string, role: string, taskId: string, file: Express.Multer.File, caption?: string): Promise<{
         id: string;
         fileName: string;

@@ -58,6 +58,10 @@ export declare class CreationController {
             status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             scheduledAt: string;
             color: string;
+            metaPublishStatus: "pending" | "failed" | "scheduled" | "published" | "not_scheduled";
+            metaPublishError: string | null;
+            metaScheduledAt: string | null;
+            metaPublishedAt: string | null;
         } | {
             id: string;
             type: "event";
@@ -377,11 +381,11 @@ export declare class CreationController {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                id: string;
-                name: string;
-                createdAt: Date;
-                postId: string;
                 url: string;
+                id: string;
+                createdAt: Date;
+                name: string;
+                postId: string;
                 mimeType: string | null;
             }[];
             author: {
@@ -452,6 +456,14 @@ export declare class CreationController {
                     avatarUrl: string | null;
                 };
             }[];
+            metaInstagram: {
+                status: string;
+                error: string | null;
+                scheduledAt: string | null;
+                publishedAt: string | null;
+                permalink: string | null;
+                format: string;
+            } | null;
             updatedAt: string;
             id: string;
             title: string;

@@ -9,6 +9,7 @@ import {
 import { NotificationsService } from '../notifications/notifications.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { KanbanService } from '../kanban/kanban.service';
+import { MetaPublishingService } from '../integrations/meta-publishing/meta-publishing.service';
 import { MetaInsightsService } from '../meta-insights/meta-insights.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { isClientFacingRole } from '../auth/constants/permissions';
@@ -64,6 +65,7 @@ export class ContentService {
     private readonly metaInsights: MetaInsightsService,
     private readonly calendar: CalendarService,
     private readonly kanbanService: KanbanService,
+    private readonly metaPublishing: MetaPublishingService,
   ) {}
 
   async getManagementBoard(clientId?: string, status?: ContentPostStatus) {
@@ -268,6 +270,8 @@ export class ContentService {
       include: postInclude,
     });
 
+    void this.metaPublishing.tryScheduleForContentPost(id).catch(() => undefined);
+
     return this.toPostResponse(post);
   }
 
@@ -375,6 +379,7 @@ export class ContentService {
     });
 
     await this.kanbanService.applyClientReviewOutcome(id, false, dto.rejectionReason);
+    void this.metaPublishing.cancelScheduleForContentPost(id).catch(() => undefined);
 
     return this.toPostResponse(post);
   }

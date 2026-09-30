@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Kanban,
   Calendar,
+  CalendarClock,
   ClipboardCheck,
   Layers,
   Users,
@@ -48,6 +49,7 @@ export const navSections: NavSection[] = [
       { name: "Kanban", href: "/kanban", icon: Kanban },
       { name: "Aprovação Interna", href: "/internal-approvals", icon: ClipboardCheck },
       { name: "Calendário", href: "/calendar", icon: Calendar },
+      { name: "Cronograma", href: "/schedule", icon: CalendarClock },
     ],
   },
   {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2, Upload, MessageSquareWarning } from "lucide-react";
+import { Trash2, Upload, MessageSquareWarning, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,8 @@ import {
   DEFAULT_TASK_CONTENT_TYPE,
 } from "@/lib/task-content-type";
 import { TaskContentTypePicker } from "@/components/kanban/task-content-type-picker";
+import { MetaInstagramStatusBadge } from "@/components/kanban/meta-instagram-status-badge";
+import { MetaInstagramReadinessPanel } from "@/components/kanban/meta-instagram-readiness-panel";
 import {
   TaskStatusBadge,
   TaskStatusSelect,
@@ -67,6 +69,7 @@ import type {
   KanbanTaskContentType,
   KanbanTaskStatus,
   KanbanTaskAsset,
+  InstagramPublishReadiness,
   TaskHistoryEntry,
   TeamMember,
   UserGroup,
@@ -147,6 +150,11 @@ export function TaskDetailDialog({
   const [postCaption, setPostCaption] = useState("");
   const [savingPostCaption, setSavingPostCaption] = useState(false);
   const [approvingInternal, setApprovingInternal] = useState(false);
+  const [publishingInstagram, setPublishingInstagram] = useState(false);
+  const [retryingInstagram, setRetryingInstagram] = useState(false);
+  const [igReadiness, setIgReadiness] =
+    useState<InstagramPublishReadiness | null>(null);
+  const [igReadinessLoading, setIgReadinessLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
@@ -168,6 +176,48 @@ export function TaskDetailDialog({
     useState(false);
   const [bulkDeliverableActions, setBulkDeliverableActions] =
     useState<DeliverableBulkActionsState | null>(null);
+  const syncedIgPublishRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!open || !task) {
+      syncedIgPublishRef.current = null;
+      return;
+    }
+
+    const meta = task.metaInstagram;
+    if (
+      meta?.status === "scheduled" &&
+      meta.scheduledAt &&
+      new Date(meta.scheduledAt).getTime() <= Date.now() &&
+      syncedIgPublishRef.current !== task.id
+    ) {
+      syncedIgPublishRef.current = task.id;
+      void kanbanService
+        .syncInstagramPublishStatus(task.id)
+        .then(() => onUpdate())
+        .catch(() => undefined);
+    }
+  }, [open, task, onUpdate]);
+
+  useEffect(() => {
+    if (!open || !task?.id) {
+      setIgReadiness(null);
+      return;
+    }
+    setIgReadinessLoading(true);
+    void kanbanService
+      .getInstagramPublishReadiness(task.id)
+      .then(setIgReadiness)
+      .catch(() => setIgReadiness(null))
+      .finally(() => setIgReadinessLoading(false));
+  }, [
+    open,
+    task?.id,
+    task?.clientId,
+    task?.publicationDate,
+    task?.contentType,
+    task?.assets?.length,
+  ]);
 
   useEffect(() => {
     if (!open || !task) return;
@@ -267,6 +317,58 @@ export function TaskDetailDialog({
       (column) => column.statusKey === nextStatus,
     );
     if (matchingColumn) setColumnId(matchingColumn.id);
+  }
+
+  async function handleRetryInstagramPublish() {
+    if (!task || !canEdit) return;
+
+    setRetryingInstagram(true);
+    setError(null);
+    try {
+      await kanbanService.retryInstagramPublish(task.id);
+      onUpdate();
+      toast.success("Nova tentativa de publicação enviada");
+      const readiness = await kanbanService.getInstagramPublishReadiness(
+        task.id,
+      );
+      setIgReadiness(readiness);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Não foi possível reenviar para o Instagram.");
+      }
+    } finally {
+      setRetryingInstagram(false);
+    }
+  }
+
+  async function handlePublishInstagramNow() {
+    if (!task || !canEdit) return;
+
+    const confirmed = await confirm({
+      title: "Publicar agora no Instagram",
+      description:
+        "A mídia será enviada imediatamente para a conta Instagram do cliente (feed, Reels ou Stories conforme o tipo da tarefa).",
+      confirmLabel: "Publicar",
+    });
+    if (!confirmed) return;
+
+    setPublishingInstagram(true);
+    setError(null);
+    try {
+      await kanbanService.publishInstagramNow(task.id);
+      onUpdate();
+      toast.success("Publicação enviada ao Instagram");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Não foi possível publicar no Instagram.");
+      }
+    } finally {
+      setPublishingInstagram(false);
+    }
   }
 
   async function handleSavePostCaption() {
@@ -583,6 +685,9 @@ export function TaskDetailDialog({
               </span>
             )}
             {task.slaStatus && <SlaStatusBadge status={task.slaStatus} />}
+            {task.metaInstagram ? (
+              <MetaInstagramStatusBadge meta={task.metaInstagram} />
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--atria-primary)]/70">
             <p>
@@ -804,6 +909,13 @@ export function TaskDetailDialog({
                 )}
               </div>
 
+              {clientId ? (
+                <MetaInstagramReadinessPanel
+                  readiness={igReadiness}
+                  loading={igReadinessLoading}
+                />
+              ) : null}
+
               {showRejectionReason && (
                 <div className="rounded-xl border border-amber-200/70 bg-amber-50/80 px-4 py-3">
                   <div className="flex items-start gap-2">
@@ -835,6 +947,36 @@ export function TaskDetailDialog({
                   Esta legenda será exibida para o cliente na aprovação do
                   conteúdo.
                 </p>
+                {canEdit && clientId && assets.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                      disabled={publishingInstagram || retryingInstagram}
+                      onClick={() => void handlePublishInstagramNow()}
+                    >
+                      <AtSign className="h-4 w-4" />
+                      {publishingInstagram
+                        ? "Publicando…"
+                        : "Publicar agora no Instagram"}
+                    </Button>
+                    {task.metaInstagram?.status === "failed" && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={publishingInstagram || retryingInstagram}
+                        onClick={() => void handleRetryInstagramPublish()}
+                      >
+                        {retryingInstagram
+                          ? "Reenviando…"
+                          : "Reenviar para o Instagram"}
+                      </Button>
+                    )}
+                  </div>
+                )}
                 {canEdit && (
                   <Button
                     type="button"

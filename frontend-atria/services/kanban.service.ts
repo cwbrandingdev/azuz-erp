@@ -9,6 +9,7 @@ import type {
   KanbanTaskStatus,
   TaskComment,
   TaskHistoryEntry,
+  InstagramPublishReadiness,
   UpdateColumnInput,
 } from "./types";
 
@@ -167,6 +168,32 @@ export async function updateInternalReview(
     method: "PATCH",
     body: { status, note },
   });
+}
+
+export async function publishInstagramNow(taskId: string) {
+  return apiRequest<KanbanTask>(`/kanban/tasks/${taskId}/publish-instagram`, {
+    method: "POST",
+  });
+}
+
+export async function syncInstagramPublishStatus(taskId: string) {
+  return apiRequest<KanbanTask>(
+    `/kanban/tasks/${taskId}/sync-instagram-publish`,
+    { method: "POST" },
+  );
+}
+
+export async function getInstagramPublishReadiness(taskId: string) {
+  return apiRequest<InstagramPublishReadiness>(
+    `/kanban/tasks/${taskId}/instagram-readiness`,
+  );
+}
+
+export async function retryInstagramPublish(taskId: string) {
+  return apiRequest<KanbanTask>(
+    `/kanban/tasks/${taskId}/retry-instagram-publish`,
+    { method: "POST" },
+  );
 }
 
 export async function uploadTaskAsset(

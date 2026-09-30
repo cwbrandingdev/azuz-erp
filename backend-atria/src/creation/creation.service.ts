@@ -55,6 +55,10 @@ const postSelect = {
   status: true,
   scheduledDate: true,
   updatedAt: true,
+  metaPublishStatus: true,
+  metaPublishError: true,
+  metaScheduledAt: true,
+  metaPublishedAt: true,
   client: {
     select: { id: true, companyName: true, avatarUrl: true },
   },
@@ -962,6 +966,10 @@ export class CreationService {
         status: toLowerEnum(post.status),
         scheduledAt: post.scheduledDate!.toISOString(),
         color: PLATFORM_COLORS[post.platform] ?? '#004949',
+        metaPublishStatus: toLowerEnum(post.metaPublishStatus),
+        metaPublishError: post.metaPublishError,
+        metaScheduledAt: post.metaScheduledAt?.toISOString() ?? null,
+        metaPublishedAt: post.metaPublishedAt?.toISOString() ?? null,
       })),
       ...publishEvents.map((event) => ({
         id: event.id,
