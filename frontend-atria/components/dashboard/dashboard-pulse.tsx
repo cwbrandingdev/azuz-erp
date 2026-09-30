@@ -24,7 +24,7 @@ export function DashboardPulse({ data }: DashboardPulseProps) {
     {
       label: "Resultado líquido",
       value: formatCurrency(data.finance.netProfit),
-      hint: "visão financeira atual",
+      hint: "resultado do mês atual",
       href: "/financial",
       icon: CircleDollarSign,
       tone: "text-[var(--atria-primary)] bg-[var(--atria-accent)]/25",

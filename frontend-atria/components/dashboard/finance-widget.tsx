@@ -28,6 +28,7 @@ import {
   formatChartMonth,
   formatCompactCurrency,
   formatCurrency,
+  formatScopeLabel,
   getCurrentPeriod,
 } from "@/lib/financial-utils";
 import type { DashboardOverview } from "@/services/types";
@@ -61,7 +62,9 @@ function TrendBadge({ value, label }: { value: number; label: string }) {
 }
 
 export function FinanceWidget({ finance }: FinanceWidgetProps) {
-  const year = getCurrentPeriod().year;
+  const period = getCurrentPeriod();
+  const currentMonthKey = `${period.year}-${String(period.month).padStart(2, "0")}`;
+  const periodLabel = formatScopeLabel(period);
 
   const {
     chartData,
@@ -91,7 +94,9 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
     );
 
     const activeMonths = enriched.filter(
-      (item) => item.income > 0 || item.expense > 0,
+      (item) =>
+        item.month === currentMonthKey &&
+        (item.income > 0 || item.expense > 0),
     );
 
     return {
@@ -102,7 +107,7 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
       bestMonth: best,
       monthsWithActivity: activeMonths,
     };
-  }, [finance]);
+  }, [finance, currentMonthKey]);
 
   const kpis = [
     {
@@ -145,7 +150,7 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
                 Financeiro
               </h2>
               <p className="text-xs text-[var(--atria-primary)]/50">
-                Acumulado em {year}
+                {periodLabel}
               </p>
             </div>
           </div>
