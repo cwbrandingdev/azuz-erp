@@ -30,6 +30,10 @@ export class DashboardService {
   ) {}
 
   async getOverview(userId: string) {
+    const now = new Date();
+    const { year, month } = this.getCurrentMonthBounds(now);
+    const currentMonthKey = `${year}-${String(month).padStart(2, '0')}`;
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { name: true },
@@ -37,7 +41,7 @@ export class DashboardService {
 
     const [cashFlow, campaigns, scheduledPosts, todayEvents, myTasks, pendingEvents] =
       await Promise.all([
-        this.financeService.getCashFlow(userId),
+        this.financeService.getCashFlow(userId, { year, month }),
         Promise.resolve(this.metaInsightsService.getCampaigns()),
         this.prisma.contentPost.findMany({
           where: {
@@ -66,7 +70,9 @@ export class DashboardService {
         ? activeCampaigns.reduce((best, c) => (c.roas > best.roas ? c : best))
         : campaigns[0] ?? null;
 
-    const monthlyTrend = cashFlow.monthlyCashFlow.slice(-6);
+    const monthlyTrend = cashFlow.monthlyCashFlow.filter(
+      (entry) => entry.month === currentMonthKey,
+    );
 
     return {
       user: {
