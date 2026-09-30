@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronLeft,
-  ChevronRight,
   Download,
   Loader2,
   MessageSquareWarning,
@@ -18,7 +16,7 @@ import {
 } from "@/components/deliverables/media-lightbox";
 import { Button } from "@/components/ui/button";
 import { MediaPreview } from "@/components/ui/media-preview";
-import { useCarouselKeyboard } from "@/hooks/use-carousel-keyboard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { isPdfSource } from "@/lib/pdf-utils";
 import { toast } from "@/lib/toast";
@@ -60,6 +58,8 @@ interface DeliverableMediaGridProps {
   showHeaderActions?: boolean;
   allowItemAdjustment?: boolean;
   emptyMessage?: string;
+  loading?: boolean;
+  loadingMessage?: string;
   className?: string;
 }
 
@@ -93,6 +93,8 @@ export function DeliverableMediaGrid({
   showHeaderActions = true,
   allowItemAdjustment = true,
   emptyMessage = "Nenhuma mídia disponível.",
+  loading = false,
+  loadingMessage = "Carregando entregas…",
   className,
 }: DeliverableMediaGridProps) {
   const [revisionItem, setRevisionItem] = useState<DeliverableItem | null>(
@@ -126,9 +128,6 @@ export function DeliverableMediaGrid({
     () => sortedItems.map(toLightboxItem),
     [sortedItems],
   );
-
-  const hasMultiple = sortedItems.length > 1;
-  const activeItem = sortedItems[activeIndex] ?? sortedItems[0] ?? null;
 
   useEffect(() => {
     setActiveIndex((current) => {
@@ -197,13 +196,6 @@ export function DeliverableMediaGrid({
     onBulkActionsChange,
     selectedCount,
   ]);
-
-  const { goPrev, goNext } = useCarouselKeyboard({
-    enabled: hasMultiple && !lightboxOpen,
-    itemCount: sortedItems.length,
-    index: activeIndex,
-    onIndexChange: setActiveIndex,
-  });
 
   function openRevision(item: DeliverableItem) {
     setRevisionItem(item);
@@ -331,6 +323,29 @@ export function DeliverableMediaGrid({
     );
   }
 
+  if (loading && sortedItems.length === 0) {
+    return (
+      <div
+        className={cn("flex flex-col gap-4", className)}
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.03] px-4 py-8 text-sm text-[var(--atria-primary)]/65">
+          <Loader2 className="size-4 shrink-0 animate-spin" />
+          {loadingMessage}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }, (_, index) => (
+            <Skeleton
+              key={index}
+              className="aspect-[4/3] w-full rounded-2xl"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (sortedItems.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-16 text-center text-sm text-[var(--atria-primary)]/50">
@@ -340,7 +355,13 @@ export function DeliverableMediaGrid({
   }
 
   return (
-    <div className={cn("flex flex-col gap-5", className)}>
+    <div className={cn("relative flex flex-col gap-5", className)}>
+      {loading && sortedItems.length > 0 && (
+        <div className="flex items-center gap-2 text-sm text-[var(--atria-primary)]/55">
+          <Loader2 className="size-4 animate-spin" />
+          Atualizando entregas…
+        </div>
+      )}
       {showHeaderActions && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
@@ -379,99 +400,6 @@ export function DeliverableMediaGrid({
         </div>
       )}
 
-      {hasMultiple && activeItem && (
-        <div
-          className="relative overflow-hidden rounded-2xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.03]"
-          role="region"
-          aria-roledescription="carousel"
-          aria-label="Pré-visualização do carrossel"
-        >
-          <div className="relative flex min-h-[min(50vh,420px)] items-center justify-center px-12 py-4 sm:px-16">
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="absolute left-2 z-10 size-10 rounded-full bg-white/90 text-[var(--atria-primary)] shadow-sm hover:bg-white sm:left-4"
-              onClick={goPrev}
-              aria-label="Slide anterior"
-            >
-              <ChevronLeft className="size-5" />
-            </Button>
-
-            <button
-              type="button"
-              className="flex h-full w-full cursor-zoom-in items-center justify-center"
-              onClick={() => openLightbox(activeIndex)}
-              aria-label={`Abrir ${activeItem.fileName ?? "mídia"} em tela cheia`}
-            >
-              {(() => {
-                const previewUrl =
-                  resolveMediaUrlProp?.(activeItem.mediaUrl) ??
-                  resolveMediaUrl(activeItem.mediaUrl) ??
-                  activeItem.mediaUrl;
-
-                if (activeItem.mediaType === "video") {
-                  return (
-                    <div className="relative aspect-[4/3] w-full max-w-3xl bg-black">
-                      <video
-                        src={previewUrl}
-                        muted
-                        playsInline
-                        preload="metadata"
-                        className="h-full w-full rounded-xl object-contain"
-                      />
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <span className="flex size-14 items-center justify-center rounded-full bg-black/55 text-white shadow-lg">
-                          <Play className="ml-0.5 size-7 fill-current" />
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <MediaPreview
-                    url={previewUrl}
-                    mimeType={
-                      activeItem.mediaType === "image"
-                        ? "image/jpeg"
-                        : isPdfSource(
-                              activeItem.mediaUrl,
-                              null,
-                              activeItem.fileName,
-                            )
-                          ? "application/pdf"
-                          : undefined
-                    }
-                    name={activeItem.fileName ?? undefined}
-                    className="max-h-[min(50vh,420px)] w-full max-w-3xl rounded-xl object-contain"
-                  />
-                );
-              })()}
-            </button>
-
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="absolute right-2 z-10 size-10 rounded-full bg-white/90 text-[var(--atria-primary)] shadow-sm hover:bg-white sm:right-4"
-              onClick={goNext}
-              aria-label="Próximo slide"
-            >
-              <ChevronRight className="size-5" />
-            </Button>
-          </div>
-
-          <p className="border-t border-[var(--atria-primary)]/10 px-4 py-2 text-center text-xs text-[var(--atria-primary)]/55">
-            {activeIndex + 1} / {sortedItems.length}
-            <span className="hidden sm:inline">
-              {" "}
-              · use as setas ← → do teclado para navegar
-            </span>
-          </p>
-        </div>
-      )}
-
       {bulkDeleteEnabled && selectedCount > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {renderBulkRemoveButton()}
@@ -492,21 +420,13 @@ export function DeliverableMediaGrid({
           return (
             <motion.div
               key={item.id}
-              layout
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.25,
-                delay: Math.min(index * 0.04, 0.24),
-              }}
+              transition={{ duration: 0.15 }}
               className={cn(
-                "group relative overflow-hidden rounded-2xl border bg-[var(--atria-primary)]/[0.02]",
-                index === activeIndex && hasMultiple
-                  ? "border-[var(--atria-primary)]/35 ring-2 ring-[var(--atria-primary)]/15"
-                  : "border-[var(--atria-primary)]/10",
+                "group relative overflow-hidden rounded-2xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02]",
                 isSelected && "border-red-300/80 ring-2 ring-red-200/60",
               )}
-              onMouseEnter={() => setActiveIndex(index)}
             >
               <button
                 type="button"
@@ -521,7 +441,7 @@ export function DeliverableMediaGrid({
                       muted
                       playsInline
                       preload="metadata"
-                      className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]"
+                      className="h-full w-full object-contain"
                     />
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
                       <span className="flex size-14 items-center justify-center rounded-full bg-black/55 text-white shadow-lg">
@@ -540,7 +460,7 @@ export function DeliverableMediaGrid({
                           : undefined
                     }
                     name={item.fileName ?? undefined}
-                    className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    className="aspect-[4/3] w-full object-cover"
                   />
                 )}
               </button>

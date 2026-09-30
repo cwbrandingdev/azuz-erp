@@ -19,7 +19,6 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
   const [open, setOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const loadColumns = useCallback(async () => {
     try {
@@ -51,7 +50,6 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
   );
 
   const handleUpdate = useCallback(() => {
-    setRefreshKey((k) => k + 1);
     void invalidateTasksCache(queryClient);
     if (selectedTask && open) {
       void kanbanService.getTask(selectedTask.id).then(setSelectedTask).catch(() => {
@@ -70,7 +68,7 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
     <TaskDetailContext.Provider value={value}>
       {children}
       <TaskDetailDialog
-        key={refreshKey}
+        key={selectedTask?.id ?? "closed"}
         task={selectedTask}
         columns={columns}
         open={open}
