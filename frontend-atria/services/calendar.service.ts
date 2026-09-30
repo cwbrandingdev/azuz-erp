@@ -1,4 +1,5 @@
 import { apiRequest } from "./api";
+import { deleteTask } from "./kanban.service";
 import type {
   CalendarEvent,
   CreateCalendarEventInput,
@@ -53,5 +54,28 @@ export async function updateEvent(
 }
 
 export async function deleteEvent(id: string): Promise<void> {
+  if (id.startsWith("task:")) {
+    const taskId = id.slice("task:".length);
+    // #region agent log
+    fetch("http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "a29f29",
+      },
+      body: JSON.stringify({
+        sessionId: "a29f29",
+        runId: "post-fix",
+        hypothesisId: "A-fix",
+        location: "calendar.service.ts:deleteEvent:kanbanRoute",
+        message: "routing synthetic calendar id to kanban deleteTask",
+        data: { eventId: id, taskId },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    return deleteTask(taskId);
+  }
+
   return apiRequest<void>(`/calendar/events/${id}`, { method: "DELETE" });
 }
