@@ -13,6 +13,10 @@ import { InstagramInsightsController } from './presentation/instagram-insights.c
     InstagramCredentialsResolver,
     InstagramInsightsService,
   ],
-  exports: [InstagramInsightsService],
+  exports: [
+    InstagramInsightsService,
+    InstagramGraphClient,
+    InstagramCredentialsResolver,
+  ],
 })
 export class InstagramInsightsModule {}

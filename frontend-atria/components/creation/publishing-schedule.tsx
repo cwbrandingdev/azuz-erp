@@ -5,6 +5,14 @@ import { Calendar, ExternalLink } from "lucide-react";
 import { LiquidGlassCard } from "@/components/creation/liquid-glass-card";
 import type { CreationScheduleItem } from "@/services/types";
 
+const META_STATUS_LABELS: Record<string, string> = {
+  scheduled: "Meta: agendado",
+  published: "Meta: publicado",
+  failed: "Meta: falhou",
+  pending: "Meta: enviando",
+  not_scheduled: "",
+};
+
 const FORMAT_LABELS = {
   carousel: "Carrossel",
   reels: "Reels",
@@ -124,6 +132,26 @@ export function PublishingSchedule({ items }: PublishingScheduleProps) {
                           <p className="mt-0.5 text-[10px] font-medium text-[var(--atria-primary)]/40">
                             {formatScheduleDate(item.scheduledAt)}
                           </p>
+                          {item.type === "post" &&
+                          item.metaPublishStatus &&
+                          META_STATUS_LABELS[item.metaPublishStatus] ? (
+                            <p
+                              className={`mt-0.5 text-[10px] font-semibold ${
+                                item.metaPublishStatus === "failed"
+                                  ? "text-red-600"
+                                  : item.metaPublishStatus === "published"
+                                    ? "text-emerald-700"
+                                    : "text-indigo-700"
+                              }`}
+                              title={item.metaPublishError ?? undefined}
+                            >
+                              {META_STATUS_LABELS[item.metaPublishStatus]}
+                              {item.metaPublishStatus === "failed" &&
+                              item.metaPublishError
+                                ? ` — ${item.metaPublishError}`
+                                : ""}
+                            </p>
+                          ) : null}
                         </div>
                         {item.referenceUrl ? (
                           <ExternalLink className="size-4 shrink-0 text-[var(--atria-primary)]/30" />

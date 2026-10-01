@@ -1,4 +1,4 @@
-import { KanbanTaskContentType } from '@prisma/client';
+import { ContentPostFormat, KanbanTaskContentType } from '@prisma/client';
 
 export const DEFAULT_TASK_CONTENT_TYPE = KanbanTaskContentType.VIDEO_WITH_SCRIPT;
 
@@ -51,4 +51,32 @@ export function resolveTaskContentType(
   value?: KanbanTaskContentType | null,
 ): KanbanTaskContentType {
   return isKanbanTaskContentType(value) ? value : DEFAULT_TASK_CONTENT_TYPE;
+}
+
+export function contentTypeToPostFormat(
+  contentType: KanbanTaskContentType,
+): ContentPostFormat {
+  switch (contentType) {
+    case KanbanTaskContentType.VIDEO_WITH_SCRIPT:
+      return ContentPostFormat.REELS;
+    case KanbanTaskContentType.CAROUSEL:
+      return ContentPostFormat.CAROUSEL;
+    case KanbanTaskContentType.STORIES_NO_SCRIPT:
+      return ContentPostFormat.STORY;
+    default:
+      return ContentPostFormat.STATIC;
+  }
+}
+
+export function postFormatLabel(format: ContentPostFormat): string {
+  switch (format) {
+    case ContentPostFormat.REELS:
+      return 'Reels';
+    case ContentPostFormat.CAROUSEL:
+      return 'Carrossel (feed)';
+    case ContentPostFormat.STORY:
+      return 'Stories';
+    default:
+      return 'Feed';
+  }
 }

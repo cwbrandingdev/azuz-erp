@@ -29,6 +29,7 @@ import { FinanceModule } from './finance/finance.module';
 import { HealthModule } from './health/health.module';
 import { MetaAnalyticsModule } from './integrations/meta-analytics/meta-analytics.module';
 import { InstagramInsightsModule } from './integrations/instagram-insights/instagram-insights.module';
+import { MetaPublishingModule } from './integrations/meta-publishing/meta-publishing.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { InternalApprovalsModule } from './internal-approvals/internal-approvals.module';
 import { KanbanModule } from './kanban/kanban.module';
@@ -88,6 +89,7 @@ import { LeadMinerModule } from './leadminer/leadminer.module';
     InternalApprovalsModule,
     MetaAnalyticsModule,
     InstagramInsightsModule,
+    MetaPublishingModule,
     KanbanModule,
     LeadsModule,
     OrganizationsModule,

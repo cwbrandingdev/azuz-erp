@@ -151,6 +151,35 @@ export class KanbanController {
     return this.kanbanService.updateInternalReview(user.userId, user.role, id, dto);
   }
 
+  @Post('tasks/:id/publish-instagram')
+  publishInstagramNow(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.kanbanService.publishInstagramNow(user.userId, user.role, id);
+  }
+
+  @Post('tasks/:id/sync-instagram-publish')
+  syncInstagramPublish(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.kanbanService.syncInstagramPublishStatus(id);
+  }
+
+  @Get('tasks/:id/instagram-readiness')
+  getInstagramReadiness(@Param('id') id: string) {
+    return this.kanbanService.getInstagramPublishReadiness(id);
+  }
+
+  @Post('tasks/:id/retry-instagram-publish')
+  retryInstagramPublish(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.kanbanService.retryInstagramPublish(user.userId, user.role, id);
+  }
+
   @Post('tasks/:id/assets')
   @UseInterceptors(
     FileInterceptor('file', {

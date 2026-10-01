@@ -317,6 +317,35 @@ export class NotificationsService {
     );
   }
 
+  async notifyMetaInstagramPublish(input: {
+    companyId: string;
+    taskId: string;
+    taskTitle: string;
+    published: boolean;
+    detail?: string;
+  }) {
+    const assignees = await this.prisma.kanbanTaskAssignee.findMany({
+      where: { taskId: input.taskId },
+      select: { userId: true },
+    });
+    const userIds = assignees.map((row) => row.userId);
+    if (userIds.length === 0) {
+      return;
+    }
+
+    const title = input.published
+      ? 'Publicado no Instagram'
+      : 'Falha ao publicar no Instagram';
+    const message = input.published
+      ? `A tarefa "${input.taskTitle}" foi publicada no Instagram.`
+      : `A tarefa "${input.taskTitle}" não foi publicada: ${(input.detail ?? 'erro desconhecido').slice(0, 240)}`;
+
+    await this.createMany(userIds, NotificationType.SYSTEM, title, message, {
+      companyId: input.companyId,
+      taskId: input.taskId,
+    });
+  }
+
   async notifyNewRequest(
     userIds: string[],
     requestTitle: string,

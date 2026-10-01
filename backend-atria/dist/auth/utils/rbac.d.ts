@@ -7,6 +7,9 @@ export declare function isTaskAssignedToUser(userId: string, task: {
         userId: string;
     }>;
 }): boolean;
+export declare function isDesignerRole(role: string): boolean;
+export declare function canViewDashboardFinance(role: string): boolean;
+export declare function canAccessStaffDashboard(role: string): boolean;
 export declare function canPerformInternalApproval(role: string): boolean;
 export declare function assertCanPerformInternalApproval(role: string): void;
 export declare function assertMasterRole(role: string): void;

@@ -9,6 +9,7 @@ import type {
   KanbanTaskStatus,
   TaskComment,
   TaskHistoryEntry,
+  InstagramPublishReadiness,
   UpdateColumnInput,
 } from "./types";
 
@@ -169,10 +170,37 @@ export async function updateInternalReview(
   });
 }
 
+export async function publishInstagramNow(taskId: string) {
+  return apiRequest<KanbanTask>(`/kanban/tasks/${taskId}/publish-instagram`, {
+    method: "POST",
+  });
+}
+
+export async function syncInstagramPublishStatus(taskId: string) {
+  return apiRequest<KanbanTask>(
+    `/kanban/tasks/${taskId}/sync-instagram-publish`,
+    { method: "POST" },
+  );
+}
+
+export async function getInstagramPublishReadiness(taskId: string) {
+  return apiRequest<InstagramPublishReadiness>(
+    `/kanban/tasks/${taskId}/instagram-readiness`,
+  );
+}
+
+export async function retryInstagramPublish(taskId: string) {
+  return apiRequest<KanbanTask>(
+    `/kanban/tasks/${taskId}/retry-instagram-publish`,
+    { method: "POST" },
+  );
+}
+
 export async function uploadTaskAsset(
   taskId: string,
   file: File,
   caption?: string,
+  options?: { onProgress?: (loaded: number, total: number) => void },
 ) {
   const formData = new FormData();
   formData.append("file", file);
@@ -188,7 +216,9 @@ export async function uploadTaskAsset(
     caption?: string | null;
     uploadedAt: string;
     uploadedBy: { id: string; name: string; avatarUrl: string | null };
-  }>(`/kanban/tasks/${taskId}/assets`, formData);
+  }>(`/kanban/tasks/${taskId}/assets`, formData, {
+    onProgress: options?.onProgress,
+  });
 }
 
 export async function deleteTaskAsset(taskId: string, assetId: string) {

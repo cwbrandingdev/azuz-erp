@@ -675,6 +675,13 @@ model ContentPost {
   referenceUrl         String?
   internalReviewStatus InternalReviewStatus @default(NOT_REQUIRED)
   internalReviewNote   String?
+  metaIgContainerId    String?
+  metaIgMediaId        String?
+  metaPublishStatus    MetaPublishStatus    @default(NOT_SCHEDULED)
+  metaPublishError     String?
+  metaScheduledAt      DateTime?
+  metaPublishedAt      DateTime?
+  metaIgPermalink      String?
   companyId            String               @default("00000000-0000-4000-8000-000000000001")
   calendarEvent        CalendarEvent?
   attachments          ContentAttachment[]
@@ -1467,6 +1474,14 @@ enum ContentPostFormat {
   REELS
   STATIC
   STORY
+}
+
+enum MetaPublishStatus {
+  NOT_SCHEDULED
+  PENDING
+  SCHEDULED
+  PUBLISHED
+  FAILED
 }
 
 enum ClientBriefStatus {

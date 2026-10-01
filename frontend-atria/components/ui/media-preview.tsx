@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { FileIcon, FileText } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getPreviewMediaKind } from "@/lib/pdf-utils";
 import { cn } from "@/lib/utils";
 
@@ -21,24 +23,13 @@ export function MediaPreview({
 
   if (kind === "video") {
     return (
-      <video
-        src={url}
-        controls
-        className={cn("max-h-48 w-full rounded-lg bg-black/5 object-contain", className)}
-      >
-        {name}
-      </video>
+      <VideoPreview url={url} name={name} className={className} />
     );
   }
 
   if (kind === "image") {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={url}
-        alt={name ?? "Preview"}
-        className={cn("max-h-48 w-full rounded-lg object-cover", className)}
-      />
+      <ImagePreview url={url} name={name} className={className} />
     );
   }
 
@@ -66,6 +57,80 @@ export function MediaPreview({
       )}
     >
       <FileIcon className="size-8 text-muted-foreground" />
+    </div>
+  );
+}
+
+function ImagePreview({
+  url,
+  name,
+  className,
+}: {
+  url: string;
+  name?: string;
+  className?: string;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [url]);
+
+  return (
+    <div className={cn("relative overflow-hidden", className)}>
+      {!loaded && (
+        <Skeleton className="absolute inset-0 size-full rounded-[inherit]" />
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt={name ?? "Preview"}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+        className={cn(
+          "size-full max-h-48 object-cover transition-opacity duration-200",
+          !loaded && "opacity-0",
+        )}
+      />
+    </div>
+  );
+}
+
+function VideoPreview({
+  url,
+  name,
+  className,
+}: {
+  url: string;
+  name?: string;
+  className?: string;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [url]);
+
+  return (
+    <div className={cn("relative overflow-hidden", className)}>
+      {!loaded && (
+        <Skeleton className="absolute inset-0 size-full rounded-[inherit]" />
+      )}
+      <video
+        src={url}
+        controls
+        preload="metadata"
+        onLoadedData={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+        className={cn(
+          "size-full max-h-48 object-contain transition-opacity duration-200",
+          !loaded && "opacity-0",
+        )}
+      >
+        {name}
+      </video>
     </div>
   );
 }

@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { ClientName } from "@/components/ui/client-name";
 import type { KanbanColumn, KanbanTask } from "@/services/types";
 import { getTaskContentTypeLabel } from "@/lib/task-content-type";
+import { MetaInstagramCardIndicator } from "@/components/kanban/meta-instagram-card-indicator";
 
 interface TaskCardProps {
   task: KanbanTask;
@@ -107,7 +108,10 @@ export function TaskCard({ task, column, onClick }: TaskCardProps) {
 
       {!collapsed && (
         <>
-          {(needsAdjustment || isOk || task.isBypassingInternalReview) && (
+          {(needsAdjustment ||
+            isOk ||
+            task.isBypassingInternalReview ||
+            task.metaInstagram) && (
             <div className="mb-2 flex flex-wrap gap-1.5">
               {needsAdjustment && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
@@ -126,6 +130,9 @@ export function TaskCard({ task, column, onClick }: TaskCardProps) {
                   Reenvio direto ao cliente
                 </span>
               )}
+              {task.metaInstagram ? (
+                <MetaInstagramCardIndicator meta={task.metaInstagram} />
+              ) : null}
             </div>
           )}
 

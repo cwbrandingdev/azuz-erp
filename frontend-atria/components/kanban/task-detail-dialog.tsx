@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2, Upload, MessageSquareWarning } from "lucide-react";
+import { Trash2, Upload, MessageSquareWarning, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { ReferenceUrlField } from "@/components/ui/reference-url-field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
@@ -39,6 +40,8 @@ import {
   DEFAULT_TASK_CONTENT_TYPE,
 } from "@/lib/task-content-type";
 import { TaskContentTypePicker } from "@/components/kanban/task-content-type-picker";
+import { MetaInstagramStatusBadge } from "@/components/kanban/meta-instagram-status-badge";
+import { MetaInstagramReadinessPanel } from "@/components/kanban/meta-instagram-readiness-panel";
 import {
   TaskStatusBadge,
   TaskStatusSelect,
@@ -67,6 +70,7 @@ import type {
   KanbanTaskContentType,
   KanbanTaskStatus,
   KanbanTaskAsset,
+  InstagramPublishReadiness,
   TaskHistoryEntry,
   TeamMember,
   UserGroup,
@@ -131,6 +135,10 @@ export function TaskDetailDialog({
   const [tab, setTab] = useState<DetailTab>("deliverables");
   const [loading, setLoading] = useState(false);
   const [assetUploading, setAssetUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadProgressLabel, setUploadProgressLabel] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -142,11 +150,17 @@ export function TaskDetailDialog({
   );
   const [deliverableView, setDeliverableView] =
     useState<DeliverableFullView | null>(null);
+  const [deliverablesLoading, setDeliverablesLoading] = useState(false);
   const [internalReviewNote, setInternalReviewNote] = useState("");
   const [assetCaption, setAssetCaption] = useState("");
   const [postCaption, setPostCaption] = useState("");
   const [savingPostCaption, setSavingPostCaption] = useState(false);
   const [approvingInternal, setApprovingInternal] = useState(false);
+  const [publishingInstagram, setPublishingInstagram] = useState(false);
+  const [retryingInstagram, setRetryingInstagram] = useState(false);
+  const [igReadiness, setIgReadiness] =
+    useState<InstagramPublishReadiness | null>(null);
+  const [igReadinessLoading, setIgReadinessLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
@@ -168,6 +182,85 @@ export function TaskDetailDialog({
     useState(false);
   const [bulkDeliverableActions, setBulkDeliverableActions] =
     useState<DeliverableBulkActionsState | null>(null);
+  const syncedIgPublishRef = useRef<string | null>(null);
+  const deliverableLoadInFlightRef = useRef<Map<string, Promise<void>>>(
+    new Map(),
+  );
+  const deliverablesLoadingTaskRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setDeliverablesLoading(false);
+      deliverablesLoadingTaskRef.current = null;
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !task) {
+      syncedIgPublishRef.current = null;
+      return;
+    }
+
+    const meta = task.metaInstagram;
+    if (
+      meta?.status === "scheduled" &&
+      meta.scheduledAt &&
+      new Date(meta.scheduledAt).getTime() <= Date.now() &&
+      syncedIgPublishRef.current !== task.id
+    ) {
+      syncedIgPublishRef.current = task.id;
+      void kanbanService
+        .syncInstagramPublishStatus(task.id)
+        .then(() => onUpdate())
+        .catch(() => undefined);
+    }
+  }, [open, task, onUpdate]);
+
+  useEffect(() => {
+    if (!open || !task?.id) {
+      setIgReadiness(null);
+      return;
+    }
+    setIgReadinessLoading(true);
+    void kanbanService
+      .getInstagramPublishReadiness(task.id)
+      .then(setIgReadiness)
+      .catch(() => setIgReadiness(null))
+      .finally(() => setIgReadinessLoading(false));
+  }, [
+    open,
+    task?.id,
+    task?.clientId,
+    task?.publicationDate,
+    task?.contentType,
+    task?.assets?.length,
+  ]);
+
+  useEffect(() => {
+    if (!open || !task) return;
+
+    setDeliverableItems([]);
+    setDeliverableView(null);
+    setBulkDeliverableActions(null);
+    setDeliverablesLoading(true);
+    deliverablesLoadingTaskRef.current = task.id;
+    setTab("deliverables");
+    setError(null);
+
+    calendarService
+      .getTeamMembers()
+      .then(setMembers)
+      .catch(() => setMembers([]));
+    clientsService
+      .getClients()
+      .then(setClients)
+      .catch(() => setClients([]));
+    userGroupsService
+      .getUserGroups()
+      .then(setGroups)
+      .catch(() => setGroups([]));
+    void loadHistory(task.id);
+  }, [open, task?.id]);
 
   useEffect(() => {
     if (!open || !task) return;
@@ -190,32 +283,12 @@ export function TaskDetailDialog({
     setIsBypassingInternalReview(Boolean(task.isBypassingInternalReview));
     setPostCaption(task.postCaption ?? "");
     setAssets(task.assets ?? []);
-    setDeliverableItems([]);
-    setDeliverableView(null);
-    setBulkDeliverableActions(null);
-    setTab("deliverables");
-    setError(null);
-
-    calendarService
-      .getTeamMembers()
-      .then(setMembers)
-      .catch(() => setMembers([]));
-    clientsService
-      .getClients()
-      .then(setClients)
-      .catch(() => setClients([]));
-    userGroupsService
-      .getUserGroups()
-      .then(setGroups)
-      .catch(() => setGroups([]));
-    void loadHistory(task.id);
-    void loadDeliverableMedia(task.id);
   }, [open, task]);
 
   useEffect(() => {
     if (!open || !task || tab !== "deliverables") return;
     void loadDeliverableMedia(task.id);
-  }, [open, task, tab]);
+  }, [open, task?.id, tab]);
 
   async function loadHistory(taskId: string) {
     try {
@@ -227,32 +300,57 @@ export function TaskDetailDialog({
   }
 
   async function loadDeliverableMedia(taskId: string) {
-    try {
-      const view = await deliverablesService.getFullView(taskId);
-      setDeliverableView(view);
-      setDeliverableItems(view.media.all);
-      if (view.workflow) {
-        setIsBypassingInternalReview(view.workflow.isBypassingInternalReview);
-        if (view.workflow.internalReviewStatus) {
-          setInternalReviewStatus(
-            view.workflow.internalReviewStatus as InternalReviewStatus,
-          );
-        }
-        if (view.workflow.kanbanStatus) {
-          setStatus(view.workflow.kanbanStatus as KanbanTaskStatus);
-        }
-        if (view.workflow.rejectionReason ?? view.workflow.internalReviewNote) {
-          setInternalReviewNote(
-            view.workflow.rejectionReason ??
-              view.workflow.internalReviewNote ??
-              "",
-          );
-        }
+    const inFlight = deliverableLoadInFlightRef.current.get(taskId);
+    setDeliverablesLoading(true);
+    deliverablesLoadingTaskRef.current = taskId;
+
+    if (inFlight) {
+      await inFlight;
+      if (deliverablesLoadingTaskRef.current === taskId) {
+        setDeliverablesLoading(false);
       }
-    } catch {
-      setDeliverableView(null);
-      setDeliverableItems([]);
+      return;
     }
+
+    const request = (async () => {
+      try {
+        const view = await deliverablesService.getFullView(taskId);
+        setDeliverableView(view);
+        setDeliverableItems(view.media.all);
+        if (view.workflow) {
+          setIsBypassingInternalReview(view.workflow.isBypassingInternalReview);
+          if (view.workflow.internalReviewStatus) {
+            setInternalReviewStatus(
+              view.workflow.internalReviewStatus as InternalReviewStatus,
+            );
+          }
+          if (view.workflow.kanbanStatus) {
+            setStatus(view.workflow.kanbanStatus as KanbanTaskStatus);
+          }
+          if (
+            view.workflow.rejectionReason ??
+            view.workflow.internalReviewNote
+          ) {
+            setInternalReviewNote(
+              view.workflow.rejectionReason ??
+                view.workflow.internalReviewNote ??
+                "",
+            );
+          }
+        }
+      } catch {
+        setDeliverableView(null);
+        setDeliverableItems([]);
+      }
+    })().finally(() => {
+      deliverableLoadInFlightRef.current.delete(taskId);
+      if (deliverablesLoadingTaskRef.current === taskId) {
+        setDeliverablesLoading(false);
+      }
+    });
+
+    deliverableLoadInFlightRef.current.set(taskId, request);
+    return request;
   }
 
   function toggleAssignee(id: string) {
@@ -267,6 +365,58 @@ export function TaskDetailDialog({
       (column) => column.statusKey === nextStatus,
     );
     if (matchingColumn) setColumnId(matchingColumn.id);
+  }
+
+  async function handleRetryInstagramPublish() {
+    if (!task || !canEdit) return;
+
+    setRetryingInstagram(true);
+    setError(null);
+    try {
+      await kanbanService.retryInstagramPublish(task.id);
+      onUpdate();
+      toast.success("Nova tentativa de publicação enviada");
+      const readiness = await kanbanService.getInstagramPublishReadiness(
+        task.id,
+      );
+      setIgReadiness(readiness);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Não foi possível reenviar para o Instagram.");
+      }
+    } finally {
+      setRetryingInstagram(false);
+    }
+  }
+
+  async function handlePublishInstagramNow() {
+    if (!task || !canEdit) return;
+
+    const confirmed = await confirm({
+      title: "Publicar agora no Instagram",
+      description:
+        "A mídia será enviada imediatamente para a conta Instagram do cliente (feed, Reels ou Stories conforme o tipo da tarefa).",
+      confirmLabel: "Publicar",
+    });
+    if (!confirmed) return;
+
+    setPublishingInstagram(true);
+    setError(null);
+    try {
+      await kanbanService.publishInstagramNow(task.id);
+      onUpdate();
+      toast.success("Publicação enviada ao Instagram");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Não foi possível publicar no Instagram.");
+      }
+    } finally {
+      setPublishingInstagram(false);
+    }
   }
 
   async function handleSavePostCaption() {
@@ -426,16 +576,48 @@ export function TaskDetailDialog({
 
     setAssetUploading(true);
     setError(null);
+    setUploadProgress(0);
+    setUploadProgressLabel(null);
     const uploaded: KanbanTaskAsset[] = [];
+    const totalBytes = fileList.reduce((sum, file) => sum + file.size, 0);
+    const loadedByFile = new Map<string, number>();
+
+    const fileKey = (file: File) => `${file.name}:${file.size}:${file.lastModified}`;
+
+    const refreshUploadProgress = (activeFileName?: string) => {
+      let loaded = 0;
+      for (const value of loadedByFile.values()) loaded += value;
+      const percent =
+        totalBytes > 0
+          ? Math.min(99, Math.round((loaded / totalBytes) * 100))
+          : 0;
+      setUploadProgress(percent);
+      if (activeFileName) setUploadProgressLabel(activeFileName);
+    };
+
     try {
-      for (const file of fileList) {
-        const asset = await kanbanService.uploadTaskAsset(
-          task.id,
-          file,
-          assetCaption,
-        );
-        uploaded.push(asset as KanbanTaskAsset);
-      }
+      const uploadResults = await Promise.all(
+        fileList.map(async (file) => {
+          const key = fileKey(file);
+          loadedByFile.set(key, 0);
+          const asset = await kanbanService.uploadTaskAsset(
+            task.id,
+            file,
+            assetCaption,
+            {
+              onProgress: (loaded) => {
+                loadedByFile.set(key, loaded);
+                refreshUploadProgress(file.name);
+              },
+            },
+          );
+          loadedByFile.set(key, file.size);
+          refreshUploadProgress(file.name);
+          return asset as KanbanTaskAsset;
+        }),
+      );
+      uploaded.push(...uploadResults);
+      setUploadProgress(100);
 
       setAssets((prev) => [...prev, ...uploaded]);
       setAssetCaption("");
@@ -469,6 +651,8 @@ export function TaskDetailDialog({
       }
     } finally {
       setAssetUploading(false);
+      setUploadProgress(null);
+      setUploadProgressLabel(null);
     }
   }
 
@@ -583,6 +767,9 @@ export function TaskDetailDialog({
               </span>
             )}
             {task.slaStatus && <SlaStatusBadge status={task.slaStatus} />}
+            {task.metaInstagram ? (
+              <MetaInstagramStatusBadge meta={task.metaInstagram} />
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--atria-primary)]/70">
             <p>
@@ -804,6 +991,13 @@ export function TaskDetailDialog({
                 )}
               </div>
 
+              {clientId ? (
+                <MetaInstagramReadinessPanel
+                  readiness={igReadiness}
+                  loading={igReadinessLoading}
+                />
+              ) : null}
+
               {showRejectionReason && (
                 <div className="rounded-xl border border-amber-200/70 bg-amber-50/80 px-4 py-3">
                   <div className="flex items-start gap-2">
@@ -835,6 +1029,36 @@ export function TaskDetailDialog({
                   Esta legenda será exibida para o cliente na aprovação do
                   conteúdo.
                 </p>
+                {canEdit && clientId && assets.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                      disabled={publishingInstagram || retryingInstagram}
+                      onClick={() => void handlePublishInstagramNow()}
+                    >
+                      <AtSign className="h-4 w-4" />
+                      {publishingInstagram
+                        ? "Publicando…"
+                        : "Publicar agora no Instagram"}
+                    </Button>
+                    {task.metaInstagram?.status === "failed" && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={publishingInstagram || retryingInstagram}
+                        onClick={() => void handleRetryInstagramPublish()}
+                      >
+                        {retryingInstagram
+                          ? "Reenviando…"
+                          : "Reenviar para o Instagram"}
+                      </Button>
+                    )}
+                  </div>
+                )}
                 {canEdit && (
                   <Button
                     type="button"
@@ -889,8 +1113,34 @@ export function TaskDetailDialog({
                 </div>
               )}
 
+              {uploadProgress !== null && (
+                <div
+                  className="space-y-2 rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.03] p-3"
+                  aria-live="polite"
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs text-[var(--atria-primary)]/70">
+                    <span className="truncate">
+                      {uploadProgressLabel
+                        ? `Enviando ${uploadProgressLabel}…`
+                        : "Enviando arquivos…"}
+                    </span>
+                    <span className="shrink-0 font-medium tabular-nums">
+                      {uploadProgress}%
+                    </span>
+                  </div>
+                  <Progress value={uploadProgress} />
+                  {uploadProgress < 100 && (
+                    <p className="text-[10px] text-[var(--atria-primary)]/45">
+                      Aguarde até concluir o envio antes de fechar a tarefa.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <DeliverableMediaGrid
                 items={deliverableItems}
+                loading={deliverablesLoading}
+                loadingMessage="Carregando entregas…"
                 onItemsChange={setDeliverableItems}
                 onRevisionSubmitted={() => loadDeliverableMedia(task.id)}
                 onDeleteItem={canEdit ? handleDeliverableItemDelete : undefined}

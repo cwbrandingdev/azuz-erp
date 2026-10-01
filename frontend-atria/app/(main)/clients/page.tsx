@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "@/lib/toast";
 import { ClientCard } from "@/components/clients/client-card";
 import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { ClientsImportDialog } from "@/components/clients/clients-import-dialog";
@@ -11,6 +13,7 @@ import { clientsService, companySettingsService } from "@/services";
 import type { Client } from "@/services/types";
 
 export default function ClientsPage() {
+  const searchParams = useSearchParams();
   const { canManageClientDirectory } = usePermissions();
   const canManageClients = canManageClientDirectory();
   const [clients, setClients] = useState<Client[]>([]);
@@ -37,6 +40,16 @@ export default function ClientsPage() {
   useEffect(() => {
     void loadClients();
   }, [loadClients]);
+
+  useEffect(() => {
+    const connected = searchParams.get("metaConnected");
+    const metaError = searchParams.get("metaError");
+    if (connected) {
+      toast.success("Instagram conectado ao Meta com sucesso");
+    } else if (metaError) {
+      toast.error(metaError);
+    }
+  }, [searchParams]);
 
   if (loading) {
     return (

@@ -16,7 +16,14 @@ const calendar_service_1 = require("../calendar/calendar.service");
 const finance_service_1 = require("../finance/finance.service");
 const meta_insights_service_1 = require("../meta-insights/meta-insights.service");
 const prisma_service_1 = require("../prisma/prisma.service");
+const rbac_1 = require("../auth/utils/rbac");
 const dashboard_tv_constants_1 = require("./dashboard-tv.constants");
+const EMPTY_DASHBOARD_FINANCE = {
+    revenue: 0,
+    expenses: 0,
+    netProfit: 0,
+    monthlyTrend: [],
+};
 let DashboardService = class DashboardService {
     prisma;
     financeService;
@@ -28,16 +35,19 @@ let DashboardService = class DashboardService {
         this.calendarService = calendarService;
         this.metaInsightsService = metaInsightsService;
     }
-    async getOverview(userId) {
+    async getOverview(userId, role) {
         const now = new Date();
         const { year, month } = this.getCurrentMonthBounds(now);
         const currentMonthKey = `${year}-${String(month).padStart(2, '0')}`;
+        const includeFinance = (0, rbac_1.canViewDashboardFinance)(role);
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
             select: { name: true },
         });
         const [cashFlow, campaigns, scheduledPosts, todayEvents, myTasks, pendingEvents] = await Promise.all([
-            this.financeService.getCashFlow(userId, { year, month }),
+            includeFinance
+                ? this.financeService.getCashFlow(userId, { year, month })
+                : Promise.resolve(null),
             Promise.resolve(this.metaInsightsService.getCampaigns()),
             this.prisma.contentPost.findMany({
                 where: {
@@ -63,22 +73,27 @@ let DashboardService = class DashboardService {
         const topCampaign = activeCampaigns.length > 0
             ? activeCampaigns.reduce((best, c) => (c.roas > best.roas ? c : best))
             : campaigns[0] ?? null;
-        const monthlyTrend = cashFlow.monthlyCashFlow.filter((entry) => entry.month === currentMonthKey);
+        const finance = cashFlow === null
+            ? EMPTY_DASHBOARD_FINANCE
+            : (() => {
+                const monthlyTrend = cashFlow.monthlyCashFlow.filter((entry) => entry.month === currentMonthKey);
+                return {
+                    revenue: cashFlow.totalRevenue,
+                    expenses: cashFlow.totalExpenses,
+                    netProfit: cashFlow.netProfit,
+                    monthlyTrend: monthlyTrend.map((m) => ({
+                        month: m.month,
+                        income: m.income,
+                        expense: m.expense,
+                    })),
+                };
+            })();
         return {
             user: {
                 name: user?.name ?? 'Usuário',
                 notificationCount: pendingEvents,
             },
-            finance: {
-                revenue: cashFlow.totalRevenue,
-                expenses: cashFlow.totalExpenses,
-                netProfit: cashFlow.netProfit,
-                monthlyTrend: monthlyTrend.map((m) => ({
-                    month: m.month,
-                    income: m.income,
-                    expense: m.expense,
-                })),
-            },
+            finance,
             contentAndMeta: {
                 topCampaign: topCampaign
                     ? {

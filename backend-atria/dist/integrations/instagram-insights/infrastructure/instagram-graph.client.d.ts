@@ -13,6 +13,56 @@ export declare class InstagramGraphClient {
     }): Promise<GraphMediaRow[]>;
     listStories(igUserId: string, accessToken: string): Promise<GraphMediaRow[]>;
     getMediaInsights(mediaId: string, accessToken: string, metrics: string[]): Promise<GraphInsightsResponse>;
+    createImageMediaContainer(igUserId: string, accessToken: string, input: {
+        imageUrl: string;
+        caption?: string;
+        isCarouselItem?: boolean;
+    }): Promise<{
+        id: string;
+    }>;
+    createVideoMediaContainer(igUserId: string, accessToken: string, input: {
+        videoUrl: string;
+        caption?: string;
+        mediaType?: 'REELS' | 'VIDEO';
+        isCarouselItem?: boolean;
+    }): Promise<{
+        id: string;
+    }>;
+    createStoryMediaContainer(igUserId: string, accessToken: string, input: {
+        imageUrl?: string;
+        videoUrl?: string;
+    }): Promise<{
+        id: string;
+    }>;
+    createCarouselMediaContainer(igUserId: string, accessToken: string, input: {
+        children: string[];
+        caption?: string;
+    }): Promise<{
+        id: string;
+    }>;
+    getMediaContainerStatus(containerId: string, accessToken: string): Promise<{
+        status_code?: string;
+    }>;
+    publishMediaContainer(igUserId: string, accessToken: string, input: {
+        creationId: string;
+        publishAtUnix?: number | null;
+    }): Promise<{
+        id: string;
+    }>;
+    getMediaPermalink(mediaId: string, accessToken: string): Promise<{
+        permalink?: string;
+    }>;
+    getInstagramMedia(mediaId: string, accessToken: string): Promise<{
+        id?: string;
+        permalink?: string;
+        timestamp?: string;
+    }>;
+    deleteMedia(mediaId: string, accessToken: string): Promise<{
+        success: boolean;
+    }>;
+    private postForm;
+    private deleteRequest;
     private getJson;
+    private parseGraphResponse;
     private graphBase;
 }

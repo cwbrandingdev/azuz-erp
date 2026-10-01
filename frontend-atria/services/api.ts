@@ -153,38 +153,6 @@ export async function apiRequest<T>(
       data,
     );
 
-    // #region agent log
-    if (
-      endpoint.includes("/calendar/events/") &&
-      (rest.method === "DELETE" || rest.method === "delete")
-    ) {
-      fetch(
-        "http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "a29f29",
-          },
-          body: JSON.stringify({
-            sessionId: "a29f29",
-            runId: "pre-fix",
-            hypothesisId: "B,C,D,E",
-            location: "api.ts:apiRequest:calendarDeleteError",
-            message: "calendar DELETE HTTP error",
-            data: {
-              endpoint,
-              status: response.status,
-              apiMessage: error.message,
-              resolvedUrl: resolveRequestUrl(endpoint),
-            },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {});
-    }
-    // #endregion
-
     if (!skipToast && shouldShowApiErrorToast(response.status, endpoint, error.message)) {
       showApiError(error, endpoint);
     }
@@ -245,13 +213,108 @@ export async function apiRequestBlob(
   return response.blob();
 }
 
+type UploadFileOptions = {
+  skipToast?: boolean;
+  skipAuth?: boolean;
+  onProgress?: (loaded: number, total: number) => void;
+};
+
+function postFormDataViaXhr(
+  url: string,
+  formData: FormData,
+  token: string | null,
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.withCredentials = true;
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (!onProgress) return;
+      if (event.lengthComputable) {
+        onProgress(event.loaded, event.total);
+      } else {
+        onProgress(event.loaded, 0);
+      }
+    };
+
+    xhr.onload = () => {
+      resolve({ status: xhr.status, body: xhr.responseText });
+    };
+    xhr.onerror = () => reject(new Error("Upload failed"));
+    xhr.onabort = () => reject(new Error("Upload aborted"));
+    xhr.send(formData);
+  });
+}
+
 export async function uploadFile<T>(
   endpoint: string,
   formData: FormData,
-  options: { skipToast?: boolean; skipAuth?: boolean } = {},
+  options: UploadFileOptions = {},
 ): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+
+  if (options.onProgress) {
+    let token = options.skipAuth ? null : getAccessToken();
+    let result = await postFormDataViaXhr(
+      url,
+      formData,
+      token,
+      options.onProgress,
+    );
+
+    if (result.status === 401 && !options.skipAuth) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        token = newToken;
+        result = await postFormDataViaXhr(
+          url,
+          formData,
+          token,
+          options.onProgress,
+        );
+      } else {
+        clearAuthStorage();
+      }
+    }
+
+    const data = (() => {
+      if (!result.body) return null;
+      try {
+        return JSON.parse(result.body);
+      } catch {
+        return null;
+      }
+    })();
+
+    if (result.status < 200 || result.status >= 300) {
+      const message =
+        (data as { message?: string | string[] })?.message ?? "Upload failed";
+      const error = new ApiError(
+        Array.isArray(message) ? message.join(", ") : message,
+        result.status,
+        data,
+      );
+
+      if (
+        !options.skipToast &&
+        shouldShowApiErrorToast(result.status, endpoint, error.message)
+      ) {
+        showApiError(error, endpoint);
+      }
+
+      throw error;
+    }
+
+    return data as T;
+  }
+
   const makeRequest = async (token: string | null) => {
-    return fetch(`${API_BASE_URL}${endpoint}`, {
+    return fetch(url, {
       method: "POST",
       credentials: "include",
       headers: {
