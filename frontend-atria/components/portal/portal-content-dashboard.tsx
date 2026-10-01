@@ -6,6 +6,7 @@ import { PortalApprovalDetailPanel } from "@/components/portal/portal-approval-d
 import { PortalApprovalListItem } from "@/components/portal/portal-approval-list-item";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useIsXlUp } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { portalService } from "@/services";
 import { resolvePortalAssetUrl } from "@/services/portal.service";
@@ -76,6 +77,7 @@ export function PortalContentDashboard({
   const reviseDeliverableItem =
     actions?.reviseDeliverableItem ?? portalService.reviseDeliverableItem;
 
+  const isDesktop = useIsXlUp();
   const [statusFilter, setStatusFilter] =
     useState<ApprovalStatusFilter>("pending");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -117,21 +119,25 @@ export function PortalContentDashboard({
 
   const selectedPost =
     filteredPipeline.find((item) => item.id === selectedId) ??
-    filteredPipeline[0] ??
-    null;
+    (isDesktop ? filteredPipeline[0] ?? null : null);
 
   useEffect(() => {
     if (filteredPipeline.length === 0) {
       setSelectedId(null);
       return;
     }
-    if (
-      !selectedId ||
-      !filteredPipeline.some((item) => item.id === selectedId)
-    ) {
-      setSelectedId(filteredPipeline[0].id);
+    if (selectedId && filteredPipeline.some((item) => item.id === selectedId)) {
+      return;
     }
-  }, [filteredPipeline, selectedId]);
+    setSelectedId(isDesktop ? filteredPipeline[0].id : null);
+  }, [filteredPipeline, selectedId, isDesktop]);
+
+  useEffect(() => {
+    if (isDesktop || !selectedId) return;
+    document
+      .getElementById(`content-card-${selectedId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedId, isDesktop]);
 
   const contentActions = useMemo(
     () => ({
@@ -226,32 +232,56 @@ export function PortalContentDashboard({
           )}
         </Card>
       ) : (
-        <div data-tour="portal-content-workspace" className="grid min-h-[70vh] gap-4 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
+        <div
+          data-tour="portal-content-workspace"
+          className={cn(
+            "grid gap-4",
+            isDesktop &&
+              "min-h-[70vh] xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]",
+          )}
+        >
           <div className="flex min-h-0 flex-col gap-2 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto xl:pr-1">
             {filteredPipeline.map((post) => (
-              <PortalApprovalListItem
-                key={post.id}
-                post={post}
-                selected={selectedPost?.id === post.id}
-                onSelect={() => setSelectedId(post.id)}
-              />
+              <div key={post.id} className="flex flex-col gap-2">
+                <div id={`content-card-${post.id}`} className="scroll-mt-20">
+                  <PortalApprovalListItem
+                    post={post}
+                    selected={selectedPost?.id === post.id}
+                    onSelect={() =>
+                      setSelectedId((current) =>
+                        !isDesktop && current === post.id ? null : post.id,
+                      )
+                    }
+                  />
+                </div>
+                {!isDesktop && selectedPost?.id === post.id ? (
+                  <PortalApprovalDetailPanel
+                    key={selectedPost.id}
+                    post={selectedPost}
+                    onRefresh={onRefresh}
+                    actions={contentActions}
+                  />
+                ) : null}
+              </div>
             ))}
           </div>
 
-          {selectedPost ? (
-            <div className="min-h-0 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto">
-              <PortalApprovalDetailPanel
-                key={selectedPost.id}
-                post={selectedPost}
-                onRefresh={onRefresh}
-                actions={contentActions}
-              />
-            </div>
-          ) : (
-            <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-dashed border-[var(--atria-primary)]/15 bg-white">
-              <Loader2 className="size-8 animate-spin text-[var(--atria-primary)]" />
-            </div>
-          )}
+          {isDesktop ? (
+            selectedPost ? (
+              <div className="min-h-0 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto">
+                <PortalApprovalDetailPanel
+                  key={selectedPost.id}
+                  post={selectedPost}
+                  onRefresh={onRefresh}
+                  actions={contentActions}
+                />
+              </div>
+            ) : (
+              <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-dashed border-[var(--atria-primary)]/15 bg-white">
+                <Loader2 className="size-8 animate-spin text-[var(--atria-primary)]" />
+              </div>
+            )
+          ) : null}
         </div>
       )}
     </div>

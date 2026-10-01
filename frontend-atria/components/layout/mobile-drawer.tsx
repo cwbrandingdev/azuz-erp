@@ -20,7 +20,7 @@ export function MobileDrawer({ open, onOpenChange }: MobileDrawerProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="sidebar-scroll flex w-[17.5rem] flex-col border-none bg-gradient-to-b from-[var(--atria-sidebar)] via-[color-mix(in_oklch,var(--atria-sidebar),black_12%)] to-[color-mix(in_oklch,var(--atria-sidebar),black_22%)] p-0 text-white"
+        className="sidebar-scroll inset-y-0 left-0 right-auto flex h-full w-[17.5rem] flex-col border-none bg-gradient-to-b from-[var(--atria-sidebar)] via-[color-mix(in_oklch,var(--atria-sidebar),black_12%)] to-[color-mix(in_oklch,var(--atria-sidebar),black_22%)] p-0 text-white"
         showCloseButton
       >
         <SheetHeader className="shrink-0 border-b border-white/8 px-4 py-5">

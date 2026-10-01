@@ -164,7 +164,7 @@ function SignupContent() {
                   id={nameId}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="h-12 w-full rounded-xl border border-[var(--atria-primary)]/15 bg-white pl-10 pr-4 text-sm outline-none focus:border-[var(--atria-primary)] focus:ring-4 focus:ring-[var(--atria-primary)]/10"
+                  className="h-12 w-full rounded-xl border border-[var(--atria-primary)]/15 bg-white pl-10 pr-4 text-base outline-none focus:border-[var(--atria-primary)] focus:ring-4 focus:ring-[var(--atria-primary)]/10 md:text-sm"
                   required
                 />
               </div>
@@ -181,7 +181,7 @@ function SignupContent() {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="h-12 w-full rounded-xl border border-[var(--atria-primary)]/15 bg-white pl-10 pr-4 text-sm outline-none focus:border-[var(--atria-primary)] focus:ring-4 focus:ring-[var(--atria-primary)]/10"
+                  className="h-12 w-full rounded-xl border border-[var(--atria-primary)]/15 bg-white pl-10 pr-4 text-base outline-none focus:border-[var(--atria-primary)] focus:ring-4 focus:ring-[var(--atria-primary)]/10 md:text-sm"
                   required
                 />
               </div>
@@ -199,7 +199,7 @@ function SignupContent() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   minLength={6}
-                  className="h-12 w-full rounded-xl border border-[var(--atria-primary)]/15 bg-white pl-10 pr-12 text-sm outline-none focus:border-[var(--atria-primary)] focus:ring-4 focus:ring-[var(--atria-primary)]/10"
+                  className="h-12 w-full rounded-xl border border-[var(--atria-primary)]/15 bg-white pl-10 pr-12 text-base outline-none focus:border-[var(--atria-primary)] focus:ring-4 focus:ring-[var(--atria-primary)]/10 md:text-sm"
                   required
                 />
                 <button

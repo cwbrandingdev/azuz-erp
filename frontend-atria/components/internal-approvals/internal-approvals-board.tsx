@@ -5,6 +5,7 @@ import { ClipboardCheck } from "lucide-react";
 import { InternalApprovalDetailPanel } from "@/components/internal-approvals/internal-approval-detail-panel";
 import { InternalApprovalListItem } from "@/components/internal-approvals/internal-approval-list-item";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useIsXlUp } from "@/hooks/use-mobile";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useInternalApprovals } from "@/hooks/use-internal-approvals";
 import { clientsService } from "@/services";
@@ -12,6 +13,7 @@ import type { Client } from "@/services/types";
 
 export function InternalApprovalsBoard() {
   const { canPerformInternalApproval } = usePermissions();
+  const isDesktop = useIsXlUp();
   const { data: items = [], isLoading } = useInternalApprovals(
     canPerformInternalApproval(),
   );
@@ -33,18 +35,25 @@ export function InternalApprovalsBoard() {
 
   const selectedItem =
     filteredItems.find((item) => item.id === selectedId) ??
-    filteredItems[0] ??
-    null;
+    (isDesktop ? filteredItems[0] ?? null : null);
 
   useEffect(() => {
     if (filteredItems.length === 0) {
       setSelectedId(null);
       return;
     }
-    if (!selectedId || !filteredItems.some((item) => item.id === selectedId)) {
-      setSelectedId(filteredItems[0].id);
+    if (selectedId && filteredItems.some((item) => item.id === selectedId)) {
+      return;
     }
-  }, [filteredItems, selectedId]);
+    setSelectedId(isDesktop ? filteredItems[0].id : null);
+  }, [filteredItems, selectedId, isDesktop]);
+
+  useEffect(() => {
+    if (isDesktop || !selectedId) return;
+    document
+      .getElementById(`approval-card-${selectedId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedId, isDesktop]);
 
   const clientOptions = useMemo(() => {
     const fromItems = new Map<string, string>();
@@ -119,19 +128,31 @@ export function InternalApprovalsBoard() {
           </p>
         </div>
       ) : (
-        <div className="grid min-h-[70vh] gap-4 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
+        <div
+          className={`grid gap-4 ${isDesktop ? "min-h-[70vh] xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]" : ""}`}
+        >
           <div className="flex min-h-0 flex-col gap-2 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto xl:pr-1">
             {filteredItems.map((item) => (
-              <InternalApprovalListItem
-                key={item.id}
-                item={item}
-                selected={selectedItem?.id === item.id}
-                onSelect={() => setSelectedId(item.id)}
-              />
+              <div key={item.id} className="flex flex-col gap-2">
+                <div id={`approval-card-${item.id}`} className="scroll-mt-20">
+                  <InternalApprovalListItem
+                    item={item}
+                    selected={selectedItem?.id === item.id}
+                    onSelect={() =>
+                      setSelectedId((current) =>
+                        !isDesktop && current === item.id ? null : item.id,
+                      )
+                    }
+                  />
+                </div>
+                {!isDesktop && selectedItem?.id === item.id ? (
+                  <InternalApprovalDetailPanel item={selectedItem} />
+                ) : null}
+              </div>
             ))}
           </div>
 
-          {selectedItem ? (
+          {isDesktop && selectedItem ? (
             <div className="min-h-0 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto">
               <InternalApprovalDetailPanel item={selectedItem} />
             </div>

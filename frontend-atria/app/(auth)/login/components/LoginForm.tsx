@@ -24,7 +24,6 @@ function FloatingField({
   onChange,
   icon: Icon,
   autoComplete,
-  autoFocus,
   trailing,
 }: {
   id: string;
@@ -34,7 +33,6 @@ function FloatingField({
   onChange: (value: string) => void;
   icon: React.ComponentType<{ className?: string }>;
   autoComplete?: string;
-  autoFocus?: boolean;
   trailing?: React.ReactNode;
 }) {
   const [focused, setFocused] = useState(false);
@@ -62,12 +60,11 @@ function FloatingField({
         type={type}
         value={value}
         autoComplete={autoComplete}
-        autoFocus={autoFocus}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          "h-14 w-full rounded-xl border bg-white px-11 text-sm text-[var(--atria-primary)] outline-none transition-all duration-200",
+          "h-14 w-full rounded-xl border bg-white px-11 text-base text-[var(--atria-primary)] outline-none transition-all duration-200 md:text-sm",
           "border-[var(--atria-primary)]/15 hover:border-[var(--atria-primary)]/25",
           "focus:border-[var(--atria-primary)] focus:ring-4 focus:ring-[var(--atria-primary)]/10",
           active ? "pt-5 pb-2" : "py-3.5",
@@ -183,7 +180,6 @@ export function LoginForm() {
             onChange={setEmail}
             icon={Mail}
             autoComplete="email"
-            autoFocus
           />
 
           <FloatingField

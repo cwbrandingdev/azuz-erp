@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
@@ -30,6 +30,12 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "ATRIA ERP",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
