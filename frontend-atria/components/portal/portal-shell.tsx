@@ -170,7 +170,7 @@ export function PortalShell({
               >
                 <Menu className="size-4" />
               </Button>
-              <AgencyLogo size="sm" variant="sidebar" showName />
+              <AgencyLogo size="sm" variant="sidebar" showName={false} />
             </div>
             <div className="flex items-center gap-2">
               <PortalTutorialButton className="border-white/30 bg-white/10 text-white hover:bg-white/20" />

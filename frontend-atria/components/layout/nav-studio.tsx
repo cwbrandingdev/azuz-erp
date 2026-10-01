@@ -27,7 +27,7 @@ export function NavStudio({ onMenuClick, onSearchClick }: NavStudioProps) {
           <Menu className="size-5 text-[var(--atria-primary)]" />
         </Button>
 
-        <AgencyLogo size="sm" showName className="min-w-0" nameClassName="text-base" />
+        <AgencyLogo size="sm" showName={false} className="min-w-0" />
 
         <div className="hidden min-w-0 flex-1 lg:block">
           <BreadcrumbNav />
