@@ -496,6 +496,7 @@ model Client {
   clientRequests        ClientRequest[]
   sdrAssignments        CrmSdrAssignment[]
   deliverables          Deliverable[]
+  leadStages            LeadStage[]
   leads                 Lead[]
   tasks                 Task[]
   crmScopes             UserCrmScope[]
@@ -1120,19 +1121,22 @@ model ClientReportFile {
 }
 
 model LeadStage {
-  id        String   @id @default(uuid())
-  companyId String   @default("00000000-0000-4000-8000-000000000001") @map("tenant_id")
-  name      String
-  order     Int      @default(0)
-  color     String   @default("#64748B")
-  key       String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  leads     Lead[]
+  id             String   @id @default(uuid())
+  companyId      String   @default("00000000-0000-4000-8000-000000000001") @map("tenant_id")
+  organizationId String?  @map("organization_id")
+  name           String
+  order          Int      @default(0)
+  color          String   @default("#64748B")
+  key            String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  organization   Client?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  leads          Lead[]
 
-  @@unique([companyId, name])
   @@index([companyId, order])
+  @@index([organizationId])
+  @@index([companyId, organizationId, order])
   @@map("lead_stages")
 }
 
@@ -1208,7 +1212,7 @@ model Lead {
   company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deletedBy      User?             @relation("LeadDeletedBy", fields: [deletedById], references: [id])
   organization   Client?           @relation(fields: [organizationId], references: [id])
-  stage          LeadStage?        @relation(fields: [stageId], references: [id])
+  stage          LeadStage?        @relation(fields: [stageId], references: [id], onDelete: SetNull)
   searchSession  LeadSearchSession? @relation(fields: [searchSessionId], references: [id], onDelete: SetNull)
 
   @@index([companyId])

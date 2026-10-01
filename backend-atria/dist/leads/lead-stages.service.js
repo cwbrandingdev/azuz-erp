@@ -19,16 +19,21 @@ let LeadStagesService = class LeadStagesService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async findAll() {
-        const stages = await this.ensureDefaults();
+    async findAll(organizationId) {
+        const stages = await this.ensureDefaults(organizationId);
         return stages.map((stage) => this.toResponse(stage));
     }
+    async getById(id) {
+        return this.requireStage(id);
+    }
     async create(dto) {
-        await this.ensureDefaults();
+        const organizationId = this.normalizeOrganizationId(dto.organizationId);
+        await this.ensureDefaults(organizationId);
         const name = dto.name.trim();
-        await this.assertUniqueName(name);
+        await this.assertUniqueName(name, organizationId);
         const order = dto.order ??
             ((await this.prisma.leadStage.aggregate({
+                where: this.scopeWhere(organizationId),
                 _max: { order: true },
             }))._max.order ?? -1) + 1;
         const stage = await this.prisma.leadStage.create({
@@ -36,6 +41,7 @@ let LeadStagesService = class LeadStagesService {
                 name,
                 color: dto.color?.trim() || '#64748B',
                 order,
+                organizationId,
             },
         });
         return this.toResponse(stage);
@@ -43,8 +49,9 @@ let LeadStagesService = class LeadStagesService {
     async update(id, dto) {
         const existing = await this.requireStage(id);
         const name = dto.name?.trim();
+        const organizationId = this.normalizeOrganizationId(existing.organizationId);
         if (name && name !== existing.name) {
-            await this.assertUniqueName(name, id);
+            await this.assertUniqueName(name, organizationId, id);
         }
         const stage = await this.prisma.leadStage.update({
             where: { id },
@@ -57,25 +64,29 @@ let LeadStagesService = class LeadStagesService {
         return this.toResponse(stage);
     }
     async reorder(dto) {
-        const stages = await this.ensureDefaults();
+        const organizationId = this.normalizeOrganizationId(dto.organizationId);
+        const stages = await this.ensureDefaults(organizationId);
         const knownIds = new Set(stages.map((stage) => stage.id));
         const uniqueIds = [...new Set(dto.ids)];
-        if (uniqueIds.length !== stages.length || uniqueIds.some((id) => !knownIds.has(id))) {
+        if (uniqueIds.length !== stages.length ||
+            uniqueIds.some((id) => !knownIds.has(id))) {
             throw new common_1.BadRequestException('A lista de estágios deve incluir todos os estágios do funil.');
         }
         await this.prisma.$transaction(uniqueIds.map((id, order) => this.prisma.leadStage.update({
             where: { id },
             data: { order },
         })));
-        const updated = await this.prisma.leadStage.findMany({
-            orderBy: { order: 'asc' },
-        });
+        const updated = await this.findScoped(organizationId);
         return updated.map((stage) => this.toResponse(stage));
     }
     async remove(id) {
-        await this.requireStage(id);
+        const existing = await this.requireStage(id);
+        const organizationId = this.normalizeOrganizationId(existing.organizationId);
         const remaining = await this.prisma.leadStage.findMany({
-            where: { id: { not: id } },
+            where: {
+                ...this.scopeWhere(organizationId),
+                id: { not: id },
+            },
             orderBy: { order: 'asc' },
         });
         if (remaining.length === 0) {
@@ -92,46 +103,42 @@ let LeadStagesService = class LeadStagesService {
             }),
             this.prisma.leadStage.delete({ where: { id } }),
         ]);
-        await this.normalizeOrder();
+        await this.normalizeOrder(organizationId);
         return { success: true };
     }
-    async ensureDefaults() {
-        const existing = await this.prisma.leadStage.findMany({
-            orderBy: { order: 'asc' },
-        });
-        if (existing.length > 0) {
-            await this.reconcileBuiltinStages(existing);
-            return this.prisma.leadStage.findMany({
-                orderBy: { order: 'asc' },
-            });
+    async ensureDefaults(organizationId) {
+        const scopedOrganizationId = this.normalizeOrganizationId(organizationId);
+        if (scopedOrganizationId) {
+            return this.ensureOrganizationDefaults(scopedOrganizationId);
         }
-        await this.prisma.leadStage.createMany({
-            data: lead_kanban_constants_1.LEAD_KANBAN_STATUSES.map((status, order) => ({
-                name: lead_kanban_constants_1.LEAD_STATUS_LABELS[status],
-                color: lead_kanban_constants_1.LEAD_STATUS_COLORS[status],
-                key: status,
-                order,
-            })),
-        });
-        const created = await this.prisma.leadStage.findMany({
-            orderBy: { order: 'asc' },
-        });
-        await Promise.all(created
-            .filter((stage) => stage.key && this.isLeadStatus(stage.key))
-            .map((stage) => this.prisma.lead.updateMany({
-            where: { stageId: null, status: stage.key },
-            data: { stageId: stage.id },
-        })));
-        return created;
+        return this.ensureGlobalDefaults();
     }
-    async resolveStage(stageId) {
-        const stages = await this.ensureDefaults();
+    async resolveStage(input) {
+        const organizationId = this.normalizeOrganizationId(input?.organizationId);
+        const stages = await this.ensureDefaults(organizationId);
+        const stageId = input?.stageId?.trim() || null;
+        const status = input?.status?.trim() || null;
         if (stageId) {
-            const match = stages.find((stage) => stage.id === stageId);
-            if (!match) {
+            const inScope = stages.find((stage) => stage.id === stageId);
+            if (inScope)
+                return inScope;
+            const foreign = await this.prisma.leadStage.findUnique({
+                where: { id: stageId },
+            });
+            if (!foreign) {
                 throw new common_1.NotFoundException('Estágio do funil não encontrado.');
             }
-            return match;
+            const mapped = this.mapStageIntoScope(foreign, stages);
+            if (mapped)
+                return mapped;
+        }
+        if (status) {
+            const normalized = status.toUpperCase();
+            const byKey = this.isLeadStatus(normalized)
+                ? stages.find((stage) => stage.key === normalized)
+                : stages.find((stage) => stage.id === status || stage.key === status);
+            if (byKey)
+                return byKey;
         }
         return stages[0];
     }
@@ -146,6 +153,7 @@ let LeadStagesService = class LeadStagesService {
             id: stage.id,
             tenantId: stage.companyId,
             companyId: stage.companyId,
+            organizationId: stage.organizationId,
             name: stage.name,
             order: stage.order,
             color: stage.color,
@@ -153,6 +161,108 @@ let LeadStagesService = class LeadStagesService {
             createdAt: stage.createdAt.toISOString(),
             updatedAt: stage.updatedAt.toISOString(),
         };
+    }
+    async ensureGlobalDefaults() {
+        const existing = await this.findScoped(null);
+        if (existing.length > 0) {
+            await this.reconcileBuiltinStages(existing);
+            return this.findScoped(null);
+        }
+        await this.prisma.leadStage.createMany({
+            data: lead_kanban_constants_1.LEAD_KANBAN_STATUSES.map((status, order) => ({
+                name: lead_kanban_constants_1.LEAD_STATUS_LABELS[status],
+                color: lead_kanban_constants_1.LEAD_STATUS_COLORS[status],
+                key: status,
+                order,
+                organizationId: null,
+            })),
+        });
+        const created = await this.findScoped(null);
+        await Promise.all(created
+            .filter((stage) => stage.key && this.isLeadStatus(stage.key))
+            .map((stage) => this.prisma.lead.updateMany({
+            where: { stageId: null, status: stage.key },
+            data: { stageId: stage.id },
+        })));
+        return created;
+    }
+    async ensureOrganizationDefaults(organizationId) {
+        const existing = await this.findScoped(organizationId);
+        if (existing.length > 0) {
+            return existing;
+        }
+        const template = await this.ensureGlobalDefaults();
+        try {
+            await this.prisma.leadStage.createMany({
+                data: template.map((stage) => ({
+                    name: stage.name,
+                    color: stage.color,
+                    key: stage.key,
+                    order: stage.order,
+                    companyId: stage.companyId,
+                    organizationId,
+                })),
+            });
+        }
+        catch (error) {
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
+                error.code === 'P2002') {
+                const raced = await this.findScoped(organizationId);
+                if (raced.length > 0)
+                    return raced;
+            }
+            throw error;
+        }
+        const cloned = await this.findScoped(organizationId);
+        await this.remapLeadsToClonedStages(organizationId, template, cloned);
+        return cloned;
+    }
+    async remapLeadsToClonedStages(organizationId, template, cloned) {
+        const templateById = new Map(template.map((stage) => [stage.id, stage]));
+        const leads = await this.prisma.lead.findMany({
+            where: { organizationId },
+            select: { id: true, stageId: true, status: true },
+        });
+        const updates = leads.map((lead) => {
+            const previous = lead.stageId
+                ? templateById.get(lead.stageId)
+                : undefined;
+            const next = this.mapStageIntoScope(previous ?? null, cloned, lead.status) ??
+                cloned[0];
+            if (!next || next.id === lead.stageId) {
+                return null;
+            }
+            return this.prisma.lead.update({
+                where: { id: lead.id },
+                data: {
+                    stageId: next.id,
+                    status: this.statusFromStage(next),
+                },
+            });
+        });
+        const pending = updates.filter((update) => Boolean(update));
+        if (pending.length === 0)
+            return;
+        await this.prisma.$transaction(pending);
+    }
+    mapStageIntoScope(source, stages, status) {
+        if (source?.key) {
+            const byKey = stages.find((stage) => stage.key === source.key);
+            if (byKey)
+                return byKey;
+        }
+        if (status) {
+            const byStatus = stages.find((stage) => stage.key === status);
+            if (byStatus)
+                return byStatus;
+        }
+        if (source?.name) {
+            const expected = source.name.trim().toLowerCase();
+            const byName = stages.find((stage) => stage.name.trim().toLowerCase() === expected);
+            if (byName)
+                return byName;
+        }
+        return stages[0];
     }
     async requireStage(id) {
         const stage = await this.prisma.leadStage.findUnique({
@@ -163,9 +273,10 @@ let LeadStagesService = class LeadStagesService {
         }
         return stage;
     }
-    async assertUniqueName(name, excludeId) {
+    async assertUniqueName(name, organizationId, excludeId) {
         const duplicate = await this.prisma.leadStage.findFirst({
             where: {
+                ...this.scopeWhere(organizationId),
                 name: { equals: name, mode: 'insensitive' },
                 ...(excludeId ? { id: { not: excludeId } } : {}),
             },
@@ -175,62 +286,52 @@ let LeadStagesService = class LeadStagesService {
             throw new common_1.BadRequestException('Já existe um estágio com este nome.');
         }
     }
-    async normalizeOrder() {
-        const stages = await this.prisma.leadStage.findMany({
-            orderBy: { order: 'asc' },
-        });
+    async normalizeOrder(organizationId) {
+        const stages = await this.findScoped(organizationId);
         await this.prisma.$transaction(stages.map((stage, order) => this.prisma.leadStage.update({
             where: { id: stage.id },
             data: { order },
         })));
     }
+    async findScoped(organizationId) {
+        return this.prisma.leadStage.findMany({
+            where: this.scopeWhere(organizationId),
+            orderBy: { order: 'asc' },
+        });
+    }
+    scopeWhere(organizationId) {
+        return { organizationId };
+    }
+    normalizeOrganizationId(organizationId) {
+        const value = organizationId?.trim();
+        return value ? value : null;
+    }
     isLeadStatus(value) {
         return Object.values(client_1.LeadStatus).includes(value);
     }
     async reconcileBuiltinStages(existing) {
-        const byKey = new Map(existing
-            .filter((stage) => stage.key)
-            .map((stage) => [stage.key, stage]));
-        const posVendaStage = byKey.get(client_1.LeadStatus.POS_VENDA);
-        const vendaFinalizadaStage = byKey.get(client_1.LeadStatus.VENDA_FINALIZADA);
-        if (posVendaStage && vendaFinalizadaStage) {
-            await this.prisma.$transaction([
-                this.prisma.lead.updateMany({
-                    where: { stageId: posVendaStage.id },
-                    data: {
-                        stageId: vendaFinalizadaStage.id,
-                        status: client_1.LeadStatus.VENDA_FINALIZADA,
-                    },
-                }),
-                this.prisma.lead.updateMany({
-                    where: { status: client_1.LeadStatus.POS_VENDA },
-                    data: {
-                        stageId: vendaFinalizadaStage.id,
-                        status: client_1.LeadStatus.VENDA_FINALIZADA,
-                    },
-                }),
-                this.prisma.leadStage.delete({ where: { id: posVendaStage.id } }),
-            ]);
-            byKey.delete(client_1.LeadStatus.POS_VENDA);
+        const posVendaStage = existing.find((stage) => stage.key === client_1.LeadStatus.POS_VENDA);
+        const vendaFinalizadaStage = existing.find((stage) => stage.key === client_1.LeadStatus.VENDA_FINALIZADA);
+        if (!posVendaStage || !vendaFinalizadaStage) {
+            return;
         }
-        const updates = [];
-        for (let order = 0; order < lead_kanban_constants_1.LEAD_KANBAN_STATUSES.length; order++) {
-            const status = lead_kanban_constants_1.LEAD_KANBAN_STATUSES[order];
-            const stage = byKey.get(status);
-            if (!stage)
-                continue;
-            updates.push(this.prisma.leadStage.update({
-                where: { id: stage.id },
+        await this.prisma.$transaction([
+            this.prisma.lead.updateMany({
+                where: { stageId: posVendaStage.id },
                 data: {
-                    order,
-                    name: lead_kanban_constants_1.LEAD_STATUS_LABELS[status],
-                    color: lead_kanban_constants_1.LEAD_STATUS_COLORS[status],
+                    stageId: vendaFinalizadaStage.id,
+                    status: client_1.LeadStatus.VENDA_FINALIZADA,
                 },
-            }));
-        }
-        if (updates.length > 0) {
-            await this.prisma.$transaction(updates);
-        }
+            }),
+            this.prisma.lead.updateMany({
+                where: { status: client_1.LeadStatus.POS_VENDA },
+                data: {
+                    stageId: vendaFinalizadaStage.id,
+                    status: client_1.LeadStatus.VENDA_FINALIZADA,
+                },
+            }),
+            this.prisma.leadStage.delete({ where: { id: posVendaStage.id } }),
+        ]);
     }
 };
 exports.LeadStagesService = LeadStagesService;

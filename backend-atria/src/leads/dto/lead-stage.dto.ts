@@ -14,6 +14,11 @@ import { IsEntityId } from '../../common/validation/entity-id';
 
 const HEX_COLOR = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
 
+export class LeadStagesQueryDto {
+  @IsEntityId({ optional: true })
+  organizationId?: string;
+}
+
 export class CreateLeadStageDto {
   @IsString()
   @IsNotEmpty()
@@ -30,6 +35,9 @@ export class CreateLeadStageDto {
   @IsInt()
   @Min(0)
   order?: number;
+
+  @IsEntityId({ optional: true })
+  organizationId?: string;
 }
 
 export class UpdateLeadStageDto {
@@ -56,4 +64,7 @@ export class ReorderLeadStagesDto {
   @ArrayMinSize(1)
   @IsEntityId({ each: true })
   ids: string[];
+
+  @IsEntityId({ optional: true })
+  organizationId?: string;
 }

@@ -597,6 +597,12 @@ export function LeadsKanbanBoard({
             </div>
             {isMasterOrAdmin() && (
               <LeadFunnelSettingsDrawer
+                organizationId={
+                  clientFilter === "all" ? undefined : clientFilter
+                }
+                organizationName={
+                  selectedClientOrganization?.companyName?.trim() || undefined
+                }
                 onStagesChange={() => {
                   void loadBoard();
                 }}
@@ -652,6 +658,16 @@ export function LeadsKanbanBoard({
                 </SelectContent>
               </Select>
             </Field>
+            {isMasterOrAdmin() && (
+              <p className="mt-2 text-xs text-[var(--atria-primary)]/45">
+                {clientFilter === "all"
+                  ? "Selecione um cliente para personalizar as colunas só daquele funil."
+                  : `As colunas exibidas são exclusivas de ${
+                      selectedClientOrganization?.companyName?.trim() ||
+                      "este cliente"
+                    }.`}
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

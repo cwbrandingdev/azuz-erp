@@ -147,7 +147,7 @@ export class LeadminerService {
 
       if (existing) {
         if (addToKanban && !existing.kanbanTracked) {
-          const tracked = await this.markLeadForKanban(existing.id);
+          const tracked = await this.markLeadForKanban(existing);
           created.push(tracked);
         } else {
           created.push(existing);
@@ -177,7 +177,9 @@ export class LeadminerService {
       };
 
       if (addToKanban) {
-        const stage = await this.leadStages.resolveStage();
+        const stage = await this.leadStages.resolveStage({
+          organizationId: dto.organizationId,
+        });
         const status = this.leadStages.statusFromStage(stage);
         const maxOrder = await this.prisma.lead.aggregate({
           where: { kanbanTracked: true, status },
@@ -204,8 +206,10 @@ export class LeadminerService {
     return created.map((lead) => this.toLeadResponse(lead));
   }
 
-  private async markLeadForKanban(leadId: string): Promise<Lead> {
-    const stage = await this.leadStages.resolveStage();
+  private async markLeadForKanban(lead: Lead): Promise<Lead> {
+    const stage = await this.leadStages.resolveStage({
+      organizationId: lead.organizationId,
+    });
     const status = this.leadStages.statusFromStage(stage);
     const maxOrder = await this.prisma.lead.aggregate({
       where: { kanbanTracked: true, status },
@@ -213,7 +217,7 @@ export class LeadminerService {
     });
 
     return this.prisma.lead.update({
-      where: { id: leadId },
+      where: { id: lead.id },
       data: {
         kanbanTracked: true,
         status,

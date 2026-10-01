@@ -14,6 +14,7 @@ exports.LeadsService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
+const permissions_1 = require("../auth/constants/permissions");
 const ai_service_1 = require("../ai/ai.service");
 const company_settings_service_1 = require("../company-settings/company-settings.service");
 const prisma_service_1 = require("../prisma/prisma.service");
@@ -200,7 +201,8 @@ let LeadsService = LeadsService_1 = class LeadsService {
         return this.toCrmLeadResponse(updated);
     }
     async findKanbanBoard(user, organizationId) {
-        const stages = await this.leadStages.ensureDefaults();
+        const stageOrganizationId = this.resolveKanbanOrganizationId(user, organizationId);
+        const stages = await this.leadStages.ensureDefaults(stageOrganizationId);
         const orgFilter = await this.crmScope.buildKanbanLeadOrganizationFilter(user, organizationId);
         const leads = await this.prisma.lead.findMany({
             where: { kanbanTracked: true, deletedAt: null, ...orgFilter },
@@ -215,14 +217,12 @@ let LeadsService = LeadsService_1 = class LeadsService {
             return {
                 id: stage.id,
                 stageId: stage.id,
-                status: stage.key ?? stage.id,
+                status: stage.key ?? pipelineStatus,
                 title: stage.name,
                 color: stage.color,
                 order: stage.order,
                 leads: leads
-                    .filter((lead) => lead.stageId
-                    ? lead.stageId === stage.id
-                    : lead.status === pipelineStatus && stage.key === lead.status)
+                    .filter((lead) => this.leadMatchesStage(lead, stage, stages))
                     .map((lead) => this.toLeadResponse(lead)),
             };
         });
@@ -237,7 +237,11 @@ let LeadsService = LeadsService_1 = class LeadsService {
         if (!name) {
             throw new common_1.BadRequestException('name is required');
         }
-        const stage = await this.leadStages.resolveStage(dto.stageId);
+        const organizationId = await this.resolveOrganizationIdForCreate(user, dto.organizationId);
+        const stage = await this.leadStages.resolveStage({
+            stageId: dto.stageId,
+            organizationId,
+        });
         const status = this.leadStages.statusFromStage(stage);
         const maxOrder = await this.prisma.lead.aggregate({
             where: { kanbanTracked: true, status },
@@ -255,7 +259,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 category: dto.category,
                 placeId: dto.placeId,
                 source: dto.source ?? 'manual',
-                organizationId: await this.resolveOrganizationIdForCreate(user, dto.organizationId),
+                organizationId,
                 status,
                 stageId: stage.id,
                 crmStatus: this.deriveCrmStatusFromPipeline(status),
@@ -337,7 +341,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 throw new common_1.BadRequestException('Informe leadId ou os dados do lead (name) para adicionar ao kanban.');
             }
             const organizationId = await this.resolveOrganizationIdForCreate(user, dto.organizationId);
-            const stage = await this.leadStages.resolveStage();
+            const stage = await this.leadStages.resolveStage({ organizationId });
             const status = this.leadStages.statusFromStage(stage);
             const maxOrder = await this.prisma.lead.aggregate({
                 where: { kanbanTracked: true, status },
@@ -370,12 +374,12 @@ let LeadsService = LeadsService_1 = class LeadsService {
         if (lead.kanbanTracked) {
             return this.toLeadResponse(lead);
         }
+        const organizationId = dto.organizationId?.trim() || lead.organizationId;
+        const stage = await this.leadStages.resolveStage({ organizationId });
         const maxOrder = await this.prisma.lead.aggregate({
             where: { kanbanTracked: true, status: client_1.LeadStatus.PRE_VENDA },
             _max: { kanbanOrder: true },
         });
-        const stage = await this.leadStages.resolveStage();
-        const organizationId = dto.organizationId?.trim();
         if (organizationId) {
             await this.crmScope.assertUserCanManageOrganization(user, organizationId);
         }
@@ -410,7 +414,11 @@ let LeadsService = LeadsService_1 = class LeadsService {
         if (!dto.status && !dto.stageId) {
             throw new common_1.BadRequestException('Informe status ou stageId.');
         }
-        const stage = await this.resolveMoveTarget(dto.stageId, dto.status);
+        const stage = await this.leadStages.resolveStage({
+            stageId: dto.stageId,
+            status: dto.status,
+            organizationId: lead.organizationId,
+        });
         const status = this.leadStages.statusFromStage(stage);
         try {
             (0, lead_pipeline_zones_1.assertLeadStatusMoveAllowed)(user.role, lead.status, status);
@@ -463,7 +471,10 @@ let LeadsService = LeadsService_1 = class LeadsService {
             ? client_1.LeadStatus.VENDA_FINALIZADA
             : client_1.LeadStatus.NAO_TEM_INTERESSE;
         const crmStatus = this.deriveCrmStatusFromPipeline(pipelineStatus);
-        const stage = await this.resolveStageForStatus(pipelineStatus);
+        const stage = await this.leadStages.resolveStage({
+            status: pipelineStatus,
+            organizationId: lead.organizationId,
+        });
         const updated = await this.prisma.lead.update({
             where: { id },
             data: {
@@ -546,26 +557,24 @@ let LeadsService = LeadsService_1 = class LeadsService {
         }
         return lead;
     }
-    async resolveMoveTarget(stageId, status) {
-        if (stageId) {
-            return this.leadStages.resolveStage(stageId);
+    resolveKanbanOrganizationId(user, organizationId) {
+        const requested = organizationId?.trim();
+        if (requested)
+            return requested;
+        const roleName = (0, permissions_1.normalizeRoleName)(user.role);
+        if (roleName === client_1.RoleName.CLIENT ||
+            roleName === client_1.RoleName.EXTERNAL_CLIENT_CRM) {
+            return user.clientId;
         }
-        if (status) {
-            const normalized = status.toUpperCase();
-            if (this.isLeadStatus(normalized)) {
-                return this.resolveStageForStatus(normalized);
-            }
-            return this.leadStages.resolveStage(status);
+        return null;
+    }
+    leadMatchesStage(lead, stage, stages) {
+        if (lead.stageId) {
+            const known = stages.some((item) => item.id === lead.stageId);
+            if (known)
+                return lead.stageId === stage.id;
         }
-        throw new common_1.BadRequestException('Informe status ou stageId.');
-    }
-    async resolveStageForStatus(status) {
-        const stages = await this.leadStages.ensureDefaults();
-        return (stages.find((stage) => stage.key === status) ??
-            stages[0]);
-    }
-    isLeadStatus(value) {
-        return Object.values(client_1.LeadStatus).includes(value);
+        return Boolean(stage.key) && lead.status === stage.key;
     }
     notifyOrganizationRepresentatives(lead, actorId) {
         if (!lead.organizationId) {
