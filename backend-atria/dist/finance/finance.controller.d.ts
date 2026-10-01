@@ -19,17 +19,17 @@ export declare class FinanceController {
     constructor(financeService: FinanceService, financeReportsService: FinanceReportsService, financeBanksService: FinanceBanksService, financeLegacyService: FinanceLegacyService);
     getChartOfAccounts(): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        companyId: string;
         name: string;
+        code: string | null;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
-        code: string | null;
         parentId: string | null;
         dreGroup: import("@prisma/client").$Enums.DreGroup | null;
         cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
         isGroup: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        companyId: string;
     }[]>;
     getManagementDashboard(query: QueryDateRangeDto): Promise<{
         period: {
@@ -429,45 +429,45 @@ export declare class FinanceController {
     }>;
     getCategories(type?: TransactionType): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        companyId: string;
         name: string;
+        code: string | null;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
-        code: string | null;
         parentId: string | null;
         dreGroup: import("@prisma/client").$Enums.DreGroup | null;
         cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
         isGroup: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        companyId: string;
     }[]>;
     createCategory(dto: CreateCategoryDto): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        companyId: string;
         name: string;
+        code: string | null;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
-        code: string | null;
         parentId: string | null;
         dreGroup: import("@prisma/client").$Enums.DreGroup | null;
         cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
         isGroup: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        companyId: string;
     }>;
     updateCategory(id: string, dto: UpdateCategoryDto): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        companyId: string;
         name: string;
+        code: string | null;
         type: import("@prisma/client").$Enums.TransactionType;
         color: string;
-        code: string | null;
         parentId: string | null;
         dreGroup: import("@prisma/client").$Enums.DreGroup | null;
         cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
         isGroup: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        companyId: string;
     }>;
     deleteCategory(id: string): Promise<void>;
     getTransactions(user: AuthenticatedUser, query: QueryTransactionsDto): Promise<{

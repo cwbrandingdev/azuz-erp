@@ -146,34 +146,44 @@ export function SearchableMultiSelect({
                 {emptyLabel}
               </p>
             ) : (
-              filteredOptions.map((option) => {
+              filteredOptions.map((option, index) => {
                 const selected = values.includes(option.value);
+                const previous = filteredOptions[index - 1];
+                const showGroup =
+                  Boolean(option.group) && option.group !== previous?.group;
+
                 return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    disabled={option.disabled}
-                    onClick={() => toggleValue(option.value)}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                      selected
-                        ? "bg-[var(--atria-primary)]/8 text-[var(--atria-primary)]"
-                        : "text-[var(--atria-primary)]/80 hover:bg-[var(--atria-primary)]/5",
-                      option.disabled && "cursor-not-allowed opacity-50",
-                    )}
-                  >
-                    <span
+                  <div key={option.value}>
+                    {showGroup ? (
+                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--atria-primary)]/45">
+                        {option.group}
+                      </div>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={option.disabled}
+                      onClick={() => toggleValue(option.value)}
                       className={cn(
-                        "flex size-4 items-center justify-center rounded border",
+                        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors",
                         selected
-                          ? "border-[var(--atria-primary)] bg-[var(--atria-primary)] text-white"
-                          : "border-[var(--atria-primary)]/25",
+                          ? "bg-[var(--atria-primary)]/8 text-[var(--atria-primary)]"
+                          : "text-[var(--atria-primary)]/80 hover:bg-[var(--atria-primary)]/5",
+                        option.disabled && "cursor-not-allowed opacity-50",
                       )}
                     >
-                      {selected ? <Check className="size-3" /> : null}
-                    </span>
-                    <span className="truncate">{option.label}</span>
-                  </button>
+                      <span
+                        className={cn(
+                          "flex size-4 items-center justify-center rounded border",
+                          selected
+                            ? "border-[var(--atria-primary)] bg-[var(--atria-primary)] text-white"
+                            : "border-[var(--atria-primary)]/25",
+                        )}
+                      >
+                        {selected ? <Check className="size-3" /> : null}
+                      </span>
+                      <span className="truncate">{option.label}</span>
+                    </button>
+                  </div>
                 );
               })
             )}

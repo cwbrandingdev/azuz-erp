@@ -51,11 +51,11 @@ export declare class CreationService {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                id: string;
-                name: string;
-                createdAt: Date;
-                postId: string;
                 url: string;
+                id: string;
+                createdAt: Date;
+                name: string;
+                postId: string;
                 mimeType: string | null;
             }[];
             author: {
