@@ -32,7 +32,7 @@ export function ChartAccountField({
   const options = useMemo(() => {
     const query = search.trim().toLowerCase();
     return accounts
-      .filter((account) => account.code && !account.isGroup && account.type === type)
+      .filter((account) => !account.isGroup && account.type === type)
       .filter((account) => {
         if (!query) return true;
         return `${account.code ?? ""} ${account.name}`.toLowerCase().includes(query);

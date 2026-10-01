@@ -8,7 +8,7 @@ export declare class DashboardService {
     private readonly calendarService;
     private readonly metaInsightsService;
     constructor(prisma: PrismaService, financeService: FinanceService, calendarService: CalendarService, metaInsightsService: MetaInsightsService);
-    getOverview(userId: string): Promise<{
+    getOverview(userId: string, role: string): Promise<{
         user: {
             name: string;
             notificationCount: number;
@@ -17,11 +17,11 @@ export declare class DashboardService {
             revenue: number;
             expenses: number;
             netProfit: number;
-            monthlyTrend: {
+            monthlyTrend: Array<{
                 month: string;
                 income: number;
                 expense: number;
-            }[];
+            }>;
         };
         contentAndMeta: {
             topCampaign: {

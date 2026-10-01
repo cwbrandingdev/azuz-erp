@@ -104,25 +104,43 @@ type DreBucket =
   | 'distribution'
   | 'ignore';
 
+type CategoryLike = {
+  id: string;
+  name: string;
+  code: string | null;
+  type: TransactionType;
+  dreGroup: DreGroup | null;
+  isGroup: boolean;
+};
+
+function categoryDreBucket(category: {
+  dreGroup: DreGroup | null;
+  type: TransactionType;
+} | null): DreBucket {
+  const group = category?.dreGroup;
+
+  if (group === DreGroup.TRANSFER) return 'ignore';
+  if (group === DreGroup.DEDUCTION) return 'deduction';
+  if (group === DreGroup.VARIABLE_COST) return 'variable';
+  if (group === DreGroup.FIXED_EXPENSE) return 'fixed';
+  if (group === DreGroup.PROFIT_DISTRIBUTION) return 'distribution';
+  if (group === DreGroup.FINANCIAL_RESULT) return 'financial';
+  if (category?.type === TransactionType.INCOME) return 'revenue';
+  return 'fixed';
+}
+
 function dreBucket(tx: TxWithCategory): { bucket: DreBucket; amount: number } {
   const amount = Number(tx.amount);
-  const group = tx.category?.dreGroup;
+  const bucket = categoryDreBucket(tx.category);
 
-  if (group === DreGroup.TRANSFER) return { bucket: 'ignore', amount: 0 };
-  if (group === DreGroup.DEDUCTION) return { bucket: 'deduction', amount };
-  if (group === DreGroup.VARIABLE_COST) return { bucket: 'variable', amount };
-  if (group === DreGroup.FIXED_EXPENSE) return { bucket: 'fixed', amount };
-  if (group === DreGroup.PROFIT_DISTRIBUTION) {
-    return { bucket: 'distribution', amount };
-  }
-  if (group === DreGroup.FINANCIAL_RESULT) {
+  if (bucket === 'ignore') return { bucket, amount: 0 };
+  if (bucket === 'financial') {
     return {
-      bucket: 'financial',
+      bucket,
       amount: tx.type === TransactionType.INCOME ? amount : -amount,
     };
   }
-  if (tx.type === TransactionType.INCOME) return { bucket: 'revenue', amount };
-  return { bucket: 'fixed', amount };
+  return { bucket, amount };
 }
 
 @Injectable()
@@ -488,27 +506,33 @@ export class FinanceReportsService {
   async getAnnualDre(query: QueryAnnualDreDto) {
     await this.financeService.ensureChartOfAccounts();
     const year = query.year ?? new Date().getFullYear();
-    const transactions = await this.prisma.financialTransaction.findMany({
-      where: {
-        companyId: DEFAULT_COMPANY_ID,
-        deletedAt: null,
-        date: {
-          gte: new Date(year, 0, 1, 0, 0, 0, 0),
-          lte: new Date(year, 11, 31, 23, 59, 59, 999),
+    const [transactions, accounts] = await Promise.all([
+      this.prisma.financialTransaction.findMany({
+        where: {
+          companyId: DEFAULT_COMPANY_ID,
+          deletedAt: null,
+          date: {
+            gte: new Date(year, 0, 1, 0, 0, 0, 0),
+            lte: new Date(year, 11, 31, 23, 59, 59, 999),
+          },
         },
-      },
-      include: { category: true, bankAccount: true },
-    });
+        include: { category: true, bankAccount: true },
+      }),
+      this.prisma.financialCategory.findMany({
+        where: { companyId: DEFAULT_COMPANY_ID },
+        orderBy: [{ code: 'asc' }, { name: 'asc' }],
+      }),
+    ]);
 
     const paid = transactions.filter((tx) => tx.status === TransactionStatus.PAID);
 
     const sections = [
-      this.section('Total das Receitas', transactions, (tx) => dreBucket(tx).bucket === 'revenue', false),
-      this.section('(-) Dedução das Receitas', transactions, (tx) => dreBucket(tx).bucket === 'deduction', true),
-      this.section('(-) Custos Variáveis', transactions, (tx) => dreBucket(tx).bucket === 'variable', true),
-      this.section('(-) Despesas Fixas', transactions, (tx) => dreBucket(tx).bucket === 'fixed', true),
-      this.section('(+/-) Resultado Financeiro', transactions, (tx) => dreBucket(tx).bucket === 'financial', false),
-      this.section('Distribuição de Lucro', transactions, (tx) => dreBucket(tx).bucket === 'distribution', true),
+      this.section('Total das Receitas', transactions, accounts, 'revenue', false),
+      this.section('(-) Dedução das Receitas', transactions, accounts, 'deduction', true),
+      this.section('(-) Custos Variáveis', transactions, accounts, 'variable', true),
+      this.section('(-) Despesas Fixas', transactions, accounts, 'fixed', true),
+      this.section('(+/-) Resultado Financeiro', transactions, accounts, 'financial', false),
+      this.section('Distribuição de Lucro', transactions, accounts, 'distribution', true),
     ];
 
     const monthValue = (section: { totals: number[] }, month: number) =>
@@ -540,20 +564,32 @@ export class FinanceReportsService {
     return {
       year,
       months: MONTH_LABELS,
-      sections: sections.map((section) => ({
-        ...section,
-        rows: section.rows.filter((row) => row.total !== 0),
-      })),
+      sections,
       managerialResult: managerial,
       finalResult,
       availableBalance,
     };
   }
 
+  private emptyDreRow(account: {
+    id: string;
+    code: string | null;
+    name: string;
+  }) {
+    return {
+      categoryId: account.id,
+      code: account.code,
+      name: account.name,
+      months: Array.from({ length: 12 }, () => 0),
+      total: 0,
+    };
+  }
+
   private section(
     title: string,
     transactions: TxWithCategory[],
-    include: (tx: TxWithCategory) => boolean,
+    accounts: CategoryLike[],
+    bucket: DreBucket,
     invertExpenseSign: boolean,
   ) {
     const rows = new Map<
@@ -561,24 +597,22 @@ export class FinanceReportsService {
       { categoryId: string; code: string | null; name: string; months: number[]; total: number }
     >();
 
+    for (const account of accounts) {
+      if (account.isGroup) continue;
+      if (categoryDreBucket(account) !== bucket) continue;
+      rows.set(account.id, this.emptyDreRow(account));
+    }
+
     for (const tx of transactions) {
-      if (!include(tx)) continue;
       const part = dreBucket(tx);
-      const display =
-        invertExpenseSign && part.bucket !== 'financial'
-          ? part.amount
-          : part.bucket === 'financial'
-            ? part.amount
-            : part.amount;
-      const signed = invertExpenseSign ? -Math.abs(part.amount) : display;
+      if (part.bucket !== bucket) continue;
+      const signed = invertExpenseSign ? -Math.abs(part.amount) : part.amount;
       const key = tx.categoryId;
-      const row = rows.get(key) ?? {
-        categoryId: tx.categoryId,
+      const row = rows.get(key) ?? this.emptyDreRow({
+        id: tx.categoryId,
         code: tx.category?.code ?? null,
         name: tx.category?.name ?? 'Sem categoria',
-        months: Array.from({ length: 12 }, () => 0),
-        total: 0,
-      };
+      });
       row.months[tx.date.getMonth()] = money(
         row.months[tx.date.getMonth()] + signed,
       );

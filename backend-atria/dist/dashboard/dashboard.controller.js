@@ -26,7 +26,7 @@ let DashboardController = class DashboardController {
         this.dashboardService = dashboardService;
     }
     getOverview(user) {
-        return this.dashboardService.getOverview(user.userId);
+        return this.dashboardService.getOverview(user.userId, user.role);
     }
     getTvMonitoring() {
         return this.dashboardService.getTvMonitoring();
@@ -35,6 +35,7 @@ let DashboardController = class DashboardController {
 exports.DashboardController = DashboardController;
 __decorate([
     (0, common_1.Get)('overview'),
+    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN, client_1.RoleName.DESIGNER_MASTER, client_1.RoleName.DESIGNER_JUNIOR),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -42,6 +43,7 @@ __decorate([
 ], DashboardController.prototype, "getOverview", null);
 __decorate([
     (0, common_1.Get)('tv-monitoring'),
+    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -49,7 +51,6 @@ __decorate([
 exports.DashboardController = DashboardController = __decorate([
     (0, common_1.Controller)('dashboard'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN),
     __metadata("design:paramtypes", [dashboard_service_1.DashboardService])
 ], DashboardController);
 //# sourceMappingURL=dashboard.controller.js.map

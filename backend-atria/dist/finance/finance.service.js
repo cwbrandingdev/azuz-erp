@@ -800,7 +800,7 @@ let FinanceService = class FinanceService {
         if (category.type !== type) {
             throw new common_1.BadRequestException('Transaction type does not match category type');
         }
-        if (category.isGroup || !category.code) {
+        if (category.isGroup) {
             throw new common_1.BadRequestException('Selecione uma conta do plano de contas');
         }
     }

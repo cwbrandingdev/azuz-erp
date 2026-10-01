@@ -24,8 +24,8 @@ export declare class LeadStagesService {
         name: string;
         order: number;
         color: string;
-        key: string | null;
         organizationId: string | null;
+        key: string | null;
     }>;
     create(dto: CreateLeadStageDto): Promise<{
         id: string;

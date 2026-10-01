@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.canEditAllKanban = canEditAllKanban;
 exports.canEditOwnKanbanOnly = canEditOwnKanbanOnly;
 exports.isTaskAssignedToUser = isTaskAssignedToUser;
+exports.isDesignerRole = isDesignerRole;
+exports.canViewDashboardFinance = canViewDashboardFinance;
+exports.canAccessStaffDashboard = canAccessStaffDashboard;
 exports.canPerformInternalApproval = canPerformInternalApproval;
 exports.assertCanPerformInternalApproval = assertCanPerformInternalApproval;
 exports.assertMasterRole = assertMasterRole;
@@ -30,6 +33,18 @@ function canEditOwnKanbanOnly(role) {
 function isTaskAssignedToUser(userId, task) {
     return (task.createdById === userId ||
         task.assignees.some((assignee) => assignee.userId === userId));
+}
+function isDesignerRole(role) {
+    const roleName = (0, permissions_1.normalizeRoleName)(role);
+    return (roleName === client_1.RoleName.DESIGNER_MASTER ||
+        roleName === client_1.RoleName.DESIGNER_JUNIOR);
+}
+function canViewDashboardFinance(role) {
+    const roleName = (0, permissions_1.normalizeRoleName)(role);
+    return roleName === client_1.RoleName.MASTER || roleName === client_1.RoleName.ADMIN;
+}
+function canAccessStaffDashboard(role) {
+    return canViewDashboardFinance(role) || isDesignerRole(role);
 }
 function canPerformInternalApproval(role) {
     const roleName = (0, permissions_1.normalizeRoleName)(role);

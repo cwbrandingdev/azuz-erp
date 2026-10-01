@@ -106,6 +106,7 @@ export declare class FinanceReportsService {
         year: number;
         months: string[];
         sections: {
+            title: string;
             rows: {
                 categoryId: string;
                 code: string | null;
@@ -113,7 +114,6 @@ export declare class FinanceReportsService {
                 months: number[];
                 total: number;
             }[];
-            title: string;
             totals: number[];
             yearTotal: number;
         }[];
@@ -121,6 +121,7 @@ export declare class FinanceReportsService {
         finalResult: number[];
         availableBalance: number[];
     }>;
+    private emptyDreRow;
     private section;
     private toEntry;
 }
