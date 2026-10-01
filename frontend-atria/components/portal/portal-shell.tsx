@@ -158,13 +158,7 @@ export function PortalShell({
               backgroundColor: branding.primaryColor,
             }}
           >
-            <AgencyLogo size="sm" variant="sidebar" showName />
-            <div className="flex items-center gap-2">
-              <PortalTutorialButton className="border-white/30 bg-white/10 text-white hover:bg-white/20" />
-              <ThemeToggle
-                className="border border-white/30 bg-white/10 text-white hover:bg-white/20"
-                iconClassName="text-white"
-              />
+            <div className="flex min-w-0 items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -176,6 +170,14 @@ export function PortalShell({
               >
                 <Menu className="size-4" />
               </Button>
+              <AgencyLogo size="sm" variant="sidebar" showName />
+            </div>
+            <div className="flex items-center gap-2">
+              <PortalTutorialButton className="border-white/30 bg-white/10 text-white hover:bg-white/20" />
+              <ThemeToggle
+                className="border border-white/30 bg-white/10 text-white hover:bg-white/20"
+                iconClassName="text-white"
+              />
             </div>
           </div>
 
@@ -205,7 +207,7 @@ export function PortalShell({
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="left"
-          className="sidebar-scroll w-[17.5rem] border-none p-0 text-white"
+          className="sidebar-scroll inset-y-0 left-0 right-auto h-full w-[17.5rem] border-none p-0 text-white"
           style={sidebarStyle}
         >
           <SheetHeader className="sr-only">
