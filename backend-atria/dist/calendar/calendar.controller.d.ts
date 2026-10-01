@@ -7,8 +7,8 @@ export declare class CalendarController {
     getTeamMembers(): Promise<{
         color: string;
         id: string;
-        email: string;
         name: string;
+        email: string;
         avatarUrl: string | null;
     }[]>;
     getEvents(query: QueryEventsDto): Promise<{
