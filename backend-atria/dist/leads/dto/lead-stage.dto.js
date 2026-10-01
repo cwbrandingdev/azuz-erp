@@ -9,15 +9,24 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ReorderLeadStagesDto = exports.UpdateLeadStageDto = exports.CreateLeadStageDto = void 0;
+exports.ReorderLeadStagesDto = exports.UpdateLeadStageDto = exports.CreateLeadStageDto = exports.LeadStagesQueryDto = void 0;
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 const entity_id_1 = require("../../common/validation/entity-id");
 const HEX_COLOR = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+class LeadStagesQueryDto {
+    organizationId;
+}
+exports.LeadStagesQueryDto = LeadStagesQueryDto;
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], LeadStagesQueryDto.prototype, "organizationId", void 0);
 class CreateLeadStageDto {
     name;
     color;
     order;
+    organizationId;
 }
 exports.CreateLeadStageDto = CreateLeadStageDto;
 __decorate([
@@ -39,6 +48,10 @@ __decorate([
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateLeadStageDto.prototype, "order", void 0);
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], CreateLeadStageDto.prototype, "organizationId", void 0);
 class UpdateLeadStageDto {
     name;
     color;
@@ -67,6 +80,7 @@ __decorate([
 ], UpdateLeadStageDto.prototype, "order", void 0);
 class ReorderLeadStagesDto {
     ids;
+    organizationId;
 }
 exports.ReorderLeadStagesDto = ReorderLeadStagesDto;
 __decorate([
@@ -75,4 +89,8 @@ __decorate([
     (0, entity_id_1.IsEntityId)({ each: true }),
     __metadata("design:type", Array)
 ], ReorderLeadStagesDto.prototype, "ids", void 0);
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], ReorderLeadStagesDto.prototype, "organizationId", void 0);
 //# sourceMappingURL=lead-stage.dto.js.map

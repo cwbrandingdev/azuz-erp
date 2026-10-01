@@ -148,8 +148,17 @@ export async function toggleLeadCollapse(
   });
 }
 
-export async function listLeadStages(): Promise<LeadStage[]> {
-  return apiRequest<LeadStage[]>("/crm/stages");
+function stagesQuery(organizationId?: string) {
+  if (!organizationId) return "";
+  const params = new URLSearchParams();
+  params.set("organizationId", organizationId);
+  return `?${params.toString()}`;
+}
+
+export async function listLeadStages(
+  organizationId?: string,
+): Promise<LeadStage[]> {
+  return apiRequest<LeadStage[]>(`/crm/stages${stagesQuery(organizationId)}`);
 }
 
 export async function createLeadStage(
@@ -171,10 +180,13 @@ export async function updateLeadStage(
   });
 }
 
-export async function reorderLeadStages(ids: string[]): Promise<LeadStage[]> {
+export async function reorderLeadStages(
+  ids: string[],
+  organizationId?: string,
+): Promise<LeadStage[]> {
   return apiRequest<LeadStage[]>("/crm/stages/reorder", {
     method: "PATCH",
-    body: { ids },
+    body: { ids, ...(organizationId ? { organizationId } : {}) },
   });
 }
 

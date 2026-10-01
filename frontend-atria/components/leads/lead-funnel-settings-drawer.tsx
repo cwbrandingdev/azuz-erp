@@ -36,10 +36,14 @@ function asHexColor(value: string) {
 }
 
 interface LeadFunnelSettingsDrawerProps {
+  organizationId?: string;
+  organizationName?: string;
   onStagesChange: () => void;
 }
 
 export function LeadFunnelSettingsDrawer({
+  organizationId,
+  organizationName,
   onStagesChange,
 }: LeadFunnelSettingsDrawerProps) {
   const confirm = useConfirm();
@@ -53,7 +57,7 @@ export function LeadFunnelSettingsDrawer({
 
   async function loadStages() {
     try {
-      const data = await leadsService.listLeadStages();
+      const data = await leadsService.listLeadStages(organizationId);
       setStages([...data].sort((a, b) => a.order - b.order));
     } catch {
       setStages([]);
@@ -61,9 +65,10 @@ export function LeadFunnelSettingsDrawer({
   }
 
   useEffect(() => {
+    resetForm();
     if (!open) return;
     void loadStages();
-  }, [open]);
+  }, [open, organizationId]);
 
   function resetForm() {
     setEditingId(null);
@@ -94,7 +99,11 @@ export function LeadFunnelSettingsDrawer({
         });
         toast.success("Estágio atualizado");
       } else {
-        await leadsService.createLeadStage({ name: trimmed, color });
+        await leadsService.createLeadStage({
+          name: trimmed,
+          color,
+          ...(organizationId ? { organizationId } : {}),
+        });
         toast.success("Estágio adicionado ao funil");
       }
       resetForm();
@@ -152,6 +161,7 @@ export function LeadFunnelSettingsDrawer({
     try {
       const updated = await leadsService.reorderLeadStages(
         next.map((stage) => stage.id),
+        organizationId,
       );
       setStages([...updated].sort((a, b) => a.order - b.order));
       onStagesChange();
@@ -175,17 +185,20 @@ export function LeadFunnelSettingsDrawer({
         }
       >
         <Settings2 className="size-4" />
-        Personalizar Funil
+        Personalizar colunas
       </SheetTrigger>
 
       <SheetContent className="w-full overflow-y-auto px-6 pb-6 sm:max-w-md">
         <SheetHeader className="px-0">
           <SheetTitle className="text-[var(--atria-primary)]">
-            Personalizar Funil
+            {organizationName
+              ? `Colunas de ${organizationName}`
+              : "Funil padrão"}
           </SheetTitle>
           <SheetDescription>
-            Adicione, renomeie, recolora e arraste para reordenar as colunas do
-            funil comercial.
+            {organizationName
+              ? `Adicione, renomeie, recolora e reordene as colunas apenas deste cliente. Os demais clientes mantêm o próprio funil.`
+              : "Este é o funil padrão, usado na visão de todos os clientes e como modelo inicial. Selecione um cliente no filtro para personalizar as colunas só daquele cliente."}
           </SheetDescription>
         </SheetHeader>
 

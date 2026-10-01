@@ -2516,6 +2516,7 @@ export interface LeadStage {
   id: string;
   tenantId: string;
   companyId: string;
+  organizationId: string | null;
   name: string;
   order: number;
   color: string;
@@ -2528,6 +2529,7 @@ export interface CreateLeadStageInput {
   name: string;
   color?: string;
   order?: number;
+  organizationId?: string;
 }
 
 export interface UpdateLeadStageInput {

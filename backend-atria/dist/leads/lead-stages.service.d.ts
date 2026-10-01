@@ -4,10 +4,11 @@ import { CreateLeadStageDto, ReorderLeadStagesDto, UpdateLeadStageDto } from './
 export declare class LeadStagesService {
     private readonly prisma;
     constructor(prisma: PrismaService);
-    findAll(): Promise<{
+    findAll(organizationId?: string | null): Promise<{
         id: string;
         tenantId: string;
         companyId: string;
+        organizationId: string | null;
         name: string;
         order: number;
         color: string;
@@ -15,10 +16,22 @@ export declare class LeadStagesService {
         createdAt: string;
         updatedAt: string;
     }[]>;
+    getById(id: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        companyId: string;
+        name: string;
+        order: number;
+        color: string;
+        key: string | null;
+        organizationId: string | null;
+    }>;
     create(dto: CreateLeadStageDto): Promise<{
         id: string;
         tenantId: string;
         companyId: string;
+        organizationId: string | null;
         name: string;
         order: number;
         color: string;
@@ -30,6 +43,7 @@ export declare class LeadStagesService {
         id: string;
         tenantId: string;
         companyId: string;
+        organizationId: string | null;
         name: string;
         order: number;
         color: string;
@@ -41,6 +55,7 @@ export declare class LeadStagesService {
         id: string;
         tenantId: string;
         companyId: string;
+        organizationId: string | null;
         name: string;
         order: number;
         color: string;
@@ -51,13 +66,18 @@ export declare class LeadStagesService {
     remove(id: string): Promise<{
         success: boolean;
     }>;
-    ensureDefaults(): Promise<LeadStage[]>;
-    resolveStage(stageId?: string | null): Promise<LeadStage>;
+    ensureDefaults(organizationId?: string | null): Promise<LeadStage[]>;
+    resolveStage(input?: {
+        stageId?: string | null;
+        status?: string | null;
+        organizationId?: string | null;
+    }): Promise<LeadStage>;
     statusFromStage(stage: LeadStage): LeadStatus;
     toResponse(stage: LeadStage): {
         id: string;
         tenantId: string;
         companyId: string;
+        organizationId: string | null;
         name: string;
         order: number;
         color: string;
@@ -65,9 +85,16 @@ export declare class LeadStagesService {
         createdAt: string;
         updatedAt: string;
     };
+    private ensureGlobalDefaults;
+    private ensureOrganizationDefaults;
+    private remapLeadsToClonedStages;
+    private mapStageIntoScope;
     private requireStage;
     private assertUniqueName;
     private normalizeOrder;
+    private findScoped;
+    private scopeWhere;
+    private normalizeOrganizationId;
     private isLeadStatus;
     private reconcileBuiltinStages;
 }
