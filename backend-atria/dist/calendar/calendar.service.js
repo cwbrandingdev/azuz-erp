@@ -283,75 +283,9 @@ let CalendarService = class CalendarService {
         return this.toEventResponse(event);
     }
     async deleteEvent(id, userId, role) {
-        const linkedTask = await this.prisma.kanbanTask.findFirst({
-            where: { calendarEventId: id },
-            select: { id: true },
-        });
-        fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Debug-Session-Id': 'a29f29',
-            },
-            body: JSON.stringify({
-                sessionId: 'a29f29',
-                runId: 'pre-fix',
-                hypothesisId: 'A,B',
-                location: 'calendar.service.ts:deleteEvent:entry',
-                message: 'deleteEvent called',
-                data: {
-                    id,
-                    isSyntheticTaskPrefix: id.startsWith('task:'),
-                    linkedKanbanTaskId: linkedTask?.id ?? null,
-                    role,
-                },
-                timestamp: Date.now(),
-            }),
-        }).catch(() => { });
-        try {
-            const existing = await this.ensureEventExists(id);
-            (0, rbac_1.assertCalendarEventEditAccess)(role, userId, existing);
-            await this.prisma.calendarEvent.delete({ where: { id } });
-            fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Debug-Session-Id': 'a29f29',
-                },
-                body: JSON.stringify({
-                    sessionId: 'a29f29',
-                    runId: 'pre-fix',
-                    hypothesisId: 'B',
-                    location: 'calendar.service.ts:deleteEvent:success',
-                    message: 'deleteEvent completed',
-                    data: { id },
-                    timestamp: Date.now(),
-                }),
-            }).catch(() => { });
-        }
-        catch (err) {
-            fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Debug-Session-Id': 'a29f29',
-                },
-                body: JSON.stringify({
-                    sessionId: 'a29f29',
-                    runId: 'pre-fix',
-                    hypothesisId: 'A,B,C',
-                    location: 'calendar.service.ts:deleteEvent:error',
-                    message: 'deleteEvent failed',
-                    data: {
-                        id,
-                        errorName: err instanceof Error ? err.name : 'unknown',
-                        errorMessage: err instanceof Error ? err.message : String(err),
-                    },
-                    timestamp: Date.now(),
-                }),
-            }).catch(() => { });
-            throw err;
-        }
+        const existing = await this.ensureEventExists(id);
+        (0, rbac_1.assertCalendarEventEditAccess)(role, userId, existing);
+        await this.prisma.calendarEvent.delete({ where: { id } });
     }
     async syncEventFromPost(post, userId) {
         if (!post.scheduledDate) {

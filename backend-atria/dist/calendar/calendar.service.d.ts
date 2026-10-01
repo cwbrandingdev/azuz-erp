@@ -15,8 +15,8 @@ export declare class CalendarService {
     getTeamMembers(): Promise<{
         color: string;
         id: string;
-        name: string;
         email: string;
+        name: string;
         avatarUrl: string | null;
     }[]>;
     getEvents(query: QueryEventsDto & {

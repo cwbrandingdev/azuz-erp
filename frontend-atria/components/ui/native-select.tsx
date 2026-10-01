@@ -10,26 +10,34 @@ import {
 function parseSelectOptions(children: React.ReactNode): SearchableSelectOption[] {
   const options: SearchableSelectOption[] = [];
 
-  React.Children.forEach(children, (child) => {
-    if (
-      !React.isValidElement<{
-        value?: string;
-        disabled?: boolean;
-        children?: React.ReactNode;
-      }>(child)
-    ) {
-      return;
-    }
+  function walk(nodes: React.ReactNode) {
+    React.Children.forEach(nodes, (child) => {
+      if (
+        !React.isValidElement<{
+          value?: string;
+          disabled?: boolean;
+          children?: React.ReactNode;
+        }>(child)
+      ) {
+        return;
+      }
 
-    if (child.type === "option") {
-      options.push({
-        value: String(child.props.value ?? ""),
-        label: String(child.props.children ?? ""),
-        disabled: child.props.disabled,
-      });
-    }
-  });
+      if (child.type === React.Fragment) {
+        walk(child.props.children);
+        return;
+      }
 
+      if (child.type === "option") {
+        options.push({
+          value: String(child.props.value ?? ""),
+          label: String(child.props.children ?? ""),
+          disabled: child.props.disabled,
+        });
+      }
+    });
+  }
+
+  walk(children);
   return options;
 }
 

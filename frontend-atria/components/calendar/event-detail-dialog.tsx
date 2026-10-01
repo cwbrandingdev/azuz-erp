@@ -80,89 +80,12 @@ export function EventDetailDialog({
   async function handleDelete() {
     if (!event) return;
     setDeleting(true);
-    // #region agent log
-    fetch("http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "a29f29",
-      },
-      body: JSON.stringify({
-        sessionId: "a29f29",
-        runId: "pre-fix",
-        hypothesisId: "A",
-        location: "event-detail-dialog.tsx:handleDelete:entry",
-        message: "calendar delete started",
-        data: {
-          eventId: event.id,
-          kanbanTaskId: event.kanbanTaskId ?? null,
-          isSyntheticTaskId: event.id.startsWith("task:"),
-          hasCalendarEventIdOnTask: Boolean(
-            event.kanbanTaskId && !event.id.startsWith("task:"),
-          ),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     try {
       await calendarService.deleteEvent(event.id);
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "a29f29",
-          },
-          body: JSON.stringify({
-            sessionId: "a29f29",
-            runId: "pre-fix",
-            hypothesisId: "A",
-            location: "event-detail-dialog.tsx:handleDelete:success",
-            message: "calendar delete succeeded",
-            data: { eventId: event.id },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {});
-      // #endregion
       toast.success("Evento excluído.");
       onOpenChange(false);
       onDeleted();
-    } catch (error) {
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "a29f29",
-          },
-          body: JSON.stringify({
-            sessionId: "a29f29",
-            runId: "pre-fix",
-            hypothesisId: "B,C,D,E",
-            location: "event-detail-dialog.tsx:handleDelete:error",
-            message: "calendar delete failed",
-            data: {
-              eventId: event.id,
-              kanbanTaskId: event.kanbanTaskId ?? null,
-              errorName: error instanceof Error ? error.name : "unknown",
-              errorMessage:
-                error instanceof Error ? error.message : String(error),
-              status:
-                error instanceof Error && "status" in error
-                  ? (error as { status: number }).status
-                  : null,
-            },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {});
-      // #endregion
+    } catch {
       toast.error("Não foi possível excluir o evento.");
     } finally {
       setDeleting(false);
