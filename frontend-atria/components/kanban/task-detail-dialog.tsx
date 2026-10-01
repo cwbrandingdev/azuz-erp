@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { ReferenceUrlField } from "@/components/ui/reference-url-field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
@@ -134,6 +135,10 @@ export function TaskDetailDialog({
   const [tab, setTab] = useState<DetailTab>("deliverables");
   const [loading, setLoading] = useState(false);
   const [assetUploading, setAssetUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadProgressLabel, setUploadProgressLabel] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -145,6 +150,7 @@ export function TaskDetailDialog({
   );
   const [deliverableView, setDeliverableView] =
     useState<DeliverableFullView | null>(null);
+  const [deliverablesLoading, setDeliverablesLoading] = useState(false);
   const [internalReviewNote, setInternalReviewNote] = useState("");
   const [assetCaption, setAssetCaption] = useState("");
   const [postCaption, setPostCaption] = useState("");
@@ -177,6 +183,17 @@ export function TaskDetailDialog({
   const [bulkDeliverableActions, setBulkDeliverableActions] =
     useState<DeliverableBulkActionsState | null>(null);
   const syncedIgPublishRef = useRef<string | null>(null);
+  const deliverableLoadInFlightRef = useRef<Map<string, Promise<void>>>(
+    new Map(),
+  );
+  const deliverablesLoadingTaskRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setDeliverablesLoading(false);
+      deliverablesLoadingTaskRef.current = null;
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open || !task) {
@@ -222,6 +239,32 @@ export function TaskDetailDialog({
   useEffect(() => {
     if (!open || !task) return;
 
+    setDeliverableItems([]);
+    setDeliverableView(null);
+    setBulkDeliverableActions(null);
+    setDeliverablesLoading(true);
+    deliverablesLoadingTaskRef.current = task.id;
+    setTab("deliverables");
+    setError(null);
+
+    calendarService
+      .getTeamMembers()
+      .then(setMembers)
+      .catch(() => setMembers([]));
+    clientsService
+      .getClients()
+      .then(setClients)
+      .catch(() => setClients([]));
+    userGroupsService
+      .getUserGroups()
+      .then(setGroups)
+      .catch(() => setGroups([]));
+    void loadHistory(task.id);
+  }, [open, task?.id]);
+
+  useEffect(() => {
+    if (!open || !task) return;
+
     setTitle(task.title);
     setDescription(task.description ?? "");
     setStatus(task.status);
@@ -240,32 +283,12 @@ export function TaskDetailDialog({
     setIsBypassingInternalReview(Boolean(task.isBypassingInternalReview));
     setPostCaption(task.postCaption ?? "");
     setAssets(task.assets ?? []);
-    setDeliverableItems([]);
-    setDeliverableView(null);
-    setBulkDeliverableActions(null);
-    setTab("deliverables");
-    setError(null);
-
-    calendarService
-      .getTeamMembers()
-      .then(setMembers)
-      .catch(() => setMembers([]));
-    clientsService
-      .getClients()
-      .then(setClients)
-      .catch(() => setClients([]));
-    userGroupsService
-      .getUserGroups()
-      .then(setGroups)
-      .catch(() => setGroups([]));
-    void loadHistory(task.id);
-    void loadDeliverableMedia(task.id);
   }, [open, task]);
 
   useEffect(() => {
     if (!open || !task || tab !== "deliverables") return;
     void loadDeliverableMedia(task.id);
-  }, [open, task, tab]);
+  }, [open, task?.id, tab]);
 
   async function loadHistory(taskId: string) {
     try {
@@ -277,32 +300,57 @@ export function TaskDetailDialog({
   }
 
   async function loadDeliverableMedia(taskId: string) {
-    try {
-      const view = await deliverablesService.getFullView(taskId);
-      setDeliverableView(view);
-      setDeliverableItems(view.media.all);
-      if (view.workflow) {
-        setIsBypassingInternalReview(view.workflow.isBypassingInternalReview);
-        if (view.workflow.internalReviewStatus) {
-          setInternalReviewStatus(
-            view.workflow.internalReviewStatus as InternalReviewStatus,
-          );
-        }
-        if (view.workflow.kanbanStatus) {
-          setStatus(view.workflow.kanbanStatus as KanbanTaskStatus);
-        }
-        if (view.workflow.rejectionReason ?? view.workflow.internalReviewNote) {
-          setInternalReviewNote(
-            view.workflow.rejectionReason ??
-              view.workflow.internalReviewNote ??
-              "",
-          );
-        }
+    const inFlight = deliverableLoadInFlightRef.current.get(taskId);
+    setDeliverablesLoading(true);
+    deliverablesLoadingTaskRef.current = taskId;
+
+    if (inFlight) {
+      await inFlight;
+      if (deliverablesLoadingTaskRef.current === taskId) {
+        setDeliverablesLoading(false);
       }
-    } catch {
-      setDeliverableView(null);
-      setDeliverableItems([]);
+      return;
     }
+
+    const request = (async () => {
+      try {
+        const view = await deliverablesService.getFullView(taskId);
+        setDeliverableView(view);
+        setDeliverableItems(view.media.all);
+        if (view.workflow) {
+          setIsBypassingInternalReview(view.workflow.isBypassingInternalReview);
+          if (view.workflow.internalReviewStatus) {
+            setInternalReviewStatus(
+              view.workflow.internalReviewStatus as InternalReviewStatus,
+            );
+          }
+          if (view.workflow.kanbanStatus) {
+            setStatus(view.workflow.kanbanStatus as KanbanTaskStatus);
+          }
+          if (
+            view.workflow.rejectionReason ??
+            view.workflow.internalReviewNote
+          ) {
+            setInternalReviewNote(
+              view.workflow.rejectionReason ??
+                view.workflow.internalReviewNote ??
+                "",
+            );
+          }
+        }
+      } catch {
+        setDeliverableView(null);
+        setDeliverableItems([]);
+      }
+    })().finally(() => {
+      deliverableLoadInFlightRef.current.delete(taskId);
+      if (deliverablesLoadingTaskRef.current === taskId) {
+        setDeliverablesLoading(false);
+      }
+    });
+
+    deliverableLoadInFlightRef.current.set(taskId, request);
+    return request;
   }
 
   function toggleAssignee(id: string) {
@@ -528,16 +576,48 @@ export function TaskDetailDialog({
 
     setAssetUploading(true);
     setError(null);
+    setUploadProgress(0);
+    setUploadProgressLabel(null);
     const uploaded: KanbanTaskAsset[] = [];
+    const totalBytes = fileList.reduce((sum, file) => sum + file.size, 0);
+    const loadedByFile = new Map<string, number>();
+
+    const fileKey = (file: File) => `${file.name}:${file.size}:${file.lastModified}`;
+
+    const refreshUploadProgress = (activeFileName?: string) => {
+      let loaded = 0;
+      for (const value of loadedByFile.values()) loaded += value;
+      const percent =
+        totalBytes > 0
+          ? Math.min(99, Math.round((loaded / totalBytes) * 100))
+          : 0;
+      setUploadProgress(percent);
+      if (activeFileName) setUploadProgressLabel(activeFileName);
+    };
+
     try {
-      for (const file of fileList) {
-        const asset = await kanbanService.uploadTaskAsset(
-          task.id,
-          file,
-          assetCaption,
-        );
-        uploaded.push(asset as KanbanTaskAsset);
-      }
+      const uploadResults = await Promise.all(
+        fileList.map(async (file) => {
+          const key = fileKey(file);
+          loadedByFile.set(key, 0);
+          const asset = await kanbanService.uploadTaskAsset(
+            task.id,
+            file,
+            assetCaption,
+            {
+              onProgress: (loaded) => {
+                loadedByFile.set(key, loaded);
+                refreshUploadProgress(file.name);
+              },
+            },
+          );
+          loadedByFile.set(key, file.size);
+          refreshUploadProgress(file.name);
+          return asset as KanbanTaskAsset;
+        }),
+      );
+      uploaded.push(...uploadResults);
+      setUploadProgress(100);
 
       setAssets((prev) => [...prev, ...uploaded]);
       setAssetCaption("");
@@ -571,6 +651,8 @@ export function TaskDetailDialog({
       }
     } finally {
       setAssetUploading(false);
+      setUploadProgress(null);
+      setUploadProgressLabel(null);
     }
   }
 
@@ -1031,8 +1113,34 @@ export function TaskDetailDialog({
                 </div>
               )}
 
+              {uploadProgress !== null && (
+                <div
+                  className="space-y-2 rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.03] p-3"
+                  aria-live="polite"
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs text-[var(--atria-primary)]/70">
+                    <span className="truncate">
+                      {uploadProgressLabel
+                        ? `Enviando ${uploadProgressLabel}…`
+                        : "Enviando arquivos…"}
+                    </span>
+                    <span className="shrink-0 font-medium tabular-nums">
+                      {uploadProgress}%
+                    </span>
+                  </div>
+                  <Progress value={uploadProgress} />
+                  {uploadProgress < 100 && (
+                    <p className="text-[10px] text-[var(--atria-primary)]/45">
+                      Aguarde até concluir o envio antes de fechar a tarefa.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <DeliverableMediaGrid
                 items={deliverableItems}
+                loading={deliverablesLoading}
+                loadingMessage="Carregando entregas…"
                 onItemsChange={setDeliverableItems}
                 onRevisionSubmitted={() => loadDeliverableMedia(task.id)}
                 onDeleteItem={canEdit ? handleDeliverableItemDelete : undefined}
