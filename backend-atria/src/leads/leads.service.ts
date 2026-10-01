@@ -14,7 +14,9 @@ import {
   Lead,
   LeadStatus,
   Prisma,
+  RoleName,
 } from '@prisma/client';
+import { normalizeRoleName } from '../auth/constants/permissions';
 import { AiService } from '../ai/ai.service';
 import { CompanySettingsService } from '../company-settings/company-settings.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
@@ -295,7 +297,11 @@ export class LeadsService {
     user: AuthenticatedUser,
     organizationId?: string,
   ) {
-    const stages = await this.leadStages.ensureDefaults();
+    const stageOrganizationId = this.resolveKanbanOrganizationId(
+      user,
+      organizationId,
+    );
+    const stages = await this.leadStages.ensureDefaults(stageOrganizationId);
     const orgFilter = await this.crmScope.buildKanbanLeadOrganizationFilter(
       user,
       organizationId,
@@ -315,16 +321,12 @@ export class LeadsService {
       return {
         id: stage.id,
         stageId: stage.id,
-        status: stage.key ?? stage.id,
+        status: stage.key ?? pipelineStatus,
         title: stage.name,
         color: stage.color,
         order: stage.order,
         leads: leads
-          .filter((lead) =>
-            lead.stageId
-              ? lead.stageId === stage.id
-              : lead.status === pipelineStatus && stage.key === lead.status,
-          )
+          .filter((lead) => this.leadMatchesStage(lead, stage, stages))
           .map((lead) => this.toLeadResponse(lead)),
       };
     });
@@ -342,7 +344,14 @@ export class LeadsService {
       throw new BadRequestException('name is required');
     }
 
-    const stage = await this.leadStages.resolveStage(dto.stageId);
+    const organizationId = await this.resolveOrganizationIdForCreate(
+      user,
+      dto.organizationId,
+    );
+    const stage = await this.leadStages.resolveStage({
+      stageId: dto.stageId,
+      organizationId,
+    });
     const status = this.leadStages.statusFromStage(stage);
     const maxOrder = await this.prisma.lead.aggregate({
       where: { kanbanTracked: true, status },
@@ -361,10 +370,7 @@ export class LeadsService {
         category: dto.category,
         placeId: dto.placeId,
         source: dto.source ?? 'manual',
-        organizationId: await this.resolveOrganizationIdForCreate(
-          user,
-          dto.organizationId,
-        ),
+        organizationId,
         status,
         stageId: stage.id,
         crmStatus: this.deriveCrmStatusFromPipeline(status),
@@ -463,7 +469,7 @@ export class LeadsService {
         dto.organizationId,
       );
 
-      const stage = await this.leadStages.resolveStage();
+      const stage = await this.leadStages.resolveStage({ organizationId });
       const status = this.leadStages.statusFromStage(stage);
       const maxOrder = await this.prisma.lead.aggregate({
         where: { kanbanTracked: true, status },
@@ -501,13 +507,12 @@ export class LeadsService {
       return this.toLeadResponse(lead);
     }
 
+    const organizationId = dto.organizationId?.trim() || lead.organizationId;
+    const stage = await this.leadStages.resolveStage({ organizationId });
     const maxOrder = await this.prisma.lead.aggregate({
       where: { kanbanTracked: true, status: LeadStatus.PRE_VENDA },
       _max: { kanbanOrder: true },
     });
-
-    const stage = await this.leadStages.resolveStage();
-    const organizationId = dto.organizationId?.trim();
 
     if (organizationId) {
       await this.crmScope.assertUserCanManageOrganization(user, organizationId);
@@ -560,7 +565,11 @@ export class LeadsService {
       throw new BadRequestException('Informe status ou stageId.');
     }
 
-    const stage = await this.resolveMoveTarget(dto.stageId, dto.status);
+    const stage = await this.leadStages.resolveStage({
+      stageId: dto.stageId,
+      status: dto.status,
+      organizationId: lead.organizationId,
+    });
     const status = this.leadStages.statusFromStage(stage);
 
     try {
@@ -628,7 +637,10 @@ export class LeadsService {
       ? LeadStatus.VENDA_FINALIZADA
       : LeadStatus.NAO_TEM_INTERESSE;
     const crmStatus = this.deriveCrmStatusFromPipeline(pipelineStatus);
-    const stage = await this.resolveStageForStatus(pipelineStatus);
+    const stage = await this.leadStages.resolveStage({
+      status: pipelineStatus,
+      organizationId: lead.organizationId,
+    });
 
     const updated = await this.prisma.lead.update({
       where: { id },
@@ -732,32 +744,34 @@ export class LeadsService {
     return lead;
   }
 
-  private async resolveMoveTarget(stageId?: string, status?: string) {
-    if (stageId) {
-      return this.leadStages.resolveStage(stageId);
+  private resolveKanbanOrganizationId(
+    user: AuthenticatedUser,
+    organizationId?: string,
+  ): string | null {
+    const requested = organizationId?.trim();
+    if (requested) return requested;
+
+    const roleName = normalizeRoleName(user.role);
+    if (
+      roleName === RoleName.CLIENT ||
+      roleName === RoleName.EXTERNAL_CLIENT_CRM
+    ) {
+      return user.clientId;
     }
 
-    if (status) {
-      const normalized = status.toUpperCase();
-      if (this.isLeadStatus(normalized)) {
-        return this.resolveStageForStatus(normalized);
-      }
-      return this.leadStages.resolveStage(status);
+    return null;
+  }
+
+  private leadMatchesStage(
+    lead: { stageId: string | null; status: LeadStatus },
+    stage: { id: string; key: string | null },
+    stages: Array<{ id: string }>,
+  ): boolean {
+    if (lead.stageId) {
+      const known = stages.some((item) => item.id === lead.stageId);
+      if (known) return lead.stageId === stage.id;
     }
-
-    throw new BadRequestException('Informe status ou stageId.');
-  }
-
-  private async resolveStageForStatus(status: LeadStatus) {
-    const stages = await this.leadStages.ensureDefaults();
-    return (
-      stages.find((stage) => stage.key === status) ??
-      stages[0]
-    );
-  }
-
-  private isLeadStatus(value: string): value is LeadStatus {
-    return (Object.values(LeadStatus) as string[]).includes(value);
+    return Boolean(stage.key) && lead.status === stage.key;
   }
 
   private notifyOrganizationRepresentatives(lead: Lead, actorId?: string) {

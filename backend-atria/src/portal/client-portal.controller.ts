@@ -71,7 +71,7 @@ export class ClientPortalController {
   async getCrmKanbanBoard(@CurrentUser() user: AuthenticatedUser) {
     const clientId = this.requireClientId(user);
     await this.requireCrmEnabled(clientId);
-    return this.leadsService.findKanbanBoard(user);
+    return this.leadsService.findKanbanBoard(user, clientId);
   }
 
   @Patch('crm/leads/:id/stage')

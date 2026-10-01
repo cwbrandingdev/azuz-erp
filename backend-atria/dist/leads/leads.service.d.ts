@@ -438,9 +438,8 @@ export declare class LeadsService {
     private findLeadForUser;
     private resolveOrganizationIdForCreate;
     private ensureLeadExists;
-    private resolveMoveTarget;
-    private resolveStageForStatus;
-    private isLeadStatus;
+    private resolveKanbanOrganizationId;
+    private leadMatchesStage;
     private notifyOrganizationRepresentatives;
     private createFollowUpReminder;
     private toReminderResponse;

@@ -1,12 +1,16 @@
-import { CreateLeadStageDto, ReorderLeadStagesDto, UpdateLeadStageDto } from '../leads/dto/lead-stage.dto';
+import { type AuthenticatedUser } from '../auth/decorators/current-user.decorator';
+import { CrmScopeService } from '../leads/crm-scope.service';
+import { CreateLeadStageDto, LeadStagesQueryDto, ReorderLeadStagesDto, UpdateLeadStageDto } from '../leads/dto/lead-stage.dto';
 import { LeadStagesService } from '../leads/lead-stages.service';
 export declare class CrmStagesController {
     private readonly leadStagesService;
-    constructor(leadStagesService: LeadStagesService);
-    findAll(): Promise<{
+    private readonly crmScope;
+    constructor(leadStagesService: LeadStagesService, crmScope: CrmScopeService);
+    findAll(user: AuthenticatedUser, query: LeadStagesQueryDto): Promise<{
         id: string;
         tenantId: string;
         companyId: string;
+        organizationId: string | null;
         name: string;
         order: number;
         color: string;
@@ -14,10 +18,11 @@ export declare class CrmStagesController {
         createdAt: string;
         updatedAt: string;
     }[]>;
-    create(dto: CreateLeadStageDto): Promise<{
+    create(user: AuthenticatedUser, dto: CreateLeadStageDto): Promise<{
         id: string;
         tenantId: string;
         companyId: string;
+        organizationId: string | null;
         name: string;
         order: number;
         color: string;
@@ -25,10 +30,11 @@ export declare class CrmStagesController {
         createdAt: string;
         updatedAt: string;
     }>;
-    reorder(dto: ReorderLeadStagesDto): Promise<{
+    reorder(user: AuthenticatedUser, dto: ReorderLeadStagesDto): Promise<{
         id: string;
         tenantId: string;
         companyId: string;
+        organizationId: string | null;
         name: string;
         order: number;
         color: string;
@@ -36,10 +42,11 @@ export declare class CrmStagesController {
         createdAt: string;
         updatedAt: string;
     }[]>;
-    update(id: string, dto: UpdateLeadStageDto): Promise<{
+    update(user: AuthenticatedUser, id: string, dto: UpdateLeadStageDto): Promise<{
         id: string;
         tenantId: string;
         companyId: string;
+        organizationId: string | null;
         name: string;
         order: number;
         color: string;
@@ -47,7 +54,9 @@ export declare class CrmStagesController {
         createdAt: string;
         updatedAt: string;
     }>;
-    remove(id: string): Promise<{
+    remove(user: AuthenticatedUser, id: string): Promise<{
         success: boolean;
     }>;
+    private assertOrganizationAccess;
+    private assertStageOrganizationAccess;
 }

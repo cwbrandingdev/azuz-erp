@@ -61,7 +61,7 @@ let ClientPortalController = class ClientPortalController {
     async getCrmKanbanBoard(user) {
         const clientId = this.requireClientId(user);
         await this.requireCrmEnabled(clientId);
-        return this.leadsService.findKanbanBoard(user);
+        return this.leadsService.findKanbanBoard(user, clientId);
     }
     async updateCrmLeadStage(user, id, dto) {
         const clientId = this.requireClientId(user);
