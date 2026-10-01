@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu, Search } from "lucide-react";
+import { AgencyLogo } from "@/components/branding/agency-logo";
 import { Button } from "@/components/ui/button";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { NotificationCenter } from "@/components/layout/notification-center";
@@ -29,10 +30,8 @@ export function AppNavbar({ onMenuClick, onSearchClick }: AppNavbarProps) {
           <BreadcrumbNav />
         </div>
 
-        <div className="min-w-0 lg:hidden">
-          <span className="text-sm font-bold text-[var(--atria-primary)]">
-            ATRIA
-          </span>
+        <div className="lg:hidden">
+          <AgencyLogo size="sm" showName={false} />
         </div>
       </div>
 
