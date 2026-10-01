@@ -65,7 +65,7 @@ export function TransactionDialog({
 
   const previousTypeRef = useRef<"income" | "expense" | null>(null);
   const categories = allCategories.filter(
-    (category) => category.code && !category.isGroup && category.type === type,
+    (category) => !category.isGroup && category.type === type,
   );
 
   useEffect(() => {
@@ -125,7 +125,9 @@ export function TransactionDialog({
   useEffect(() => {
     if (!open || categoriesLoading) return;
 
-    const typed = allCategories.filter((category) => category.type === type);
+    const typed = allCategories.filter(
+      (category) => !category.isGroup && category.type === type,
+    );
     const typeChanged = previousTypeRef.current !== type;
     previousTypeRef.current = type;
 

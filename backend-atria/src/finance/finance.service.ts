@@ -1065,7 +1065,7 @@ export class FinanceService {
         'Transaction type does not match category type',
       );
     }
-    if (category.isGroup || !category.code) {
+    if (category.isGroup) {
       throw new BadRequestException(
         'Selecione uma conta do plano de contas',
       );

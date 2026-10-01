@@ -153,38 +153,6 @@ export async function apiRequest<T>(
       data,
     );
 
-    // #region agent log
-    if (
-      endpoint.includes("/calendar/events/") &&
-      (rest.method === "DELETE" || rest.method === "delete")
-    ) {
-      fetch(
-        "http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "a29f29",
-          },
-          body: JSON.stringify({
-            sessionId: "a29f29",
-            runId: "pre-fix",
-            hypothesisId: "B,C,D,E",
-            location: "api.ts:apiRequest:calendarDeleteError",
-            message: "calendar DELETE HTTP error",
-            data: {
-              endpoint,
-              status: response.status,
-              apiMessage: error.message,
-              resolvedUrl: resolveRequestUrl(endpoint),
-            },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {});
-    }
-    // #endregion
-
     if (!skipToast && shouldShowApiErrorToast(response.status, endpoint, error.message)) {
       showApiError(error, endpoint);
     }

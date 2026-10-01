@@ -140,7 +140,7 @@ export default function FluxoDeCaixaPage() {
         <label className="flex flex-col gap-1 text-xs">CATEGORIA
           <select className="h-8 max-w-52 rounded-lg border px-2 text-sm" value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
             <option value="">Todos</option>
-            {accounts.filter((account) => account.code && !account.isGroup).map((account) => (
+            {accounts.filter((account) => !account.isGroup).map((account) => (
               <option key={account.id} value={account.id}>
                 {account.code && !account.name.toLowerCase().startsWith(account.code.toLowerCase()) ? `${account.code} ` : ""}{account.name}
               </option>

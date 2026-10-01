@@ -40,6 +40,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   formatCurrency,
   formatDate,
+  getTransactionListDateKey,
   STATUS_LABELS,
   STATUS_STYLES,
 } from "@/lib/financial-utils";
@@ -217,7 +218,7 @@ export function TransactionsTable({
                     {tx.title?.trim() || tx.description}
                   </TableCell>
                   <TableCell className="text-[var(--atria-primary)]/60">
-                    {formatDate(tx.date)}
+                    {formatDate(getTransactionListDateKey(tx))}
                   </TableCell>
                   <TableCell>
                     <Badge

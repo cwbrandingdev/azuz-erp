@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   formatCurrency,
   formatDate,
+  getTransactionListDateKey,
   STATUS_LABELS,
   STATUS_STYLES,
 } from "@/lib/financial-utils";
@@ -73,7 +74,7 @@ export function RecentTransactionsCard({
                   {transaction.title?.trim() || transaction.description}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  {formatDate(transaction.date)} · {transaction.category}
+                  {formatDate(getTransactionListDateKey(transaction))} · {transaction.category}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">

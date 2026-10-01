@@ -218,9 +218,29 @@ function LancamentosPageContent() {
   }, [filters.search]);
 
   useEffect(() => {
-    financeService.getCategories().then(setCategories).catch(() => {
-      setCategories([]);
-    });
+    financeService
+      .getChartOfAccounts()
+      .then((accounts) => {
+        setCategories(
+          accounts
+            .filter((account) => !account.isGroup)
+            .map((account) => ({
+              id: account.id,
+              name:
+                account.code &&
+                !account.name
+                  .toLowerCase()
+                  .startsWith(`${account.code.toLowerCase()} `)
+                  ? `${account.code} ${account.name}`
+                  : account.name,
+              color: account.color,
+              type: account.type,
+            })),
+        );
+      })
+      .catch(() => {
+        setCategories([]);
+      });
   }, []);
 
   useEffect(() => {
