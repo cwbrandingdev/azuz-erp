@@ -342,19 +342,28 @@ let FinanceService = class FinanceService {
         }
         const sortBy = query.sortBy ?? transaction_dto_1.TransactionSortField.DATE;
         const sortOrder = query.sortOrder ?? transaction_dto_1.SortOrder.ASC;
-        const orderBy = sortBy === transaction_dto_1.TransactionSortField.DATE
-            ? [{ date: sortOrder }, { dueDate: sortOrder }]
-            : [{ [sortBy]: sortOrder }];
-        const [total, transactions] = await Promise.all([
+        const sortByDisplayedDate = sortBy === transaction_dto_1.TransactionSortField.DATE;
+        const direction = sortOrder === transaction_dto_1.SortOrder.DESC ? -1 : 1;
+        const [total, fetched] = await Promise.all([
             this.prisma.financialTransaction.count({ where }),
             this.prisma.financialTransaction.findMany({
                 where,
                 include: { category: true },
-                orderBy,
-                skip,
-                take: limit,
+                orderBy: sortByDisplayedDate
+                    ? [{ date: sortOrder }]
+                    : [{ [sortBy]: sortOrder }],
+                ...(sortByDisplayedDate ? {} : { skip, take: limit }),
             }),
         ]);
+        const transactions = sortByDisplayedDate
+            ? [...fetched]
+                .sort((left, right) => {
+                const leftAt = (left.dueDate ?? left.date).getTime();
+                const rightAt = (right.dueDate ?? right.date).getTime();
+                return (leftAt - rightAt) * direction;
+            })
+                .slice(skip, skip + limit)
+            : fetched;
         return {
             data: transactions.map((tx) => this.toTransactionResponse(tx)),
             meta: {
