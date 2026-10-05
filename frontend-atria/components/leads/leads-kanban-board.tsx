@@ -849,6 +849,7 @@ export function LeadsKanbanBoard({
                                   <LeadKanbanCard
                                     lead={lead}
                                     columns={columns}
+                                    currentColumn={column}
                                     crmMoveZone={crmMoveZone}
                                     portalClientView={portalClientView}
                                     dragHandleProps={
