@@ -80,7 +80,7 @@ function buildDefaultFilters(
     startDate,
     endDate,
     sortBy: "date",
-    sortOrder: "desc",
+    sortOrder: "asc",
   };
 }
 
@@ -210,6 +210,12 @@ function LancamentosPageContent() {
   );
 
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e211ce'},body:JSON.stringify({sessionId:'e211ce',runId:'btn-pre',hypothesisId:'H1',location:'lancamentos/page.tsx:createOpen',message:'createOpen state',data:{createOpen,createParam:searchParams.get('create'),href:typeof window!=='undefined'?window.location.href:''},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }, [createOpen, searchParams]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(filters.search);
       setPage(1);
@@ -245,6 +251,9 @@ function LancamentosPageContent() {
 
   useEffect(() => {
     if (searchParams.get("create") !== "1") return;
+    // #region agent log
+    fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e211ce'},body:JSON.stringify({sessionId:'e211ce',runId:'btn-pre',hypothesisId:'H1',location:'lancamentos/page.tsx:createQueryEffect',message:'create=1 effect running',data:{createParam:searchParams.get('create')},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     setCreateOpen(true);
     router.replace(
       buildLancamentosHref({

@@ -49,9 +49,7 @@ function TrendBadge({ value, label }: { value: number; label: string }) {
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-        isPositive
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-red-50 text-red-600"
+        isPositive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
       }`}
     >
       <Icon className="size-3" />
@@ -84,9 +82,7 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
     const prev = enriched[enriched.length - 2];
 
     const margin =
-      finance.revenue > 0
-        ? (finance.netProfit / finance.revenue) * 100
-        : 0;
+      finance.revenue > 0 ? (finance.netProfit / finance.revenue) * 100 : 0;
 
     const best = enriched.reduce(
       (acc, item) => (item.net > acc.net ? item : acc),
@@ -95,15 +91,15 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
 
     const activeMonths = enriched.filter(
       (item) =>
-        item.month === currentMonthKey &&
-        (item.income > 0 || item.expense > 0),
+        item.month === currentMonthKey && (item.income > 0 || item.expense > 0),
     );
 
     return {
       chartData: enriched,
       profitMargin: margin,
       revenueChange: last && prev ? percentChange(last.income, prev.income) : 0,
-      expenseChange: last && prev ? percentChange(last.expense, prev.expense) : 0,
+      expenseChange:
+        last && prev ? percentChange(last.expense, prev.expense) : 0,
       bestMonth: best,
       monthsWithActivity: activeMonths,
     };
@@ -278,7 +274,9 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
               />
               <Tooltip
                 formatter={(value, name) => [
-                  formatCurrency(typeof value === "number" ? value : Number(value)),
+                  formatCurrency(
+                    typeof value === "number" ? value : Number(value),
+                  ),
                   name,
                 ]}
                 contentStyle={{
@@ -320,44 +318,48 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
               Resumo mensal
             </p>
             <div className="space-y-2">
-              {[...monthsWithActivity].reverse().slice(0, 4).map((month) => {
-                const total = month.income + month.expense;
-                const incomePct = total > 0 ? (month.income / total) * 100 : 50;
+              {[...monthsWithActivity]
+                .reverse()
+                .slice(0, 4)
+                .map((month) => {
+                  const total = month.income + month.expense;
+                  const incomePct =
+                    total > 0 ? (month.income / total) * 100 : 50;
 
-                return (
-                  <div
-                    key={month.month}
-                    className="rounded-xl border border-[var(--atria-primary)]/8 bg-[var(--atria-primary)]/[0.02] px-3 py-2"
-                  >
-                    <div className="mb-1.5 flex items-center justify-between text-xs">
-                      <span className="font-medium text-[var(--atria-primary)]">
-                        {month.label}
-                      </span>
-                      <span
-                        className={`font-semibold ${
-                          month.net >= 0 ? "text-emerald-700" : "text-red-600"
-                        }`}
-                      >
-                        {formatCompactCurrency(month.net)}
-                      </span>
+                  return (
+                    <div
+                      key={month.month}
+                      className="rounded-xl border border-[var(--atria-primary)]/8 bg-[var(--atria-primary)]/[0.02] px-3 py-2"
+                    >
+                      <div className="mb-1.5 flex items-center justify-between text-xs">
+                        <span className="font-medium text-[var(--atria-primary)]">
+                          {month.label}
+                        </span>
+                        <span
+                          className={`font-semibold ${
+                            month.net >= 0 ? "text-emerald-700" : "text-red-600"
+                          }`}
+                        >
+                          {formatCompactCurrency(month.net)}
+                        </span>
+                      </div>
+                      <div className="flex h-1.5 overflow-hidden rounded-full bg-[var(--atria-primary)]/8">
+                        <div
+                          className="h-full bg-emerald-500 transition-all"
+                          style={{ width: `${incomePct}%` }}
+                        />
+                        <div
+                          className="h-full bg-red-400 transition-all"
+                          style={{ width: `${100 - incomePct}%` }}
+                        />
+                      </div>
+                      <div className="mt-1 flex justify-between text-[10px] text-[var(--atria-primary)]/45">
+                        <span>+ {formatCompactCurrency(month.income)}</span>
+                        <span>- {formatCompactCurrency(month.expense)}</span>
+                      </div>
                     </div>
-                    <div className="flex h-1.5 overflow-hidden rounded-full bg-[var(--atria-primary)]/8">
-                      <div
-                        className="h-full bg-emerald-500 transition-all"
-                        style={{ width: `${incomePct}%` }}
-                      />
-                      <div
-                        className="h-full bg-red-400 transition-all"
-                        style={{ width: `${100 - incomePct}%` }}
-                      />
-                    </div>
-                    <div className="mt-1 flex justify-between text-[10px] text-[var(--atria-primary)]/45">
-                      <span>+ {formatCompactCurrency(month.income)}</span>
-                      <span>- {formatCompactCurrency(month.expense)}</span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
         )}
@@ -366,9 +368,14 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
           <Link
             href="/financial/lancamentos?create=1"
             className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--atria-primary)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[var(--atria-primary)]/90"
+            onClick={() => {
+              // #region agent log
+              fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e211ce'},body:JSON.stringify({sessionId:'e211ce',runId:'btn-pre',hypothesisId:'H5',location:'finance-widget.tsx:novoLink',message:'widget Novo lancamento click',data:{href:'/financial/lancamentos?create=1'},timestamp:Date.now()})}).catch(()=>{});
+              // #endregion
+            }}
           >
             <Plus className="size-3.5" />
-            Novo lançamento
+            Novo lançamentossss
           </Link>
           <Link
             href="/financial"

@@ -18,7 +18,11 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { financeService, ApiError } from "@/services";
 import { toast } from "@/lib/toast";
 import { formatLocalDate, toLocalDateIso } from "@/lib/financial-utils";
-import type { BankAccount, ChartAccount, FinanceTransaction } from "@/services/types";
+import type {
+  BankAccount,
+  ChartAccount,
+  FinanceTransaction,
+} from "@/services/types";
 import { NumericFormat } from "react-number-format";
 
 interface TransactionDialogProps {
@@ -225,6 +229,9 @@ export function TransactionDialog({
     <Dialog
       open={open}
       onOpenChange={(value) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e211ce'},body:JSON.stringify({sessionId:'e211ce',runId:'btn-pre',hypothesisId:'H2',location:'transaction-dialog.tsx:onOpenChange',message:'dialog onOpenChange',data:{value,isEdit,controlled:controlledOpen!==undefined,prevOpen:open},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         setOpen(value);
         if (!value) resetForm();
       }}
@@ -234,7 +241,14 @@ export function TransactionDialog({
       ) : !isEdit ? (
         <DialogTrigger
           render={
-            <Button className="bg-[var(--atria-primary)] text-white hover:bg-[var(--atria-primary)]/90" />
+            <Button
+              className="bg-[var(--atria-primary)] text-white hover:bg-[var(--atria-primary)]/90"
+              onClick={() => {
+                // #region agent log
+                fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e211ce'},body:JSON.stringify({sessionId:'e211ce',runId:'btn-pre',hypothesisId:'H3',location:'transaction-dialog.tsx:triggerClick',message:'Novo lancamento trigger click',data:{open,controlled:controlledOpen!==undefined,controlledOpen},timestamp:Date.now()})}).catch(()=>{});
+                // #endregion
+              }}
+            />
           }
         >
           <Plus className="size-4" />
@@ -310,7 +324,9 @@ export function TransactionDialog({
                   value={date}
                   onChange={(e) => {
                     const next = e.target.value;
-                    setDueDate((current) => (current === date ? next : current));
+                    setDueDate((current) =>
+                      current === date ? next : current,
+                    );
                     setDate(next);
                   }}
                   required
@@ -369,7 +385,9 @@ export function TransactionDialog({
                   value: cat.id,
                   label:
                     cat.code &&
-                    !cat.name.toLowerCase().startsWith(`${cat.code.toLowerCase()} `)
+                    !cat.name
+                      .toLowerCase()
+                      .startsWith(`${cat.code.toLowerCase()} `)
                       ? `${cat.code} ${cat.name}`
                       : cat.name,
                 }))}
