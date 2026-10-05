@@ -61,6 +61,14 @@ export class LeadsController {
     return this.leadSearchSessionService.listSessions(user.companyId);
   }
 
+  @Post('sessions/:id/enrich-maps')
+  enrichSearchSessionMaps(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.leadsService.enrichSearchSessionFromMaps(user, id);
+  }
+
   @Get('sessions/:id')
   getSearchSessionLeads(
     @CurrentUser() user: AuthenticatedUser,

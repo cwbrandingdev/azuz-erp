@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  BadRequestException,
   Injectable,
   Logger,
   RequestTimeoutException,
@@ -13,6 +14,7 @@ import {
   buildApifyActorInput,
   mapApifyPlaces,
 } from './apify-place.mapper';
+import { pickBestPlaceForCompany } from './company-place-match.util';
 import type { MappedPlace } from './maps-scraper.types';
 
 const OUTSCRAPER_TIMEOUT_MS = 180_000;
@@ -64,6 +66,56 @@ export class MapsScraperService {
     }
 
     return this.findLocalMappedPlaces(dto);
+  }
+
+  async lookupCompanyPlace(input: {
+    name: string;
+    legalName?: string | null;
+    city: string;
+    neighborhood?: string | null;
+  }): Promise<MappedPlace | null> {
+    const credentials = await this.resolveScraperCredentials();
+    const token = credentials.apifyApiToken;
+    const name = input.name.trim();
+    const city = input.city.trim();
+    if (!token || !name || !city) {
+      return null;
+    }
+
+    const neighborhood = input.neighborhood?.trim() || city;
+    const dto: FetchMapsLeadsDto = {
+      city,
+      category: name,
+      neighborhood,
+    };
+
+    try {
+      const places = await this.fetchFromApify(dto, token, {
+        maxResults: 3,
+        searchString: `${name}, ${city}`,
+        locationQuery: `${city}, Brasil`,
+      });
+      return pickBestPlaceForCompany(places, [name, input.legalName]);
+    } catch (error) {
+      this.logger.warn(`Maps company lookup failed: ${String(error)}`);
+      return null;
+    }
+  }
+
+  async fetchPlacesForCatalogEnrichment(
+    dto: FetchMapsLeadsDto,
+    maxResults: number,
+  ): Promise<MappedPlace[]> {
+    const credentials = await this.resolveScraperCredentials();
+    if (!credentials.apifyApiToken) {
+      throw new BadRequestException(
+        'Configure o token Apify para completar Instagram e site no Google.',
+      );
+    }
+
+    return this.fetchFromApify(dto, credentials.apifyApiToken, {
+      maxResults: Math.min(50, Math.max(1, Math.round(maxResults))),
+    });
   }
 
   private async resolveScraperCredentials() {
@@ -149,11 +201,23 @@ export class MapsScraperService {
   private async fetchFromApify(
     dto: FetchMapsLeadsDto,
     token: string,
+    options?: {
+      maxResults?: number;
+      searchString?: string;
+      locationQuery?: string;
+    },
   ): Promise<MappedPlace[]> {
     const actorId =
       this.configService.get<string>('APIFY_GOOGLE_MAPS_ACTOR') ??
       'compass~crawler-google-places';
-    const payload = this.buildApifyActorInput(dto);
+    const payload = buildApifyActorInput(
+      dto,
+      options?.maxResults ?? this.resolveApifyMaxResults(),
+      {
+        searchString: options?.searchString,
+        locationQuery: options?.locationQuery,
+      },
+    );
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), APIFY_TIMEOUT_MS);
@@ -202,10 +266,6 @@ export class MapsScraperService {
     } finally {
       clearTimeout(timeout);
     }
-  }
-
-  private buildApifyActorInput(dto: FetchMapsLeadsDto) {
-    return buildApifyActorInput(dto, this.resolveApifyMaxResults());
   }
 
   private resolveApifyMaxResults() {

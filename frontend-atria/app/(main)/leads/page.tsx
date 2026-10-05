@@ -10,8 +10,8 @@ export default function LeadsPage() {
           Buscar empresas
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-[var(--atria-primary)]/50">
-          Informe o tipo de negócio ou código CNAE, escolha a cidade e veja no
-          mapa as empresas encontradas para adicionar aos seus leads.
+          Informe o CNAE, escolha a cidade e veja empresas da Receita já
+          ranqueadas por fit comercial.
         </p>
       </div>
 

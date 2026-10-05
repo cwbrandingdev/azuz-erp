@@ -16,6 +16,7 @@ const config_1 = require("@nestjs/config");
 const company_settings_service_1 = require("../../company-settings/company-settings.service");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const apify_place_mapper_1 = require("./apify-place.mapper");
+const company_place_match_util_1 = require("./company-place-match.util");
 const OUTSCRAPER_TIMEOUT_MS = 180_000;
 const OUTSCRAPER_LIMIT = 25;
 const APIFY_TIMEOUT_MS = 180_000;
@@ -41,6 +42,42 @@ let MapsScraperService = MapsScraperService_1 = class MapsScraperService {
             return this.fetchFromOutscraper(dto, outscraperKey.trim());
         }
         return this.findLocalMappedPlaces(dto);
+    }
+    async lookupCompanyPlace(input) {
+        const credentials = await this.resolveScraperCredentials();
+        const token = credentials.apifyApiToken;
+        const name = input.name.trim();
+        const city = input.city.trim();
+        if (!token || !name || !city) {
+            return null;
+        }
+        const neighborhood = input.neighborhood?.trim() || city;
+        const dto = {
+            city,
+            category: name,
+            neighborhood,
+        };
+        try {
+            const places = await this.fetchFromApify(dto, token, {
+                maxResults: 3,
+                searchString: `${name}, ${city}`,
+                locationQuery: `${city}, Brasil`,
+            });
+            return (0, company_place_match_util_1.pickBestPlaceForCompany)(places, [name, input.legalName]);
+        }
+        catch (error) {
+            this.logger.warn(`Maps company lookup failed: ${String(error)}`);
+            return null;
+        }
+    }
+    async fetchPlacesForCatalogEnrichment(dto, maxResults) {
+        const credentials = await this.resolveScraperCredentials();
+        if (!credentials.apifyApiToken) {
+            throw new common_1.BadRequestException('Configure o token Apify para completar Instagram e site no Google.');
+        }
+        return this.fetchFromApify(dto, credentials.apifyApiToken, {
+            maxResults: Math.min(50, Math.max(1, Math.round(maxResults))),
+        });
     }
     async resolveScraperCredentials() {
         let tenantApifyApiToken = null;
@@ -102,10 +139,13 @@ let MapsScraperService = MapsScraperService_1 = class MapsScraperService {
             clearTimeout(timeout);
         }
     }
-    async fetchFromApify(dto, token) {
+    async fetchFromApify(dto, token, options) {
         const actorId = this.configService.get('APIFY_GOOGLE_MAPS_ACTOR') ??
             'compass~crawler-google-places';
-        const payload = this.buildApifyActorInput(dto);
+        const payload = (0, apify_place_mapper_1.buildApifyActorInput)(dto, options?.maxResults ?? this.resolveApifyMaxResults(), {
+            searchString: options?.searchString,
+            locationQuery: options?.locationQuery,
+        });
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), APIFY_TIMEOUT_MS);
         try {
@@ -142,9 +182,6 @@ let MapsScraperService = MapsScraperService_1 = class MapsScraperService {
         finally {
             clearTimeout(timeout);
         }
-    }
-    buildApifyActorInput(dto) {
-        return (0, apify_place_mapper_1.buildApifyActorInput)(dto, this.resolveApifyMaxResults());
     }
     resolveApifyMaxResults() {
         const configured = Number(this.configService.get('APIFY_MAX_RESULTS'));

@@ -14,6 +14,7 @@ const class_validator_1 = require("class-validator");
 const entity_id_1 = require("../../common/validation/entity-id");
 class CreateCrmLeadDto {
     name;
+    contactName;
     phone;
     email;
     website;
@@ -33,6 +34,12 @@ __decorate([
     (0, class_validator_1.MaxLength)(255),
     __metadata("design:type", String)
 ], CreateCrmLeadDto.prototype, "name", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], CreateCrmLeadDto.prototype, "contactName", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
@@ -84,7 +91,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MaxLength)(64),
+    (0, class_validator_1.MaxLength)(255),
     __metadata("design:type", String)
 ], CreateCrmLeadDto.prototype, "source", void 0);
 __decorate([

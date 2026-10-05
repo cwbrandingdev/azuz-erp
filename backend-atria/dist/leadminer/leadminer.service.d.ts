@@ -41,6 +41,7 @@ export declare class LeadminerService {
         id: string;
         companyId: string;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;

@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, MessageCircle, Phone, Send } from "lucide-react";
+import { Loader2, MessageCircle, Phone, Save, Send } from "lucide-react";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
-import { LeadLocationText } from "@/components/leads/lead-location-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { getInitials } from "@/lib/kanban-utils";
 import {
   getLeadStatusColor,
@@ -51,6 +51,37 @@ interface LeadDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   portalClientView?: boolean;
+  onUpdated?: (lead: Lead) => void;
+}
+
+const EMPTY_EDIT = {
+  name: "",
+  contactName: "",
+  phone: "",
+  email: "",
+  website: "",
+  instagram: "",
+  category: "",
+  city: "",
+  neighborhood: "",
+  address: "",
+  source: "",
+};
+
+function formFromLead(lead: Lead) {
+  return {
+    name: lead.name ?? "",
+    contactName: lead.contactName ?? "",
+    phone: lead.phone ?? "",
+    email: lead.email ?? "",
+    website: lead.website ?? "",
+    instagram: lead.instagram ?? "",
+    category: lead.category ?? "",
+    city: lead.city ?? "",
+    neighborhood: lead.neighborhood ?? "",
+    address: lead.address ?? "",
+    source: lead.source && lead.source.toLowerCase() !== "manual" ? lead.source : "",
+  };
 }
 
 export function LeadDetailDialog({
@@ -58,6 +89,7 @@ export function LeadDetailDialog({
   open,
   onOpenChange,
   portalClientView = false,
+  onUpdated,
 }: LeadDetailDialogProps) {
   const [comments, setComments] = useState<LeadComment[]>([]);
   const [calls, setCalls] = useState<LeadCall[]>([]);
@@ -65,9 +97,12 @@ export function LeadDetailDialog({
   const [loadingCalls, setLoadingCalls] = useState(false);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(EMPTY_EDIT);
 
   useEffect(() => {
     if (!open || !lead) return;
+    setForm(formFromLead(lead));
 
     let cancelled = false;
     setLoadingComments(true);
@@ -156,6 +191,44 @@ export function LeadDetailDialog({
     }
   }
 
+  function updateField(field: keyof typeof EMPTY_EDIT, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    if (!lead || portalClientView) return;
+
+    const name = form.name.trim();
+    if (!name) {
+      toast.error("Informe o nome da empresa ou contato.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updated = await leadsService.updateLead(lead.id, {
+        name,
+        contactName: form.contactName.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        website: form.website.trim(),
+        instagram: form.instagram.trim(),
+        category: form.category.trim(),
+        city: form.city.trim(),
+        neighborhood: form.neighborhood.trim(),
+        address: form.address.trim(),
+        source: form.source.trim(),
+      });
+      onUpdated?.(updated);
+      toast.success("Lead atualizado.");
+    } catch {
+      /* toast handled by api */
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (!lead) return null;
 
   const statusColor = lead.statusColor ?? getLeadStatusColor(lead.status);
@@ -165,7 +238,7 @@ export function LeadDetailDialog({
       <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogHeader className="border-b border-[var(--atria-primary)]/10 px-6 py-4">
           <DialogTitle className="text-[var(--atria-primary)]">
-            {lead.name}
+            {form.name.trim() || lead.name}
           </DialogTitle>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Badge
@@ -174,26 +247,174 @@ export function LeadDetailDialog({
             >
               {getLeadStatusLabel(lead.status)}
             </Badge>
-            {lead.category && (
-              <Badge variant="secondary">{lead.category}</Badge>
+            {(form.category || lead.category) && (
+              <Badge variant="secondary">
+                {form.category || lead.category}
+              </Badge>
+            )}
+            {form.source && (
+              <Badge variant="outline">{form.source}</Badge>
             )}
           </div>
         </DialogHeader>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
-          <div className="space-y-2 text-sm text-[var(--atria-primary)]/70">
-            <div className="flex items-center justify-between gap-2">
+          {portalClientView ? (
+            <div className="space-y-2 text-sm text-[var(--atria-primary)]/70">
+              {lead.contactName && <p>Fala com: {lead.contactName}</p>}
               <p>{lead.phone ?? "Sem telefone"}</p>
-              {!portalClientView && <LeadCallButton lead={lead} />}
+              {lead.email && <p>{lead.email}</p>}
+              {(lead.neighborhood || lead.city || lead.address) && (
+                <p>
+                  {[lead.address, lead.neighborhood, lead.city]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
             </div>
-            {lead.email && <p>{lead.email}</p>}
-            {(lead.neighborhood || lead.city || lead.address) && (
-              <LeadLocationText
-                lead={lead}
-                primaryClassName="text-sm text-[var(--atria-primary)]/70"
-              />
-            )}
-          </div>
+          ) : (
+            <form
+              onSubmit={(event) => void handleSave(event)}
+              className="space-y-3 rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02] p-4"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-[var(--atria-primary)]">
+                  Dados do lead
+                </h3>
+                <LeadCallButton lead={{ ...lead, ...form, phone: form.phone || lead.phone }} />
+              </div>
+              <Field>
+                <FieldLabel htmlFor="lead-edit-name">Empresa / Nome</FieldLabel>
+                <Input
+                  id="lead-edit-name"
+                  value={form.name}
+                  onChange={(event) => updateField("name", event.target.value)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="lead-edit-contact">
+                  Com quem estamos falando
+                </FieldLabel>
+                <Input
+                  id="lead-edit-contact"
+                  value={form.contactName}
+                  onChange={(event) =>
+                    updateField("contactName", event.target.value)
+                  }
+                  placeholder="Ex.: Maria Silva"
+                />
+              </Field>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="lead-edit-phone">Telefone</FieldLabel>
+                  <Input
+                    id="lead-edit-phone"
+                    value={form.phone}
+                    onChange={(event) => updateField("phone", event.target.value)}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="lead-edit-email">E-mail</FieldLabel>
+                  <Input
+                    id="lead-edit-email"
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => updateField("email", event.target.value)}
+                  />
+                </Field>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="lead-edit-website">Website</FieldLabel>
+                  <Input
+                    id="lead-edit-website"
+                    value={form.website}
+                    onChange={(event) =>
+                      updateField("website", event.target.value)
+                    }
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="lead-edit-instagram">Instagram</FieldLabel>
+                  <Input
+                    id="lead-edit-instagram"
+                    value={form.instagram}
+                    onChange={(event) =>
+                      updateField("instagram", event.target.value)
+                    }
+                  />
+                </Field>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="lead-edit-category">Categoria</FieldLabel>
+                  <Input
+                    id="lead-edit-category"
+                    value={form.category}
+                    onChange={(event) =>
+                      updateField("category", event.target.value)
+                    }
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="lead-edit-source">Origem</FieldLabel>
+                  <Input
+                    id="lead-edit-source"
+                    value={form.source}
+                    onChange={(event) =>
+                      updateField("source", event.target.value)
+                    }
+                    placeholder="Ex.: indicação, Instagram"
+                  />
+                </Field>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="lead-edit-city">Cidade</FieldLabel>
+                  <Input
+                    id="lead-edit-city"
+                    value={form.city}
+                    onChange={(event) => updateField("city", event.target.value)}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="lead-edit-neighborhood">Bairro</FieldLabel>
+                  <Input
+                    id="lead-edit-neighborhood"
+                    value={form.neighborhood}
+                    onChange={(event) =>
+                      updateField("neighborhood", event.target.value)
+                    }
+                  />
+                </Field>
+              </div>
+              <Field>
+                <FieldLabel htmlFor="lead-edit-address">Endereço</FieldLabel>
+                <Input
+                  id="lead-edit-address"
+                  value={form.address}
+                  onChange={(event) =>
+                    updateField("address", event.target.value)
+                  }
+                />
+              </Field>
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={saving}
+                  className="gap-2 bg-[var(--atria-primary)] text-white"
+                >
+                  {saving ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Save className="size-3.5" />
+                  )}
+                  Salvar alterações
+                </Button>
+              </div>
+            </form>
+          )}
 
           {!portalClientView && (
             <section className="rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02] p-4">

@@ -1173,10 +1173,60 @@ model LeadSearchSession {
   @@map("lead_search_sessions")
 }
 
+model ProspectCompany {
+  id                     String             @id @default(uuid())
+  cnpj                   String             @unique
+  legalName              String             @map("legal_name")
+  tradeName              String?            @map("trade_name")
+  phone                  String
+  email                  String?
+  street                 String?
+  number                 String?
+  neighborhood           String?
+  neighborhoodNormalized String?            @map("neighborhood_normalized")
+  city                   String
+  cityNormalized         String             @map("city_normalized")
+  uf                     String
+  postalCode             String?            @map("postal_code")
+  municipalityCode       String?            @map("municipality_code")
+  address                String?
+  primaryCnae            String             @map("primary_cnae")
+  primaryCnaeDescription String?            @map("primary_cnae_description")
+  secondaryCnaes         String[]           @default([]) @map("secondary_cnaes")
+  shareCapital           Float?             @map("share_capital")
+  companySize            String?            @map("company_size")
+  isMei                  Boolean            @default(false) @map("is_mei")
+  isSimples              Boolean            @default(false) @map("is_simples")
+  registryScore          Int                @map("registry_score")
+  commercialScore        Int                @map("commercial_score")
+  blendedScore           Int                @map("blended_score")
+  verdict                ProspectFitVerdict
+  qualified              Boolean            @default(false)
+  notes                  String?
+  source                 String             @default("receita")
+  ingestedAt             DateTime           @default(now()) @map("ingested_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  @@index([uf, cityNormalized, primaryCnae])
+  @@index([uf, primaryCnae, blendedScore(sort: Desc)])
+  @@index([qualified, blendedScore(sort: Desc)])
+  @@map("prospect_companies")
+}
+
+model ProspectCnae {
+  code                  String @id
+  description           String
+  descriptionNormalized String @map("description_normalized")
+
+  @@index([descriptionNormalized])
+  @@map("prospect_cnaes")
+}
+
 model Lead {
   id             String            @id @default(uuid())
   companyId      String            @default("00000000-0000-4000-8000-000000000001")
   name           String
+  contactName    String?           @map("contact_name")
   phone          String?
   email          String?
   website        String?
@@ -1530,6 +1580,13 @@ enum ClientRequestStatus {
 enum LeadSearchQueryType {
   NICHO
   CNAE
+}
+
+enum ProspectFitVerdict {
+  high
+  medium
+  low
+  do_not_prioritize
 }
 
 enum LeadStatus {

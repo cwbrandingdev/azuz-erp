@@ -1,15 +1,15 @@
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { LeadMinerClient } from '../infrastructure/lead-miner.client';
 import { CnaeResolverService } from './cnae-resolver.service';
-import { CompanyDiscoveryService } from './company-discovery.service';
+import { ProspectCompanyCatalogService } from './prospect-company-catalog.service';
 import type { B2bLeadSearchDto } from '../dto/b2b-lead-search.dto';
+export declare const CATALOG_PREVIEW_ID_PREFIX = "external:cnpj:";
+export declare function catalogPreviewId(cnpj: string): string;
+export declare function isCatalogPreviewId(id: string): boolean;
 export declare class LeadSearchSessionService {
     private readonly prisma;
-    private readonly companyDiscovery;
-    private readonly leadMinerClient;
+    private readonly prospectCatalog;
     private readonly cnaeResolver;
-    constructor(prisma: PrismaService, companyDiscovery: CompanyDiscoveryService, leadMinerClient: LeadMinerClient, cnaeResolver: CnaeResolverService);
+    constructor(prisma: PrismaService, prospectCatalog: ProspectCompanyCatalogService, cnaeResolver: CnaeResolverService);
     search(tenantId: string | null | undefined, dto: B2bLeadSearchDto): Promise<{
         session: {
             id: string;
@@ -21,13 +21,14 @@ export declare class LeadSearchSessionService {
             createdAt: string;
             leadsCount: number;
         };
-        leads: {
+        leads: ({
             id: string;
             companyId: string;
             tenantId: string;
             searchSessionId: string | null;
             organizationId: string | null;
             name: string;
+            contactName: string | null;
             phone: string | null;
             email: string | null;
             website: string | null;
@@ -50,10 +51,43 @@ export declare class LeadSearchSessionService {
             aiScore: number | null;
             aiNotes: string | null;
             source: string;
-            rawData: Prisma.JsonValue;
+            rawData: import("@prisma/client/runtime/library").JsonValue;
             createdAt: string;
             updatedAt: string;
-        }[];
+        } | {
+            id: string;
+            companyId: string;
+            tenantId: string;
+            searchSessionId: string;
+            organizationId: null;
+            name: string;
+            contactName: null;
+            phone: string | null;
+            email: string | null;
+            website: string | null;
+            instagram: string | null;
+            address: string | null;
+            city: string | null;
+            neighborhood: string | null;
+            category: string | null;
+            placeId: string | null;
+            rating: number | null;
+            reviewsCount: number | null;
+            latitude: number | null;
+            longitude: number | null;
+            status: "PRE_VENDA";
+            stageId: null;
+            crmStatus: "ACTIVE";
+            isMinimized: boolean;
+            kanbanTracked: boolean;
+            kanbanOrder: number;
+            aiScore: number | null;
+            aiNotes: string | null;
+            source: string;
+            rawData: Record<string, unknown>;
+            createdAt: string;
+            updatedAt: string;
+        })[];
     }>;
     listSessions(tenantId: string | null | undefined): Promise<{
         id: string;
@@ -76,13 +110,14 @@ export declare class LeadSearchSessionService {
             createdAt: string;
             leadsCount: number;
         };
-        leads: {
+        leads: ({
             id: string;
             companyId: string;
             tenantId: string;
             searchSessionId: string | null;
             organizationId: string | null;
             name: string;
+            contactName: string | null;
             phone: string | null;
             email: string | null;
             website: string | null;
@@ -105,21 +140,49 @@ export declare class LeadSearchSessionService {
             aiScore: number | null;
             aiNotes: string | null;
             source: string;
-            rawData: Prisma.JsonValue;
+            rawData: import("@prisma/client/runtime/library").JsonValue;
             createdAt: string;
             updatedAt: string;
-        }[];
+        } | {
+            id: string;
+            companyId: string;
+            tenantId: string;
+            searchSessionId: string;
+            organizationId: null;
+            name: string;
+            contactName: null;
+            phone: string | null;
+            email: string | null;
+            website: string | null;
+            instagram: string | null;
+            address: string | null;
+            city: string | null;
+            neighborhood: string | null;
+            category: string | null;
+            placeId: string | null;
+            rating: number | null;
+            reviewsCount: number | null;
+            latitude: number | null;
+            longitude: number | null;
+            status: "PRE_VENDA";
+            stageId: null;
+            crmStatus: "ACTIVE";
+            isMinimized: boolean;
+            kanbanTracked: boolean;
+            kanbanOrder: number;
+            aiScore: number | null;
+            aiNotes: string | null;
+            source: string;
+            rawData: Record<string, unknown>;
+            createdAt: string;
+            updatedAt: string;
+        })[];
     }>;
     private discoverCandidates;
-    private discoverViaLeadMiner;
-    private mergeDiscoveredCandidates;
-    private mergeCandidates;
-    private isContactRichSource;
-    private buildCandidateKey;
-    private isSameBusiness;
-    private normalizeCandidateName;
-    private findExistingLead;
-    private buildLeadUpdateFromCandidate;
+    private hydrateCandidates;
+    private candidateScore;
+    private candidateNotes;
+    private toPreviewLeadResponse;
     private toSessionResponse;
     private toLeadResponse;
 }

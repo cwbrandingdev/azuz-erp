@@ -26,6 +26,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "seed:master": "ts-node prisma/scripts/create-master-user.ts",
+    "ingest:cnpj": "ts-node prisma/scripts/ingest-receita-cnpj.ts",
     "copy:client-logins": "node scripts/copy-client-logins-from-public.mjs",
     "test:client-portal-live": "node scripts/test-client-portal-live.mjs"
   },

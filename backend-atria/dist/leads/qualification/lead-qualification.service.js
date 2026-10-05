@@ -14,6 +14,8 @@ const common_1 = require("@nestjs/common");
 const commercial_fit_service_1 = require("./commercial-fit.service");
 const company_lookup_service_1 = require("../company-lookup/application/company-lookup.service");
 const instagram_apify_enricher_1 = require("./instagram-apify.enricher");
+const maps_scraper_service_1 = require("../maps-scraper/maps-scraper.service");
+const maps_contact_merge_util_1 = require("../maps-scraper/maps-contact-merge.util");
 const registry_signals_util_1 = require("./registry-signals.util");
 const QUALIFIED_THRESHOLD = 60;
 const INSTAGRAM_CACHE_MS = 72 * 60 * 60 * 1000;
@@ -23,20 +25,36 @@ let LeadQualificationService = class LeadQualificationService {
     instagramEnricher;
     commercialFit;
     companyLookup;
-    constructor(instagramEnricher, commercialFit, companyLookup) {
+    mapsScraper;
+    constructor(instagramEnricher, commercialFit, companyLookup, mapsScraper) {
         this.instagramEnricher = instagramEnricher;
         this.commercialFit = commercialFit;
         this.companyLookup = companyLookup;
+        this.mapsScraper = mapsScraper;
     }
     async qualifyLead(lead, apifyToken) {
-        const [instagramOutcome, enrichedLead] = await Promise.all([
-            this.resolveInstagramData(lead, apifyToken),
-            this.enrichLeadRegistry(lead),
+        const withWebsiteInstagram = this.promoteInstagramFromWebsite(lead);
+        const [instagramOutcome, enrichedLead, mapsOutcome] = await Promise.all([
+            this.resolveInstagramData(withWebsiteInstagram, apifyToken),
+            this.enrichLeadRegistry(withWebsiteInstagram),
+            this.enrichLeadFromMaps(withWebsiteInstagram, apifyToken),
         ]);
-        const instagramData = instagramOutcome.data;
-        const usedApify = instagramOutcome.usedApify;
-        const commercialFit = await this.commercialFit.assess(enrichedLead, instagramData);
-        const { score: operationalScore, factors: operationalFactors } = this.computeOperationalScoreBreakdown(enrichedLead, instagramData);
+        const workingLead = {
+            ...enrichedLead,
+            ...mapsOutcome.updates,
+            rawData: mapsOutcome.rawData ?? enrichedLead.rawData,
+        };
+        const instagramHandle = workingLead.instagram?.trim();
+        let instagramData = instagramOutcome.data;
+        let usedInstagramApify = instagramOutcome.usedApify;
+        if (!instagramData && apifyToken && instagramHandle?.trim()) {
+            const lateInstagram = await this.resolveInstagramData({ ...workingLead, instagram: instagramHandle }, apifyToken);
+            instagramData = lateInstagram.data;
+            usedInstagramApify = lateInstagram.usedApify;
+        }
+        const usedApify = usedInstagramApify || mapsOutcome.usedApify;
+        const commercialFit = await this.commercialFit.assess(workingLead, instagramData);
+        const { score: operationalScore, factors: operationalFactors } = this.computeOperationalScoreBreakdown(workingLead, instagramData);
         let commercialScore = commercialFit.commercialScore;
         const commercialFactors = [
             {
@@ -57,11 +75,11 @@ let LeadQualificationService = class LeadQualificationService {
             score = Math.min(score, 35);
         }
         const qualified = score >= QUALIFIED_THRESHOLD;
-        const mergedRawData = this.mergeQualificationRawData(enrichedLead, {
+        const mergedRawData = this.mergeQualificationRawData(workingLead, {
             instagram: instagramData,
             commercialFit,
         });
-        const notes = this.buildNotes(enrichedLead, instagramData, score, operationalScore, commercialScore, commercialFit, operationalFactors, commercialFactors, usedApify);
+        const notes = this.buildNotes(workingLead, instagramData, score, operationalScore, commercialScore, commercialFit, operationalFactors, commercialFactors, usedInstagramApify, mapsOutcome.usedApify);
         return {
             score,
             operationalScore,
@@ -71,6 +89,14 @@ let LeadQualificationService = class LeadQualificationService {
             instagram: instagramData,
             commercialFit,
             usedApify,
+            usedMaps: mapsOutcome.usedApify,
+            contactUpdates: {
+                ...(withWebsiteInstagram.instagram &&
+                    withWebsiteInstagram.instagram !== lead.instagram
+                    ? { instagram: withWebsiteInstagram.instagram }
+                    : {}),
+                ...mapsOutcome.updates,
+            },
             mergedRawData,
         };
     }
@@ -89,6 +115,70 @@ let LeadQualificationService = class LeadQualificationService {
         catch {
             return { data: null, usedApify: false };
         }
+    }
+    promoteInstagramFromWebsite(lead) {
+        if (lead.instagram?.trim()) {
+            return lead;
+        }
+        const fromWebsite = (0, maps_contact_merge_util_1.instagramUrlFromValue)(lead.website);
+        if (!fromWebsite) {
+            return lead;
+        }
+        return { ...lead, instagram: fromWebsite };
+    }
+    async enrichLeadFromMaps(lead, apifyToken) {
+        const empty = {
+            lead,
+            updates: {},
+            usedApify: false,
+            rawData: lead.rawData,
+        };
+        if (!(0, maps_contact_merge_util_1.leadNeedsMapsContactEnrichment)(lead) || !lead.city?.trim()) {
+            return empty;
+        }
+        const cached = (0, maps_contact_merge_util_1.readCachedMapsEnrichment)(lead.rawData);
+        if (cached) {
+            return empty;
+        }
+        if (!apifyToken) {
+            return empty;
+        }
+        const place = await this.mapsScraper.lookupCompanyPlace({
+            name: lead.name,
+            legalName: (0, registry_signals_util_1.readLegalNameFromRawData)(lead.rawData),
+            city: lead.city,
+            neighborhood: lead.neighborhood,
+        });
+        const fetchedAt = new Date().toISOString();
+        if (!place) {
+            return {
+                lead,
+                updates: {},
+                usedApify: true,
+                rawData: (0, maps_contact_merge_util_1.mergeMapsEnrichmentIntoRawData)(lead.rawData, {
+                    fetchedAt,
+                    provider: 'apify',
+                    matchedName: null,
+                }),
+            };
+        }
+        const updates = (0, maps_contact_merge_util_1.contactGapsFromPlace)(lead, place);
+        const rawData = (0, maps_contact_merge_util_1.mergeMapsEnrichmentIntoRawData)(lead.rawData, {
+            fetchedAt,
+            provider: 'apify',
+            matchedName: place.name,
+            placeId: place.placeId,
+            instagram: updates.instagram ?? place.instagram,
+            website: updates.website ?? place.website,
+            rating: updates.rating ?? place.rating,
+            reviewsCount: updates.reviewsCount ?? place.reviewsCount,
+        });
+        return {
+            lead: { ...lead, ...updates, rawData },
+            updates,
+            usedApify: true,
+            rawData,
+        };
     }
     async enrichLeadRegistry(lead) {
         if ((0, registry_signals_util_1.readCachedRegistrySnapshot)(lead.rawData)) {
@@ -244,7 +334,7 @@ let LeadQualificationService = class LeadQualificationService {
             factors,
         };
     }
-    buildNotes(lead, instagram, score, operationalScore, commercialScore, commercialFit, operationalFactors, commercialFactors, usedApify) {
+    buildNotes(lead, instagram, score, operationalScore, commercialScore, commercialFit, operationalFactors, commercialFactors, usedInstagramApify, usedMaps) {
         const lines = [];
         lines.push(`Score final ${score}/100 (operacional ${operationalScore}, comercial ${commercialScore}). Limite sugerido: ≥ ${QUALIFIED_THRESHOLD}.`);
         lines.push('');
@@ -297,12 +387,15 @@ let LeadQualificationService = class LeadQualificationService {
             if (instagram.daysSinceLastPost != null) {
                 lines.push(`• Último post há ${instagram.daysSinceLastPost} dia(s).`);
             }
-            if (usedApify) {
+            if (usedInstagramApify) {
                 lines.push('• Instagram via Apify.');
             }
         }
         else if (lead.instagram?.trim()) {
             lines.push('Instagram informado, mas sem dados (Apify indisponível ou perfil restrito).');
+        }
+        if (usedMaps) {
+            lines.push('• Contatos (Instagram/site/avaliação) via Google Maps (Apify).');
         }
         lines.push('');
         lines.push('Composição operacional:');
@@ -377,6 +470,7 @@ exports.LeadQualificationService = LeadQualificationService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [instagram_apify_enricher_1.InstagramApifyEnricher,
         commercial_fit_service_1.CommercialFitService,
-        company_lookup_service_1.CompanyLookupService])
+        company_lookup_service_1.CompanyLookupService,
+        maps_scraper_service_1.MapsScraperService])
 ], LeadQualificationService);
 //# sourceMappingURL=lead-qualification.service.js.map

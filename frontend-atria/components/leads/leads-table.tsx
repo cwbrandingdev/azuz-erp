@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   ChevronLeft,
@@ -43,6 +43,7 @@ import {
 import {
   commercialFitBadgeVariant,
   commercialFitLabel,
+  isRegistryQualified,
   readCommercialFit,
 } from "@/lib/lead-qualification-utils";
 import type { Lead, LeadStatus } from "@/services/types";
@@ -76,7 +77,7 @@ interface LeadsTableProps {
   onAddToKanban: (lead: Lead) => void;
 }
 
-const LEADS_PAGE_SIZE = 30;
+const LEADS_PAGE_SIZE = 25;
 
 export function LeadsTable({
   leads,
@@ -88,6 +89,8 @@ export function LeadsTable({
   onAddToKanban,
 }: LeadsTableProps) {
   const dialer = useOptionalDialer();
+  const listTopRef = useRef<HTMLDivElement>(null);
+  const skipScrollOnMount = useRef(true);
   const [exporting, setExporting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -134,6 +137,14 @@ export function LeadsTable({
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
+
+  useEffect(() => {
+    if (skipScrollOnMount.current) {
+      skipScrollOnMount.current = false;
+      return;
+    }
+    listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [page]);
 
   async function handleExport() {
     if (leads.length === 0) return;
@@ -221,7 +232,7 @@ export function LeadsTable({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div ref={listTopRef} className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium text-[var(--atria-primary)]">
@@ -271,7 +282,8 @@ export function LeadsTable({
       </div>
 
       <div className="grid gap-3 md:hidden">
-        {paginatedLeads.map((lead) => {
+        {paginatedLeads.map((lead, index) => {
+          const position = (page - 1) * LEADS_PAGE_SIZE + index + 1;
           const isQualifying = qualifyingId === lead.id;
           const isAdding = addingKanbanId === lead.id;
           const isCopied = copiedId === lead.id;
@@ -294,8 +306,13 @@ export function LeadsTable({
                     />
                   )}
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-[var(--atria-primary)]">
-                      {lead.name}
+                    <p className="flex min-w-0 items-baseline gap-2">
+                      <span className="shrink-0 tabular-nums text-xs font-semibold text-[var(--atria-primary)]/40">
+                        {position}
+                      </span>
+                      <span className="truncate font-semibold text-[var(--atria-primary)]">
+                        {lead.name}
+                      </span>
                     </p>
                   {lead.category && (
                     <p className="mt-0.5 text-xs text-[var(--atria-primary)]/50">
@@ -481,7 +498,8 @@ export function LeadsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedLeads.map((lead) => {
+              {paginatedLeads.map((lead, index) => {
+                const position = (page - 1) * LEADS_PAGE_SIZE + index + 1;
                 const isQualifying = qualifyingId === lead.id;
                 const isAdding = addingKanbanId === lead.id;
                 const isCopied = copiedId === lead.id;
@@ -504,8 +522,13 @@ export function LeadsTable({
                     ) : null}
                     <TableCell className="max-w-[220px]">
                       <div className="min-w-0">
-                        <div className="truncate font-medium text-[var(--atria-primary)]">
-                          {lead.name}
+                        <div className="flex min-w-0 items-baseline gap-2">
+                          <span className="shrink-0 tabular-nums text-xs font-semibold text-[var(--atria-primary)]/40">
+                            {position}
+                          </span>
+                          <span className="truncate font-medium text-[var(--atria-primary)]">
+                            {lead.name}
+                          </span>
                         </div>
                         {lead.website && (
                           <a
@@ -598,6 +621,14 @@ export function LeadsTable({
                               </Badge>
                             );
                           })()}
+                          {isRegistryQualified(lead.rawData) ? (
+                            <Badge
+                              variant="success"
+                              className="w-fit text-[10px]"
+                            >
+                              Qualificado
+                            </Badge>
+                          ) : null}
                         </div>
                       ) : (
                         "—"
@@ -680,34 +711,41 @@ export function LeadsTable({
       </Card>
 
       {totalPages > 1 && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[var(--atria-primary)]/60">
+        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--atria-primary)]/15 bg-white p-4 sm:p-5">
+          <p className="text-center text-sm font-medium text-[var(--atria-primary)]">
             Página {page} de {totalPages}
+            <span className="font-normal text-[var(--atria-primary)]/55">
+              {" "}
+              · {rangeStart}–{rangeEnd} de {leads.length}
+            </span>
           </p>
-          <div className="flex items-center gap-2">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
             <Button
               type="button"
               variant="outline"
-              size="sm"
               disabled={page <= 1}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
-              className="gap-1"
+              className="h-14 gap-2 rounded-xl border-[var(--atria-primary)]/20 text-base font-semibold text-[var(--atria-primary)]"
             >
-              <ChevronLeft className="size-4" />
-              Anterior
+              <ChevronLeft className="size-6" />
+              Página anterior
             </Button>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
               disabled={page >= totalPages}
               onClick={() =>
                 setPage((current) => Math.min(totalPages, current + 1))
               }
-              className="gap-1"
+              className="h-16 gap-2 rounded-xl bg-[var(--atria-primary)] px-5 text-lg font-semibold text-white hover:bg-[var(--atria-primary)]/90"
             >
-              Próxima
-              <ChevronRight className="size-4" />
+              Próxima página
+              {page < totalPages ? (
+                <span className="text-sm font-normal text-white/80">
+                  {page * LEADS_PAGE_SIZE + 1}–
+                  {Math.min((page + 1) * LEADS_PAGE_SIZE, leads.length)}
+                </span>
+              ) : null}
+              <ChevronRight className="size-6" />
             </Button>
           </div>
         </div>

@@ -21,6 +21,7 @@ export declare class LeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -64,6 +65,7 @@ export declare class LeadsController {
                 searchSessionId: string | null;
                 organizationId: string | null;
                 name: string;
+                contactName: string | null;
                 phone: string | null;
                 email: string | null;
                 website: string | null;
@@ -107,7 +109,7 @@ export declare class LeadsController {
         createdAt: string;
         leadsCount: number;
     }[]>;
-    getSearchSessionLeads(user: AuthenticatedUser, id: string): Promise<{
+    enrichSearchSessionMaps(user: AuthenticatedUser, id: string): Promise<{
         session: {
             id: string;
             tenantId: string;
@@ -118,13 +120,14 @@ export declare class LeadsController {
             createdAt: string;
             leadsCount: number;
         };
-        leads: {
+        leads: ({
             id: string;
             companyId: string;
             tenantId: string;
             searchSessionId: string | null;
             organizationId: string | null;
             name: string;
+            contactName: string | null;
             phone: string | null;
             email: string | null;
             website: string | null;
@@ -150,7 +153,121 @@ export declare class LeadsController {
             rawData: import("@prisma/client/runtime/library").JsonValue;
             createdAt: string;
             updatedAt: string;
-        }[];
+        } | {
+            id: string;
+            companyId: string;
+            tenantId: string;
+            searchSessionId: string;
+            organizationId: null;
+            name: string;
+            contactName: null;
+            phone: string | null;
+            email: string | null;
+            website: string | null;
+            instagram: string | null;
+            address: string | null;
+            city: string | null;
+            neighborhood: string | null;
+            category: string | null;
+            placeId: string | null;
+            rating: number | null;
+            reviewsCount: number | null;
+            latitude: number | null;
+            longitude: number | null;
+            status: "PRE_VENDA";
+            stageId: null;
+            crmStatus: "ACTIVE";
+            isMinimized: boolean;
+            kanbanTracked: boolean;
+            kanbanOrder: number;
+            aiScore: number | null;
+            aiNotes: string | null;
+            source: string;
+            rawData: Record<string, unknown>;
+            createdAt: string;
+            updatedAt: string;
+        })[];
+        matched: number;
+        updated: number;
+    }>;
+    getSearchSessionLeads(user: AuthenticatedUser, id: string): Promise<{
+        session: {
+            id: string;
+            tenantId: string;
+            queryType: import("@prisma/client").$Enums.LeadSearchQueryType;
+            queryValue: string;
+            city: string;
+            uf: string;
+            createdAt: string;
+            leadsCount: number;
+        };
+        leads: ({
+            id: string;
+            companyId: string;
+            tenantId: string;
+            searchSessionId: string | null;
+            organizationId: string | null;
+            name: string;
+            contactName: string | null;
+            phone: string | null;
+            email: string | null;
+            website: string | null;
+            instagram: string | null;
+            address: string | null;
+            city: string | null;
+            neighborhood: string | null;
+            category: string | null;
+            placeId: string | null;
+            rating: number | null;
+            reviewsCount: number | null;
+            latitude: number | null;
+            longitude: number | null;
+            status: import("@prisma/client").$Enums.LeadStatus;
+            stageId: string | null;
+            crmStatus: import("@prisma/client").$Enums.CrmLeadStatus;
+            isMinimized: boolean;
+            kanbanTracked: boolean;
+            kanbanOrder: number;
+            aiScore: number | null;
+            aiNotes: string | null;
+            source: string;
+            rawData: import("@prisma/client/runtime/library").JsonValue;
+            createdAt: string;
+            updatedAt: string;
+        } | {
+            id: string;
+            companyId: string;
+            tenantId: string;
+            searchSessionId: string;
+            organizationId: null;
+            name: string;
+            contactName: null;
+            phone: string | null;
+            email: string | null;
+            website: string | null;
+            instagram: string | null;
+            address: string | null;
+            city: string | null;
+            neighborhood: string | null;
+            category: string | null;
+            placeId: string | null;
+            rating: number | null;
+            reviewsCount: number | null;
+            latitude: number | null;
+            longitude: number | null;
+            status: "PRE_VENDA";
+            stageId: null;
+            crmStatus: "ACTIVE";
+            isMinimized: boolean;
+            kanbanTracked: boolean;
+            kanbanOrder: number;
+            aiScore: number | null;
+            aiNotes: string | null;
+            source: string;
+            rawData: Record<string, unknown>;
+            createdAt: string;
+            updatedAt: string;
+        })[];
     }>;
     search(user: AuthenticatedUser, dto: B2bLeadSearchDto): Promise<{
         session: {
@@ -163,13 +280,14 @@ export declare class LeadsController {
             createdAt: string;
             leadsCount: number;
         };
-        leads: {
+        leads: ({
             id: string;
             companyId: string;
             tenantId: string;
             searchSessionId: string | null;
             organizationId: string | null;
             name: string;
+            contactName: string | null;
             phone: string | null;
             email: string | null;
             website: string | null;
@@ -195,7 +313,40 @@ export declare class LeadsController {
             rawData: import("@prisma/client/runtime/library").JsonValue;
             createdAt: string;
             updatedAt: string;
-        }[];
+        } | {
+            id: string;
+            companyId: string;
+            tenantId: string;
+            searchSessionId: string;
+            organizationId: null;
+            name: string;
+            contactName: null;
+            phone: string | null;
+            email: string | null;
+            website: string | null;
+            instagram: string | null;
+            address: string | null;
+            city: string | null;
+            neighborhood: string | null;
+            category: string | null;
+            placeId: string | null;
+            rating: number | null;
+            reviewsCount: number | null;
+            latitude: number | null;
+            longitude: number | null;
+            status: "PRE_VENDA";
+            stageId: null;
+            crmStatus: "ACTIVE";
+            isMinimized: boolean;
+            kanbanTracked: boolean;
+            kanbanOrder: number;
+            aiScore: number | null;
+            aiNotes: string | null;
+            source: string;
+            rawData: Record<string, unknown>;
+            createdAt: string;
+            updatedAt: string;
+        })[];
     }>;
     searchScraper(dto: LeadSearchDto): Promise<unknown>;
     fetchMaps(dto: FetchMapsLeadsDto): Promise<{
@@ -205,6 +356,7 @@ export declare class LeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -240,6 +392,7 @@ export declare class LeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -302,6 +455,7 @@ export declare class LeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -337,6 +491,7 @@ export declare class LeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -372,6 +527,7 @@ export declare class LeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;

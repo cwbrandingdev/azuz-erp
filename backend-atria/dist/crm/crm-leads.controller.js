@@ -21,6 +21,7 @@ const permissions_guard_1 = require("../auth/guards/permissions.guard");
 const rbac_1 = require("../auth/utils/rbac");
 const leads_service_1 = require("../leads/leads.service");
 const create_crm_lead_dto_1 = require("./dto/create-crm-lead.dto");
+const update_crm_lead_dto_1 = require("./dto/update-crm-lead.dto");
 const prospecting_leads_query_dto_1 = require("./dto/prospecting-leads-query.dto");
 const toggle_lead_collapse_dto_1 = require("./dto/toggle-lead-collapse.dto");
 const lead_kanban_dto_1 = require("../leads/dto/lead-kanban.dto");
@@ -46,6 +47,9 @@ let CrmLeadsController = class CrmLeadsController {
     }
     toggleCollapse(user, id, dto) {
         return this.leadsService.toggleLeadCollapse(user, id, dto.isMinimized);
+    }
+    update(user, id, dto) {
+        return this.leadsService.updateForCrm(user, id, dto);
     }
 };
 exports.CrmLeadsController = CrmLeadsController;
@@ -98,6 +102,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, toggle_lead_collapse_dto_1.ToggleLeadCollapseDto]),
     __metadata("design:returntype", void 0)
 ], CrmLeadsController.prototype, "toggleCollapse", null);
+__decorate([
+    (0, common_1.Patch)(':id'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, update_crm_lead_dto_1.UpdateCrmLeadDto]),
+    __metadata("design:returntype", void 0)
+], CrmLeadsController.prototype, "update", null);
 exports.CrmLeadsController = CrmLeadsController = __decorate([
     (0, common_1.Controller)('crm/leads'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),

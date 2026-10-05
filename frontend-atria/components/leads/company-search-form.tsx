@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CnaeSearchSelect } from "@/components/leads/cnae-search-select";
-import { CompanySearchTabs } from "@/components/leads/company-search-tabs";
 import type { LeadSearchQueryType } from "@/services/company-search.service";
 
 export interface CompanySearchFormValues {
@@ -31,7 +30,6 @@ interface CompanySearchFormProps {
   loading?: boolean;
   className?: string;
   onChange: (values: CompanySearchFormValues) => void;
-  onQueryTypeChange: (queryType: LeadSearchQueryType) => void;
   onSubmit: () => void;
 }
 
@@ -40,11 +38,8 @@ export function CompanySearchForm({
   loading,
   className,
   onChange,
-  onQueryTypeChange,
   onSubmit,
 }: CompanySearchFormProps) {
-  const isNiche = values.queryType === "NICHO";
-
   return (
     <Card
       className={`flex h-full flex-col rounded-2xl border border-[var(--atria-primary)]/10 ${className ?? ""}`}
@@ -55,14 +50,10 @@ export function CompanySearchForm({
             O que você está procurando?
           </CardTitle>
           <p className="text-sm text-[var(--atria-primary)]/50">
-            Preencha os campos abaixo e clique em buscar. Os resultados
-            aparecerão no mapa ao lado e na lista abaixo.
+            Escolha o CNAE (incluindo subclasses, como estética), a cidade e
+            o estado. Os resultados vêm só do catálogo da Receita.
           </p>
         </div>
-        <CompanySearchTabs
-          activeTab={values.queryType}
-          onChange={onQueryTypeChange}
-        />
       </CardHeader>
       <CardContent className="flex flex-1 flex-col">
         <form
@@ -76,33 +67,21 @@ export function CompanySearchForm({
             <div className="grid gap-4">
               <Field>
                 <FieldLabel htmlFor="company-query-value">
-                  {isNiche
-                    ? "Qual nicho você gostaria de procurar?"
-                    : "Qual CNAE você quer buscar?"}
+                  Qual CNAE você quer buscar?
                 </FieldLabel>
-                {isNiche ? (
-                  <Input
-                    id="company-query-value"
-                    value={values.queryValue}
-                    onChange={(event) =>
-                      onChange({ ...values, queryValue: event.target.value })
-                    }
-                    placeholder="Ex.: restaurante, clínica odontológica, academia"
-                  />
-                ) : (
-                  <CnaeSearchSelect
-                    id="company-query-value"
-                    value={values.queryValue}
-                    label={values.cnaeLabel}
-                    onValueChange={(code, description) =>
-                      onChange({
-                        ...values,
-                        queryValue: code,
-                        cnaeLabel: description,
-                      })
-                    }
-                  />
-                )}
+                <CnaeSearchSelect
+                  id="company-query-value"
+                  value={values.queryValue}
+                  label={values.cnaeLabel}
+                  onValueChange={(code, description) =>
+                    onChange({
+                      ...values,
+                      queryType: "CNAE",
+                      queryValue: code,
+                      cnaeLabel: description,
+                    })
+                  }
+                />
               </Field>
               <Field>
                 <FieldLabel htmlFor="company-uf">Em qual estado?</FieldLabel>
@@ -132,7 +111,7 @@ export function CompanySearchForm({
                   onChange={(event) =>
                     onChange({ ...values, city: event.target.value })
                   }
-                  placeholder="Ex.: Curitiba"
+                  placeholder="Ex.: São Paulo"
                   required
                 />
               </Field>

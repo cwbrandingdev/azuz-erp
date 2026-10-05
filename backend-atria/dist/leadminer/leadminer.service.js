@@ -188,6 +188,7 @@ let LeadminerService = class LeadminerService {
             id: lead.id,
             companyId: lead.companyId,
             name: lead.name,
+            contactName: lead.contactName,
             phone: lead.phone,
             email: lead.email,
             website: lead.website,

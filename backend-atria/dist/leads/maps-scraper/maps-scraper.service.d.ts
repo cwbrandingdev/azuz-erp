@@ -10,10 +10,16 @@ export declare class MapsScraperService {
     private readonly logger;
     constructor(configService: ConfigService, prisma: PrismaService, companySettings: CompanySettingsService);
     fetchPlaces(dto: FetchMapsLeadsDto): Promise<MappedPlace[]>;
+    lookupCompanyPlace(input: {
+        name: string;
+        legalName?: string | null;
+        city: string;
+        neighborhood?: string | null;
+    }): Promise<MappedPlace | null>;
+    fetchPlacesForCatalogEnrichment(dto: FetchMapsLeadsDto, maxResults: number): Promise<MappedPlace[]>;
     private resolveScraperCredentials;
     private fetchFromOutscraper;
     private fetchFromApify;
-    private buildApifyActorInput;
     private resolveApifyMaxResults;
     private extractApifyErrorMessage;
     private findLocalMappedPlaces;

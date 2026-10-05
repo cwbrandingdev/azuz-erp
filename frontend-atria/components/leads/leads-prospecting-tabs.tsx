@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export type LeadsProspectingMode = "b2b" | "maps";
 
 const TABS: Array<{ id: LeadsProspectingMode; label: string }> = [
-  { id: "b2b", label: "Empresas (CNAE/Nicho)" },
+  { id: "b2b", label: "Empresas (CNAE)" },
   { id: "maps", label: "Google Maps" },
 ];
 

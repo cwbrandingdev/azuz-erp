@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  enrichLeadSearchSessionMaps,
   getLeadSearchSessionLeads,
   listLeadSearchSessions,
   searchCnaeClasses,
@@ -46,6 +47,18 @@ export function useCompanySearchMutation() {
         ["lead-search-session", data.session.id],
         data,
       );
+      queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
+    },
+  });
+}
+
+export function useEnrichSessionMapsMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionId: string) => enrichLeadSearchSessionMaps(sessionId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["lead-search-session", data.session.id], data);
       queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
     },
   });

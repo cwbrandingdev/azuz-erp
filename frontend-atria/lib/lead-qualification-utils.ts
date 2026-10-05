@@ -91,3 +91,10 @@ export function commercialFitBadgeVariant(
       return "outline";
   }
 }
+
+export function isRegistryQualified(rawData: unknown): boolean {
+  if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
+    return false;
+  }
+  return (rawData as Record<string, unknown>).qualified === true;
+}

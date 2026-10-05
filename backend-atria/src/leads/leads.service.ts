@@ -12,6 +12,7 @@ import {
   CrmLeadStatus,
   CrmReminderTaskStatus,
   Lead,
+  LeadSearchQueryType,
   LeadStatus,
   Prisma,
   RoleName,
@@ -25,6 +26,7 @@ import { addBusinessDays } from './business-days';
 import { CrmScopeService } from './crm-scope.service';
 import { LeadNotificationService } from './lead-notification.service';
 import { CreateCrmLeadDto } from '../crm/dto/create-crm-lead.dto';
+import { UpdateCrmLeadDto } from '../crm/dto/update-crm-lead.dto';
 import {
   buildApifyActorInput,
   mapApifyPlaces,
@@ -36,6 +38,23 @@ import { LeadStagesService } from './lead-stages.service';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS } from './lead-kanban.constants';
 import { assertLeadStatusMoveAllowed } from './lead-pipeline-zones';
 import { LeadQualificationService } from './qualification/lead-qualification.service';
+import { MapsScraperService } from './maps-scraper/maps-scraper.service';
+import {
+  contactGapsFromPlace,
+  instagramUrlFromValue,
+  leadNeedsMapsContactEnrichment,
+  mergeMapsEnrichmentIntoRawData,
+  mostCommonNeighborhood,
+  readCachedMapsEnrichment,
+} from './maps-scraper/maps-contact-merge.util';
+import { matchPlacesToCompanies } from './maps-scraper/company-place-match.util';
+import { readLegalNameFromRawData } from './qualification/registry-signals.util';
+import { DEFAULT_COMPANY_ID } from '../company/company.constants';
+import {
+  CATALOG_PREVIEW_ID_PREFIX,
+  isCatalogPreviewId,
+  LeadSearchSessionService,
+} from './company-lookup/application/lead-search-session.service';
 
 const DEFAULT_SCRAPER_URL = 'https://leadminer-one.vercel.app/api/scraper';
 const SCRAPER_TIMEOUT_MS = 120_000;
@@ -97,24 +116,139 @@ export class LeadsService {
     private readonly crmScope: CrmScopeService,
     private readonly leadNotifications: LeadNotificationService,
     private readonly leadQualification: LeadQualificationService,
+    private readonly mapsScraper: MapsScraperService,
+    private readonly leadSearchSessions: LeadSearchSessionService,
   ) {}
 
   async preQualify(user: AuthenticatedUser, id: string) {
-    const lead = await this.findLeadForUser(user, id);
+    const lead = await this.resolveLeadForUser(user, id);
     const apifyToken = await this.resolveApifyToken();
 
     const result = await this.leadQualification.qualifyLead(lead, apifyToken);
 
+    const websiteInstagram = instagramUrlFromValue(lead.website);
     const updated = await this.prisma.lead.update({
       where: { id: lead.id },
       data: {
         aiScore: result.score,
         aiNotes: result.notes,
         rawData: result.mergedRawData,
+        ...result.contactUpdates,
+        ...(!lead.instagram?.trim() && websiteInstagram
+          ? { instagram: websiteInstagram }
+          : {}),
       },
     });
 
     return this.toLeadResponse(updated);
+  }
+
+  async enrichSearchSessionFromMaps(
+    user: AuthenticatedUser,
+    sessionId: string,
+  ) {
+    const { session, leads } = await this.leadSearchSessions.getSessionLeads(
+      user.companyId,
+      sessionId,
+    );
+
+    const targets = leads.filter(
+      (lead) =>
+        leadNeedsMapsContactEnrichment(lead) &&
+        !readCachedMapsEnrichment(lead.rawData),
+    );
+
+    if (targets.length === 0) {
+      return {
+        session,
+        leads,
+        matched: 0,
+        updated: 0,
+      };
+    }
+
+    const neighborhood = mostCommonNeighborhood(
+      leads.map((lead) => lead.neighborhood),
+      session.city,
+    );
+
+    const places = await this.mapsScraper.fetchPlacesForCatalogEnrichment(
+      {
+        city: session.city,
+        category: session.queryValue,
+        neighborhood,
+      },
+      Math.min(50, Math.max(targets.length, 15)),
+    );
+
+    const matches = matchPlacesToCompanies(targets, places, (lead) => [
+      readLegalNameFromRawData(lead.rawData),
+    ]);
+
+    const fetchedAt = new Date().toISOString();
+    const updatedIds = new Set<string>();
+    const byId = new Map(leads.map((lead) => [lead.id, { ...lead }]));
+
+    for (const match of matches) {
+      const current = byId.get(match.company.id);
+      if (!current) continue;
+
+      const updates = contactGapsFromPlace(match.company, match.place);
+      const websiteInstagram = instagramUrlFromValue(
+        updates.website ?? match.company.website,
+      );
+      if (
+        !updates.instagram &&
+        !match.company.instagram?.trim() &&
+        websiteInstagram
+      ) {
+        updates.instagram = websiteInstagram;
+      }
+
+      const nextRawData = mergeMapsEnrichmentIntoRawData(current.rawData, {
+        fetchedAt,
+        provider: 'apify',
+        matchedName: match.place.name,
+        placeId: match.place.placeId,
+        instagram: updates.instagram ?? match.place.instagram,
+        website: updates.website ?? match.place.website,
+        rating: updates.rating ?? match.place.rating,
+        reviewsCount: updates.reviewsCount ?? match.place.reviewsCount,
+      });
+
+      if (!isCatalogPreviewId(current.id)) {
+        await this.prisma.lead.update({
+          where: { id: current.id },
+          data: {
+            ...updates,
+            rawData: nextRawData as Prisma.InputJsonValue,
+          },
+        });
+      }
+
+      byId.set(current.id, {
+        ...current,
+        ...updates,
+        instagram: updates.instagram ?? current.instagram,
+        website: updates.website ?? current.website,
+        phone: updates.phone ?? current.phone,
+        rating: updates.rating ?? current.rating,
+        reviewsCount: updates.reviewsCount ?? current.reviewsCount,
+        address: updates.address ?? current.address,
+        neighborhood: updates.neighborhood ?? current.neighborhood,
+        latitude: updates.latitude ?? current.latitude,
+        longitude: updates.longitude ?? current.longitude,
+        rawData: nextRawData as typeof current.rawData,
+      } as typeof current);
+      updatedIds.add(current.id);
+    }
+
+    return {
+      session: { ...session, leadsCount: leads.length },
+      leads: leads.map((lead) => byId.get(lead.id) ?? lead),
+      matched: matches.length,
+      updated: updatedIds.size,
+    };
   }
 
   private async resolveApifyToken(): Promise<string | null> {
@@ -353,14 +487,11 @@ export class LeadsService {
       organizationId,
     });
     const status = this.leadStages.statusFromStage(stage);
-    const maxOrder = await this.prisma.lead.aggregate({
-      where: { kanbanTracked: true, status },
-      _max: { kanbanOrder: true },
-    });
 
     const lead = await this.prisma.lead.create({
       data: {
         name,
+        contactName: dto.contactName?.trim() || null,
         phone: dto.phone,
         email: dto.email,
         website: dto.website,
@@ -375,13 +506,61 @@ export class LeadsService {
         stageId: stage.id,
         crmStatus: this.deriveCrmStatusFromPipeline(status),
         kanbanTracked: true,
-        kanbanOrder: (maxOrder._max.kanbanOrder ?? -1) + 1,
+        kanbanOrder: await this.nextKanbanOrderAtTop(status),
       },
     });
 
     await this.createFollowUpReminder(lead);
     this.notifyOrganizationRepresentatives(lead, user.userId);
     return this.toCrmLeadResponse(lead);
+  }
+
+  async updateForCrm(user: AuthenticatedUser, id: string, dto: UpdateCrmLeadDto) {
+    const lead = await this.findLeadForUser(user, id);
+
+    const name = dto.name?.trim();
+    if (dto.name !== undefined && !name) {
+      throw new BadRequestException('Informe o nome da empresa ou contato.');
+    }
+
+    const emptyToNull = (value: string | undefined) => {
+      if (value === undefined) return undefined;
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    };
+
+    const updated = await this.prisma.lead.update({
+      where: { id: lead.id },
+      data: {
+        ...(name ? { name } : {}),
+        ...(dto.contactName !== undefined
+          ? { contactName: emptyToNull(dto.contactName) }
+          : {}),
+        ...(dto.phone !== undefined ? { phone: emptyToNull(dto.phone) } : {}),
+        ...(dto.email !== undefined ? { email: emptyToNull(dto.email) } : {}),
+        ...(dto.website !== undefined
+          ? { website: emptyToNull(dto.website) }
+          : {}),
+        ...(dto.instagram !== undefined
+          ? { instagram: emptyToNull(dto.instagram) }
+          : {}),
+        ...(dto.address !== undefined
+          ? { address: emptyToNull(dto.address) }
+          : {}),
+        ...(dto.city !== undefined ? { city: emptyToNull(dto.city) } : {}),
+        ...(dto.neighborhood !== undefined
+          ? { neighborhood: emptyToNull(dto.neighborhood) }
+          : {}),
+        ...(dto.category !== undefined
+          ? { category: emptyToNull(dto.category) }
+          : {}),
+        ...(dto.source !== undefined
+          ? { source: emptyToNull(dto.source) ?? 'manual' }
+          : {}),
+      },
+    });
+
+    return this.toLeadResponse(updated);
   }
 
   async findReminderBoard(user: AuthenticatedUser) {
@@ -469,16 +648,16 @@ export class LeadsService {
         dto.organizationId,
       );
 
-      const stage = await this.leadStages.resolveStage({ organizationId });
-      const status = this.leadStages.statusFromStage(stage);
-      const maxOrder = await this.prisma.lead.aggregate({
-        where: { kanbanTracked: true, status },
-        _max: { kanbanOrder: true },
+      const stage = await this.leadStages.resolveStage({
+        organizationId,
+        stageId: dto.stageId,
       });
+      const status = this.leadStages.statusFromStage(stage);
 
       lead = await this.prisma.lead.create({
         data: {
           name,
+          contactName: dto.contactName?.trim() || null,
           phone: dto.phone,
           email: dto.email,
           website: dto.website,
@@ -492,7 +671,7 @@ export class LeadsService {
           status,
           stageId: stage.id,
           kanbanTracked: true,
-          kanbanOrder: (maxOrder._max.kanbanOrder ?? -1) + 1,
+          kanbanOrder: await this.nextKanbanOrderAtTop(status),
         },
       });
 
@@ -508,10 +687,9 @@ export class LeadsService {
     }
 
     const organizationId = dto.organizationId?.trim() || lead.organizationId;
-    const stage = await this.leadStages.resolveStage({ organizationId });
-    const maxOrder = await this.prisma.lead.aggregate({
-      where: { kanbanTracked: true, status: LeadStatus.PRE_VENDA },
-      _max: { kanbanOrder: true },
+    const stage = await this.leadStages.resolveStage({
+      organizationId,
+      stageId: dto.stageId,
     });
 
     if (organizationId) {
@@ -524,8 +702,13 @@ export class LeadsService {
         kanbanTracked: true,
         status: this.leadStages.statusFromStage(stage),
         stageId: stage.id,
-        kanbanOrder: (maxOrder._max.kanbanOrder ?? -1) + 1,
+        kanbanOrder: await this.nextKanbanOrderAtTop(
+          this.leadStages.statusFromStage(stage),
+        ),
         ...(organizationId ? { organizationId } : {}),
+        ...(dto.contactName !== undefined
+          ? { contactName: dto.contactName.trim() || null }
+          : {}),
       },
     });
 
@@ -581,17 +764,7 @@ export class LeadsService {
     }
 
     const targetOrder =
-      dto.order ??
-      ((
-        await this.prisma.lead.aggregate({
-          where: {
-            kanbanTracked: true,
-            status,
-            id: { not: id },
-          },
-          _max: { kanbanOrder: true },
-        })
-      )._max.kanbanOrder ?? -1) + 1;
+      dto.order ?? (await this.nextKanbanOrderAtTop(status, id));
 
     const crmStatus = this.deriveCrmStatusFromPipeline(status);
     const autoMinimize = this.shouldAutoMinimize(crmStatus);
@@ -612,7 +785,7 @@ export class LeadsService {
   }
 
   async qualify(user: AuthenticatedUser, id: string) {
-    const lead = await this.findLeadForUser(user, id);
+    const lead = await this.resolveLeadForUser(user, id);
 
     if (this.crmScope.getMoveZone(user.role) !== 'sdr') {
       throw new ForbiddenException(
@@ -643,7 +816,7 @@ export class LeadsService {
     });
 
     const updated = await this.prisma.lead.update({
-      where: { id },
+      where: { id: lead.id },
       data: {
         status: pipelineStatus,
         stageId: stage.id,
@@ -708,6 +881,81 @@ export class LeadsService {
       updatedAt: comment.updatedAt.toISOString(),
       user: comment.user,
     };
+  }
+
+  private async resolveLeadForUser(user: AuthenticatedUser, id: string) {
+    if (isCatalogPreviewId(id)) {
+      return this.materializeCatalogLead(
+        user,
+        id.slice(CATALOG_PREVIEW_ID_PREFIX.length),
+      );
+    }
+    return this.findLeadForUser(user, id);
+  }
+
+  private async materializeCatalogLead(
+    user: AuthenticatedUser,
+    cnpjRaw: string,
+  ) {
+    const cnpj = cnpjRaw.replace(/\D/g, '');
+    if (cnpj.length !== 14) {
+      throw new BadRequestException('CNPJ inválido.');
+    }
+
+    const tenantId = user.companyId?.trim() || DEFAULT_COMPANY_ID;
+    const placeId = `cnpj:${cnpj}`;
+    const existing = await this.prisma.lead.findFirst({
+      where: {
+        companyId: tenantId,
+        placeId,
+        deletedAt: null,
+      },
+    });
+    if (existing) {
+      await this.crmScope.assertLeadAccess(user, existing);
+      return existing;
+    }
+
+    const row = await this.prisma.prospectCompany.findUnique({
+      where: { cnpj },
+    });
+    if (!row) {
+      throw new NotFoundException('Empresa não encontrada no catálogo.');
+    }
+
+    const name = row.tradeName?.trim() || row.legalName;
+    return this.prisma.lead.create({
+      data: {
+        companyId: tenantId,
+        name,
+        phone: row.phone,
+        email: row.email,
+        address: row.address,
+        city: row.city,
+        neighborhood: row.neighborhood,
+        category: row.primaryCnaeDescription,
+        placeId,
+        source: row.source,
+        aiScore: row.blendedScore,
+        aiNotes: row.notes,
+        kanbanTracked: false,
+      },
+    });
+  }
+
+  private async nextKanbanOrderAtTop(
+    status: LeadStatus,
+    excludeId?: string,
+  ) {
+    const minOrder = await this.prisma.lead.aggregate({
+      where: {
+        kanbanTracked: true,
+        status,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      _min: { kanbanOrder: true },
+    });
+    return (minOrder._min.kanbanOrder ?? 0) - 1;
   }
 
   private async findLeadForUser(user: AuthenticatedUser, id: string) {
@@ -936,6 +1184,30 @@ export class LeadsService {
     }));
   }
 
+  private toSearchSessionResponse(
+    session: {
+      id: string;
+      tenantId: string;
+      queryType: LeadSearchQueryType;
+      queryValue: string;
+      city: string;
+      uf: string;
+      createdAt: Date;
+    },
+    leadsCount: number,
+  ) {
+    return {
+      id: session.id,
+      tenantId: session.tenantId,
+      queryType: session.queryType,
+      queryValue: session.queryValue,
+      city: session.city,
+      uf: session.uf,
+      createdAt: session.createdAt.toISOString(),
+      leadsCount,
+    };
+  }
+
   private toLeadResponse(lead: Lead) {
     return {
       id: lead.id,
@@ -944,6 +1216,7 @@ export class LeadsService {
       searchSessionId: lead.searchSessionId,
       organizationId: lead.organizationId,
       name: lead.name,
+      contactName: lead.contactName,
       phone: lead.phone,
       email: lead.email,
       website: lead.website,

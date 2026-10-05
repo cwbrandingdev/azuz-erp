@@ -555,7 +555,10 @@ export function LeadsKanbanBoard({
                   </NativeTelButton>
                 )}
                 <LeadKanbanImportDialog onSuccess={() => void loadBoard()} />
-                <LeadKanbanFormDialog onSuccess={() => void loadBoard()} />
+                <LeadKanbanFormDialog
+                  columns={columns}
+                  onSuccess={() => void loadBoard()}
+                />
               </>
             )}
             <div className="flex rounded-lg border border-[var(--atria-primary)]/15 p-0.5">
@@ -889,6 +892,10 @@ export function LeadsKanbanBoard({
         open={detailOpen}
         onOpenChange={setDetailOpen}
         portalClientView={portalClientView}
+        onUpdated={(updated) => {
+          setSelectedLead(updated);
+          updateLeadInColumns(updated.id, updated);
+        }}
       />
     </div>
   );

@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { IbgeCnaeClient } from '../infrastructure/ibge-cnae.client';
+import { normalizeCatalogText } from '../domain/text-normalize';
 import type {
   CnaeClassInfo,
   LeadSearchQueryTypeValue,
 } from '../domain/company-lookup.types';
 
-const CNAE_SEARCH_DEFAULT_LIMIT = 30;
+const CNAE_SEARCH_DEFAULT_LIMIT = 40;
 
-/** Subclasses CNAE (7 dígitos) — a API IBGE só expõe classes (ex.: 96025). */
+/** Fallback if the Receita subclass table is still empty. */
 const CNAE_SUBCLASS_DESCRIPTIONS: Record<string, string> = {
   '9602501':
     'Cabeleireiros, barbearia, manicure e pedicure',
@@ -17,114 +19,82 @@ const CNAE_SUBCLASS_DESCRIPTIONS: Record<string, string> = {
 
 @Injectable()
 export class CnaeResolverService {
-  constructor(private readonly ibgeCnaeClient: IbgeCnaeClient) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ibgeCnaeClient: IbgeCnaeClient,
+  ) {}
 
   async search(query: string, limit = CNAE_SEARCH_DEFAULT_LIMIT) {
+    const catalog = await this.loadCatalog();
     const normalizedQuery = query.trim();
-    const classes = await this.ibgeCnaeClient.listClasses();
 
     if (!normalizedQuery) {
-      return classes.slice(0, limit).map((item) => ({
-        id: item.id,
-        description: item.description,
-      }));
+      return catalog.slice(0, limit);
     }
 
     const normalizedCode = this.normalizeCnaeCode(normalizedQuery);
     const normalizedText = this.normalizeText(normalizedQuery);
 
-    const matches = classes.filter((item) => {
+    const matches = catalog.filter((item) => {
       const codeMatch =
-        normalizedCode.length > 0 && this.codesMatch(normalizedCode, item.id);
+        normalizedCode.length > 0 &&
+        (item.id.includes(normalizedCode) ||
+          this.codesMatch(normalizedCode, item.id));
       const descriptionMatch = this.normalizeText(item.description).includes(
         normalizedText,
       );
       return codeMatch || descriptionMatch;
     });
 
-    const results: CnaeClassInfo[] = matches.map((item) => ({
-      id: item.id,
-      description: item.description,
-    }));
-
-    if (normalizedCode.length === 7) {
-      const subclass = this.subclassInfo(normalizedCode);
-      if (subclass && !results.some((item) => item.id === subclass.id)) {
-        results.unshift(subclass);
+    matches.sort((left, right) => {
+      const delta =
+        this.rankMatch(right, normalizedCode, normalizedText) -
+        this.rankMatch(left, normalizedCode, normalizedText);
+      if (delta !== 0) {
+        return delta;
       }
-    }
+      return left.description.localeCompare(right.description, 'pt-BR');
+    });
 
-    return results.slice(0, limit);
+    return matches.slice(0, limit);
   }
 
   async resolve(
-    queryType: LeadSearchQueryTypeValue,
+    _queryType: LeadSearchQueryTypeValue,
     queryValue: string,
   ): Promise<CnaeClassInfo[]> {
+    const catalog = await this.loadCatalog();
     const normalizedQuery = queryValue.trim();
-    const classes = await this.ibgeCnaeClient.listClasses();
+    const targetCode = this.normalizeCnaeCode(normalizedQuery);
 
-    if (queryType === 'CNAE') {
-      const targetCode = this.normalizeCnaeCode(normalizedQuery);
-      const ibgeMatches = classes.filter((item) =>
-        this.codesMatch(targetCode, item.id),
+    if (targetCode.length >= 5) {
+      const exact = catalog.filter(
+        (item) =>
+          item.id === targetCode ||
+          (targetCode.length < 7 && item.id.startsWith(targetCode)),
       );
-
-      const resolved: CnaeClassInfo[] = [];
-
-      if (targetCode.length === 7) {
-        const subclass = this.subclassInfo(targetCode);
-        if (subclass) {
-          resolved.push(subclass);
-        }
-      }
-
-      const bestIbge = this.pickMostSpecific(ibgeMatches);
-      if (bestIbge) {
-        resolved.push(bestIbge);
-      }
-
-      if (resolved.length > 0) {
-        return resolved;
+      if (exact.length > 0) {
+        return exact;
       }
 
       return [
         {
           id: targetCode,
           description:
-            this.subclassInfo(targetCode)?.description ??
+            catalog.find((item) => item.id === targetCode)?.description ??
+            CNAE_SUBCLASS_DESCRIPTIONS[targetCode] ??
             `CNAE ${this.formatSubclassCode(targetCode)}`,
         },
       ];
     }
 
-    const normalizedNiche = this.normalizeText(normalizedQuery);
-    const matches = classes.filter((item) =>
-      this.normalizeText(item.description).includes(normalizedNiche),
+    const normalizedText = this.normalizeText(normalizedQuery);
+    const matches = catalog.filter((item) =>
+      this.normalizeText(item.description).includes(normalizedText),
     );
-
-    return matches.slice(0, 5);
+    return matches.slice(0, 12);
   }
 
-  /** Termo curto para Lead Miner / mapas (evita descrição IBGE gigante). */
-  leadMinerCategory(queryValue: string, resolved: CnaeClassInfo[]): string {
-    const targetCode = this.normalizeCnaeCode(queryValue.trim());
-    if (targetCode.length === 7) {
-      const subclass = this.subclassInfo(targetCode);
-      if (subclass) {
-        return this.leadMinerTermFromSubclass(targetCode, subclass.description);
-      }
-    }
-
-    const best = this.pickMostSpecific(resolved) ?? resolved[0];
-    if (!best?.description) {
-      return queryValue.trim();
-    }
-
-    return this.simplifyForLeadMiner(best.description);
-  }
-
-  /** Códigos usados para filtrar CNPJ na Receita (subclasse exige match exato). */
   cnaeFilterCodes(resolved: CnaeClassInfo[]): string[] {
     const codes = resolved.map((item) => this.normalizeCnaeCode(item.id));
     return Array.from(new Set(codes.filter(Boolean)));
@@ -138,54 +108,74 @@ export class CnaeResolverService {
     return `${code.slice(0, 2)}.${code.slice(2, 4)}-${code[4]}/${code.slice(5, 7)}`;
   }
 
-  private subclassInfo(code: string): CnaeClassInfo | null {
-    const normalized = this.normalizeCnaeCode(code);
-    if (normalized.length !== 7) {
-      return null;
+  private async loadCatalog(): Promise<CnaeClassInfo[]> {
+    const rows = await this.prisma.prospectCnae.findMany({
+      orderBy: { code: 'asc' },
+    });
+
+    const unique = new Map<string, CnaeClassInfo>();
+    for (const row of rows) {
+      unique.set(row.code, {
+        id: row.code,
+        description: row.description,
+      });
     }
 
-    const description = CNAE_SUBCLASS_DESCRIPTIONS[normalized];
-    if (!description) {
-      return {
-        id: normalized,
-        description: `Subclasse CNAE ${this.formatSubclassCode(normalized)}`,
-      };
+    for (const [id, description] of Object.entries(CNAE_SUBCLASS_DESCRIPTIONS)) {
+      if (!unique.has(id)) {
+        unique.set(id, { id, description });
+      }
     }
 
-    return {
-      id: normalized,
-      description,
-    };
+    const sevenDigitCount = [...unique.keys()].filter(
+      (code) => code.length === 7,
+    ).length;
+    if (sevenDigitCount < 200) {
+      const subclasses = await this.ibgeCnaeClient.listSubclasses().catch(() => []);
+      for (const item of subclasses) {
+        if (!unique.has(item.id)) {
+          unique.set(item.id, item);
+        }
+      }
+    }
+
+    if (unique.size === 0) {
+      const classes = await this.ibgeCnaeClient.listClasses().catch(() => []);
+      for (const item of classes) {
+        unique.set(item.id, item);
+      }
+    }
+
+    return Array.from(unique.values());
   }
 
-  private leadMinerTermFromSubclass(code: string, description: string): string {
-    if (code === '9602502') {
-      return 'clínica de estética';
+  private rankMatch(
+    item: CnaeClassInfo,
+    code: string,
+    text: string,
+  ): number {
+    let score = 0;
+    const description = this.normalizeText(item.description);
+
+    if (code && item.id === code) {
+      score += 1000;
+    } else if (code && item.id.startsWith(code)) {
+      score += 600;
+    } else if (code && item.id.includes(code)) {
+      score += 200;
     }
-    if (code === '9602501') {
-      return 'salão de beleza';
+
+    if (text && description.startsWith(text)) {
+      score += 800;
+    } else if (text && description.includes(text)) {
+      score += 400;
     }
 
-    const firstSegment = description.split(/\s+e\s+/i)[0]?.trim();
-    return firstSegment ? this.simplifyForLeadMiner(firstSegment) : 'estética';
-  }
-
-  private simplifyForLeadMiner(description: string): string {
-    const words = description
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((word) => word.length > 3 && !/^outras?$/.test(word));
-
-    return words.slice(0, 3).join(' ') || description.slice(0, 40);
-  }
-
-  private pickMostSpecific(matches: CnaeClassInfo[]): CnaeClassInfo | null {
-    if (matches.length === 0) {
-      return null;
+    if (item.id.length === 7) {
+      score += 80;
     }
-    return matches.reduce((best, item) =>
-      item.id.length > best.id.length ? item : best,
-    );
+
+    return score;
   }
 
   private codesMatch(targetCode: string, itemId: string): boolean {
@@ -201,10 +191,6 @@ export class CnaeResolverService {
   }
 
   private normalizeText(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim();
+    return normalizeCatalogText(value);
   }
 }

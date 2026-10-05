@@ -1,7 +1,10 @@
 import type { FetchMapsLeadsDto } from '../dto/fetch-maps-leads.dto';
 import type { MappedPlace } from './maps-scraper.types';
 export declare function mapApifyPlaces(body: unknown, dto: FetchMapsLeadsDto): MappedPlace[];
-export declare function buildApifyActorInput(dto: FetchMapsLeadsDto, maxResults: number): {
+export declare function buildApifyActorInput(dto: FetchMapsLeadsDto, maxResults: number, options?: {
+    searchString?: string;
+    locationQuery?: string;
+}): {
     searchStringsArray: string[];
     locationQuery: string;
     language: string;
