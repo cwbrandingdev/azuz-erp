@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,18 +14,28 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   LeadOrganizationSelect,
   resolveOrganizationIdForPayload,
 } from "@/components/leads/lead-organization-select";
 import { toast } from "@/lib/toast";
 import { leadsService } from "@/services";
+import type { LeadKanbanColumn, LeadStage } from "@/services/types";
 
 interface LeadKanbanFormDialogProps {
   onSuccess: () => void;
+  columns?: LeadKanbanColumn[];
 }
 
 const EMPTY_FORM = {
   name: "",
+  contactName: "",
   phone: "",
   email: "",
   website: "",
@@ -33,13 +43,42 @@ const EMPTY_FORM = {
   city: "",
   neighborhood: "",
   address: "",
+  source: "",
 };
 
-export function LeadKanbanFormDialog({ onSuccess }: LeadKanbanFormDialogProps) {
+export function LeadKanbanFormDialog({
+  onSuccess,
+  columns = [],
+}: LeadKanbanFormDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [organizationValue, setOrganizationValue] = useState("");
+  const [stages, setStages] = useState<LeadStage[]>([]);
+  const [stageId, setStageId] = useState("");
+
+  const fallbackColumns = useMemo(
+    () =>
+      columns
+        .filter((column) => Boolean(column.stageId))
+        .map((column) => ({
+          id: column.stageId as string,
+          name: column.title,
+          color: column.color,
+        })),
+    [columns],
+  );
+
+  const columnOptions =
+    stages.length > 0
+      ? stages.map((stage) => ({
+          id: stage.id,
+          name: stage.name,
+          color: stage.color,
+        }))
+      : fallbackColumns;
+
+  const selectedColumn = columnOptions.find((column) => column.id === stageId);
 
   function updateField(field: keyof typeof EMPTY_FORM, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -48,7 +87,42 @@ export function LeadKanbanFormDialog({ onSuccess }: LeadKanbanFormDialogProps) {
   function resetForm() {
     setForm(EMPTY_FORM);
     setOrganizationValue("");
+    setStages([]);
+    setStageId(fallbackColumns[0]?.id ?? "");
   }
+
+  useEffect(() => {
+    if (!open) return;
+
+    const organizationId = resolveOrganizationIdForPayload(organizationValue);
+    let cancelled = false;
+
+    void leadsService
+      .listLeadStages(organizationId)
+      .then((list) => {
+        if (cancelled) return;
+        const sorted = [...list].sort((a, b) => a.order - b.order);
+        setStages(sorted);
+        setStageId((current) =>
+          sorted.some((stage) => stage.id === current)
+            ? current
+            : (sorted[0]?.id ?? fallbackColumns[0]?.id ?? ""),
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStages([]);
+        setStageId((current) =>
+          fallbackColumns.some((column) => column.id === current)
+            ? current
+            : (fallbackColumns[0]?.id ?? ""),
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, organizationValue, fallbackColumns]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,10 +139,16 @@ export function LeadKanbanFormDialog({ onSuccess }: LeadKanbanFormDialogProps) {
       return;
     }
 
+    if (!stageId) {
+      toast.error("Selecione a coluna do kanban.");
+      return;
+    }
+
     setLoading(true);
     try {
       await leadsService.addToKanban({
         name,
+        contactName: form.contactName.trim() || undefined,
         phone: form.phone.trim() || undefined,
         email: form.email.trim() || undefined,
         website: form.website.trim() || undefined,
@@ -76,8 +156,9 @@ export function LeadKanbanFormDialog({ onSuccess }: LeadKanbanFormDialogProps) {
         city: form.city.trim() || undefined,
         neighborhood: form.neighborhood.trim() || undefined,
         address: form.address.trim() || undefined,
-        source: "manual",
+        source: form.source.trim() || "manual",
         organizationId,
+        stageId: stageId || undefined,
       });
 
       toast.success(`${name} adicionado ao kanban.`);
@@ -124,6 +205,43 @@ export function LeadKanbanFormDialog({ onSuccess }: LeadKanbanFormDialogProps) {
               id="kanban-lead-organization"
             />
             <Field>
+              <FieldLabel htmlFor="kanban-lead-column">Coluna *</FieldLabel>
+              <Select
+                value={stageId || undefined}
+                onValueChange={(next) => {
+                  if (next) setStageId(next);
+                }}
+                disabled={columnOptions.length === 0}
+              >
+                <SelectTrigger id="kanban-lead-column" className="w-full">
+                  {selectedColumn ? (
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: selectedColumn.color }}
+                      />
+                      <span className="truncate">{selectedColumn.name}</span>
+                    </span>
+                  ) : (
+                    <SelectValue placeholder="Selecione a coluna" />
+                  )}
+                </SelectTrigger>
+                <SelectContent>
+                  {columnOptions.map((column) => (
+                    <SelectItem key={column.id} value={column.id}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="size-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: column.color }}
+                        />
+                        {column.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
               <FieldLabel htmlFor="kanban-lead-name">
                 Empresa / Nome *
               </FieldLabel>
@@ -133,6 +251,20 @@ export function LeadKanbanFormDialog({ onSuccess }: LeadKanbanFormDialogProps) {
                 onChange={(event) => updateField("name", event.target.value)}
                 placeholder="Ex: Restaurante Exemplo"
                 required
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="kanban-lead-contact">
+                Com quem estamos falando
+              </FieldLabel>
+              <Input
+                id="kanban-lead-contact"
+                value={form.contactName}
+                onChange={(event) =>
+                  updateField("contactName", event.target.value)
+                }
+                placeholder="Ex.: Maria Silva"
+                maxLength={255}
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -211,6 +343,16 @@ export function LeadKanbanFormDialog({ onSuccess }: LeadKanbanFormDialogProps) {
                 />
               </Field>
             </div>
+            <Field>
+              <FieldLabel htmlFor="kanban-lead-source">Origem</FieldLabel>
+              <Input
+                id="kanban-lead-source"
+                value={form.source}
+                onChange={(event) => updateField("source", event.target.value)}
+                placeholder="Ex.: indicação, Instagram, evento, Google"
+                maxLength={255}
+              />
+            </Field>
           </FieldGroup>
           <DialogFooter>
             <Button

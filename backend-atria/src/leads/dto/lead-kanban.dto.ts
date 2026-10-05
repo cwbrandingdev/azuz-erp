@@ -13,6 +13,11 @@ export class AddLeadToKanbanDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(255)
+  contactName?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(64)
   phone?: string;
 
@@ -53,11 +58,14 @@ export class AddLeadToKanbanDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(64)
+  @MaxLength(255)
   source?: string;
 
   @IsEntityId({ optional: true })
   organizationId?: string | null;
+
+  @IsEntityId({ optional: true })
+  stageId?: string;
 }
 
 export class UpdateLeadStatusDto {

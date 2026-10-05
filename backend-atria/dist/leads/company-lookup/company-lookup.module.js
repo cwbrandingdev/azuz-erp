@@ -12,6 +12,7 @@ const cnae_resolver_service_1 = require("./application/cnae-resolver.service");
 const company_discovery_service_1 = require("./application/company-discovery.service");
 const company_lookup_service_1 = require("./application/company-lookup.service");
 const lead_search_session_service_1 = require("./application/lead-search-session.service");
+const prospect_company_catalog_service_1 = require("./application/prospect-company-catalog.service");
 const brasil_api_cnpj_client_1 = require("./infrastructure/brasil-api-cnpj.client");
 const ibge_cnae_client_1 = require("./infrastructure/ibge-cnae.client");
 const minha_receita_client_1 = require("./infrastructure/minha-receita.client");
@@ -31,6 +32,7 @@ exports.CompanyLookupModule = CompanyLookupModule = __decorate([
             cnae_resolver_service_1.CnaeResolverService,
             company_lookup_service_1.CompanyLookupService,
             company_discovery_service_1.CompanyDiscoveryService,
+            prospect_company_catalog_service_1.ProspectCompanyCatalogService,
             lead_search_session_service_1.LeadSearchSessionService,
         ],
         exports: [

@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import {
   useCompanySearchMutation,
+  useEnrichSessionMapsMutation,
   useLeadSearchSessionLeads,
   useLeadSearchSessions,
 } from "@/hooks/use-company-search";
@@ -36,12 +37,11 @@ import { readCommercialFit } from "@/lib/lead-qualification-utils";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { leadsService } from "@/services";
-import type { LeadSearchQueryType } from "@/services/company-search.service";
 import type { Lead } from "@/services/types";
 import { useQueryClient } from "@tanstack/react-query";
 
 const DEFAULT_FORM_VALUES: CompanySearchFormValues = {
-  queryType: "NICHO",
+  queryType: "CNAE",
   queryValue: "",
   cnaeLabel: "",
   city: "",
@@ -152,11 +152,15 @@ export function CompanySearchPanel() {
     name: string;
   } | null>(null);
   const [onlyHighCommercialFit, setOnlyHighCommercialFit] = useState(false);
+  const [mapsEnrichedSessionId, setMapsEnrichedSessionId] = useState<
+    string | null
+  >(null);
   const batchCancelRef = useRef(false);
 
   const sessionsQuery = useLeadSearchSessions();
   const sessionLeadsQuery = useLeadSearchSessionLeads(selectedSessionId);
   const searchMutation = useCompanySearchMutation();
+  const enrichMapsMutation = useEnrichSessionMapsMutation();
 
   const sessions = sessionsQuery.data ?? [];
   const loadingSessions = sessionsQuery.isLoading;
@@ -291,6 +295,17 @@ export function CompanySearchPanel() {
     [displayLeads],
   );
 
+  const leadsNeedingMapsCount = useMemo(
+    () =>
+      displayLeads.filter(
+        (lead) =>
+          !lead.instagram?.trim() ||
+          !lead.website?.trim() ||
+          lead.rating == null,
+      ).length,
+    [displayLeads],
+  );
+
   const tableLeads = useMemo(() => {
     if (!onlyHighCommercialFit) {
       return displayLeads;
@@ -327,13 +342,8 @@ export function CompanySearchPanel() {
       return;
     }
 
-    if (formValues.queryType === "CNAE") {
-      if (!queryValue) {
-        toast.error("Selecione um CNAE e informe a cidade e o estado.");
-        return;
-      }
-    } else if (!queryValue && !address) {
-      toast.error("Informe o nicho ou o bairro para buscar.");
+    if (!queryValue) {
+      toast.error("Selecione um CNAE e informe a cidade e o estado.");
       return;
     }
 
@@ -346,18 +356,14 @@ export function CompanySearchPanel() {
 
     setSelectedSessionId(null);
 
-    const effectiveCategory =
-      queryValue ||
-      (formValues.queryType === "NICHO" ? "comércio" : queryValue);
-
     void searchMutation
       .mutateAsync({
-        queryType: formValues.queryType,
-        queryValue: effectiveCategory,
+        queryType: "CNAE",
+        queryValue,
         city,
         uf,
         address: address || undefined,
-        maxResults: 20,
+        maxResults: 100,
       })
       .then((data) => {
         setActiveLeads(data.leads);
@@ -382,20 +388,6 @@ export function CompanySearchPanel() {
       });
   }, [formValues, loadAllProspectedLeads, searchMutation]);
 
-  const handleQueryTypeChange = useCallback(
-    (queryType: LeadSearchQueryType) => {
-      setFormValues({
-        ...DEFAULT_FORM_VALUES,
-        queryType,
-      });
-      setSelectedSessionId(null);
-      setSessionFilterQuery("");
-      setActiveLeads([]);
-      searchMutation.reset();
-    },
-    [searchMutation],
-  );
-
   function shouldOpenOrganizationModal() {
     return isCrmRole(user?.role) || organizations.length > 1;
   }
@@ -403,6 +395,25 @@ export function CompanySearchPanel() {
   function getDefaultOrganizationId() {
     if (organizations.length === 1) return organizations[0]?.id ?? "";
     return "";
+  }
+
+  function replaceLeadInLists(updated: Lead, previous?: Lead) {
+    const matches = (item: Lead) =>
+      item.id === updated.id ||
+      (previous != null && item.id === previous.id) ||
+      (updated.placeId != null &&
+        item.placeId != null &&
+        item.placeId === updated.placeId);
+
+    setActiveLeads((current) =>
+      current.map((item) => (matches(item) ? updated : item)),
+    );
+    setAllProspectedLeads((current) => {
+      if (current.some(matches)) {
+        return current.map((item) => (matches(item) ? updated : item));
+      }
+      return current;
+    });
   }
 
   async function addLeadsToKanban(leadsToAdd: Lead[], organizationId: string) {
@@ -422,12 +433,7 @@ export function CompanySearchPanel() {
             { skipToast: true },
           );
           added += 1;
-          setActiveLeads((current) =>
-            current.map((item) => (item.id === updated.id ? updated : item)),
-          );
-          setAllProspectedLeads((current) =>
-            current.map((item) => (item.id === updated.id ? updated : item)),
-          );
+          replaceLeadInLists(updated, lead);
         } catch {}
       }
 
@@ -478,20 +484,15 @@ export function CompanySearchPanel() {
     }
   }
 
-  function applyLeadUpdate(updated: Lead) {
-    setActiveLeads((current) =>
-      current.map((item) => (item.id === updated.id ? updated : item)),
-    );
-    setAllProspectedLeads((current) =>
-      current.map((item) => (item.id === updated.id ? updated : item)),
-    );
+  function applyLeadUpdate(updated: Lead, previous?: Lead) {
+    replaceLeadInLists(updated, previous);
   }
 
   async function runPreQualifyForLead(lead: Lead, silentToast = false) {
     setQualifyingId(lead.id);
     try {
       const updated = await leadsService.preQualifyLead(lead.id);
-      applyLeadUpdate(updated);
+      applyLeadUpdate(updated, lead);
       if (!silentToast) {
         toast.success("Qualificação concluída.");
       }
@@ -536,9 +537,44 @@ export function CompanySearchPanel() {
     toast.success("Qualificação concluída.");
   }
 
+  async function handleEnrichMaps() {
+    if (!selectedSessionId) {
+      toast.error("Selecione uma busca para completar no Google.");
+      return;
+    }
+
+    try {
+      const data = await enrichMapsMutation.mutateAsync(selectedSessionId);
+      setActiveLeads(data.leads);
+      setMapsEnrichedSessionId(selectedSessionId);
+      setAllProspectedLeads((current) => {
+        const byId = new Map(data.leads.map((lead) => [lead.id, lead]));
+        return current.map((lead) => byId.get(lead.id) ?? lead);
+      });
+
+      if (data.updated > 0) {
+        toast.success(
+          data.updated === 1
+            ? "Completamos Instagram/site de 1 empresa no Google."
+            : `Completamos Instagram/site de ${data.updated} empresas no Google.`,
+        );
+      } else {
+        toast.info(
+          "Não encontramos Instagram ou site correspondente no Google para essa lista.",
+        );
+      }
+    } catch {
+      toast.error(
+        "Não foi possível completar os contatos no Google. Tente novamente.",
+      );
+    }
+  }
+
   function handleCancelBatchQualify() {
     batchCancelRef.current = true;
   }
+
+  const enrichingMaps = enrichMapsMutation.isPending;
 
   const loadingResults =
     searching ||
@@ -565,7 +601,6 @@ export function CompanySearchPanel() {
           values={formValues}
           loading={searching}
           onChange={setFormValues}
-          onQueryTypeChange={handleQueryTypeChange}
           onSubmit={handleSearch}
         />
 
@@ -685,10 +720,10 @@ export function CompanySearchPanel() {
                 if (session) {
                   setFormValues((current) => ({
                     ...current,
-                    queryType: session.queryType,
+                    queryType: "CNAE",
                     queryValue: session.queryValue,
                     cnaeLabel:
-                      session.queryType === "CNAE" ? "" : current.cnaeLabel,
+                      session.queryType === "CNAE" ? session.queryValue : "",
                     city: session.city,
                     uf: session.uf,
                     address: "",
@@ -873,14 +908,49 @@ export function CompanySearchPanel() {
           <h2 className="text-base font-semibold text-[var(--atria-primary)]">
             Empresas encontradas
             {displayLeads.length > 0 ? ` (${displayLeads.length})` : ""}
+            {displayLeads.some((lead) => lead.aiScore != null) ? (
+              <span className="ml-2 text-sm font-normal text-[var(--atria-primary)]/50">
+                ordenadas por score
+              </span>
+            ) : null}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
+            {displayLeads.length > 0 &&
+              selectedSession &&
+              !isGlobalFilterActive &&
+              mapsEnrichedSessionId !== selectedSession.id &&
+              leadsNeedingMapsCount > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={
+                    enrichingMaps ||
+                    bulkQualifying ||
+                    loadingResults ||
+                    qualifyingId != null
+                  }
+                  onClick={() => void handleEnrichMaps()}
+                  className="gap-2"
+                >
+                  {enrichingMaps ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <MapPin className="size-4" />
+                  )}
+                  {enrichingMaps
+                    ? "Buscando no Google..."
+                    : `Completar Instagram e site (${leadsNeedingMapsCount})`}
+                </Button>
+              )}
             {displayLeads.length > 0 && leadsWithInstagramCount > 0 && (
               <Button
                 type="button"
                 variant="default"
                 disabled={
-                  bulkQualifying || loadingResults || qualifyingId != null
+                  bulkQualifying ||
+                  enrichingMaps ||
+                  loadingResults ||
+                  qualifyingId != null
                 }
                 onClick={() => void handleBatchQualify()}
                 className="gap-2"
@@ -988,8 +1058,8 @@ export function CompanySearchPanel() {
           hasSearchContext &&
           displayLeads.length === 0 && (
             <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
-              Nenhuma empresa encontrada para esta busca. Tente outro nicho,
-              código CNAE ou cidade.
+              Nenhuma empresa encontrada para esta busca. Tente outro CNAE
+              ou cidade.
             </div>
           )}
 

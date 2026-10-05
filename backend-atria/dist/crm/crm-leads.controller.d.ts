@@ -1,6 +1,7 @@
 import { type AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { LeadsService } from '../leads/leads.service';
 import { CreateCrmLeadDto } from './dto/create-crm-lead.dto';
+import { UpdateCrmLeadDto } from './dto/update-crm-lead.dto';
 import { ProspectingLeadsQueryDto } from './dto/prospecting-leads-query.dto';
 import { ToggleLeadCollapseDto } from './dto/toggle-lead-collapse.dto';
 import { UpdateLeadStatusDto } from '../leads/dto/lead-kanban.dto';
@@ -18,6 +19,7 @@ export declare class CrmLeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -56,6 +58,7 @@ export declare class CrmLeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -98,6 +101,7 @@ export declare class CrmLeadsController {
                 searchSessionId: string | null;
                 organizationId: string | null;
                 name: string;
+                contactName: string | null;
                 phone: string | null;
                 email: string | null;
                 website: string | null;
@@ -141,6 +145,7 @@ export declare class CrmLeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -175,6 +180,7 @@ export declare class CrmLeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -214,6 +220,7 @@ export declare class CrmLeadsController {
         searchSessionId: string | null;
         organizationId: string | null;
         name: string;
+        contactName: string | null;
         phone: string | null;
         email: string | null;
         website: string | null;
@@ -227,6 +234,42 @@ export declare class CrmLeadsController {
         reviewsCount: number | null;
         latitude: number | null;
         longitude: number | null;
+        stageId: string | null;
+        statusLabel: string;
+        statusColor: string;
+        crmStatus: import("@prisma/client").$Enums.CrmLeadStatus;
+        isMinimized: boolean;
+        kanbanTracked: boolean;
+        kanbanOrder: number;
+        aiScore: number | null;
+        aiNotes: string | null;
+        source: string;
+        rawData: import("@prisma/client/runtime/library").JsonValue;
+        createdAt: string;
+        updatedAt: string;
+    }>;
+    update(user: AuthenticatedUser, id: string, dto: UpdateCrmLeadDto): Promise<{
+        id: string;
+        companyId: string;
+        tenantId: string;
+        searchSessionId: string | null;
+        organizationId: string | null;
+        name: string;
+        contactName: string | null;
+        phone: string | null;
+        email: string | null;
+        website: string | null;
+        instagram: string | null;
+        address: string | null;
+        city: string | null;
+        neighborhood: string | null;
+        category: string | null;
+        placeId: string | null;
+        rating: number | null;
+        reviewsCount: number | null;
+        latitude: number | null;
+        longitude: number | null;
+        status: import("@prisma/client").$Enums.LeadStatus;
         stageId: string | null;
         statusLabel: string;
         statusColor: string;

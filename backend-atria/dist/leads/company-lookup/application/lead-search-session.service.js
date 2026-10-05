@@ -9,37 +9,41 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LeadSearchSessionService = void 0;
+exports.LeadSearchSessionService = exports.CATALOG_PREVIEW_ID_PREFIX = void 0;
+exports.catalogPreviewId = catalogPreviewId;
+exports.isCatalogPreviewId = isCatalogPreviewId;
 const common_1 = require("@nestjs/common");
 const company_constants_1 = require("../../../company/company.constants");
 const prisma_service_1 = require("../../../prisma/prisma.service");
-const lead_miner_client_1 = require("../infrastructure/lead-miner.client");
-const lead_miner_mapper_1 = require("../infrastructure/lead-miner.mapper");
 const cnae_resolver_service_1 = require("./cnae-resolver.service");
-const company_discovery_service_1 = require("./company-discovery.service");
+const prospect_company_catalog_service_1 = require("./prospect-company-catalog.service");
 const registry_signals_util_1 = require("../../qualification/registry-signals.util");
-const DEFAULT_MAX_RESULTS = 20;
+exports.CATALOG_PREVIEW_ID_PREFIX = 'external:cnpj:';
+function catalogPreviewId(cnpj) {
+    return `${exports.CATALOG_PREVIEW_ID_PREFIX}${cnpj}`;
+}
+function isCatalogPreviewId(id) {
+    return id.startsWith(exports.CATALOG_PREVIEW_ID_PREFIX);
+}
 let LeadSearchSessionService = class LeadSearchSessionService {
     prisma;
-    companyDiscovery;
-    leadMinerClient;
+    prospectCatalog;
     cnaeResolver;
-    constructor(prisma, companyDiscovery, leadMinerClient, cnaeResolver) {
+    constructor(prisma, prospectCatalog, cnaeResolver) {
         this.prisma = prisma;
-        this.companyDiscovery = companyDiscovery;
-        this.leadMinerClient = leadMinerClient;
+        this.prospectCatalog = prospectCatalog;
         this.cnaeResolver = cnaeResolver;
     }
     async search(tenantId, dto) {
         const resolvedTenantId = tenantId?.trim() || company_constants_1.DEFAULT_COMPANY_ID;
-        const queryType = dto.queryType;
+        const queryType = (dto.queryType ?? 'CNAE');
         const city = dto.city.trim();
         const uf = dto.uf.trim().toUpperCase();
         const queryValue = dto.queryValue.trim();
         if (!city || !uf || !queryValue) {
             throw new common_1.BadRequestException('queryValue, city and uf are required');
         }
-        const discovered = await this.discoverCandidates(dto, {
+        const discovered = await this.discoverCandidates({
             queryType,
             queryValue,
             city,
@@ -47,7 +51,6 @@ let LeadSearchSessionService = class LeadSearchSessionService {
             maxResults: dto.maxResults,
             address: dto.address?.trim(),
         });
-        const candidates = discovered;
         const session = await this.prisma.leadSearchSession.create({
             data: {
                 tenantId: resolvedTenantId,
@@ -57,46 +60,10 @@ let LeadSearchSessionService = class LeadSearchSessionService {
                 uf,
             },
         });
-        const leads = [];
-        for (const candidate of candidates) {
-            const existing = await this.findExistingLead(resolvedTenantId, candidate);
-            if (existing) {
-                const updated = await this.prisma.lead.update({
-                    where: { id: existing.id },
-                    data: this.buildLeadUpdateFromCandidate(existing, candidate, session.id),
-                });
-                leads.push(updated);
-                continue;
-            }
-            const lead = await this.prisma.lead.create({
-                data: {
-                    companyId: resolvedTenantId,
-                    name: candidate.name,
-                    phone: candidate.phone,
-                    email: candidate.email,
-                    website: candidate.website,
-                    instagram: candidate.instagram,
-                    address: candidate.address,
-                    city: candidate.city ?? city,
-                    neighborhood: candidate.neighborhood,
-                    category: candidate.category,
-                    latitude: candidate.latitude,
-                    longitude: candidate.longitude,
-                    rating: candidate.rating,
-                    reviewsCount: candidate.reviewsCount,
-                    source: candidate.source,
-                    rawData: (0, registry_signals_util_1.materializeRegistrySnapshotFromRawData)(candidate.rawData, candidate.placeId ??
-                        (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined)),
-                    searchSessionId: session.id,
-                    placeId: candidate.placeId ??
-                        (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined),
-                },
-            });
-            leads.push(lead);
-        }
+        const leads = await this.hydrateCandidates(resolvedTenantId, session.id, discovered);
         return {
             session: this.toSessionResponse(session, leads.length),
-            leads: leads.map((lead) => this.toLeadResponse(lead)),
+            leads,
         };
     }
     async listSessions(tenantId) {
@@ -132,7 +99,7 @@ let LeadSearchSessionService = class LeadSearchSessionService {
         if (!session) {
             throw new common_1.NotFoundException('Search session not found');
         }
-        const leads = await this.prisma.lead.findMany({
+        const linked = await this.prisma.lead.findMany({
             where: {
                 searchSessionId: session.id,
                 companyId: resolvedTenantId,
@@ -140,183 +107,114 @@ let LeadSearchSessionService = class LeadSearchSessionService {
             },
             orderBy: { createdAt: 'desc' },
         });
+        if (linked.length > 0) {
+            return {
+                session: this.toSessionResponse(session, linked.length),
+                leads: linked.map((lead) => this.toLeadResponse(lead)),
+            };
+        }
+        const discovered = await this.discoverCandidates({
+            queryType: session.queryType,
+            queryValue: session.queryValue,
+            city: session.city,
+            uf: session.uf,
+        });
+        const leads = await this.hydrateCandidates(resolvedTenantId, session.id, discovered);
         return {
             session: this.toSessionResponse(session, leads.length),
-            leads: leads.map((lead) => this.toLeadResponse(lead)),
+            leads,
         };
     }
-    async discoverCandidates(dto, params) {
-        const maxResults = params.maxResults ?? DEFAULT_MAX_RESULTS;
-        if (params.queryType === 'NICHO') {
-            return this.discoverViaLeadMiner(params);
-        }
-        const cnaeClasses = await this.cnaeResolver.resolve('CNAE', params.queryValue);
-        const leadMinerCategory = this.cnaeResolver.leadMinerCategory(params.queryValue, cnaeClasses);
-        const [leadMinerCandidates, registryCandidates] = await Promise.all([
-            this.discoverViaLeadMiner({
-                ...params,
-                queryValue: leadMinerCategory,
-            }),
-            this.companyDiscovery.discover({
-                queryType: dto.queryType,
-                queryValue: params.queryValue,
-                city: params.city,
-                uf: params.uf,
-                maxResults,
-            }),
-        ]);
-        return this.mergeDiscoveredCandidates(leadMinerCandidates, registryCandidates, maxResults);
-    }
-    async discoverViaLeadMiner(params) {
-        const neighborhood = params.address?.trim() || params.city.trim();
-        const maxResults = params.maxResults ?? 25;
-        const records = await this.leadMinerClient.searchAndWait({
-            category: params.queryValue,
+    async discoverCandidates(params) {
+        const cnaeClasses = await this.cnaeResolver.resolve(params.queryType, params.queryValue);
+        return this.prospectCatalog.search({
+            queryValue: params.queryValue,
             city: params.city,
-            neighborhood,
-            max_results: maxResults,
+            uf: params.uf,
+            neighborhood: params.address,
+            cnaeCodes: this.cnaeResolver.cnaeFilterCodes(cnaeClasses),
+            maxResults: params.maxResults ?? prospect_company_catalog_service_1.DEFAULT_CATALOG_MAX_RESULTS,
         });
-        return (0, lead_miner_mapper_1.mapLeadMinerRecordsToCandidates)(records, {
-            city: params.city,
-            neighborhood,
-            category: params.queryValue,
-        }).slice(0, maxResults);
     }
-    mergeDiscoveredCandidates(leadMinerCandidates, registryCandidates, maxResults) {
-        const merged = new Map();
-        for (const candidate of leadMinerCandidates) {
-            merged.set(this.buildCandidateKey(candidate), candidate);
-        }
-        for (const candidate of registryCandidates) {
-            const directKey = this.buildCandidateKey(candidate);
-            const existing = merged.get(directKey);
-            if (existing) {
-                merged.set(directKey, this.mergeCandidates(existing, candidate));
-                continue;
-            }
-            const fuzzyMatch = Array.from(merged.values()).find((item) => this.isSameBusiness(item, candidate));
-            if (fuzzyMatch) {
-                const key = this.buildCandidateKey(fuzzyMatch);
-                merged.set(key, this.mergeCandidates(fuzzyMatch, candidate));
-                continue;
-            }
-            merged.set(directKey, candidate);
-        }
-        return Array.from(merged.values()).slice(0, maxResults);
-    }
-    mergeCandidates(leadMinerCandidate, registryCandidate) {
-        const contact = this.isContactRichSource(leadMinerCandidate.source)
-            ? leadMinerCandidate
-            : registryCandidate;
-        const registry = contact === leadMinerCandidate ? registryCandidate : leadMinerCandidate;
-        return {
-            ...registry,
-            ...contact,
-            name: contact.name || registry.name,
-            phone: contact.phone ?? registry.phone,
-            website: contact.website ?? registry.website,
-            email: contact.email ?? registry.email,
-            instagram: contact.instagram ?? registry.instagram,
-            cnpj: registry.cnpj ?? contact.cnpj,
-            placeId: contact.placeId ?? registry.placeId,
-            address: contact.address ?? registry.address,
-            city: contact.city ?? registry.city,
-            neighborhood: contact.neighborhood ?? registry.neighborhood,
-            category: registry.category ?? contact.category,
-            latitude: contact.latitude ?? registry.latitude,
-            longitude: contact.longitude ?? registry.longitude,
-            rating: contact.rating ?? registry.rating,
-            reviewsCount: contact.reviewsCount ?? registry.reviewsCount,
-            source: contact.source === registry.source
-                ? contact.source
-                : `${contact.source}+${registry.source}`,
-            rawData: {
-                leadMiner: contact.rawData,
-                registry: registry.rawData,
-            },
-        };
-    }
-    isContactRichSource(source) {
-        return (source === 'leadminer' ||
-            source === 'apify' ||
-            source === 'outscraper');
-    }
-    buildCandidateKey(candidate) {
-        if (candidate.placeId) {
-            return `place:${candidate.placeId}`;
-        }
-        if (candidate.cnpj) {
-            return `cnpj:${candidate.cnpj}`;
-        }
-        return `name:${this.normalizeCandidateName(candidate.name)}:${this.normalizeCandidateName(candidate.city ?? '')}`;
-    }
-    isSameBusiness(left, right) {
-        const leftName = this.normalizeCandidateName(left.name);
-        const rightName = this.normalizeCandidateName(right.name);
-        if (!leftName || !rightName) {
-            return false;
-        }
-        if (leftName === rightName) {
-            return true;
-        }
-        return leftName.includes(rightName) || rightName.includes(leftName);
-    }
-    normalizeCandidateName(value) {
-        return value
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, ' ')
-            .trim();
-    }
-    async findExistingLead(tenantId, candidate) {
-        if (candidate.placeId) {
-            const byPlaceId = await this.prisma.lead.findFirst({
+    async hydrateCandidates(tenantId, sessionId, candidates) {
+        const placeIds = candidates
+            .map((candidate) => candidate.placeId)
+            .filter((placeId) => Boolean(placeId));
+        const existing = placeIds.length === 0
+            ? []
+            : await this.prisma.lead.findMany({
                 where: {
-                    placeId: candidate.placeId,
                     companyId: tenantId,
                     deletedAt: null,
+                    placeId: { in: placeIds },
                 },
             });
-            if (byPlaceId) {
-                return byPlaceId;
+        const byPlaceId = new Map();
+        for (const lead of existing) {
+            if (!lead.placeId)
+                continue;
+            const current = byPlaceId.get(lead.placeId);
+            if (!current || (lead.kanbanTracked && !current.kanbanTracked)) {
+                byPlaceId.set(lead.placeId, lead);
             }
         }
-        if (candidate.cnpj) {
-            const byCnpj = await this.prisma.lead.findFirst({
-                where: {
-                    placeId: `cnpj:${candidate.cnpj}`,
-                    companyId: tenantId,
-                    deletedAt: null,
-                },
-            });
-            if (byCnpj) {
-                return byCnpj;
+        return candidates.map((candidate) => {
+            const persisted = candidate.placeId
+                ? byPlaceId.get(candidate.placeId)
+                : undefined;
+            if (persisted) {
+                return this.toLeadResponse(persisted);
             }
-        }
-        return null;
+            return this.toPreviewLeadResponse(tenantId, sessionId, candidate);
+        });
     }
-    buildLeadUpdateFromCandidate(existing, candidate, searchSessionId) {
+    candidateScore(candidate) {
+        return 'aiScore' in candidate && typeof candidate.aiScore === 'number'
+            ? candidate.aiScore
+            : undefined;
+    }
+    candidateNotes(candidate) {
+        return 'aiNotes' in candidate && typeof candidate.aiNotes === 'string'
+            ? candidate.aiNotes
+            : undefined;
+    }
+    toPreviewLeadResponse(tenantId, sessionId, candidate) {
+        const now = new Date().toISOString();
+        const placeId = candidate.placeId ??
+            (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined);
         return {
-            searchSession: { connect: { id: searchSessionId } },
-            phone: candidate.phone ?? existing.phone,
-            website: candidate.website ?? existing.website,
-            email: candidate.email ?? existing.email,
-            instagram: candidate.instagram ?? existing.instagram,
-            address: candidate.address ?? existing.address,
-            city: candidate.city ?? existing.city,
-            neighborhood: candidate.neighborhood ?? existing.neighborhood,
-            category: candidate.category ?? existing.category,
-            latitude: candidate.latitude ?? existing.latitude,
-            longitude: candidate.longitude ?? existing.longitude,
-            rating: candidate.rating ?? existing.rating,
-            reviewsCount: candidate.reviewsCount ?? existing.reviewsCount,
-            placeId: candidate.placeId ??
-                (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined) ??
-                existing.placeId,
-            rawData: (0, registry_signals_util_1.materializeRegistrySnapshotFromRawData)(candidate.rawData, candidate.placeId ??
-                (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined) ??
-                existing.placeId),
+            id: candidate.cnpj ? catalogPreviewId(candidate.cnpj) : `external:${sessionId}:${candidate.name}`,
+            companyId: tenantId,
+            tenantId,
+            searchSessionId: sessionId,
+            organizationId: null,
+            name: candidate.name,
+            contactName: null,
+            phone: candidate.phone ?? null,
+            email: candidate.email ?? null,
+            website: candidate.website ?? null,
+            instagram: candidate.instagram ?? null,
+            address: candidate.address ?? null,
+            city: candidate.city ?? null,
+            neighborhood: candidate.neighborhood ?? null,
+            category: candidate.category ?? null,
+            placeId: placeId ?? null,
+            rating: candidate.rating ?? null,
+            reviewsCount: candidate.reviewsCount ?? null,
+            latitude: candidate.latitude ?? null,
+            longitude: candidate.longitude ?? null,
+            status: 'PRE_VENDA',
+            stageId: null,
+            crmStatus: 'ACTIVE',
+            isMinimized: false,
+            kanbanTracked: false,
+            kanbanOrder: 0,
+            aiScore: this.candidateScore(candidate) ?? null,
+            aiNotes: this.candidateNotes(candidate) ?? null,
+            source: candidate.source,
+            rawData: (0, registry_signals_util_1.materializeRegistrySnapshotFromRawData)(candidate.rawData, placeId),
+            createdAt: now,
+            updatedAt: now,
         };
     }
     toSessionResponse(session, leadsCount) {
@@ -339,6 +237,7 @@ let LeadSearchSessionService = class LeadSearchSessionService {
             searchSessionId: lead.searchSessionId,
             organizationId: lead.organizationId,
             name: lead.name,
+            contactName: lead.contactName,
             phone: lead.phone,
             email: lead.email,
             website: lead.website,
@@ -371,8 +270,7 @@ exports.LeadSearchSessionService = LeadSearchSessionService;
 exports.LeadSearchSessionService = LeadSearchSessionService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        company_discovery_service_1.CompanyDiscoveryService,
-        lead_miner_client_1.LeadMinerClient,
+        prospect_company_catalog_service_1.ProspectCompanyCatalogService,
         cnae_resolver_service_1.CnaeResolverService])
 ], LeadSearchSessionService);
 //# sourceMappingURL=lead-search-session.service.js.map

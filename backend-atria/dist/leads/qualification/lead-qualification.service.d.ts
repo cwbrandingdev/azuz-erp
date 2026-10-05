@@ -2,6 +2,8 @@ import { Lead, Prisma } from '@prisma/client';
 import { CommercialFitService, type CommercialFitResult } from './commercial-fit.service';
 import { CompanyLookupService } from '../company-lookup/application/company-lookup.service';
 import { InstagramApifyEnricher, type InstagramProfileQualificationData } from './instagram-apify.enricher';
+import { MapsScraperService } from '../maps-scraper/maps-scraper.service';
+import { type MapsContactUpdates } from '../maps-scraper/maps-contact-merge.util';
 export interface LeadQualificationResult {
     score: number;
     operationalScore: number;
@@ -11,15 +13,20 @@ export interface LeadQualificationResult {
     instagram?: InstagramProfileQualificationData | null;
     commercialFit?: CommercialFitResult;
     usedApify: boolean;
+    usedMaps: boolean;
+    contactUpdates: MapsContactUpdates;
     mergedRawData: Prisma.InputJsonValue;
 }
 export declare class LeadQualificationService {
     private readonly instagramEnricher;
     private readonly commercialFit;
     private readonly companyLookup;
-    constructor(instagramEnricher: InstagramApifyEnricher, commercialFit: CommercialFitService, companyLookup: CompanyLookupService);
+    private readonly mapsScraper;
+    constructor(instagramEnricher: InstagramApifyEnricher, commercialFit: CommercialFitService, companyLookup: CompanyLookupService, mapsScraper: MapsScraperService);
     qualifyLead(lead: Lead, apifyToken: string | null): Promise<LeadQualificationResult>;
     private resolveInstagramData;
+    private promoteInstagramFromWebsite;
+    private enrichLeadFromMaps;
     private enrichLeadRegistry;
     mergeQualificationRawData(lead: Lead, input: {
         instagram: InstagramProfileQualificationData | null;

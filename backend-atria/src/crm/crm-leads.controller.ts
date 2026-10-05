@@ -18,6 +18,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { getRequiredCrmPermissions } from '../auth/utils/rbac';
 import { LeadsService } from '../leads/leads.service';
 import { CreateCrmLeadDto } from './dto/create-crm-lead.dto';
+import { UpdateCrmLeadDto } from './dto/update-crm-lead.dto';
 import { ProspectingLeadsQueryDto } from './dto/prospecting-leads-query.dto';
 import { ToggleLeadCollapseDto } from './dto/toggle-lead-collapse.dto';
 import { UpdateLeadStatusDto } from '../leads/dto/lead-kanban.dto';
@@ -73,5 +74,14 @@ export class CrmLeadsController {
     @Body() dto: ToggleLeadCollapseDto,
   ) {
     return this.leadsService.toggleLeadCollapse(user, id, dto.isMinimized);
+  }
+
+  @Patch(':id')
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateCrmLeadDto,
+  ) {
+    return this.leadsService.updateForCrm(user, id, dto);
   }
 }

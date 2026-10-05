@@ -11,90 +11,68 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CnaeResolverService = void 0;
 const common_1 = require("@nestjs/common");
+const prisma_service_1 = require("../../../prisma/prisma.service");
 const ibge_cnae_client_1 = require("../infrastructure/ibge-cnae.client");
-const CNAE_SEARCH_DEFAULT_LIMIT = 30;
+const text_normalize_1 = require("../domain/text-normalize");
+const CNAE_SEARCH_DEFAULT_LIMIT = 40;
 const CNAE_SUBCLASS_DESCRIPTIONS = {
     '9602501': 'Cabeleireiros, barbearia, manicure e pedicure',
     '9602502': 'Atividades de estética e outros serviços de cuidados com a beleza',
 };
 let CnaeResolverService = class CnaeResolverService {
+    prisma;
     ibgeCnaeClient;
-    constructor(ibgeCnaeClient) {
+    constructor(prisma, ibgeCnaeClient) {
+        this.prisma = prisma;
         this.ibgeCnaeClient = ibgeCnaeClient;
     }
     async search(query, limit = CNAE_SEARCH_DEFAULT_LIMIT) {
+        const catalog = await this.loadCatalog();
         const normalizedQuery = query.trim();
-        const classes = await this.ibgeCnaeClient.listClasses();
         if (!normalizedQuery) {
-            return classes.slice(0, limit).map((item) => ({
-                id: item.id,
-                description: item.description,
-            }));
+            return catalog.slice(0, limit);
         }
         const normalizedCode = this.normalizeCnaeCode(normalizedQuery);
         const normalizedText = this.normalizeText(normalizedQuery);
-        const matches = classes.filter((item) => {
-            const codeMatch = normalizedCode.length > 0 && this.codesMatch(normalizedCode, item.id);
+        const matches = catalog.filter((item) => {
+            const codeMatch = normalizedCode.length > 0 &&
+                (item.id.includes(normalizedCode) ||
+                    this.codesMatch(normalizedCode, item.id));
             const descriptionMatch = this.normalizeText(item.description).includes(normalizedText);
             return codeMatch || descriptionMatch;
         });
-        const results = matches.map((item) => ({
-            id: item.id,
-            description: item.description,
-        }));
-        if (normalizedCode.length === 7) {
-            const subclass = this.subclassInfo(normalizedCode);
-            if (subclass && !results.some((item) => item.id === subclass.id)) {
-                results.unshift(subclass);
+        matches.sort((left, right) => {
+            const delta = this.rankMatch(right, normalizedCode, normalizedText) -
+                this.rankMatch(left, normalizedCode, normalizedText);
+            if (delta !== 0) {
+                return delta;
             }
-        }
-        return results.slice(0, limit);
+            return left.description.localeCompare(right.description, 'pt-BR');
+        });
+        return matches.slice(0, limit);
     }
-    async resolve(queryType, queryValue) {
+    async resolve(_queryType, queryValue) {
+        const catalog = await this.loadCatalog();
         const normalizedQuery = queryValue.trim();
-        const classes = await this.ibgeCnaeClient.listClasses();
-        if (queryType === 'CNAE') {
-            const targetCode = this.normalizeCnaeCode(normalizedQuery);
-            const ibgeMatches = classes.filter((item) => this.codesMatch(targetCode, item.id));
-            const resolved = [];
-            if (targetCode.length === 7) {
-                const subclass = this.subclassInfo(targetCode);
-                if (subclass) {
-                    resolved.push(subclass);
-                }
-            }
-            const bestIbge = this.pickMostSpecific(ibgeMatches);
-            if (bestIbge) {
-                resolved.push(bestIbge);
-            }
-            if (resolved.length > 0) {
-                return resolved;
+        const targetCode = this.normalizeCnaeCode(normalizedQuery);
+        if (targetCode.length >= 5) {
+            const exact = catalog.filter((item) => item.id === targetCode ||
+                (targetCode.length < 7 && item.id.startsWith(targetCode)));
+            if (exact.length > 0) {
+                return exact;
             }
             return [
                 {
                     id: targetCode,
-                    description: this.subclassInfo(targetCode)?.description ??
+                    description: catalog.find((item) => item.id === targetCode)?.description ??
+                        CNAE_SUBCLASS_DESCRIPTIONS[targetCode] ??
                         `CNAE ${this.formatSubclassCode(targetCode)}`,
                 },
             ];
         }
-        const normalizedNiche = this.normalizeText(normalizedQuery);
-        const matches = classes.filter((item) => this.normalizeText(item.description).includes(normalizedNiche));
-        return matches.slice(0, 5);
-    }
-    leadMinerCategory(queryValue, resolved) {
-        const targetCode = this.normalizeCnaeCode(queryValue.trim());
-        if (targetCode.length === 7) {
-            const subclass = this.subclassInfo(targetCode);
-            if (subclass) {
-                return this.leadMinerTermFromSubclass(targetCode, subclass.description);
-            }
-        }
-        const best = this.pickMostSpecific(resolved) ?? resolved[0];
-        if (!best?.description) {
-            return queryValue.trim();
-        }
-        return this.simplifyForLeadMiner(best.description);
+        const normalizedText = this.normalizeText(normalizedQuery);
+        const matches = catalog.filter((item) => this.normalizeText(item.description).includes(normalizedText));
+        return matches.slice(0, 12);
     }
     cnaeFilterCodes(resolved) {
         const codes = resolved.map((item) => this.normalizeCnaeCode(item.id));
@@ -107,45 +85,61 @@ let CnaeResolverService = class CnaeResolverService {
         }
         return `${code.slice(0, 2)}.${code.slice(2, 4)}-${code[4]}/${code.slice(5, 7)}`;
     }
-    subclassInfo(code) {
-        const normalized = this.normalizeCnaeCode(code);
-        if (normalized.length !== 7) {
-            return null;
+    async loadCatalog() {
+        const rows = await this.prisma.prospectCnae.findMany({
+            orderBy: { code: 'asc' },
+        });
+        const unique = new Map();
+        for (const row of rows) {
+            unique.set(row.code, {
+                id: row.code,
+                description: row.description,
+            });
         }
-        const description = CNAE_SUBCLASS_DESCRIPTIONS[normalized];
-        if (!description) {
-            return {
-                id: normalized,
-                description: `Subclasse CNAE ${this.formatSubclassCode(normalized)}`,
-            };
+        for (const [id, description] of Object.entries(CNAE_SUBCLASS_DESCRIPTIONS)) {
+            if (!unique.has(id)) {
+                unique.set(id, { id, description });
+            }
         }
-        return {
-            id: normalized,
-            description,
-        };
+        const sevenDigitCount = [...unique.keys()].filter((code) => code.length === 7).length;
+        if (sevenDigitCount < 200) {
+            const subclasses = await this.ibgeCnaeClient.listSubclasses().catch(() => []);
+            for (const item of subclasses) {
+                if (!unique.has(item.id)) {
+                    unique.set(item.id, item);
+                }
+            }
+        }
+        if (unique.size === 0) {
+            const classes = await this.ibgeCnaeClient.listClasses().catch(() => []);
+            for (const item of classes) {
+                unique.set(item.id, item);
+            }
+        }
+        return Array.from(unique.values());
     }
-    leadMinerTermFromSubclass(code, description) {
-        if (code === '9602502') {
-            return 'clínica de estética';
+    rankMatch(item, code, text) {
+        let score = 0;
+        const description = this.normalizeText(item.description);
+        if (code && item.id === code) {
+            score += 1000;
         }
-        if (code === '9602501') {
-            return 'salão de beleza';
+        else if (code && item.id.startsWith(code)) {
+            score += 600;
         }
-        const firstSegment = description.split(/\s+e\s+/i)[0]?.trim();
-        return firstSegment ? this.simplifyForLeadMiner(firstSegment) : 'estética';
-    }
-    simplifyForLeadMiner(description) {
-        const words = description
-            .toLowerCase()
-            .split(/\s+/)
-            .filter((word) => word.length > 3 && !/^outras?$/.test(word));
-        return words.slice(0, 3).join(' ') || description.slice(0, 40);
-    }
-    pickMostSpecific(matches) {
-        if (matches.length === 0) {
-            return null;
+        else if (code && item.id.includes(code)) {
+            score += 200;
         }
-        return matches.reduce((best, item) => item.id.length > best.id.length ? item : best);
+        if (text && description.startsWith(text)) {
+            score += 800;
+        }
+        else if (text && description.includes(text)) {
+            score += 400;
+        }
+        if (item.id.length === 7) {
+            score += 80;
+        }
+        return score;
     }
     codesMatch(targetCode, itemId) {
         return (itemId === targetCode ||
@@ -156,16 +150,13 @@ let CnaeResolverService = class CnaeResolverService {
         return value.replace(/\D/g, '');
     }
     normalizeText(value) {
-        return value
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .toLowerCase()
-            .trim();
+        return (0, text_normalize_1.normalizeCatalogText)(value);
     }
 };
 exports.CnaeResolverService = CnaeResolverService;
 exports.CnaeResolverService = CnaeResolverService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [ibge_cnae_client_1.IbgeCnaeClient])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        ibge_cnae_client_1.IbgeCnaeClient])
 ], CnaeResolverService);
 //# sourceMappingURL=cnae-resolver.service.js.map

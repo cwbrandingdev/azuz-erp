@@ -9,6 +9,11 @@ export class CreateCrmLeadDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(255)
+  contactName?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(64)
   phone?: string;
 
@@ -49,7 +54,7 @@ export class CreateCrmLeadDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(64)
+  @MaxLength(255)
   source?: string;
 
   @IsEntityId()

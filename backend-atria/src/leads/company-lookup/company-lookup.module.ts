@@ -3,6 +3,7 @@ import { CnaeResolverService } from './application/cnae-resolver.service';
 import { CompanyDiscoveryService } from './application/company-discovery.service';
 import { CompanyLookupService } from './application/company-lookup.service';
 import { LeadSearchSessionService } from './application/lead-search-session.service';
+import { ProspectCompanyCatalogService } from './application/prospect-company-catalog.service';
 import { BrasilApiCnpjClient } from './infrastructure/brasil-api-cnpj.client';
 import { IbgeCnaeClient } from './infrastructure/ibge-cnae.client';
 import { MinhaReceitaClient } from './infrastructure/minha-receita.client';
@@ -19,6 +20,7 @@ import { NominatimClient } from './infrastructure/nominatim.client';
     CnaeResolverService,
     CompanyLookupService,
     CompanyDiscoveryService,
+    ProspectCompanyCatalogService,
     LeadSearchSessionService,
   ],
   exports: [

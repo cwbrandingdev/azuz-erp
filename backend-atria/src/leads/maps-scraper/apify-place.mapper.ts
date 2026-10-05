@@ -65,18 +65,27 @@ function extractApifyPhone(place: ApifyPlace): string | undefined {
 
 function extractApifyInstagram(place: ApifyPlace): string | undefined {
   const instagrams = place.instagrams;
-  if (!Array.isArray(instagrams)) {
-    return undefined;
-  }
-
-  for (const entry of instagrams) {
-    const normalized = normalizeInstagramUrl(entry);
-    if (normalized) {
-      return normalized;
+  if (Array.isArray(instagrams)) {
+    for (const entry of instagrams) {
+      const normalized = normalizeInstagramUrl(entry);
+      if (normalized) {
+        return normalized;
+      }
     }
   }
 
-  return undefined;
+  return (
+    instagramUrlFromMaybeWebsite(place.website) ??
+    instagramUrlFromMaybeWebsite(place.url)
+  );
+}
+
+function instagramUrlFromMaybeWebsite(value: unknown): string | undefined {
+  const raw = asOptionalString(value);
+  if (!raw || !/instagram\.com/i.test(raw)) {
+    return undefined;
+  }
+  return normalizeInstagramUrl(raw);
 }
 
 function normalizeInstagramUrl(value: unknown): string | undefined {
@@ -156,14 +165,22 @@ export function mapApifyPlaces(
 export function buildApifyActorInput(
   dto: FetchMapsLeadsDto,
   maxResults: number,
+  options?: {
+    searchString?: string;
+    locationQuery?: string;
+  },
 ) {
   const category = dto.category.trim();
   const neighborhood = dto.neighborhood.trim();
   const city = dto.city.trim();
+  const searchString =
+    options?.searchString?.trim() || `${category} em ${neighborhood}, ${city}`;
+  const locationQuery =
+    options?.locationQuery?.trim() || `${neighborhood}, ${city}, Brasil`;
 
   return {
-    searchStringsArray: [`${category} em ${neighborhood}, ${city}`],
-    locationQuery: `${neighborhood}, ${city}, Brasil`,
+    searchStringsArray: [searchString],
+    locationQuery,
     language: 'pt-BR',
     maxCrawledPlacesPerSearch: maxResults,
     scrapePlaceDetailPage: true,

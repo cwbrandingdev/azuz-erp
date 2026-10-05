@@ -50,6 +50,9 @@ let LeadsController = class LeadsController {
     listSearchSessions(user) {
         return this.leadSearchSessionService.listSessions(user.companyId);
     }
+    enrichSearchSessionMaps(user, id) {
+        return this.leadsService.enrichSearchSessionFromMaps(user, id);
+    }
     getSearchSessionLeads(user, id) {
         return this.leadSearchSessionService.getSessionLeads(user.companyId, id);
     }
@@ -114,6 +117,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LeadsController.prototype, "listSearchSessions", null);
+__decorate([
+    (0, common_1.Post)('sessions/:id/enrich-maps'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "enrichSearchSessionMaps", null);
 __decorate([
     (0, common_1.Get)('sessions/:id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

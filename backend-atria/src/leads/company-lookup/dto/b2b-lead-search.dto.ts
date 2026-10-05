@@ -16,8 +16,9 @@ export enum B2bLeadSearchQueryType {
 }
 
 export class B2bLeadSearchDto {
+  @IsOptional()
   @IsEnum(B2bLeadSearchQueryType)
-  queryType: B2bLeadSearchQueryType;
+  queryType?: B2bLeadSearchQueryType;
 
   @IsString()
   @IsNotEmpty()
@@ -42,6 +43,6 @@ export class B2bLeadSearchDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(20)
+  @Max(100)
   maxResults?: number;
 }

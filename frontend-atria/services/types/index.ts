@@ -2446,6 +2446,7 @@ export interface Lead {
   searchSessionId?: string | null;
   organizationId?: string | null;
   name: string;
+  contactName?: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -2491,9 +2492,24 @@ export interface LeadKanbanBoard {
   crmMoveZone?: "all" | "sdr" | "client" | "none";
 }
 
+export interface UpdateCrmLeadInput {
+  name?: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  instagram?: string;
+  address?: string;
+  city?: string;
+  neighborhood?: string;
+  category?: string;
+  source?: string;
+}
+
 export interface AddLeadToKanbanInput {
   leadId?: string;
   name?: string;
+  contactName?: string;
   phone?: string;
   email?: string;
   website?: string;
@@ -2504,6 +2520,7 @@ export interface AddLeadToKanbanInput {
   placeId?: string;
   source?: string;
   organizationId?: string | null;
+  stageId?: string;
 }
 
 export interface UpdateLeadStatusInput {

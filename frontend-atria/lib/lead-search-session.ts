@@ -4,8 +4,7 @@ import type { LeadSearchSessionSummary } from "@/services/company-search.service
 export function formatSearchSessionLabel(
   session: LeadSearchSessionSummary,
 ): string {
-  const typeLabel =
-    session.queryType === "CNAE" ? "CNAE" : "Tipo de negócio";
+  const typeLabel = "CNAE";
   const date = new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",

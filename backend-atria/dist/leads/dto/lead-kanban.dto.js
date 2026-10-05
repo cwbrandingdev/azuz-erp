@@ -16,6 +16,7 @@ const entity_id_1 = require("../../common/validation/entity-id");
 class AddLeadToKanbanDto {
     leadId;
     name;
+    contactName;
     phone;
     email;
     website;
@@ -26,6 +27,7 @@ class AddLeadToKanbanDto {
     placeId;
     source;
     organizationId;
+    stageId;
 }
 exports.AddLeadToKanbanDto = AddLeadToKanbanDto;
 __decorate([
@@ -38,6 +40,12 @@ __decorate([
     (0, class_validator_1.MaxLength)(255),
     __metadata("design:type", String)
 ], AddLeadToKanbanDto.prototype, "name", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], AddLeadToKanbanDto.prototype, "contactName", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
@@ -89,13 +97,17 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MaxLength)(64),
+    (0, class_validator_1.MaxLength)(255),
     __metadata("design:type", String)
 ], AddLeadToKanbanDto.prototype, "source", void 0);
 __decorate([
     (0, entity_id_1.IsEntityId)({ optional: true }),
     __metadata("design:type", Object)
 ], AddLeadToKanbanDto.prototype, "organizationId", void 0);
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], AddLeadToKanbanDto.prototype, "stageId", void 0);
 class UpdateLeadStatusDto {
     status;
     stageId;

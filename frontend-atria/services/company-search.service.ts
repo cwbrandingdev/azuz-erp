@@ -5,6 +5,7 @@ import type { Lead } from "@/services/types";
 
 const API_BASE_URL = resolveApiBaseUrl();
 const COMPANY_SEARCH_TIMEOUT_MS = 120_000;
+const MAPS_ENRICH_TIMEOUT_MS = 210_000;
 
 export type LeadSearchQueryType = "NICHO" | "CNAE";
 
@@ -52,12 +53,10 @@ export interface B2bLeadSearchResponse {
 async function companySearchRequest<T>(
   endpoint: string,
   init: RequestInit,
+  timeoutMs = COMPANY_SEARCH_TIMEOUT_MS,
 ): Promise<T> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(
-    () => controller.abort(),
-    COMPANY_SEARCH_TIMEOUT_MS,
-  );
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const makeRequest = async (token: string | null) => {
     return fetch(`${API_BASE_URL}${endpoint}`, {
@@ -158,5 +157,20 @@ export async function getLeadSearchSessionLeads(
   return companySearchRequest<B2bLeadSearchResponse>(
     `/leads/sessions/${encodeURIComponent(sessionId)}`,
     { method: "GET" },
+  );
+}
+
+export interface MapsSessionEnrichResponse extends B2bLeadSearchResponse {
+  matched: number;
+  updated: number;
+}
+
+export async function enrichLeadSearchSessionMaps(
+  sessionId: string,
+): Promise<MapsSessionEnrichResponse> {
+  return companySearchRequest<MapsSessionEnrichResponse>(
+    `/leads/sessions/${encodeURIComponent(sessionId)}/enrich-maps`,
+    { method: "POST" },
+    MAPS_ENRICH_TIMEOUT_MS,
   );
 }

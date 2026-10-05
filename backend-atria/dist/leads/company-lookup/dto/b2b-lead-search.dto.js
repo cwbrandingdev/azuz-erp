@@ -26,6 +26,7 @@ class B2bLeadSearchDto {
 }
 exports.B2bLeadSearchDto = B2bLeadSearchDto;
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(B2bLeadSearchQueryType),
     __metadata("design:type", String)
 ], B2bLeadSearchDto.prototype, "queryType", void 0);
@@ -57,7 +58,7 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsInt)(),
     (0, class_validator_1.Min)(1),
-    (0, class_validator_1.Max)(20),
+    (0, class_validator_1.Max)(100),
     __metadata("design:type", Number)
 ], B2bLeadSearchDto.prototype, "maxResults", void 0);
 //# sourceMappingURL=b2b-lead-search.dto.js.map

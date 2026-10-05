@@ -156,14 +156,20 @@ export function LeadKanbanCard({
           <p className="truncate text-sm font-semibold text-[var(--atria-primary)]">
             {lead.name}
           </p>
-          {(lead.category || lead.source) && (
+          {lead.contactName?.trim() && (
+            <p className="mt-0.5 truncate text-xs text-[var(--atria-primary)]/60">
+              Fala com: {lead.contactName.trim()}
+            </p>
+          )}
+          {(lead.category ||
+            (lead.source && lead.source.toLowerCase() !== "manual")) && (
             <div className="mt-1 flex flex-wrap gap-1">
               {lead.category && (
                 <Badge variant="outline" className="text-[10px]">
                   {lead.category}
                 </Badge>
               )}
-              {lead.source && (
+              {lead.source && lead.source.toLowerCase() !== "manual" && (
                 <Badge variant="secondary" className="text-[10px]">
                   {lead.source}
                 </Badge>

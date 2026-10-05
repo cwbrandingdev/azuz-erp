@@ -65,6 +65,7 @@ type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   skipAuth?: boolean;
   skipToast?: boolean;
+  timeoutMs?: number;
 };
 
 let refreshPromise: Promise<AuthResponse | null> | null = null;
@@ -110,19 +111,23 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { body, headers, skipAuth, skipToast, ...rest } = options;
+  const { body, headers, skipAuth, skipToast, timeoutMs, ...rest } = options;
 
   const makeRequest = async (token: string | null) => {
-    return fetchWithTimeout(resolveRequestUrl(endpoint), {
-      ...rest,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && !skipAuth ? { Authorization: `Bearer ${token}` } : {}),
-        ...headers,
+    return fetchWithTimeout(
+      resolveRequestUrl(endpoint),
+      {
+        ...rest,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && !skipAuth ? { Authorization: `Bearer ${token}` } : {}),
+          ...headers,
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+      timeoutMs,
+    );
   };
 
   let token = skipAuth ? null : getAccessToken();

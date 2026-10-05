@@ -11,6 +11,7 @@ import type {
   LeadKanbanBoard,
   LeadStage,
   LeadStatus,
+  UpdateCrmLeadInput,
   UpdateLeadStageInput,
   UpdateLeadStatusInput,
 } from "./types";
@@ -102,6 +103,16 @@ export async function removeFromKanban(
   });
 }
 
+export async function updateLead(
+  id: string,
+  data: UpdateCrmLeadInput,
+): Promise<Lead> {
+  return apiRequest<Lead>(`/crm/leads/${id}`, {
+    method: "PATCH",
+    body: data,
+  });
+}
+
 export async function updateLeadStatus(
   id: string,
   data: UpdateLeadStatusInput,
@@ -113,14 +124,15 @@ export async function updateLeadStatus(
 }
 
 export async function qualifyLead(id: string): Promise<Lead> {
-  return apiRequest<Lead>(`/leads/${id}/qualify`, {
+  return apiRequest<Lead>(`/leads/${encodeURIComponent(id)}/qualify`, {
     method: "POST",
   });
 }
 
 export async function preQualifyLead(id: string): Promise<Lead> {
-  return apiRequest<Lead>(`/leads/${id}/pre-qualify`, {
+  return apiRequest<Lead>(`/leads/${encodeURIComponent(id)}/pre-qualify`, {
     method: "POST",
+    timeoutMs: 320_000,
   });
 }
 

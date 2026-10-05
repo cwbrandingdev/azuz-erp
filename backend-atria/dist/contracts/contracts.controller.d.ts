@@ -10,15 +10,15 @@ export declare class ContractsController {
         client: {
             number: string | null;
             id: string;
+            email: string | null;
+            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
-            email: string | null;
             phone: string | null;
             street: string | null;
             city: string | null;
             state: string | null;
             zipCode: string | null;
-            avatarUrl: string | null;
         };
         title: string;
         status: "draft" | "sent" | "signed" | "expired" | "cancelled";
@@ -44,15 +44,15 @@ export declare class ContractsController {
         client: {
             number: string | null;
             id: string;
+            email: string | null;
+            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
-            email: string | null;
             phone: string | null;
             street: string | null;
             city: string | null;
             state: string | null;
             zipCode: string | null;
-            avatarUrl: string | null;
         };
         title: string;
         status: "draft" | "sent" | "signed" | "expired" | "cancelled";
@@ -78,15 +78,15 @@ export declare class ContractsController {
         client: {
             number: string | null;
             id: string;
+            email: string | null;
+            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
-            email: string | null;
             phone: string | null;
             street: string | null;
             city: string | null;
             state: string | null;
             zipCode: string | null;
-            avatarUrl: string | null;
         };
         title: string;
         status: "draft" | "sent" | "signed" | "expired" | "cancelled";
@@ -112,15 +112,15 @@ export declare class ContractsController {
         client: {
             number: string | null;
             id: string;
+            email: string | null;
+            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
-            email: string | null;
             phone: string | null;
             street: string | null;
             city: string | null;
             state: string | null;
             zipCode: string | null;
-            avatarUrl: string | null;
         };
         title: string;
         status: "draft" | "sent" | "signed" | "expired" | "cancelled";
@@ -147,15 +147,15 @@ export declare class ContractsController {
             client: {
                 number: string | null;
                 id: string;
+                email: string | null;
+                avatarUrl: string | null;
                 companyName: string;
                 contactName: string | null;
-                email: string | null;
                 phone: string | null;
                 street: string | null;
                 city: string | null;
                 state: string | null;
                 zipCode: string | null;
-                avatarUrl: string | null;
             };
             title: string;
             status: "draft" | "sent" | "signed" | "expired" | "cancelled";
