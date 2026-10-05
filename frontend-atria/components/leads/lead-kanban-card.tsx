@@ -19,7 +19,6 @@ import { LeadLocationText } from "@/components/leads/lead-location-text";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
 import {
   getLeadStatusColor,
-  getLeadStatusLabel,
   isLeadCollapsed,
   leadColumnKey,
 } from "@/lib/leads-kanban-utils";
@@ -34,6 +33,7 @@ import type { Lead, LeadKanbanColumn } from "@/services/types";
 interface LeadKanbanCardProps {
   lead: Lead;
   columns: LeadKanbanColumn[];
+  currentColumn: LeadKanbanColumn;
   crmMoveZone?: CrmMoveZone;
   columnLocked?: boolean;
   portalClientView?: boolean;
@@ -47,6 +47,7 @@ interface LeadKanbanCardProps {
 export function LeadKanbanCard({
   lead,
   columns,
+  currentColumn,
   crmMoveZone = "all",
   columnLocked = false,
   portalClientView = false,
@@ -60,20 +61,16 @@ export function LeadKanbanCard({
   const [copied, setCopied] = useState(false);
   const [collapsed, setCollapsed] = useState(() => isLeadCollapsed(lead));
   const [hovered, setHovered] = useState(false);
-  const color = lead.statusColor ?? getLeadStatusColor(lead.status);
   const selectedColumnKey =
-    columns.find((column) =>
-      lead.stageId
-        ? column.stageId === lead.stageId
-        : leadColumnKey(column) === lead.status,
-    ) ?? columns[0];
-  const selectedKey = selectedColumnKey
-    ? leadColumnKey(selectedColumnKey)
-    : lead.status;
-  const statusLabel =
-    selectedColumnKey?.title ??
-    lead.statusLabel ??
-    getLeadStatusLabel(lead.status);
+    columns.find(
+      (column) => leadColumnKey(column) === leadColumnKey(currentColumn),
+    ) ?? currentColumn;
+  const color =
+    selectedColumnKey.color ??
+    lead.statusColor ??
+    getLeadStatusColor(lead.status);
+  const selectedKey = leadColumnKey(selectedColumnKey);
+  const statusLabel = selectedColumnKey.title;
 
   const statusChangeDisabled = columnLocked;
 
