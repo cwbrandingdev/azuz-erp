@@ -5,10 +5,11 @@ import { toast } from "sonner";
 import { FinanceSubnav } from "@/components/financial/finance-subnav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useChartOfAccounts } from "@/hooks/use-finance";
 import { downloadWorkbook, escapeHtml, printReport } from "@/lib/finance-export";
 import { formatCurrency } from "@/lib/financial-utils";
 import { financeService } from "@/services";
-import type { BankAccount, CashFlowStatement, ChartAccount } from "@/services/types";
+import type { BankAccount, CashFlowStatement } from "@/services/types";
 
 function isoDate(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -33,13 +34,13 @@ export default function FluxoDeCaixaPage() {
   const [bankAccountId, setBankAccountId] = useState("");
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
-  const [accounts, setAccounts] = useState<ChartAccount[]>([]);
+  const accountsQuery = useChartOfAccounts();
+  const accounts = accountsQuery.data ?? [];
   const [banks, setBanks] = useState<BankAccount[]>([]);
   const [data, setData] = useState<CashFlowStatement | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    financeService.getChartOfAccounts().then(setAccounts).catch(() => undefined);
     financeService.getBankAccounts().then(setBanks).catch(() => undefined);
   }, []);
 

@@ -10,7 +10,7 @@ import {
   resolveTaskDisplayColor,
   resolveTaskDisplayLabel,
 } from "@/lib/production-phase";
-import { calendarKeys, creationKeys, taskKeys } from "@/lib/query-keys";
+import { calendarKeys, creationKeys, dashboardKeys, taskKeys } from "@/lib/query-keys";
 import type {
   CalendarEvent,
   KanbanTask,
@@ -382,5 +382,6 @@ export function invalidateTasksCache(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: taskKeys.root }),
     queryClient.invalidateQueries({ queryKey: calendarKeys.root }),
     queryClient.invalidateQueries({ queryKey: creationKeys.root }),
+    queryClient.invalidateQueries({ queryKey: dashboardKeys.root }),
   ]);
 }

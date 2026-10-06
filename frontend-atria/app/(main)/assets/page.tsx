@@ -1,38 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { AssetGrid } from "@/components/assets/asset-grid";
 import { AssetUploadDialog } from "@/components/assets/asset-upload-dialog";
-import { clientsService, assetsService } from "@/services";
-import type { Client, ClientAssetGroup } from "@/services/types";
+import { useClients } from "@/hooks/use-clients";
+import { useGroupedAssets } from "@/hooks/use-grouped-assets";
+import { useInvalidateAssets } from "@/hooks/use-query-invalidation";
 
 export default function AssetsPage() {
-  const [groups, setGroups] = useState<ClientAssetGroup[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const groupsQuery = useGroupedAssets();
+  const clientsQuery = useClients();
+  const invalidateAssets = useInvalidateAssets();
+  const groups = groupsQuery.data;
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [grouped, clientList] = await Promise.all([
-        assetsService.getGroupedAssets(),
-        clientsService.getClients(),
-      ]);
-      setGroups(grouped);
-      setClients(clientList);
-    } catch {
-      setGroups([]);
-      setClients([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
-
-  if (loading && groups.length === 0) {
+  if (groupsQuery.isPending && !groups) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
@@ -51,10 +31,16 @@ export default function AssetsPage() {
             Logos, brand guidelines e mídias organizados por cliente
           </p>
         </div>
-        <AssetUploadDialog clients={clients} onSuccess={() => void loadData()} />
+        <AssetUploadDialog
+          clients={clientsQuery.data ?? []}
+          onSuccess={() => void invalidateAssets()}
+        />
       </div>
 
-      <AssetGrid groups={groups} onRefresh={() => void loadData()} />
+      <AssetGrid
+        groups={groups ?? []}
+        onRefresh={() => void invalidateAssets()}
+      />
     </div>
   );
 }

@@ -11,8 +11,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useQueryClient } from "@tanstack/react-query";
 import { financeService } from "@/services";
 import { toast } from "@/lib/toast";
+import { invalidateFinanceQueries } from "@/lib/query-invalidation";
 import {
   readFinanceTransactionsFromArrayBuffer,
   type ImportFinanceTransactionInput,
@@ -25,6 +27,7 @@ interface TransactionsImportDialogProps {
 export function TransactionsImportDialog({
   onSuccess,
 }: TransactionsImportDialogProps) {
+  const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -59,6 +62,7 @@ export function TransactionsImportDialog({
       setOpen(false);
       setTransactions([]);
       setPreviewCount(0);
+      void invalidateFinanceQueries(queryClient);
       onSuccess();
     } catch (error) {
       toast.error("Não foi possível importar as transações.");

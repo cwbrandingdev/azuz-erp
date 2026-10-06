@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   ChevronDown,
@@ -33,7 +33,11 @@ interface TaskCardProps {
   onClick: () => void;
 }
 
-export function TaskCard({ task, column, onClick }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({
+  task,
+  column,
+  onClick,
+}: TaskCardProps) {
   const statusStyle = getStatusCardStyle(task.status, task.productionPhase);
   const group = task.assignedGroup;
   const needsAdjustment = task.status === "jhonatan_reprova";
@@ -182,4 +186,4 @@ export function TaskCard({ task, column, onClick }: TaskCardProps) {
       )}
     </div>
   );
-}
+}, (prev, next) => prev.task === next.task && prev.column === next.column);

@@ -9,6 +9,8 @@ import { FinanceSubnav } from "@/components/financial/finance-subnav";
 import { TransactionDialog } from "@/components/financial/transaction-dialog";
 import { TransactionsImportDialog } from "@/components/financial/transactions-import-dialog";
 import { TransactionsTable } from "@/components/financial/transactions-table";
+import { useChartOfAccounts } from "@/hooks/use-finance";
+import { useInvalidateFinance } from "@/hooks/use-query-invalidation";
 import {
   buildLancamentosHref,
   formatScopeLabel,
@@ -199,7 +201,26 @@ function LancamentosPageContent() {
   const [filters, setFilters] = useState<TransactionFilters>(() =>
     buildDefaultFilters(parseScope(searchParams), searchParams),
   );
-  const [categories, setCategories] = useState<FinanceCategory[]>([]);
+  const accountsQuery = useChartOfAccounts();
+  const invalidateFinance = useInvalidateFinance();
+  const categories = useMemo<FinanceCategory[]>(
+    () =>
+      (accountsQuery.data ?? [])
+        .filter((account) => !account.isGroup)
+        .map((account) => ({
+          id: account.id,
+          name:
+            account.code &&
+            !account.name
+              .toLowerCase()
+              .startsWith(`${account.code.toLowerCase()} `)
+              ? `${account.code} ${account.name}`
+              : account.name,
+          color: account.color,
+          type: account.type,
+        })),
+    [accountsQuery.data],
+  );
   const [transactions, setTransactions] =
     useState<PaginatedTransactions>(emptyPaginated);
   const [loading, setLoading] = useState(true);
@@ -222,32 +243,6 @@ function LancamentosPageContent() {
     }, 300);
     return () => clearTimeout(timer);
   }, [filters.search]);
-
-  useEffect(() => {
-    financeService
-      .getChartOfAccounts()
-      .then((accounts) => {
-        setCategories(
-          accounts
-            .filter((account) => !account.isGroup)
-            .map((account) => ({
-              id: account.id,
-              name:
-                account.code &&
-                !account.name
-                  .toLowerCase()
-                  .startsWith(`${account.code.toLowerCase()} `)
-                  ? `${account.code} ${account.name}`
-                  : account.name,
-              color: account.color,
-              type: account.type,
-            })),
-        );
-      })
-      .catch(() => {
-        setCategories([]);
-      });
-  }, []);
 
   useEffect(() => {
     if (searchParams.get("create") !== "1") return;
@@ -356,6 +351,7 @@ function LancamentosPageContent() {
       );
     }
     void loadTransactions(true);
+    void invalidateFinance();
   }
 
   function handleOptimisticMarkPaid(transaction: FinanceTransaction) {
@@ -367,7 +363,10 @@ function LancamentosPageContent() {
     }));
     void financeService
       .markTransactionAsPaid(transaction.id)
-      .then(() => loadTransactions(true))
+      .then(() => {
+        void loadTransactions(true);
+        void invalidateFinance();
+      })
       .catch(() => loadTransactions(true));
   }
 
@@ -382,7 +381,10 @@ function LancamentosPageContent() {
     }));
     void financeService
       .deleteTransaction(transaction.id)
-      .then(() => loadTransactions(true))
+      .then(() => {
+        void loadTransactions(true);
+        void invalidateFinance();
+      })
       .catch(() => loadTransactions(true));
   }
 
@@ -411,7 +413,10 @@ function LancamentosPageContent() {
         >
           <BankAccountsDialog />
           <TransactionsImportDialog
-            onSuccess={() => void loadTransactions(true)}
+            onSuccess={() => {
+              void loadTransactions(true);
+              void invalidateFinance();
+            }}
           />
           <TransactionDialog
             open={createOpen}

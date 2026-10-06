@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { leadsRoutes, settingsRoutes } from "./navigation";
+import { usePrefetchNav } from "@/hooks/use-prefetch-nav";
 
 interface SidebarNavProps {
   onNavigate?: () => void;
@@ -52,6 +53,7 @@ export function SidebarNav({
   const pathname = usePathname();
   const { sections: visibleSections, appUpdatesBadgeCount } =
     useVisibleNavSections();
+  const prefetchNav = usePrefetchNav();
   const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -143,6 +145,7 @@ export function SidebarNav({
                         <Link
                           href={item.href}
                           onClick={onNavigate}
+                          onMouseEnter={() => prefetchNav(item.href)}
                           className={cn(itemClass, "relative")}
                           aria-label={item.name}
                         />
@@ -195,6 +198,7 @@ export function SidebarNav({
                               key={child.href}
                               href={child.href}
                               onClick={onNavigate}
+                              onMouseEnter={() => prefetchNav(child.href)}
                               className={cn(
                                 "rounded-md px-2.5 py-2 text-xs font-medium transition-all duration-150",
                                 childActive
@@ -217,6 +221,7 @@ export function SidebarNav({
                   key={item.href}
                   href={item.href}
                   onClick={onNavigate}
+                  onMouseEnter={() => prefetchNav(item.href)}
                   className={itemClass}
                 >
                   <Icon size={18} className={iconClass} />

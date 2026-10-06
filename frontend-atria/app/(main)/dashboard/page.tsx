@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DashboardNotifications } from "@/components/dashboard/dashboard-notifications";
 import { DashboardPulse } from "@/components/dashboard/dashboard-pulse";
@@ -9,9 +9,9 @@ import { PendingRequestsHighlight } from "@/components/dashboard/pending-request
 import { WelcomeHeader } from "@/components/dashboard/welcome-header";
 import { useAuth } from "@/contexts/auth-context";
 import { useNotifications } from "@/contexts/notifications-context";
+import { useDashboardOverview } from "@/hooks/use-dashboard-overview";
+import { usePendingClientRequests } from "@/hooks/use-pending-client-requests";
 import { cn } from "@/lib/utils";
-import { clientRequestsService, dashboardService } from "@/services";
-import type { ClientRequest, DashboardOverview } from "@/services/types";
 
 type DashboardTab = "overview" | "notifications";
 
@@ -28,9 +28,10 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { unreadCount } = useNotifications();
-  const [data, setData] = useState<DashboardOverview | null>(null);
-  const [pendingRequests, setPendingRequests] = useState<ClientRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const overviewQuery = useDashboardOverview();
+  const pendingQuery = usePendingClientRequests();
+  const data = overviewQuery.data;
+  const pendingRequests = pendingQuery.data ?? [];
 
   const tab: DashboardTab =
     searchParams.get("tab") === "notifications" ? "notifications" : "overview";
@@ -48,36 +49,13 @@ function DashboardContent() {
     [router, searchParams],
   );
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [overview, pending] = await Promise.all([
-        dashboardService.getDashboardOverview(),
-        clientRequestsService
-          .getClientRequests({ status: "pending" })
-          .catch(() => [] as ClientRequest[]),
-      ]);
-      setData(overview);
-      setPendingRequests(pending);
-    } catch {
-      setData(null);
-      setPendingRequests([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
-
   const fallbackName = user?.name ?? "time";
   const notificationCount = Math.max(
     unreadCount,
     data?.user.notificationCount ?? 0,
   );
 
-  if (tab === "overview" && loading && !data) {
+  if (tab === "overview" && overviewQuery.isPending && !data) {
     return <DashboardLoading />;
   }
 
@@ -133,12 +111,12 @@ function DashboardContent() {
               <DashboardPulse data={data} />
               <DashboardFocus data={data} />
             </>
-          ) : (
+          ) : overviewQuery.isError ? (
             <p className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 bg-white/60 px-4 py-8 text-center text-sm text-[var(--atria-primary)]/50">
               Não foi possível carregar o resumo agora. Tente novamente em
               instantes.
             </p>
-          )}
+          ) : null}
         </>
       )}
     </div>

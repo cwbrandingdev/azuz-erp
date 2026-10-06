@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import { canAccessRoute } from "@/lib/navigation-access";
 import { getAllNavLinks } from "@/lib/navigation-utils";
+import { usePrefetchNav } from "@/hooks/use-prefetch-nav";
 import {
   clientsService,
   financeService,
@@ -52,6 +53,7 @@ const GROUP_ORDER = [
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const prefetchNav = usePrefetchNav();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
@@ -241,6 +243,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                       key={result.id}
                       type="button"
                       onClick={() => navigate(result.href)}
+                      onMouseEnter={() => prefetchNav(result.href)}
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                         selected
                           ? "bg-[var(--atria-primary)]/8 text-[var(--atria-primary)]"

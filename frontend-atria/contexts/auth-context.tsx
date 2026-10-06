@@ -18,6 +18,7 @@ import {
   setAccessToken,
   setStoredUser,
 } from "@/lib/auth-storage";
+import { clearAppQueryCache } from "@/lib/query-client";
 import { apiRequest, refreshAuthSession } from "@/services/api";
 import { toast } from "@/lib/toast";
 import type { AuthResponse, LoginCredentials, User } from "@/services/types";
@@ -134,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await apiRequest<void>("/auth/logout", { method: "POST" });
     } finally {
       clearAuthStorage();
+      clearAppQueryCache();
       setToken(null);
       setUser(null);
       toast.success("Sessão encerrada com sucesso");

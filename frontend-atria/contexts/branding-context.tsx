@@ -35,30 +35,24 @@ const BrandingContext = createContext<BrandingContextValue | null>(null);
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const companyContext = useCompany();
-  const [branding, setBranding] = useState<AgencyBranding>(DEFAULT_BRANDING);
-  const [isLoading, setIsLoading] = useState(true);
+  const [branding, setBranding] = useState<AgencyBranding>(
+    companyContext.branding ?? DEFAULT_BRANDING,
+  );
 
   const loadBranding = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await settingsService.getBranding();
-      setBranding(data);
-      applyBrandingToDocument(data);
-    } catch {
-      setBranding(companyContext.branding ?? DEFAULT_BRANDING);
-      applyBrandingToDocument(companyContext.branding ?? DEFAULT_BRANDING);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [companyContext.branding]);
-
-  const saveBranding = useCallback(async (data: AgencyBranding) => {
-    const saved = await settingsService.updateBranding(data);
-    setBranding(saved);
-    applyBrandingToDocument(saved);
     await companyContext.refresh();
-    return saved;
   }, [companyContext]);
+
+  const saveBranding = useCallback(
+    async (data: AgencyBranding) => {
+      const saved = await settingsService.updateBranding(data);
+      setBranding(saved);
+      applyBrandingToDocument(saved);
+      await companyContext.refresh();
+      return saved;
+    },
+    [companyContext],
+  );
 
   const uploadBrandingAsset = useCallback(
     async (type: "logo" | "favicon", file: File) => {
@@ -72,25 +66,16 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (companyContext.isLoading) {
-      setIsLoading(true);
-      return;
-    }
+    if (companyContext.isLoading) return;
 
-    if (companyContext.branding) {
-      setBranding(companyContext.branding);
-      applyBrandingToDocument(companyContext.branding);
-      setIsLoading(false);
-      return;
-    }
-
-    void loadBranding();
-  }, [companyContext.isLoading, companyContext.branding, loadBranding]);
+    setBranding(companyContext.branding);
+    applyBrandingToDocument(companyContext.branding);
+  }, [companyContext.isLoading, companyContext.branding]);
 
   const value = useMemo(
     () => ({
       branding,
-      isLoading: isLoading || companyContext.isLoading,
+      isLoading: companyContext.isLoading,
       logoUrl: resolveBrandingAssetUrl(branding.logoUrl),
       faviconUrl: resolveBrandingAssetUrl(branding.faviconUrl),
       loadBranding,
@@ -99,7 +84,6 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       branding,
-      isLoading,
       companyContext.isLoading,
       loadBranding,
       saveBranding,

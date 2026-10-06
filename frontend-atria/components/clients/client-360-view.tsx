@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -18,10 +18,10 @@ import { ClientAccessTab } from "@/components/clients/client-access-tab";
 import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { DeactivateClientButton } from "@/components/clients/deactivate-client-button";
 import { Button } from "@/components/ui/button";
+import { useClient360 } from "@/hooks/use-client-360";
 import { usePermissions } from "@/hooks/use-permissions";
-import { clientsService } from "@/services";
+import { useInvalidateClients } from "@/hooks/use-query-invalidation";
 import type {
-  Client360Assets,
   Client360Calendar,
   Client360Financial,
   Client360Pipeline,
@@ -34,82 +34,47 @@ export function Client360View() {
   const clientId = params.id;
   const { canManageClientDirectory } = usePermissions();
   const canManageClients = canManageClientDirectory();
+  const invalidateClients = useInvalidateClients();
 
   const [activeTab, setActiveTab] = useState<Client360Tab>("pipeline");
-  const [summary, setSummary] = useState<Client360Summary | null>(null);
-  const [tasks, setTasks] = useState<Client360Tasks | null>(null);
-  const [tabData, setTabData] = useState<
-    Client360Pipeline | Client360Financial | Client360Calendar | Client360Assets | null
-  >(null);
-  const [loadingSummary, setLoadingSummary] = useState(true);
-  const [loadingTab, setLoadingTab] = useState(false);
-  const [loadingTasks, setLoadingTasks] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
 
-  const loadSummary = useCallback(async () => {
-    if (!clientId) return;
-    setLoadingSummary(true);
-    try {
-      const data = await clientsService.getClient360<Client360Summary>(
-        clientId,
-        "summary",
-      );
-      setSummary(data);
-    } catch {
-      setSummary(null);
-    } finally {
-      setLoadingSummary(false);
-    }
-  }, [clientId]);
-
-  const loadTasks = useCallback(async () => {
-    if (!clientId) return;
-    setLoadingTasks(true);
-    try {
-      const data = await clientsService.getClient360<Client360Tasks>(
-        clientId,
-        "tasks",
-      );
-      setTasks(data);
-    } catch {
-      setTasks(null);
-    } finally {
-      setLoadingTasks(false);
-    }
-  }, [clientId]);
-
-  const loadTab = useCallback(
-    async (tab: Client360Tab) => {
-      if (!clientId || tab === "requests" || tab === "access") return;
-      setLoadingTab(true);
-      try {
-        const data = await clientsService.getClient360(clientId, tab);
-        setTabData(data as typeof tabData);
-      } catch {
-        setTabData(null);
-      } finally {
-        setLoadingTab(false);
-      }
-    },
-    [clientId],
+  const summaryQuery = useClient360<Client360Summary>(clientId, "summary");
+  const tasksQuery = useClient360<Client360Tasks>(clientId, "tasks");
+  const pipelineQuery = useClient360<Client360Pipeline>(
+    clientId,
+    "pipeline",
+    activeTab === "pipeline",
+  );
+  const financialQuery = useClient360<Client360Financial>(
+    clientId,
+    "financial",
+    activeTab === "financial",
+  );
+  const calendarQuery = useClient360<Client360Calendar>(
+    clientId,
+    "calendar",
+    activeTab === "calendar",
   );
 
-  useEffect(() => {
-    void loadSummary();
-    void loadTasks();
-  }, [loadSummary, loadTasks]);
-
-  useEffect(() => {
-    void loadTab(activeTab);
-  }, [activeTab, loadTab]);
+  const summary = summaryQuery.data;
+  const tasks = tasksQuery.data;
+  const tabQuery =
+    activeTab === "pipeline"
+      ? pipelineQuery
+      : activeTab === "financial"
+        ? financialQuery
+        : activeTab === "calendar"
+          ? calendarQuery
+          : null;
+  const tabData = tabQuery?.data ?? null;
+  const loadingTab = Boolean(tabQuery?.isPending && !tabData);
 
   function handleRefresh() {
-    void loadSummary();
-    void loadTasks();
-    void loadTab(activeTab);
+    void invalidateClients();
   }
 
-  if (loadingSummary) {
+  if (summaryQuery.isPending && !summary) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="size-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
@@ -200,7 +165,7 @@ export function Client360View() {
         </div>
 
         <div>
-          {loadingTasks ? (
+          {tasksQuery.isPending && !tasks ? (
             <div className="flex min-h-[200px] items-center justify-center">
               <div className="size-6 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
             </div>
