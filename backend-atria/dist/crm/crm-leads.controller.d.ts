@@ -40,6 +40,7 @@ export declare class CrmLeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -79,6 +80,7 @@ export declare class CrmLeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -123,6 +125,7 @@ export declare class CrmLeadsController {
                 isMinimized: boolean;
                 kanbanTracked: boolean;
                 kanbanOrder: number;
+                orcamento: number | null;
                 aiScore: number | null;
                 aiNotes: string | null;
                 source: string;
@@ -133,6 +136,7 @@ export declare class CrmLeadsController {
         }[];
         total: number;
         crmMoveZone: import("../leads/lead-pipeline-zones").CrmMoveZone;
+        showOrcamento: boolean;
     }>;
     create(user: AuthenticatedUser, dto: CreateCrmLeadDto): Promise<{
         status: import("@prisma/client").$Enums.CrmLeadStatus;
@@ -166,6 +170,7 @@ export declare class CrmLeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -202,6 +207,7 @@ export declare class CrmLeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -241,6 +247,7 @@ export declare class CrmLeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -277,6 +284,7 @@ export declare class CrmLeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;

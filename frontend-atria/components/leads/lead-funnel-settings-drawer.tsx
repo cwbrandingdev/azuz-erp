@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { useConfirm } from "@/contexts/confirm-context";
 import { toast } from "@/lib/toast";
+import { ORCAMENTO_STAGE_KEY } from "@/lib/leads-kanban-utils";
 import { ApiError, leadsService } from "@/services";
 import type { LeadStage } from "@/services/types";
 
@@ -54,11 +56,17 @@ export function LeadFunnelSettingsDrawer({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [color, setColor] = useState(DEFAULT_COLOR);
+  const [showOrcamento, setShowOrcamento] = useState(true);
+  const [savingOrcamento, setSavingOrcamento] = useState(false);
 
   async function loadStages() {
     try {
-      const data = await leadsService.listLeadStages(organizationId);
+      const [data, settings] = await Promise.all([
+        leadsService.listLeadStages(organizationId),
+        leadsService.getCrmBoardSettings(organizationId),
+      ]);
       setStages([...data].sort((a, b) => a.order - b.order));
+      setShowOrcamento(settings.showOrcamento);
     } catch {
       setStages([]);
     }
@@ -145,6 +153,34 @@ export function LeadFunnelSettingsDrawer({
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleOrcamentoToggle(checked: boolean) {
+    const previous = showOrcamento;
+    setShowOrcamento(checked);
+    setSavingOrcamento(true);
+    try {
+      const updated = await leadsService.updateCrmBoardSettings({
+        showOrcamento: checked,
+        ...(organizationId ? { organizationId } : {}),
+      });
+      setShowOrcamento(updated.showOrcamento);
+      onStagesChange();
+      toast.success(
+        updated.showOrcamento
+          ? "Coluna de orçamento visível"
+          : "Coluna de orçamento ocultada",
+      );
+    } catch (err) {
+      setShowOrcamento(previous);
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível atualizar a coluna de orçamento.",
+      );
+    } finally {
+      setSavingOrcamento(false);
     }
   }
 
@@ -251,6 +287,28 @@ export function LeadFunnelSettingsDrawer({
             </div>
           </form>
 
+          <section className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--atria-primary)]">
+                  Orçamento
+                </h3>
+                <p className="mt-1 text-xs text-[var(--atria-primary)]/55">
+                  Mostra a coluna Orçamento no funil. Os valores e a soma
+                  aparecem só nela.
+                </p>
+              </div>
+              <Switch
+                id="toggle-orcamento-column"
+                checked={showOrcamento}
+                disabled={savingOrcamento}
+                onCheckedChange={(checked) =>
+                  void handleOrcamentoToggle(checked)
+                }
+              />
+            </div>
+          </section>
+
           <section>
             <h3 className="mb-3 text-sm font-semibold text-[var(--atria-primary)]">
               Colunas do funil
@@ -310,7 +368,11 @@ export function LeadFunnelSettingsDrawer({
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                disabled={stages.length <= 1 || loading}
+                                disabled={
+                                  stages.length <= 1 ||
+                                  loading ||
+                                  stage.key === ORCAMENTO_STAGE_KEY
+                                }
                                 onClick={() => void handleDelete(stage)}
                                 aria-label={`Excluir ${stage.name}`}
                               >

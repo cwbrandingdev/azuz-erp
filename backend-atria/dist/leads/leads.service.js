@@ -298,13 +298,18 @@ let LeadsService = LeadsService_1 = class LeadsService {
         const orgFilter = await this.crmScope.buildKanbanLeadOrganizationFilter(user, organizationId);
         const leads = await this.prisma.lead.findMany({
             where: { kanbanTracked: true, deletedAt: null, ...orgFilter },
+            include: { stage: { select: { id: true, key: true, name: true } } },
             orderBy: [
                 { status: 'asc' },
                 { kanbanOrder: 'asc' },
                 { updatedAt: 'desc' },
             ],
         });
-        const columns = stages.map((stage) => {
+        const showOrcamento = await this.resolveShowOrcamento(user, stageOrganizationId);
+        const visibleStages = showOrcamento
+            ? stages
+            : stages.filter((stage) => stage.key !== lead_kanban_constants_1.ORCAMENTO_STAGE_KEY);
+        const columns = visibleStages.map((stage) => {
             const pipelineStatus = this.leadStages.statusFromStage(stage);
             return {
                 id: stage.id,
@@ -320,9 +325,41 @@ let LeadsService = LeadsService_1 = class LeadsService {
         });
         return {
             columns,
-            total: leads.length,
+            total: columns.reduce((sum, column) => sum + column.leads.length, 0),
             crmMoveZone: this.crmScope.getMoveZone(user.role),
+            showOrcamento,
         };
+    }
+    async getBoardSettings(user, organizationId) {
+        const scopedOrganizationId = this.resolveKanbanOrganizationId(user, organizationId);
+        return {
+            showOrcamento: await this.resolveShowOrcamento(user, scopedOrganizationId),
+        };
+    }
+    async updateBoardSettings(user, dto) {
+        const organizationId = this.resolveKanbanOrganizationId(user, dto.organizationId);
+        if (organizationId) {
+            const organization = await this.prisma.client.findUnique({
+                where: { id: organizationId },
+                select: { id: true },
+            });
+            if (!organization) {
+                throw new common_1.NotFoundException('Cliente não encontrado.');
+            }
+            const updated = await this.prisma.client.update({
+                where: { id: organizationId },
+                data: { crmShowOrcamento: dto.showOrcamento },
+                select: { crmShowOrcamento: true },
+            });
+            return { showOrcamento: updated.crmShowOrcamento };
+        }
+        const companyId = user.companyId?.trim() || company_constants_1.DEFAULT_COMPANY_ID;
+        const updated = await this.prisma.company.update({
+            where: { id: companyId },
+            data: { crmShowOrcamento: dto.showOrcamento },
+            select: { crmShowOrcamento: true },
+        });
+        return { showOrcamento: updated.crmShowOrcamento };
     }
     async createForCrm(user, dto) {
         const name = dto.name.trim();
@@ -400,6 +437,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 ...(dto.source !== undefined
                     ? { source: emptyToNull(dto.source) ?? 'manual' }
                     : {}),
+                ...(dto.orcamento !== undefined ? { orcamento: dto.orcamento } : {}),
             },
         });
         return this.toLeadResponse(updated);
@@ -755,11 +793,34 @@ let LeadsService = LeadsService_1 = class LeadsService {
         }
         return null;
     }
+    async resolveShowOrcamento(user, organizationId) {
+        if (organizationId) {
+            const organization = await this.prisma.client.findUnique({
+                where: { id: organizationId },
+                select: { crmShowOrcamento: true },
+            });
+            return organization?.crmShowOrcamento ?? true;
+        }
+        const companyId = user.companyId?.trim() || company_constants_1.DEFAULT_COMPANY_ID;
+        const company = await this.prisma.company.findUnique({
+            where: { id: companyId },
+            select: { crmShowOrcamento: true },
+        });
+        return company?.crmShowOrcamento ?? true;
+    }
     leadMatchesStage(lead, stage, stages) {
         if (lead.stageId) {
             const known = stages.some((item) => item.id === lead.stageId);
             if (known)
                 return lead.stageId === stage.id;
+        }
+        if (lead.stage?.key && stage.key && lead.stage.key === stage.key) {
+            return true;
+        }
+        if (lead.stage?.name &&
+            stage.name &&
+            lead.stage.name.trim().toLowerCase() === stage.name.trim().toLowerCase()) {
+            return true;
         }
         return Boolean(stage.key) && lead.status === stage.key;
     }
@@ -933,6 +994,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
             isMinimized: lead.isMinimized,
             kanbanTracked: lead.kanbanTracked,
             kanbanOrder: lead.kanbanOrder,
+            orcamento: lead.orcamento == null ? null : Number(lead.orcamento),
             aiScore: lead.aiScore,
             aiNotes: lead.aiNotes,
             source: lead.source,

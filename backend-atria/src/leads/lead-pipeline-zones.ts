@@ -1,5 +1,6 @@
 import { LeadStatus, RoleName } from '@prisma/client';
 import { normalizeRoleName } from '../auth/constants/permissions';
+import { ORCAMENTO_STAGE_KEY } from './lead-kanban.constants';
 
 export const SDR_ZONE_STATUSES: readonly LeadStatus[] = [
   LeadStatus.PRE_VENDA,
@@ -18,6 +19,7 @@ export const CLIENT_ZONE_STATUSES: readonly LeadStatus[] = [
 export type CrmMoveZone = 'all' | 'sdr' | 'client' | 'none';
 
 export function isSdrZoneStatus(status: string): boolean {
+  if (status === ORCAMENTO_STAGE_KEY) return true;
   return SDR_ZONE_STATUSES.includes(status as LeadStatus);
 }
 
@@ -59,7 +61,7 @@ export function assertLeadStatusMoveAllowed(
   if (zone === 'sdr') {
     if (!isSdrZoneStatus(fromStatus) || !isSdrZoneStatus(toStatus)) {
       throw new Error(
-        'SDR users can only move leads within pré-venda, apresentação, reunião agendada, aguardando documentos and aguardando resposta.',
+        'SDR users can only move leads within pré-venda, apresentação, orçamento, reunião agendada, aguardando documentos and aguardando resposta.',
       );
     }
     return;

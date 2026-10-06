@@ -58,6 +58,7 @@ export declare class ClientPortalController {
                 isMinimized: boolean;
                 kanbanTracked: boolean;
                 kanbanOrder: number;
+                orcamento: number | null;
                 aiScore: number | null;
                 aiNotes: string | null;
                 source: string;
@@ -68,6 +69,7 @@ export declare class ClientPortalController {
         }[];
         total: number;
         crmMoveZone: import("../leads/lead-pipeline-zones").CrmMoveZone;
+        showOrcamento: boolean;
     }>;
     updateCrmLeadStage(user: AuthenticatedUser, id: string, dto: UpdateLeadStatusDto): Promise<{
         id: string;
@@ -98,6 +100,7 @@ export declare class ClientPortalController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -137,6 +140,7 @@ export declare class ClientPortalController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -174,9 +178,9 @@ export declare class ClientPortalController {
             contactName: string | null;
             email: string | null;
             instagram: string | null;
+            companyName: string;
             avatarUrl: string | null;
             isActive: boolean;
-            companyName: string;
             hasCrmEnabled: boolean;
         };
         accountStatus: {
@@ -294,9 +298,9 @@ export declare class ClientPortalController {
             contactName: string | null;
             email: string | null;
             instagram: string | null;
+            companyName: string;
             avatarUrl: string | null;
             isActive: boolean;
-            companyName: string;
             hasCrmEnabled: boolean;
         };
         month: number;
@@ -378,11 +382,11 @@ export declare class ClientPortalController {
             phone: string | null;
             email: string | null;
             city: string | null;
-            street: string | null;
-            avatarUrl: string | null;
             companyName: string;
+            street: string | null;
             state: string | null;
             zipCode: string | null;
+            avatarUrl: string | null;
         };
         title: string;
         status: string;
@@ -412,11 +416,11 @@ export declare class ClientPortalController {
                 phone: string | null;
                 email: string | null;
                 city: string | null;
-                street: string | null;
-                avatarUrl: string | null;
                 companyName: string;
+                street: string | null;
                 state: string | null;
                 zipCode: string | null;
+                avatarUrl: string | null;
             };
             title: string;
             status: "draft" | "sent" | "signed" | "expired" | "cancelled";
@@ -966,8 +970,8 @@ export declare class ClientPortalController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
+            avatarUrl: string | null;
         };
         fileName: string;
         fileType: "image" | "logo" | "brand_guide" | "document";

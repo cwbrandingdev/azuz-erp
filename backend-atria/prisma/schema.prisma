@@ -22,6 +22,7 @@ model Company {
   apifyApiToken              String?
   whatsappApiToken           String?
   hasCrmModuleEnabled        Boolean                     @default(false) @map("has_crm_module_enabled")
+  crmShowOrcamento           Boolean                     @default(true) @map("crm_show_orcamento")
   agencySettings             AgencySettings?
   assets                     Asset[]
   calendarEvents             CalendarEvent[]
@@ -476,6 +477,7 @@ model Client {
   companyId             String                      @default("00000000-0000-4000-8000-000000000001")
   isActive              Boolean                     @default(true)
   hasCrmEnabled         Boolean                     @default(false) @map("crm_enabled")
+  crmShowOrcamento      Boolean                     @default(true) @map("crm_show_orcamento")
   assets                Asset[]
   calendarEvents        CalendarEvent[]
   clientGroup           ClientGroup?                @relation(fields: [clientGroupId], references: [id])
@@ -1249,6 +1251,7 @@ model Lead {
   updatedAt      DateTime          @updatedAt @map("updated_at")
   kanbanTracked  Boolean           @default(false) @map("kanban_tracked")
   kanbanOrder    Int               @default(0) @map("kanban_order")
+  orcamento      Decimal?          @map("orcamento") @db.Decimal(12, 2)
   deletedAt      DateTime?         @map("deleted_at")
   deletedById    String?           @map("deleted_by")
   crmStatus      CrmLeadStatus     @default(ACTIVE) @map("crm_status")

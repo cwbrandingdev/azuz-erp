@@ -1,7 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LEAD_STATUS_COLORS = exports.LEAD_STATUS_LABELS = exports.LEAD_KANBAN_STATUSES = void 0;
+exports.LEAD_STATUS_COLORS = exports.LEAD_STATUS_LABELS = exports.LEAD_KANBAN_STATUSES = exports.ORCAMENTO_STAGE_COLOR = exports.ORCAMENTO_STAGE_NAME = exports.ORCAMENTO_STAGE_KEY = void 0;
 const client_1 = require("@prisma/client");
+exports.ORCAMENTO_STAGE_KEY = 'ORCAMENTO';
+exports.ORCAMENTO_STAGE_NAME = 'Orçamento';
+exports.ORCAMENTO_STAGE_COLOR = '#0D9488';
 exports.LEAD_KANBAN_STATUSES = [
     client_1.LeadStatus.PRE_VENDA,
     client_1.LeadStatus.APRESENTACAO,

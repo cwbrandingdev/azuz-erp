@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateCrmLeadDto = void 0;
+const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 class UpdateCrmLeadDto {
     name;
@@ -23,6 +24,7 @@ class UpdateCrmLeadDto {
     neighborhood;
     category;
     source;
+    orcamento;
 }
 exports.UpdateCrmLeadDto = UpdateCrmLeadDto;
 __decorate([
@@ -91,4 +93,12 @@ __decorate([
     (0, class_validator_1.MaxLength)(255),
     __metadata("design:type", String)
 ], UpdateCrmLeadDto.prototype, "source", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateIf)((_, value) => value !== null),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsNumber)({ maxDecimalPlaces: 2 }),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Object)
+], UpdateCrmLeadDto.prototype, "orcamento", void 0);
 //# sourceMappingURL=update-crm-lead.dto.js.map

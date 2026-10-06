@@ -17,15 +17,15 @@ export declare class LeadStagesService {
         updatedAt: string;
     }[]>;
     getById(id: string): Promise<{
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        companyId: string;
         name: string;
+        id: string;
+        companyId: string;
+        organizationId: string | null;
         order: number;
         color: string;
-        organizationId: string | null;
         key: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     create(dto: CreateLeadStageDto): Promise<{
         id: string;
@@ -96,5 +96,7 @@ export declare class LeadStagesService {
     private scopeWhere;
     private normalizeOrganizationId;
     private isLeadStatus;
+    private defaultStageTemplates;
+    private ensureOrcamentoStage;
     private reconcileBuiltinStages;
 }

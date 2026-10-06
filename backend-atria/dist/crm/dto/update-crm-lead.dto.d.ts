@@ -10,4 +10,5 @@ export declare class UpdateCrmLeadDto {
     neighborhood?: string;
     category?: string;
     source?: string;
+    orcamento?: number | null;
 }

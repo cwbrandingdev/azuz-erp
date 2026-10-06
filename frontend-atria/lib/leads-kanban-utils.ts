@@ -1,5 +1,7 @@
 import type { LeadKanbanColumn, LeadStatus } from "@/services/types";
 
+export const ORCAMENTO_STAGE_KEY = "ORCAMENTO";
+
 export const LEAD_KANBAN_STATUSES: readonly LeadStatus[] = [
   "PRE_VENDA",
   "APRESENTACAO",
@@ -44,6 +46,14 @@ export function leadColumnKey(
   column: Pick<LeadKanbanColumn, "id" | "stageId" | "status">,
 ): string {
   return column.stageId ?? column.id ?? column.status;
+}
+
+export function isOrcamentoColumn(
+  column: Pick<LeadKanbanColumn, "status" | "title">,
+): boolean {
+  if (column.status === ORCAMENTO_STAGE_KEY) return true;
+  const title = column.title?.trim().toLowerCase();
+  return title === "orçamento" || title === "orcamento";
 }
 
 export function shouldLeadAutoMinimize(status: string): boolean {
@@ -143,4 +153,33 @@ export function leadMatchesDateFilter(
     filters.startDate,
     filters.endDate,
   );
+}
+
+export function formatLeadOrcamento(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "";
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+export function parseLeadOrcamento(input: string): number | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  const withoutSymbol = trimmed.replace(/R\$\s?/gi, "");
+  const hasComma = withoutSymbol.includes(",");
+  const normalized = hasComma
+    ? withoutSymbol.replace(/\./g, "").replace(",", ".")
+    : withoutSymbol.replace(/,/g, "");
+  const parsed = Number(normalized);
+
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.round(parsed * 100) / 100;
+}
+
+export function sumLeadOrcamentos(
+  leads: Array<{ orcamento?: number | null }>,
+): number {
+  return leads.reduce((sum, lead) => sum + (Number(lead.orcamento) || 0), 0);
 }

@@ -43,6 +43,7 @@ export declare class LeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -87,6 +88,7 @@ export declare class LeadsController {
                 isMinimized: boolean;
                 kanbanTracked: boolean;
                 kanbanOrder: number;
+                orcamento: number | null;
                 aiScore: number | null;
                 aiNotes: string | null;
                 source: string;
@@ -97,6 +99,7 @@ export declare class LeadsController {
         }[];
         total: number;
         crmMoveZone: import("./lead-pipeline-zones").CrmMoveZone;
+        showOrcamento: boolean;
     }>;
     searchCnae(query: CnaeSearchQueryDto): Promise<import("./company-lookup/domain/company-lookup.types").CnaeClassInfo[]>;
     listSearchSessions(user: AuthenticatedUser): Promise<{
@@ -147,6 +150,7 @@ export declare class LeadsController {
             isMinimized: boolean;
             kanbanTracked: boolean;
             kanbanOrder: number;
+            orcamento: number | null;
             aiScore: number | null;
             aiNotes: string | null;
             source: string;
@@ -228,6 +232,7 @@ export declare class LeadsController {
             isMinimized: boolean;
             kanbanTracked: boolean;
             kanbanOrder: number;
+            orcamento: number | null;
             aiScore: number | null;
             aiNotes: string | null;
             source: string;
@@ -307,6 +312,7 @@ export declare class LeadsController {
             isMinimized: boolean;
             kanbanTracked: boolean;
             kanbanOrder: number;
+            orcamento: number | null;
             aiScore: number | null;
             aiNotes: string | null;
             source: string;
@@ -378,6 +384,7 @@ export declare class LeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -414,6 +421,7 @@ export declare class LeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -477,6 +485,7 @@ export declare class LeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -513,6 +522,7 @@ export declare class LeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -549,6 +559,7 @@ export declare class LeadsController {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;

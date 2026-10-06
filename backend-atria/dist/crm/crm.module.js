@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CrmModule = void 0;
 const common_1 = require("@nestjs/common");
 const leads_module_1 = require("../leads/leads.module");
+const crm_board_settings_controller_1 = require("./crm-board-settings.controller");
 const crm_leads_controller_1 = require("./crm-leads.controller");
 const crm_reminders_controller_1 = require("./crm-reminders.controller");
 const crm_stages_controller_1 = require("./crm-stages.controller");
@@ -20,6 +21,7 @@ exports.CrmModule = CrmModule = __decorate([
         imports: [leads_module_1.LeadsModule],
         controllers: [
             crm_stages_controller_1.CrmStagesController,
+            crm_board_settings_controller_1.CrmBoardSettingsController,
             crm_reminders_controller_1.CrmRemindersController,
             crm_leads_controller_1.CrmLeadsController,
         ],

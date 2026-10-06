@@ -17,7 +17,9 @@ import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
+import { LeadOrcamentoInput } from "@/components/leads/lead-orcamento-input";
 import {
+  formatLeadOrcamento,
   getLeadStatusColor,
   isLeadCollapsed,
   leadColumnKey,
@@ -42,6 +44,8 @@ interface LeadKanbanCardProps {
   onCollapseChange: (leadId: string, isMinimized: boolean) => void;
   onOpenDetails: (lead: Lead) => void;
   onRemove?: (leadId: string) => void;
+  showOrcamento?: boolean;
+  onOrcamentoChange?: (leadId: string, orcamento: number | null) => void;
 }
 
 export function LeadKanbanCard({
@@ -56,6 +60,8 @@ export function LeadKanbanCard({
   onCollapseChange,
   onOpenDetails,
   onRemove,
+  showOrcamento = false,
+  onOrcamentoChange,
 }: LeadKanbanCardProps) {
   const confirm = useConfirm();
   const [copied, setCopied] = useState(false);
@@ -173,6 +179,11 @@ export function LeadKanbanCard({
               )}
             </div>
           )}
+          {collapsed && showOrcamento && lead.orcamento != null && (
+            <p className="mt-1 truncate text-[10px] font-medium text-[var(--atria-primary)]/70">
+              {formatLeadOrcamento(lead.orcamento)}
+            </p>
+          )}
           {collapsed && (
             <p className="mt-1 truncate text-[10px] text-[var(--atria-primary)]/45">
               {statusLabel}
@@ -233,6 +244,27 @@ export function LeadKanbanCard({
           </div>
 
           <div className="flex flex-col gap-2 pl-6">
+            {showOrcamento && (
+              <div
+                onClick={(event) => event.stopPropagation()}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <label
+                  className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--atria-primary)]/45"
+                  htmlFor={`lead-orcamento-${lead.id}`}
+                >
+                  Orçamento
+                </label>
+                <LeadOrcamentoInput
+                  id={`lead-orcamento-${lead.id}`}
+                  value={lead.orcamento}
+                  disabled={!onOrcamentoChange}
+                  className="h-8 text-xs"
+                  onCommit={(next) => onOrcamentoChange?.(lead.id, next)}
+                />
+              </div>
+            )}
+
             {!statusChangeDisabled && (
               <>
                 <label className="sr-only" htmlFor={`lead-status-${lead.id}`}>
