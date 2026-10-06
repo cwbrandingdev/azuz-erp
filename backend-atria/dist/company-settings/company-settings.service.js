@@ -87,6 +87,17 @@ let CompanySettingsService = class CompanySettingsService {
                 data.whatsappApiToken = this.normalizeSecretInput(dto.whatsappApiToken, secretKey);
             }
         }
+        if (dto.whatsappPhoneNumberId !== undefined) {
+            data.whatsappPhoneNumberId = this.normalizeOptionalString(dto.whatsappPhoneNumberId);
+        }
+        if (dto.whatsappBusinessAccountId !== undefined) {
+            data.whatsappBusinessAccountId = this.normalizeOptionalString(dto.whatsappBusinessAccountId);
+        }
+        if (dto.whatsappVerifyToken !== undefined) {
+            if (!(0, secret_crypto_1.shouldPreserveMaskedSecret)(dto.whatsappVerifyToken)) {
+                data.whatsappVerifyToken = this.normalizeSecretInput(dto.whatsappVerifyToken, secretKey);
+            }
+        }
         const updated = await this.updateCompany(company.id, data);
         return this.toIntegrationsResponse(updated);
     }
@@ -104,6 +115,37 @@ let CompanySettingsService = class CompanySettingsService {
         return {
             apifyApiToken: credentials.apifyApiToken,
         };
+    }
+    async getWhatsappCredentialsForCurrentTenant() {
+        const company = await this.loadCurrentCompany();
+        return this.toWhatsappCredentials(company);
+    }
+    async findWhatsappCredentialsByPhoneNumberId(phoneNumberId) {
+        const normalized = phoneNumberId.trim();
+        if (!normalized)
+            return null;
+        const company = await this.prisma.company.findFirst({
+            where: { whatsappPhoneNumberId: normalized },
+        });
+        if (!company)
+            return null;
+        return this.toWhatsappCredentials(company);
+    }
+    async findWhatsappCredentialsByVerifyToken(token) {
+        const normalized = token.trim();
+        if (!normalized)
+            return null;
+        const companies = await this.prisma.company.findMany({
+            where: { whatsappVerifyToken: { not: null } },
+        });
+        const secretKey = this.getSecretKey();
+        for (const company of companies) {
+            const stored = this.decryptOptionalSecret(company.whatsappVerifyToken, secretKey);
+            if (stored && stored === normalized) {
+                return this.toWhatsappCredentials(company);
+            }
+        }
+        return null;
     }
     async getIntegrationCredentialsForCurrentTenant() {
         const company = await this.loadCurrentCompany();
@@ -161,12 +203,37 @@ let CompanySettingsService = class CompanySettingsService {
             metaAppSecret: this.maskOptionalSecret(company.metaAppSecret, secretKey),
             apifyApiToken: this.maskOptionalSecret(company.apifyApiToken, secretKey),
             whatsappApiToken: this.maskOptionalSecret(company.whatsappApiToken, secretKey),
+            whatsappPhoneNumberId: company.whatsappPhoneNumberId,
+            whatsappBusinessAccountId: company.whatsappBusinessAccountId,
+            whatsappVerifyToken: this.maskOptionalSecret(company.whatsappVerifyToken, secretKey),
             hasMetaPageAccessToken: Boolean(company.metaPageAccessToken),
             hasMetaAppSecret: Boolean(company.metaAppSecret),
             hasApifyApiToken: Boolean(company.apifyApiToken),
             hasWhatsappApiToken: Boolean(company.whatsappApiToken),
+            hasWhatsappVerifyToken: Boolean(company.whatsappVerifyToken),
+            whatsappConfigured: Boolean(company.whatsappApiToken && company.whatsappPhoneNumberId),
+            whatsappWebhookUrl: this.buildWhatsappWebhookUrl(),
             updatedAt: company.updatedAt.toISOString(),
         };
+    }
+    toWhatsappCredentials(company) {
+        const secretKey = this.getSecretKey();
+        return {
+            companyId: company.id,
+            accessToken: this.decryptOptionalSecret(company.whatsappApiToken, secretKey),
+            phoneNumberId: company.whatsappPhoneNumberId,
+            businessAccountId: company.whatsappBusinessAccountId,
+            verifyToken: this.decryptOptionalSecret(company.whatsappVerifyToken, secretKey),
+            metaAppSecret: this.decryptOptionalSecret(company.metaAppSecret, secretKey),
+        };
+    }
+    buildWhatsappWebhookUrl() {
+        const base = this.config.get('APP_URL')?.trim().replace(/\/$/, '') ||
+            this.config.get('TWILIO_WEBHOOK_BASE_URL')?.trim().replace(/\/$/, '') ||
+            '';
+        if (!base)
+            return null;
+        return `${base}/whatsapp/webhook`;
     }
     maskOptionalSecret(value, secretKey) {
         if (!value)

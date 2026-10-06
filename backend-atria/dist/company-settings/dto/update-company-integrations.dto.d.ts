@@ -5,4 +5,7 @@ export declare class UpdateCompanyIntegrationsDto {
     metaAppSecret?: string | null;
     apifyApiToken?: string | null;
     whatsappApiToken?: string | null;
+    whatsappPhoneNumberId?: string | null;
+    whatsappBusinessAccountId?: string | null;
+    whatsappVerifyToken?: string | null;
 }

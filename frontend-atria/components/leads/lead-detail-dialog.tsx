@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, MessageCircle, Phone, Save, Send } from "lucide-react";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
+import { LeadWhatsAppPanel } from "@/components/leads/lead-whatsapp-panel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -414,6 +415,13 @@ export function LeadDetailDialog({
                 </Button>
               </div>
             </form>
+          )}
+
+          {!portalClientView && (
+            <LeadWhatsAppPanel
+              leadId={lead.id}
+              phone={form.phone || lead.phone}
+            />
           )}
 
           {!portalClientView && (

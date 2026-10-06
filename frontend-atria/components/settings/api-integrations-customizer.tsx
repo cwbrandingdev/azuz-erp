@@ -5,6 +5,7 @@ import {
   BarChart3,
   KeyRound,
   Loader2,
+  MessageCircle,
   Save,
   Webhook,
 } from "lucide-react";
@@ -25,10 +26,16 @@ const DEFAULT_INTEGRATIONS: CompanyIntegrations = {
   metaAppSecret: null,
   apifyApiToken: null,
   whatsappApiToken: null,
+  whatsappPhoneNumberId: null,
+  whatsappBusinessAccountId: null,
+  whatsappVerifyToken: null,
   hasMetaPageAccessToken: false,
   hasMetaAppSecret: false,
   hasApifyApiToken: false,
   hasWhatsappApiToken: false,
+  hasWhatsappVerifyToken: false,
+  whatsappConfigured: false,
+  whatsappWebhookUrl: null,
   updatedAt: "",
 };
 
@@ -36,12 +43,16 @@ type SecretDrafts = {
   metaPageAccessToken: string;
   metaAppSecret: string;
   apifyApiToken: string;
+  whatsappApiToken: string;
+  whatsappVerifyToken: string;
 };
 
 const EMPTY_SECRETS: SecretDrafts = {
   metaPageAccessToken: "",
   metaAppSecret: "",
   apifyApiToken: "",
+  whatsappApiToken: "",
+  whatsappVerifyToken: "",
 };
 
 export function ApiIntegrationsCustomizer() {
@@ -103,6 +114,14 @@ export function ApiIntegrationsCustomizer() {
         secretDrafts.apifyApiToken,
         integrations.hasApifyApiToken,
       );
+      const whatsappApiToken = resolveSecretUpdateValue(
+        secretDrafts.whatsappApiToken,
+        integrations.hasWhatsappApiToken,
+      );
+      const whatsappVerifyToken = resolveSecretUpdateValue(
+        secretDrafts.whatsappVerifyToken,
+        integrations.hasWhatsappVerifyToken,
+      );
 
       if (metaPageAccessToken !== undefined) {
         payload.metaPageAccessToken = metaPageAccessToken;
@@ -113,6 +132,17 @@ export function ApiIntegrationsCustomizer() {
       if (apifyApiToken !== undefined) {
         payload.apifyApiToken = apifyApiToken;
       }
+      if (whatsappApiToken !== undefined) {
+        payload.whatsappApiToken = whatsappApiToken;
+      }
+      if (whatsappVerifyToken !== undefined) {
+        payload.whatsappVerifyToken = whatsappVerifyToken;
+      }
+
+      payload.whatsappPhoneNumberId =
+        integrations.whatsappPhoneNumberId?.trim() || null;
+      payload.whatsappBusinessAccountId =
+        integrations.whatsappBusinessAccountId?.trim() || null;
 
       const updated =
         await companySettingsService.updateCompanyIntegrations(payload);
@@ -257,6 +287,124 @@ export function ApiIntegrationsCustomizer() {
                 Token criptografado já salvo para este tenant.
               </p>
             )}
+          </Field>
+        </FieldGroup>
+      </Card>
+
+      <Card className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-6">
+        <div className="mb-5 flex items-start gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-[#25D366]/15 text-[#128C7E]">
+            <MessageCircle className="size-5" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-[var(--atria-primary)]">
+              WhatsApp Cloud API
+            </h2>
+            <p className="text-sm text-[var(--atria-primary)]/50">
+              Fase 0 — credenciais da Meta. Depois de salvar, cole a URL de
+              webhook no painel da Meta (WhatsApp → Configuration).
+            </p>
+          </div>
+        </div>
+
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-api-token">
+              Access Token
+            </FieldLabel>
+            <SecretInput
+              id="whatsapp-api-token"
+              value={secretDrafts.whatsappApiToken}
+              onChange={(event) =>
+                setSecretDrafts((current) => ({
+                  ...current,
+                  whatsappApiToken: event.target.value,
+                }))
+              }
+              placeholder={
+                integrations.hasWhatsappApiToken
+                  ? "Token configurado — deixe em branco para manter"
+                  : "EAAG..."
+              }
+              autoComplete="new-password"
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="whatsapp-phone-number-id">
+              Phone Number ID
+            </FieldLabel>
+            <Input
+              id="whatsapp-phone-number-id"
+              value={integrations.whatsappPhoneNumberId ?? ""}
+              onChange={(event) =>
+                setIntegrations((current) => ({
+                  ...current,
+                  whatsappPhoneNumberId: event.target.value || null,
+                }))
+              }
+              placeholder="123456789012345"
+              autoComplete="off"
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="whatsapp-waba-id">
+              WhatsApp Business Account ID
+            </FieldLabel>
+            <Input
+              id="whatsapp-waba-id"
+              value={integrations.whatsappBusinessAccountId ?? ""}
+              onChange={(event) =>
+                setIntegrations((current) => ({
+                  ...current,
+                  whatsappBusinessAccountId: event.target.value || null,
+                }))
+              }
+              placeholder="Opcional — WABA ID"
+              autoComplete="off"
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="whatsapp-verify-token">
+              Verify token do webhook
+            </FieldLabel>
+            <SecretInput
+              id="whatsapp-verify-token"
+              value={secretDrafts.whatsappVerifyToken}
+              onChange={(event) =>
+                setSecretDrafts((current) => ({
+                  ...current,
+                  whatsappVerifyToken: event.target.value,
+                }))
+              }
+              placeholder={
+                integrations.hasWhatsappVerifyToken
+                  ? "Token configurado — deixe em branco para manter"
+                  : "Uma frase secreta que você vai colar na Meta"
+              }
+              autoComplete="new-password"
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="whatsapp-webhook-url">
+              Callback URL
+            </FieldLabel>
+            <Input
+              id="whatsapp-webhook-url"
+              readOnly
+              value={
+                integrations.whatsappWebhookUrl ??
+                "https://SEU-BACKEND/whatsapp/webhook"
+              }
+              onFocus={(event) => event.currentTarget.select()}
+            />
+            <p className="mt-1.5 text-xs text-[var(--atria-primary)]/45">
+              Em Webhook fields, marque <code>messages</code>. A API só envia
+              depois que o app e o número estiverem ativos no painel.
+            </p>
           </Field>
         </FieldGroup>
       </Card>

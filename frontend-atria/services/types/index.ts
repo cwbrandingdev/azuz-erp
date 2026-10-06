@@ -1524,10 +1524,16 @@ export interface CompanyIntegrations {
   metaAppSecret: string | null;
   apifyApiToken: string | null;
   whatsappApiToken: string | null;
+  whatsappPhoneNumberId: string | null;
+  whatsappBusinessAccountId: string | null;
+  whatsappVerifyToken: string | null;
   hasMetaPageAccessToken: boolean;
   hasMetaAppSecret: boolean;
   hasApifyApiToken: boolean;
   hasWhatsappApiToken: boolean;
+  hasWhatsappVerifyToken: boolean;
+  whatsappConfigured: boolean;
+  whatsappWebhookUrl: string | null;
   updatedAt: string;
 }
 
@@ -2645,6 +2651,51 @@ export interface VoiceConfig {
   configured: boolean;
   mode: DialerMode;
   callerId: string | null;
+}
+
+export interface WhatsappConfig {
+  configured: boolean;
+  phoneNumberId: string | null;
+  webhookUrl: string;
+}
+
+export interface WhatsappConversation {
+  id: string;
+  waId: string;
+  phone: string | null;
+  leadId: string | null;
+  clientId: string | null;
+  lastMessageAt: string;
+  lastMessagePreview: string | null;
+  unreadCount: number;
+  lead: { id: string; name: string; phone: string | null } | null;
+  client: { id: string; name: string; phone: string | null } | null;
+}
+
+export type WhatsappMessageDirection = "INBOUND" | "OUTBOUND";
+
+export interface WhatsappMessage {
+  id: string;
+  conversationId: string;
+  direction: WhatsappMessageDirection | string;
+  type: string;
+  body: string | null;
+  templateName: string | null;
+  waMessageId: string | null;
+  status: string;
+  errorMessage: string | null;
+  createdAt: string;
+  sentBy: { id: string; name: string } | null;
+}
+
+export interface SendWhatsappMessageInput {
+  leadId?: string;
+  clientId?: string;
+  to?: string;
+  body?: string;
+  templateName?: string;
+  templateLanguage?: string;
+  templateParameters?: string[];
 }
 
 export interface VoiceToken {
