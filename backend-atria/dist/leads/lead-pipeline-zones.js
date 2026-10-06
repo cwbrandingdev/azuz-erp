@@ -7,6 +7,7 @@ exports.resolveCrmMoveZone = resolveCrmMoveZone;
 exports.assertLeadStatusMoveAllowed = assertLeadStatusMoveAllowed;
 const client_1 = require("@prisma/client");
 const permissions_1 = require("../auth/constants/permissions");
+const lead_kanban_constants_1 = require("./lead-kanban.constants");
 exports.SDR_ZONE_STATUSES = [
     client_1.LeadStatus.PRE_VENDA,
     client_1.LeadStatus.APRESENTACAO,
@@ -20,6 +21,8 @@ exports.CLIENT_ZONE_STATUSES = [
     client_1.LeadStatus.AGUARDANDO_RESPOSTA,
 ];
 function isSdrZoneStatus(status) {
+    if (status === lead_kanban_constants_1.ORCAMENTO_STAGE_KEY)
+        return true;
     return exports.SDR_ZONE_STATUSES.includes(status);
 }
 function isClientZoneStatus(status) {
@@ -49,7 +52,7 @@ function assertLeadStatusMoveAllowed(role, fromStatus, toStatus) {
         return;
     if (zone === 'sdr') {
         if (!isSdrZoneStatus(fromStatus) || !isSdrZoneStatus(toStatus)) {
-            throw new Error('SDR users can only move leads within pré-venda, apresentação, reunião agendada, aguardando documentos and aguardando resposta.');
+            throw new Error('SDR users can only move leads within pré-venda, apresentação, orçamento, reunião agendada, aguardando documentos and aguardando resposta.');
         }
         return;
     }

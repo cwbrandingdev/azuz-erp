@@ -14,6 +14,9 @@ import {
   LEAD_KANBAN_STATUSES,
   LEAD_STATUS_COLORS,
   LEAD_STATUS_LABELS,
+  ORCAMENTO_STAGE_COLOR,
+  ORCAMENTO_STAGE_KEY,
+  ORCAMENTO_STAGE_NAME,
 } from './lead-kanban.constants';
 
 @Injectable()
@@ -110,6 +113,11 @@ export class LeadStagesService {
 
   async remove(id: string) {
     const existing = await this.requireStage(id);
+    if (existing.key === ORCAMENTO_STAGE_KEY) {
+      throw new BadRequestException(
+        'A coluna Orçamento não pode ser excluída. Oculte-a em Personalizar colunas.',
+      );
+    }
     const organizationId = this.normalizeOrganizationId(
       existing.organizationId,
     );
@@ -217,14 +225,13 @@ export class LeadStagesService {
     const existing = await this.findScoped(null);
     if (existing.length > 0) {
       await this.reconcileBuiltinStages(existing);
+      await this.ensureOrcamentoStage(null);
       return this.findScoped(null);
     }
 
     await this.prisma.leadStage.createMany({
-      data: LEAD_KANBAN_STATUSES.map((status, order) => ({
-        name: LEAD_STATUS_LABELS[status],
-        color: LEAD_STATUS_COLORS[status],
-        key: status,
+      data: this.defaultStageTemplates().map((stage, order) => ({
+        ...stage,
         order,
         organizationId: null,
       })),
@@ -251,7 +258,8 @@ export class LeadStagesService {
   ): Promise<LeadStage[]> {
     const existing = await this.findScoped(organizationId);
     if (existing.length > 0) {
-      return existing;
+      await this.ensureOrcamentoStage(organizationId);
+      return this.findScoped(organizationId);
     }
 
     const template = await this.ensureGlobalDefaults();
@@ -409,6 +417,92 @@ export class LeadStagesService {
 
   private isLeadStatus(value: string): value is LeadStatus {
     return (Object.values(LeadStatus) as string[]).includes(value);
+  }
+
+  private defaultStageTemplates() {
+    const templates: Array<{ name: string; color: string; key: string }> = [];
+
+    for (const status of LEAD_KANBAN_STATUSES) {
+      templates.push({
+        name: LEAD_STATUS_LABELS[status],
+        color: LEAD_STATUS_COLORS[status],
+        key: status,
+      });
+      if (status === LeadStatus.APRESENTACAO) {
+        templates.push({
+          name: ORCAMENTO_STAGE_NAME,
+          color: ORCAMENTO_STAGE_COLOR,
+          key: ORCAMENTO_STAGE_KEY,
+        });
+      }
+    }
+
+    return templates;
+  }
+
+  private async ensureOrcamentoStage(organizationId: string | null) {
+    const existing = await this.findScoped(organizationId);
+    if (existing.some((stage) => stage.key === ORCAMENTO_STAGE_KEY)) {
+      return;
+    }
+
+    const byName = existing.find((stage) => {
+      const name = stage.name.trim().toLowerCase();
+      return name === 'orçamento' || name === 'orcamento';
+    });
+    if (byName) {
+      await this.prisma.leadStage.update({
+        where: { id: byName.id },
+        data: {
+          key: ORCAMENTO_STAGE_KEY,
+          name: byName.name.trim() || ORCAMENTO_STAGE_NAME,
+        },
+      });
+      return;
+    }
+
+    const afterApresentacao = existing.findIndex(
+      (stage) => stage.key === LeadStatus.APRESENTACAO,
+    );
+    const insertAt =
+      afterApresentacao >= 0
+        ? afterApresentacao + 1
+        : Math.min(2, existing.length);
+
+    const toShift = existing.slice(insertAt);
+    try {
+      await this.prisma.$transaction([
+        ...toShift.map((stage) =>
+          this.prisma.leadStage.update({
+            where: { id: stage.id },
+            data: { order: stage.order + 1 },
+          }),
+        ),
+        this.prisma.leadStage.create({
+          data: {
+            name: ORCAMENTO_STAGE_NAME,
+            color: ORCAMENTO_STAGE_COLOR,
+            key: ORCAMENTO_STAGE_KEY,
+            order: insertAt,
+            organizationId,
+            ...(existing[0] ? { companyId: existing[0].companyId } : {}),
+          },
+        }),
+      ]);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const raced = await this.findScoped(organizationId);
+        if (raced.some((stage) => stage.key === ORCAMENTO_STAGE_KEY)) {
+          return;
+        }
+      }
+      throw error;
+    }
+
+    await this.normalizeOrder(organizationId);
   }
 
   /**

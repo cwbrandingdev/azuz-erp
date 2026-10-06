@@ -257,6 +257,7 @@ let LeadSearchSessionService = class LeadSearchSessionService {
             isMinimized: lead.isMinimized,
             kanbanTracked: lead.kanbanTracked,
             kanbanOrder: lead.kanbanOrder,
+            orcamento: lead.orcamento == null ? null : Number(lead.orcamento),
             aiScore: lead.aiScore,
             aiNotes: lead.aiNotes,
             source: lead.source,

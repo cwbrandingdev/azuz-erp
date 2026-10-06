@@ -8,6 +8,7 @@ import { CrmScopeService } from './crm-scope.service';
 import { LeadNotificationService } from './lead-notification.service';
 import { CreateCrmLeadDto } from '../crm/dto/create-crm-lead.dto';
 import { UpdateCrmLeadDto } from '../crm/dto/update-crm-lead.dto';
+import { UpdateCrmBoardSettingsDto } from '../crm/dto/update-crm-board-settings.dto';
 import { FetchMapsLeadsDto } from './dto/fetch-maps-leads.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { LeadSearchDto } from './dto/lead-search.dto';
@@ -57,6 +58,7 @@ export declare class LeadsService {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -102,6 +104,7 @@ export declare class LeadsService {
             isMinimized: boolean;
             kanbanTracked: boolean;
             kanbanOrder: number;
+            orcamento: number | null;
             aiScore: number | null;
             aiNotes: string | null;
             source: string;
@@ -183,6 +186,7 @@ export declare class LeadsService {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -227,6 +231,7 @@ export declare class LeadsService {
                 isMinimized: boolean;
                 kanbanTracked: boolean;
                 kanbanOrder: number;
+                orcamento: number | null;
                 aiScore: number | null;
                 aiNotes: string | null;
                 source: string;
@@ -237,6 +242,13 @@ export declare class LeadsService {
         }[];
         total: number;
         crmMoveZone: import("./lead-pipeline-zones").CrmMoveZone;
+        showOrcamento: boolean;
+    }>;
+    getBoardSettings(user: AuthenticatedUser, organizationId?: string): Promise<{
+        showOrcamento: boolean;
+    }>;
+    updateBoardSettings(user: AuthenticatedUser, dto: UpdateCrmBoardSettingsDto): Promise<{
+        showOrcamento: boolean;
     }>;
     createForCrm(user: AuthenticatedUser, dto: CreateCrmLeadDto): Promise<{
         status: import("@prisma/client").$Enums.CrmLeadStatus;
@@ -270,6 +282,7 @@ export declare class LeadsService {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -306,6 +319,7 @@ export declare class LeadsService {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -423,6 +437,7 @@ export declare class LeadsService {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -462,6 +477,7 @@ export declare class LeadsService {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -498,6 +514,7 @@ export declare class LeadsService {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -534,6 +551,7 @@ export declare class LeadsService {
         isMinimized: boolean;
         kanbanTracked: boolean;
         kanbanOrder: number;
+        orcamento: number | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -572,6 +590,7 @@ export declare class LeadsService {
     private resolveOrganizationIdForCreate;
     private ensureLeadExists;
     private resolveKanbanOrganizationId;
+    private resolveShowOrcamento;
     private leadMatchesStage;
     private notifyOrganizationRepresentatives;
     private createFollowUpReminder;

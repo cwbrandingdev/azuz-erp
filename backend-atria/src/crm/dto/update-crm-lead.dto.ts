@@ -1,4 +1,12 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 
 export class UpdateCrmLeadDto {
   @IsOptional()
@@ -55,4 +63,11 @@ export class UpdateCrmLeadDto {
   @IsString()
   @MaxLength(255)
   source?: string;
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  orcamento?: number | null;
 }

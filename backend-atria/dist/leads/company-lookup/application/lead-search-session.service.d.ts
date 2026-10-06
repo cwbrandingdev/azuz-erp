@@ -48,6 +48,7 @@ export declare class LeadSearchSessionService {
             isMinimized: boolean;
             kanbanTracked: boolean;
             kanbanOrder: number;
+            orcamento: number | null;
             aiScore: number | null;
             aiNotes: string | null;
             source: string;
@@ -137,6 +138,7 @@ export declare class LeadSearchSessionService {
             isMinimized: boolean;
             kanbanTracked: boolean;
             kanbanOrder: number;
+            orcamento: number | null;
             aiScore: number | null;
             aiNotes: string | null;
             source: string;

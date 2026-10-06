@@ -2,6 +2,7 @@ import { apiRequest } from "./api";
 import type {
   AddLeadToKanbanInput,
   CreateLeadStageInput,
+  CrmBoardSettings,
   CrmReminderBoard,
   CrmReminderTask,
   CrmReminderTaskStatus,
@@ -205,6 +206,24 @@ export async function reorderLeadStages(
 export async function deleteLeadStage(id: string): Promise<{ success: boolean }> {
   return apiRequest<{ success: boolean }>(`/crm/stages/${id}`, {
     method: "DELETE",
+  });
+}
+
+export async function getCrmBoardSettings(
+  organizationId?: string,
+): Promise<CrmBoardSettings> {
+  return apiRequest<CrmBoardSettings>(
+    `/crm/board-settings${stagesQuery(organizationId)}`,
+  );
+}
+
+export async function updateCrmBoardSettings(data: {
+  showOrcamento: boolean;
+  organizationId?: string;
+}): Promise<CrmBoardSettings> {
+  return apiRequest<CrmBoardSettings>("/crm/board-settings", {
+    method: "PATCH",
+    body: data,
   });
 }
 

@@ -2468,6 +2468,7 @@ export interface Lead {
   isMinimized?: boolean;
   kanbanTracked: boolean;
   kanbanOrder: number;
+  orcamento?: number | null;
   aiScore: number | null;
   aiNotes: string | null;
   source: string;
@@ -2490,6 +2491,7 @@ export interface LeadKanbanBoard {
   columns: LeadKanbanColumn[];
   total: number;
   crmMoveZone?: "all" | "sdr" | "client" | "none";
+  showOrcamento?: boolean;
 }
 
 export interface UpdateCrmLeadInput {
@@ -2504,6 +2506,7 @@ export interface UpdateCrmLeadInput {
   neighborhood?: string;
   category?: string;
   source?: string;
+  orcamento?: number | null;
 }
 
 export interface AddLeadToKanbanInput {
@@ -2553,6 +2556,10 @@ export interface UpdateLeadStageInput {
   name?: string;
   color?: string;
   order?: number;
+}
+
+export interface CrmBoardSettings {
+  showOrcamento: boolean;
 }
 
 export type CrmReminderTaskStatus = "PENDING" | "DONE" | "CANCELLED";

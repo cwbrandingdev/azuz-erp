@@ -81,6 +81,9 @@ let LeadStagesService = class LeadStagesService {
     }
     async remove(id) {
         const existing = await this.requireStage(id);
+        if (existing.key === lead_kanban_constants_1.ORCAMENTO_STAGE_KEY) {
+            throw new common_1.BadRequestException('A coluna Orçamento não pode ser excluída. Oculte-a em Personalizar colunas.');
+        }
         const organizationId = this.normalizeOrganizationId(existing.organizationId);
         const remaining = await this.prisma.leadStage.findMany({
             where: {
@@ -166,13 +169,12 @@ let LeadStagesService = class LeadStagesService {
         const existing = await this.findScoped(null);
         if (existing.length > 0) {
             await this.reconcileBuiltinStages(existing);
+            await this.ensureOrcamentoStage(null);
             return this.findScoped(null);
         }
         await this.prisma.leadStage.createMany({
-            data: lead_kanban_constants_1.LEAD_KANBAN_STATUSES.map((status, order) => ({
-                name: lead_kanban_constants_1.LEAD_STATUS_LABELS[status],
-                color: lead_kanban_constants_1.LEAD_STATUS_COLORS[status],
-                key: status,
+            data: this.defaultStageTemplates().map((stage, order) => ({
+                ...stage,
                 order,
                 organizationId: null,
             })),
@@ -189,7 +191,8 @@ let LeadStagesService = class LeadStagesService {
     async ensureOrganizationDefaults(organizationId) {
         const existing = await this.findScoped(organizationId);
         if (existing.length > 0) {
-            return existing;
+            await this.ensureOrcamentoStage(organizationId);
+            return this.findScoped(organizationId);
         }
         const template = await this.ensureGlobalDefaults();
         try {
@@ -308,6 +311,78 @@ let LeadStagesService = class LeadStagesService {
     }
     isLeadStatus(value) {
         return Object.values(client_1.LeadStatus).includes(value);
+    }
+    defaultStageTemplates() {
+        const templates = [];
+        for (const status of lead_kanban_constants_1.LEAD_KANBAN_STATUSES) {
+            templates.push({
+                name: lead_kanban_constants_1.LEAD_STATUS_LABELS[status],
+                color: lead_kanban_constants_1.LEAD_STATUS_COLORS[status],
+                key: status,
+            });
+            if (status === client_1.LeadStatus.APRESENTACAO) {
+                templates.push({
+                    name: lead_kanban_constants_1.ORCAMENTO_STAGE_NAME,
+                    color: lead_kanban_constants_1.ORCAMENTO_STAGE_COLOR,
+                    key: lead_kanban_constants_1.ORCAMENTO_STAGE_KEY,
+                });
+            }
+        }
+        return templates;
+    }
+    async ensureOrcamentoStage(organizationId) {
+        const existing = await this.findScoped(organizationId);
+        if (existing.some((stage) => stage.key === lead_kanban_constants_1.ORCAMENTO_STAGE_KEY)) {
+            return;
+        }
+        const byName = existing.find((stage) => {
+            const name = stage.name.trim().toLowerCase();
+            return name === 'orçamento' || name === 'orcamento';
+        });
+        if (byName) {
+            await this.prisma.leadStage.update({
+                where: { id: byName.id },
+                data: {
+                    key: lead_kanban_constants_1.ORCAMENTO_STAGE_KEY,
+                    name: byName.name.trim() || lead_kanban_constants_1.ORCAMENTO_STAGE_NAME,
+                },
+            });
+            return;
+        }
+        const afterApresentacao = existing.findIndex((stage) => stage.key === client_1.LeadStatus.APRESENTACAO);
+        const insertAt = afterApresentacao >= 0
+            ? afterApresentacao + 1
+            : Math.min(2, existing.length);
+        const toShift = existing.slice(insertAt);
+        try {
+            await this.prisma.$transaction([
+                ...toShift.map((stage) => this.prisma.leadStage.update({
+                    where: { id: stage.id },
+                    data: { order: stage.order + 1 },
+                })),
+                this.prisma.leadStage.create({
+                    data: {
+                        name: lead_kanban_constants_1.ORCAMENTO_STAGE_NAME,
+                        color: lead_kanban_constants_1.ORCAMENTO_STAGE_COLOR,
+                        key: lead_kanban_constants_1.ORCAMENTO_STAGE_KEY,
+                        order: insertAt,
+                        organizationId,
+                        ...(existing[0] ? { companyId: existing[0].companyId } : {}),
+                    },
+                }),
+            ]);
+        }
+        catch (error) {
+            if (error instanceof client_1.Prisma.PrismaClientKnownRequestError &&
+                error.code === 'P2002') {
+                const raced = await this.findScoped(organizationId);
+                if (raced.some((stage) => stage.key === lead_kanban_constants_1.ORCAMENTO_STAGE_KEY)) {
+                    return;
+                }
+            }
+            throw error;
+        }
+        await this.normalizeOrder(organizationId);
     }
     async reconcileBuiltinStages(existing) {
         const posVendaStage = existing.find((stage) => stage.key === client_1.LeadStatus.POS_VENDA);

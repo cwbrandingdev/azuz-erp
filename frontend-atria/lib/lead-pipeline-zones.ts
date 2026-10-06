@@ -1,4 +1,5 @@
 import type { LeadStatus } from "@/services/types";
+import { ORCAMENTO_STAGE_KEY } from "@/lib/leads-kanban-utils";
 
 export const SDR_ZONE_STATUSES: LeadStatus[] = [
   "PRE_VENDA",
@@ -17,6 +18,7 @@ export const CLIENT_ZONE_STATUSES: LeadStatus[] = [
 export type CrmMoveZone = "all" | "sdr" | "client" | "none";
 
 export function isSdrZoneStatus(status: string): boolean {
+  if (status === ORCAMENTO_STAGE_KEY) return true;
   return SDR_ZONE_STATUSES.includes(status as LeadStatus);
 }
 

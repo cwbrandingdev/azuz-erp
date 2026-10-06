@@ -1,5 +1,9 @@
 import { LeadStatus } from '@prisma/client';
 
+export const ORCAMENTO_STAGE_KEY = 'ORCAMENTO';
+export const ORCAMENTO_STAGE_NAME = 'Orçamento';
+export const ORCAMENTO_STAGE_COLOR = '#0D9488';
+
 export const LEAD_KANBAN_STATUSES: readonly LeadStatus[] = [
   LeadStatus.PRE_VENDA,
   LeadStatus.APRESENTACAO,

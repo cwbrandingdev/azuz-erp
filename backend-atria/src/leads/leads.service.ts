@@ -27,6 +27,7 @@ import { CrmScopeService } from './crm-scope.service';
 import { LeadNotificationService } from './lead-notification.service';
 import { CreateCrmLeadDto } from '../crm/dto/create-crm-lead.dto';
 import { UpdateCrmLeadDto } from '../crm/dto/update-crm-lead.dto';
+import { UpdateCrmBoardSettingsDto } from '../crm/dto/update-crm-board-settings.dto';
 import {
   buildApifyActorInput,
   mapApifyPlaces,
@@ -35,7 +36,7 @@ import { FetchMapsLeadsDto } from './dto/fetch-maps-leads.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadStagesService } from './lead-stages.service';
-import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS } from './lead-kanban.constants';
+import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, ORCAMENTO_STAGE_KEY } from './lead-kanban.constants';
 import { assertLeadStatusMoveAllowed } from './lead-pipeline-zones';
 import { LeadQualificationService } from './qualification/lead-qualification.service';
 import { MapsScraperService } from './maps-scraper/maps-scraper.service';
@@ -443,6 +444,7 @@ export class LeadsService {
 
     const leads = await this.prisma.lead.findMany({
       where: { kanbanTracked: true, deletedAt: null, ...orgFilter },
+      include: { stage: { select: { id: true, key: true, name: true } } },
       orderBy: [
         { status: 'asc' },
         { kanbanOrder: 'asc' },
@@ -450,7 +452,15 @@ export class LeadsService {
       ],
     });
 
-    const columns = stages.map((stage) => {
+    const showOrcamento = await this.resolveShowOrcamento(
+      user,
+      stageOrganizationId,
+    );
+    const visibleStages = showOrcamento
+      ? stages
+      : stages.filter((stage) => stage.key !== ORCAMENTO_STAGE_KEY);
+
+    const columns = visibleStages.map((stage) => {
       const pipelineStatus = this.leadStages.statusFromStage(stage);
       return {
         id: stage.id,
@@ -467,9 +477,63 @@ export class LeadsService {
 
     return {
       columns,
-      total: leads.length,
+      total: columns.reduce((sum, column) => sum + column.leads.length, 0),
       crmMoveZone: this.crmScope.getMoveZone(user.role),
+      showOrcamento,
     };
+  }
+
+  async getBoardSettings(
+    user: AuthenticatedUser,
+    organizationId?: string,
+  ) {
+    const scopedOrganizationId = this.resolveKanbanOrganizationId(
+      user,
+      organizationId,
+    );
+    return {
+      showOrcamento: await this.resolveShowOrcamento(
+        user,
+        scopedOrganizationId,
+      ),
+    };
+  }
+
+  async updateBoardSettings(
+    user: AuthenticatedUser,
+    dto: UpdateCrmBoardSettingsDto,
+  ) {
+    const organizationId = this.resolveKanbanOrganizationId(
+      user,
+      dto.organizationId,
+    );
+
+    if (organizationId) {
+      const organization = await this.prisma.client.findUnique({
+        where: { id: organizationId },
+        select: { id: true },
+      });
+      if (!organization) {
+        throw new NotFoundException('Cliente não encontrado.');
+      }
+
+      const updated = await this.prisma.client.update({
+        where: { id: organizationId },
+        data: { crmShowOrcamento: dto.showOrcamento },
+        select: { crmShowOrcamento: true },
+      });
+
+      return { showOrcamento: updated.crmShowOrcamento };
+    }
+
+    const companyId = user.companyId?.trim() || DEFAULT_COMPANY_ID;
+    const updated = await this.prisma.company.update({
+      where: { id: companyId },
+      data: { crmShowOrcamento: dto.showOrcamento },
+      select: { crmShowOrcamento: true },
+    });
+
+    return { showOrcamento: updated.crmShowOrcamento };
   }
 
   async createForCrm(user: AuthenticatedUser, dto: CreateCrmLeadDto) {
@@ -557,6 +621,7 @@ export class LeadsService {
         ...(dto.source !== undefined
           ? { source: emptyToNull(dto.source) ?? 'manual' }
           : {}),
+        ...(dto.orcamento !== undefined ? { orcamento: dto.orcamento } : {}),
       },
     });
 
@@ -1010,15 +1075,52 @@ export class LeadsService {
     return null;
   }
 
+  private async resolveShowOrcamento(
+    user: AuthenticatedUser,
+    organizationId: string | null,
+  ): Promise<boolean> {
+    if (organizationId) {
+      const organization = await this.prisma.client.findUnique({
+        where: { id: organizationId },
+        select: { crmShowOrcamento: true },
+      });
+      return organization?.crmShowOrcamento ?? true;
+    }
+
+    const companyId = user.companyId?.trim() || DEFAULT_COMPANY_ID;
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { crmShowOrcamento: true },
+    });
+    return company?.crmShowOrcamento ?? true;
+  }
+
   private leadMatchesStage(
-    lead: { stageId: string | null; status: LeadStatus },
-    stage: { id: string; key: string | null },
+    lead: {
+      stageId: string | null;
+      status: LeadStatus;
+      stage?: { key: string | null; name: string } | null;
+    },
+    stage: { id: string; key: string | null; name?: string },
     stages: Array<{ id: string }>,
   ): boolean {
     if (lead.stageId) {
       const known = stages.some((item) => item.id === lead.stageId);
       if (known) return lead.stageId === stage.id;
     }
+
+    if (lead.stage?.key && stage.key && lead.stage.key === stage.key) {
+      return true;
+    }
+
+    if (
+      lead.stage?.name &&
+      stage.name &&
+      lead.stage.name.trim().toLowerCase() === stage.name.trim().toLowerCase()
+    ) {
+      return true;
+    }
+
     return Boolean(stage.key) && lead.status === stage.key;
   }
 
@@ -1238,6 +1340,7 @@ export class LeadsService {
       isMinimized: lead.isMinimized,
       kanbanTracked: lead.kanbanTracked,
       kanbanOrder: lead.kanbanOrder,
+      orcamento: lead.orcamento == null ? null : Number(lead.orcamento),
       aiScore: lead.aiScore,
       aiNotes: lead.aiNotes,
       source: lead.source,

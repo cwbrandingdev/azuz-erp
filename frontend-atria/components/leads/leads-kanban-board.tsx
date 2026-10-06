@@ -46,11 +46,14 @@ import {
   LEAD_STATUS_COLORS,
   LEAD_STATUS_LABELS,
   collectLeadCategories,
+  formatLeadOrcamento,
+  isOrcamentoColumn,
   leadColumnKey,
   leadMatchesCategory,
   leadMatchesDateFilter,
   leadMatchesSearchQuery,
   shouldLeadAutoMinimize,
+  sumLeadOrcamentos,
 } from "@/lib/leads-kanban-utils";
 import { normalizeAppRole } from "@/lib/permissions";
 import { isCrmDisabledApiError } from "@/lib/crm-errors";
@@ -126,6 +129,7 @@ export function LeadsKanbanBoard({
   const [crmDisabled, setCrmDisabled] = useState(false);
   const [newSdrLeadCount, setNewSdrLeadCount] = useState(0);
   const [sdrBannerDismissed, setSdrBannerDismissed] = useState(false);
+  const [showOrcamento, setShowOrcamento] = useState(true);
 
   const allClientsLabel = isMasterOrAdmin()
     ? "Todas as Empresas"
@@ -179,11 +183,15 @@ export function LeadsKanbanBoard({
   );
 
   const filteredColumns = useMemo(() => {
-    if (portalClientView) return columns;
+    const visibleColumns = showOrcamento
+      ? columns
+      : columns.filter((column) => !isOrcamentoColumn(column));
+
+    if (portalClientView) return visibleColumns;
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    return columns.map((column) => ({
+    return visibleColumns.map((column) => ({
       ...column,
       leads: column.leads.filter((lead) => {
         if (
@@ -211,6 +219,7 @@ export function LeadsKanbanBoard({
     hasDateFilter,
     startDate,
     endDate,
+    showOrcamento,
   ]);
 
   const filteredTotal = useMemo(
@@ -242,6 +251,7 @@ export function LeadsKanbanBoard({
       setColumns(board.columns.length > 0 ? board.columns : emptyColumns());
       setTotal(board.total);
       setCrmMoveZone(portalClientView ? "all" : (board.crmMoveZone ?? "all"));
+      setShowOrcamento(board.showOrcamento !== false);
       setCrmDisabled(false);
 
       if (portalClientView) {
@@ -452,6 +462,29 @@ export function LeadsKanbanBoard({
     toast.success("Lead movido");
   }
 
+  async function handleOrcamentoChange(
+    leadId: string,
+    orcamento: number | null,
+  ) {
+    updateLeadInColumns(leadId, { orcamento });
+    if (selectedLead?.id === leadId) {
+      setSelectedLead((current) =>
+        current ? { ...current, orcamento } : current,
+      );
+    }
+
+    try {
+      const updated = await leadsService.updateLead(leadId, { orcamento });
+      updateLeadInColumns(leadId, updated);
+      if (selectedLead?.id === leadId) {
+        setSelectedLead(updated);
+      }
+    } catch {
+      await loadBoard();
+      toast.error("Não foi possível salvar o orçamento.");
+    }
+  }
+
   async function handleCollapseChange(leadId: string, isMinimized: boolean) {
     updateLeadInColumns(leadId, { isMinimized });
 
@@ -556,7 +589,7 @@ export function LeadsKanbanBoard({
                 )}
                 <LeadKanbanImportDialog onSuccess={() => void loadBoard()} />
                 <LeadKanbanFormDialog
-                  columns={columns}
+                  columns={filteredColumns}
                   onSuccess={() => void loadBoard()}
                 />
               </>
@@ -741,7 +774,7 @@ export function LeadsKanbanBoard({
           {!portalClientView && crmMoveZone !== "all" && (
             <p className="text-xs text-[var(--atria-primary)]/45">
               {crmMoveZone === "sdr"
-                ? "Você pode mover leads entre pré-venda, apresentação, reunião agendada e aguardando resposta."
+                ? "Você pode mover leads entre pré-venda, apresentação, orçamento, reunião agendada e aguardando resposta."
                 : "Você pode mover leads apenas a partir de venda finalizada."}
             </p>
           )}
@@ -760,6 +793,7 @@ export function LeadsKanbanBoard({
             <KanbanHorizontalScroll>
               {filteredColumns.map((column) => {
                 const columnKey = leadColumnKey(column);
+                const isOrcamento = isOrcamentoColumn(column);
                 return (
                   <div key={columnKey} className="flex w-72 shrink-0 flex-col">
                     <div
@@ -797,6 +831,12 @@ export function LeadsKanbanBoard({
                           {column.leads.length}
                         </span>
                       </div>
+                      {isOrcamento && (
+                        <p className="mt-1 pl-[18px] text-[11px] font-semibold text-[var(--atria-primary)]/80">
+                          {formatLeadOrcamento(sumLeadOrcamentos(column.leads)) ||
+                            "R$ 0,00"}
+                        </p>
+                      )}
                     </div>
 
                     <Droppable
@@ -848,7 +888,7 @@ export function LeadsKanbanBoard({
                                 >
                                   <LeadKanbanCard
                                     lead={lead}
-                                    columns={columns}
+                                    columns={filteredColumns}
                                     currentColumn={column}
                                     crmMoveZone={crmMoveZone}
                                     portalClientView={portalClientView}
@@ -869,6 +909,13 @@ export function LeadsKanbanBoard({
                                       portalClientView
                                         ? undefined
                                         : (id) => void handleRemoveLead(id)
+                                    }
+                                    showOrcamento={isOrcamento}
+                                    onOrcamentoChange={
+                                      portalClientView
+                                        ? undefined
+                                        : (id, next) =>
+                                            void handleOrcamentoChange(id, next)
                                     }
                                   />
                                 </div>
