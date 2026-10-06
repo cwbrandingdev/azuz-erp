@@ -17,15 +17,15 @@ export declare class LeadStagesService {
         updatedAt: string;
     }[]>;
     getById(id: string): Promise<{
-        name: string;
         id: string;
-        companyId: string;
-        organizationId: string | null;
-        order: number;
-        color: string;
-        key: string | null;
         createdAt: Date;
         updatedAt: Date;
+        companyId: string;
+        name: string;
+        order: number;
+        color: string;
+        organizationId: string | null;
+        key: string | null;
     }>;
     create(dto: CreateLeadStageDto): Promise<{
         id: string;

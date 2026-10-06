@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -22,9 +22,8 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useManagementDashboard } from "@/hooks/use-finance";
 import { formatCurrency, MONTH_NAMES_SHORT } from "@/lib/financial-utils";
-import { financeService } from "@/services";
-import type { ManagementDashboard } from "@/services/types";
 
 function formatDisplayDate(value: string) {
   const [year, month, day] = value.split("-");
@@ -66,8 +65,12 @@ export function FinanceDashboard({ year }: { year: number }) {
   const [to, setTo] = useState(initial.to);
   const [applied, setApplied] = useState(initial);
   const [chartYear, setChartYear] = useState(year);
-  const [data, setData] = useState<ManagementDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
+  const dashboardQuery = useManagementDashboard({
+    ...applied,
+    chartYear,
+  });
+  const data = dashboardQuery.data ?? null;
+  const loading = dashboardQuery.isPending && !data;
   const years = [0, 1, 2, 3].map((offset) => new Date().getFullYear() - offset);
 
   useEffect(() => {
@@ -77,22 +80,6 @@ export function FinanceDashboard({ year }: { year: number }) {
     setApplied(range);
     setChartYear(year);
   }, [year]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    financeService
-      .getManagementDashboard({ ...applied, chartYear })
-      .then((dashboard) => {
-        if (!cancelled) setData(dashboard);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [applied, chartYear]);
 
   const overdueCount =
     (data?.overdue.incomeCount ?? 0) + (data?.overdue.expenseCount ?? 0);
@@ -365,18 +352,7 @@ export function FinanceDashboard({ year }: { year: number }) {
               <span className="text-xs text-slate-400">{chartYear}</span>
             </div>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData}>
-                  <CartesianGrid vertical={false} stroke="rgba(148,163,184,0.25)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis hide />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="income" name="Receitas" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={18} />
-                  <Bar dataKey="expense" name="Despesas" fill="#FB7185" radius={[4, 4, 0, 0]} maxBarSize={18} />
-                  <Line type="monotone" dataKey="result" name="Resultado" stroke="#6366F1" strokeWidth={2} dot={{ r: 3 }} />
-                </ComposedChart>
-              </ResponsiveContainer>
+              <MonthlyFlowChart data={chartData} />
             </div>
           </div>
           <div>
@@ -385,17 +361,7 @@ export function FinanceDashboard({ year }: { year: number }) {
               <span className="ml-2 text-xs font-normal text-slate-400">Mês a mês — {chartYear}</span>
             </h3>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid vertical={false} stroke="rgba(148,163,184,0.25)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                  <YAxis hide />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="income" name="Rec." stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line type="monotone" dataKey="expense" name="Des." stroke="#FB7185" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <MonthlyCompareChart data={chartData} />
             </div>
           </div>
         </div>
@@ -403,3 +369,44 @@ export function FinanceDashboard({ year }: { year: number }) {
     </div>
   );
 }
+
+const MonthlyFlowChart = memo(function MonthlyFlowChart({
+  data,
+}: {
+  data: Array<Record<string, string | number>>;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <ComposedChart data={data}>
+        <CartesianGrid vertical={false} stroke="rgba(148,163,184,0.25)" />
+        <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+        <YAxis hide />
+        <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Bar dataKey="income" name="Receitas" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={18} />
+        <Bar dataKey="expense" name="Despesas" fill="#FB7185" radius={[4, 4, 0, 0]} maxBarSize={18} />
+        <Line type="monotone" dataKey="result" name="Resultado" stroke="#6366F1" strokeWidth={2} dot={{ r: 3 }} />
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+});
+
+const MonthlyCompareChart = memo(function MonthlyCompareChart({
+  data,
+}: {
+  data: Array<Record<string, string | number>>;
+}) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={data}>
+        <CartesianGrid vertical={false} stroke="rgba(148,163,184,0.25)" />
+        <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+        <YAxis hide />
+        <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Line type="monotone" dataKey="income" name="Rec." stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="expense" name="Des." stroke="#FB7185" strokeWidth={2} dot={{ r: 3 }} />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+});

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useInvalidateProposals } from "@/hooks/use-query-invalidation";
 import {
   DEFAULT_COVER_IMAGE_URL,
   DEFAULT_COVER_VIDEO_URL,
@@ -137,6 +138,7 @@ function toPayload(values: ProposalFormValues) {
 
 export function ProposalForm({ proposal }: ProposalFormProps) {
   const router = useRouter();
+  const invalidateProposals = useInvalidateProposals();
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -205,6 +207,7 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
           status: "draft",
         });
         toast.success("Rascunho salvo");
+        void invalidateProposals();
         router.refresh();
       } else {
         const created = await proposalsService.createProposal({
@@ -212,6 +215,7 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
           status: "draft",
         });
         toast.success("Rascunho criado");
+        void invalidateProposals();
         router.push(`/proposals/${created.id}/edit`);
       }
     } catch (error) {
@@ -264,6 +268,7 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
       }
       setShareUrl(url);
       toast.success("Proposta publicada");
+      void invalidateProposals();
       if (!proposal || proposal.id !== published.id) {
         router.replace(`/proposals/${published.id}/edit`);
       }

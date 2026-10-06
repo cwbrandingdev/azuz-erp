@@ -15,12 +15,13 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useChartOfAccounts } from "@/hooks/use-finance";
+import { useInvalidateFinance } from "@/hooks/use-query-invalidation";
 import { financeService, ApiError } from "@/services";
 import { toast } from "@/lib/toast";
 import { formatLocalDate, toLocalDateIso } from "@/lib/financial-utils";
 import type {
   BankAccount,
-  ChartAccount,
   FinanceTransaction,
 } from "@/services/types";
 import { NumericFormat } from "react-number-format";
@@ -51,9 +52,11 @@ export function TransactionDialog({
   const submittingRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [allCategories, setAllCategories] = useState<ChartAccount[]>([]);
+  const accountsQuery = useChartOfAccounts({ enabled: open });
+  const invalidateFinance = useInvalidateFinance();
+  const allCategories = accountsQuery.data ?? [];
+  const categoriesLoading = accountsQuery.isFetching && allCategories.length === 0;
   const [banks, setBanks] = useState<BankAccount[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -96,29 +99,12 @@ export function TransactionDialog({
     if (!open) return;
 
     let cancelled = false;
-    setCategoriesLoading(true);
 
-    Promise.all([
-      financeService.getChartOfAccounts(),
-      financeService.getBankAccounts().catch(() => [] as BankAccount[]),
-    ])
-      .then(([cats, accounts]) => {
-        if (cancelled) return;
-        setAllCategories(cats);
-        setBanks(accounts);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setAllCategories([]);
-        setBanks([]);
-        toast.error(
-          err instanceof ApiError
-            ? err.message
-            : "Não foi possível carregar o plano de contas.",
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setCategoriesLoading(false);
+    financeService
+      .getBankAccounts()
+      .catch(() => [] as BankAccount[])
+      .then((accounts) => {
+        if (!cancelled) setBanks(accounts);
       });
 
     return () => {
@@ -199,6 +185,7 @@ export function TransactionDialog({
 
       resetForm();
       setOpen(false);
+      void invalidateFinance();
       onSuccess(saved, isEdit ? "update" : "create");
 
       toast.success(

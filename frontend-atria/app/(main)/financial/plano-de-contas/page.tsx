@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { FinanceSubnav } from "@/components/financial/finance-subnav";
-import { financeService } from "@/services";
+import { useChartOfAccounts } from "@/hooks/use-finance";
 import type { ChartAccount } from "@/services/types";
 
 const DRE_LABELS: Record<string, string> = {
@@ -43,13 +43,14 @@ function sortAccounts(accounts: ChartAccount[]) {
 }
 
 export default function PlanoDeContasPage() {
-  const [accounts, setAccounts] = useState<ChartAccount[]>([]);
+  const accountsQuery = useChartOfAccounts();
+  const accounts = accountsQuery.data ?? [];
 
   useEffect(() => {
-    financeService.getChartOfAccounts().then(setAccounts).catch(() => {
+    if (accountsQuery.isError) {
       toast.error("Não foi possível carregar o plano de contas.");
-    });
-  }, []);
+    }
+  }, [accountsQuery.isError]);
 
   const { groups, orphans } = useMemo(() => {
     const ids = new Set(accounts.map((account) => account.id));

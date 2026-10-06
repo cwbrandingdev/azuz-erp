@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { LayoutDashboard, Table2 } from "lucide-react";
 import { FinanceDashboard } from "@/components/financial/finance-dashboard";
 import { FinanceScopeSwitcher } from "@/components/financial/finance-scope-switcher";
@@ -12,6 +12,8 @@ import { RecentTransactionsCard } from "@/components/financial/recent-transactio
 import { TransactionDialog } from "@/components/financial/transaction-dialog";
 import { TransactionsImportDialog } from "@/components/financial/transactions-import-dialog";
 import { Button } from "@/components/ui/button";
+import { useFinanceOverview } from "@/hooks/use-finance";
+import { useInvalidateFinance } from "@/hooks/use-query-invalidation";
 import {
   buildLancamentosHref,
   formatScopeLabel,
@@ -20,40 +22,20 @@ import {
   type FinanceScope,
 } from "@/lib/financial-utils";
 import { financeService } from "@/services";
-import type { FinanceOverview, FinanceTransaction } from "@/services/types";
+import type { FinanceTransaction } from "@/services/types";
 
 export default function FinancialPage() {
   const [scope, setScope] = useState<FinanceScope>(getCurrentScope);
-  const [overview, setOverview] = useState<FinanceOverview | null>(null);
-  const [loadingOverview, setLoadingOverview] = useState(true);
   const [viewMode, setViewMode] = useState<"dashboard" | "sheet">("dashboard");
   const [sheetEpoch, setSheetEpoch] = useState(0);
   const sheetPeriod = scopeToPeriod(scope);
-
-  const loadOverview = useCallback(
-    async (silent = false) => {
-      if (!silent) setLoadingOverview(true);
-      try {
-        const data = await financeService.getFinanceOverview({
-          year: scope.year,
-          ...(scope.month ? { month: scope.month } : {}),
-        });
-        setOverview(data);
-      } catch {
-        if (!silent) setOverview(null);
-      } finally {
-        if (!silent) setLoadingOverview(false);
-      }
-    },
-    [scope.month, scope.year],
-  );
-
-  useEffect(() => {
-    void loadOverview();
-  }, [loadOverview]);
+  const invalidateFinance = useInvalidateFinance();
+  const overviewQuery = useFinanceOverview(scope.year, scope.month);
+  const overview = overviewQuery.data;
+  const loadingOverview = overviewQuery.isPending && !overview;
 
   function handleRefresh() {
-    void loadOverview(true);
+    void invalidateFinance();
     setSheetEpoch((current) => current + 1);
   }
 
@@ -227,7 +209,7 @@ export default function FinancialPage() {
         transactions={overview?.recentTransactions ?? []}
         href={lancamentosHref}
         periodLabel={formatScopeLabel(scope)}
-        loading={loadingOverview && !overview}
+        loading={loadingOverview}
       />
 
       <FinanceDashboard year={scope.year} />

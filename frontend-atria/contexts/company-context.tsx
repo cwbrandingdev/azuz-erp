@@ -37,12 +37,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const resolvedCompany = await companiesService.getPrimaryCompany();
+      const [resolvedCompany, resolvedBranding] = await Promise.all([
+        companiesService.getPrimaryCompany(),
+        settingsService.getBranding().catch(() => DEFAULT_BRANDING),
+      ]);
       setCompany(resolvedCompany);
-
-      const resolvedBranding = await settingsService
-        .getBranding()
-        .catch(() => DEFAULT_BRANDING);
       setBranding(resolvedBranding);
     } catch (err) {
       setCompany(null);

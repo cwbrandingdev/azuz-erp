@@ -1,34 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { ProposalsTable } from "@/components/proposals/proposals-table";
 import { Button } from "@/components/ui/button";
-import { proposalsService } from "@/services";
-import type { Proposal } from "@/services/types";
+import { useProposals } from "@/hooks/use-proposals";
+import { useInvalidateProposals } from "@/hooks/use-query-invalidation";
 
 export default function ProposalsPage() {
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const proposalsQuery = useProposals();
+  const invalidateProposals = useInvalidateProposals();
+  const proposals = proposalsQuery.data;
 
-  const loadProposals = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await proposalsService.getProposals();
-      setProposals(data);
-    } catch {
-      setProposals([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadProposals();
-  }, [loadProposals]);
-
-  if (loading && proposals.length === 0) {
+  if (proposalsQuery.isPending && !proposals) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
@@ -54,9 +38,9 @@ export default function ProposalsPage() {
       </div>
 
       <ProposalsTable
-        proposals={proposals}
-        loading={loading}
-        onRefresh={() => void loadProposals()}
+        proposals={proposals ?? []}
+        loading={proposalsQuery.isFetching && !proposals}
+        onRefresh={() => void invalidateProposals()}
       />
     </div>
   );

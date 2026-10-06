@@ -24,6 +24,7 @@ import {
 } from "@/hooks/use-visible-nav-sections";
 import { isNavItemActive } from "@/lib/nav-match";
 import { cn } from "@/lib/utils";
+import { usePrefetchNav } from "@/hooks/use-prefetch-nav";
 
 const ICON_SIZE = 50;
 const ICON_GAP = 5;
@@ -139,6 +140,7 @@ export function StudioDock() {
   const pathname = usePathname();
   const router = useRouter();
   const { sections, appUpdatesBadgeCount } = useVisibleNavSections();
+  const prefetchNav = usePrefetchNav();
   const dockRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<number>(0);
   const menuOpenRef = useRef(false);
@@ -330,7 +332,10 @@ export function StudioDock() {
                   key={entry.key}
                   className="relative flex shrink-0 items-end justify-center"
                   style={slotStyle}
-                  onPointerEnter={() => setHoveredKey(entry.key)}
+                  onPointerEnter={() => {
+                    setHoveredKey(entry.key);
+                    prefetchNav(item.href);
+                  }}
                 >
                   {showName ? <DockName name={item.name} lift={size} /> : null}
                   <DropdownMenu onOpenChange={handleMenuOpenChange}>
@@ -351,6 +356,7 @@ export function StudioDock() {
                         <DropdownMenuItem
                           key={child.href}
                           onClick={() => router.push(child.href)}
+                          onPointerEnter={() => prefetchNav(child.href)}
                         >
                           {child.name}
                         </DropdownMenuItem>
@@ -367,7 +373,10 @@ export function StudioDock() {
                 key={entry.key}
                 className="relative flex shrink-0 items-end justify-center"
                 style={slotStyle}
-                onPointerEnter={() => setHoveredKey(entry.key)}
+                onPointerEnter={() => {
+                  setHoveredKey(entry.key);
+                  prefetchNav(item.href);
+                }}
               >
                 {showName ? <DockName name={item.name} lift={size} /> : null}
                 <Link

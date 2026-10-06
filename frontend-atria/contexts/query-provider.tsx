@@ -1,21 +1,25 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import {
+  createAppQueryClient,
+  hydrateQueryClientFromSession,
+  registerAppQueryClient,
+  subscribeQueryPersistence,
+} from "@/lib/query-client";
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60_000,
-            refetchOnWindowFocus: true,
-            retry: 1,
-          },
-        },
-      }),
-  );
+  const [queryClient] = useState(() => {
+    const client = createAppQueryClient();
+    registerAppQueryClient(client);
+    return client;
+  });
+
+  useEffect(() => {
+    hydrateQueryClientFromSession(queryClient);
+    return subscribeQueryPersistence(queryClient);
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

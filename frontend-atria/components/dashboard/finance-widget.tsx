@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -41,6 +41,81 @@ function percentChange(current: number, previous: number) {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / Math.abs(previous)) * 100;
 }
+
+type TrendPoint = {
+  month: string;
+  label: string;
+  income: number;
+  expense: number;
+  net: number;
+};
+
+const FinanceTrendChart = memo(function FinanceTrendChart({
+  chartData,
+}: {
+  chartData: TrendPoint[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <ComposedChart data={chartData} barGap={2}>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          vertical={false}
+          stroke="rgba(0,73,73,0.08)"
+        />
+        <XAxis
+          dataKey="label"
+          tick={{ fontSize: 10, fill: "rgba(0,73,73,0.55)" }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          tickFormatter={(v) => formatCompactCurrency(Number(v))}
+          tick={{ fontSize: 10, fill: "rgba(0,73,73,0.45)" }}
+          tickLine={false}
+          axisLine={false}
+          width={52}
+        />
+        <Tooltip
+          formatter={(value, name) => [
+            formatCurrency(
+              typeof value === "number" ? value : Number(value),
+            ),
+            name,
+          ]}
+          contentStyle={{
+            borderRadius: "12px",
+            border: "1px solid rgba(0,73,73,0.12)",
+            fontSize: "12px",
+          }}
+        />
+        <Legend wrapperStyle={{ display: "none" }} />
+        <Bar
+          dataKey="income"
+          name="Receita"
+          fill={FINANCE_COLORS.income.primary}
+          radius={[4, 4, 0, 0]}
+          maxBarSize={18}
+        />
+        <Bar
+          dataKey="expense"
+          name="Despesa"
+          fill={FINANCE_COLORS.expense.primary}
+          radius={[4, 4, 0, 0]}
+          maxBarSize={18}
+        />
+        <Area
+          type="monotone"
+          dataKey="net"
+          name="Saldo"
+          stroke={FINANCE_COLORS.balance.primary}
+          fill={FINANCE_COLORS.balance.bg}
+          strokeWidth={2}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+});
 
 function TrendBadge({ value, label }: { value: number; label: string }) {
   const isPositive = value >= 0;
@@ -252,64 +327,7 @@ export function FinanceWidget({ finance }: FinanceWidgetProps) {
         </div>
 
         <div className="h-40 w-full sm:h-44">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} barGap={2}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="rgba(0,73,73,0.08)"
-              />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 10, fill: "rgba(0,73,73,0.55)" }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tickFormatter={(v) => formatCompactCurrency(Number(v))}
-                tick={{ fontSize: 10, fill: "rgba(0,73,73,0.45)" }}
-                tickLine={false}
-                axisLine={false}
-                width={52}
-              />
-              <Tooltip
-                formatter={(value, name) => [
-                  formatCurrency(
-                    typeof value === "number" ? value : Number(value),
-                  ),
-                  name,
-                ]}
-                contentStyle={{
-                  borderRadius: "12px",
-                  border: "1px solid rgba(0,73,73,0.12)",
-                  fontSize: "12px",
-                }}
-              />
-              <Legend wrapperStyle={{ display: "none" }} />
-              <Bar
-                dataKey="income"
-                name="Receita"
-                fill={FINANCE_COLORS.income.primary}
-                radius={[4, 4, 0, 0]}
-                maxBarSize={18}
-              />
-              <Bar
-                dataKey="expense"
-                name="Despesa"
-                fill={FINANCE_COLORS.expense.primary}
-                radius={[4, 4, 0, 0]}
-                maxBarSize={18}
-              />
-              <Area
-                type="monotone"
-                dataKey="net"
-                name="Saldo"
-                stroke={FINANCE_COLORS.balance.primary}
-                fill={FINANCE_COLORS.balance.bg}
-                strokeWidth={2}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+          <FinanceTrendChart chartData={chartData} />
         </div>
 
         {monthsWithActivity.length > 0 && (

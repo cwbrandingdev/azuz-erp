@@ -40,10 +40,9 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [appearance, setAppearance] =
     useState<AppearanceSettings>(DEFAULT_APPEARANCE);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadAppearance = useCallback(async () => {
-    setIsLoading(true);
     try {
       const data = normalizeAppearance(await settingsService.getAppearance());
       setAppearance(data);
@@ -67,6 +66,10 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   const setDraftAppearance = useCallback((settings: AppearanceSettings) => {
     setAppearance(settings);
     applyAppearanceToDocument(settings, { force: true });
+  }, []);
+
+  useEffect(() => {
+    applyUiTheme(readStoredUiTheme());
   }, []);
 
   useEffect(() => {

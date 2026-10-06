@@ -1,32 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { ContractFormDialog } from "@/components/contracts/contract-form-dialog";
 import { ContractsTable } from "@/components/contracts/contracts-table";
-import { contractsService } from "@/services";
-import type { Contract } from "@/services/types";
+import { useContracts } from "@/hooks/use-contracts";
+import { useInvalidateContracts } from "@/hooks/use-query-invalidation";
 
 export default function ContractsPage() {
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [loading, setLoading] = useState(true);
+  const contractsQuery = useContracts();
+  const invalidateContracts = useInvalidateContracts();
+  const contracts = contractsQuery.data;
 
-  const loadContracts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await contractsService.getContracts();
-      setContracts(data);
-    } catch {
-      setContracts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadContracts();
-  }, [loadContracts]);
-
-  if (loading && contracts.length === 0) {
+  if (contractsQuery.isPending && !contracts) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
@@ -45,13 +29,13 @@ export default function ContractsPage() {
             Propostas, contratos e automação financeira de recebíveis
           </p>
         </div>
-        <ContractFormDialog onSuccess={() => void loadContracts()} />
+        <ContractFormDialog onSuccess={() => void invalidateContracts()} />
       </div>
 
       <ContractsTable
-        contracts={contracts}
-        onRefresh={() => void loadContracts()}
-        loading={loading}
+        contracts={contracts ?? []}
+        onRefresh={() => void invalidateContracts()}
+        loading={contractsQuery.isFetching && !contracts}
       />
     </div>
   );

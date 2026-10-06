@@ -97,8 +97,8 @@ export declare class ClientsController {
             id: string;
             title: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
-            format: "carousel" | "reels" | "static" | "story";
-            status: "draft" | "scheduled" | "published" | "pending_approval" | "approved" | "rejected";
+            format: "static" | "carousel" | "reels" | "story";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             scheduledDate: string | null;
             copy: string;
             referenceUrl: string | null;
@@ -139,7 +139,7 @@ export declare class ClientsController {
         contracts: {
             id: string;
             title: string;
-            status: "draft" | "cancelled" | "sent" | "signed" | "expired";
+            status: "draft" | "sent" | "signed" | "expired" | "cancelled";
             recurringValue: number;
             paymentFrequency: "monthly" | "one_time";
             startDate: string;
@@ -192,8 +192,8 @@ export declare class ClientsController {
             isPending: boolean;
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
-            format: "carousel" | "reels" | "static" | "story";
-            status: "draft" | "scheduled" | "published" | "pending_approval" | "approved" | "rejected";
+            format: "static" | "carousel" | "reels" | "story";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             assignee: null;
         })[];
         meetings: ({
@@ -222,8 +222,8 @@ export declare class ClientsController {
             isPending: boolean;
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
-            format: "carousel" | "reels" | "static" | "story";
-            status: "draft" | "scheduled" | "published" | "pending_approval" | "approved" | "rejected";
+            format: "static" | "carousel" | "reels" | "story";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             assignee: null;
         })[];
         releases: ({
@@ -252,8 +252,8 @@ export declare class ClientsController {
             isPending: boolean;
             color: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
-            format: "carousel" | "reels" | "static" | "story";
-            status: "draft" | "scheduled" | "published" | "pending_approval" | "approved" | "rejected";
+            format: "static" | "carousel" | "reels" | "story";
+            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             assignee: null;
         })[];
     } | {
@@ -344,12 +344,12 @@ export declare class ClientsController {
             title: string;
             description: string | null;
             referenceUrl: string | null;
-            priority: "high" | "medium" | "low" | "critical" | "planned";
+            priority: "critical" | "high" | "medium" | "low" | "planned";
             dueDate: string | null;
             column: {
                 id: string;
                 title: string;
-                type: "done" | "in_progress" | "to_do" | "custom";
+                type: "to_do" | "in_progress" | "done" | "custom";
                 color: string;
             };
             assignees: {
@@ -394,7 +394,7 @@ export declare class ClientsController {
         activeContracts: {
             id: string;
             title: string;
-            status: "draft" | "cancelled" | "sent" | "signed" | "expired";
+            status: "draft" | "sent" | "signed" | "expired" | "cancelled";
             recurringValue: number;
             paymentFrequency: "monthly" | "one_time";
             startDate: string;
