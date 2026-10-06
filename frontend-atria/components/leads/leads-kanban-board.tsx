@@ -64,7 +64,11 @@ import {
 } from "@/lib/portal-crm-notifications";
 import { toast } from "@/lib/toast";
 import { isDialablePhone } from "@/lib/lead-phone";
-import { clientPortalService, leadsService, organizationsService } from "@/services";
+import {
+  clientPortalService,
+  leadsService,
+  organizationsService,
+} from "@/services";
 import type {
   CrmReminderBoard,
   Lead,
@@ -110,9 +114,8 @@ export function LeadsKanbanBoard({
     useSdrAssignedOrganizations(showClientFilter);
 
   const [columns, setColumns] = useState<LeadKanbanColumn[]>(emptyColumns);
-  const [reminderBoard, setReminderBoard] = useState<CrmReminderBoard>(
-    emptyReminderBoard,
-  );
+  const [reminderBoard, setReminderBoard] =
+    useState<CrmReminderBoard>(emptyReminderBoard);
   const [view, setView] = useState<"funnel" | "reminders">("funnel");
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -139,7 +142,9 @@ export function LeadsKanbanBoard({
     () =>
       clientFilter === "all"
         ? null
-        : organizations.find((organization) => organization.id === clientFilter),
+        : organizations.find(
+            (organization) => organization.id === clientFilter,
+          ),
     [clientFilter, organizations],
   );
 
@@ -158,8 +163,8 @@ export function LeadsKanbanBoard({
 
   const pendingReminders = useMemo(
     () =>
-      reminderBoard.columns.find((column) => column.status === "PENDING")
-        ?.tasks.length ?? 0,
+      reminderBoard.columns.find((column) => column.status === "PENDING")?.tasks
+        .length ?? 0,
     [reminderBoard],
   );
 
@@ -243,8 +248,7 @@ export function LeadsKanbanBoard({
 
     setLoading(true);
     try {
-      const organizationId =
-        clientFilter === "all" ? undefined : clientFilter;
+      const organizationId = clientFilter === "all" ? undefined : clientFilter;
       const board = portalClientView
         ? await clientPortalService.getCrmKanbanBoard()
         : await leadsService.getKanbanBoard(organizationId);
@@ -256,9 +260,7 @@ export function LeadsKanbanBoard({
 
       if (portalClientView) {
         const lastSeenAt = getPortalCrmLastSeenAt(user?.id);
-        setNewSdrLeadCount(
-          countNewPortalSdrLeads(board.columns, lastSeenAt),
-        );
+        setNewSdrLeadCount(countNewPortalSdrLeads(board.columns, lastSeenAt));
         setSdrBannerDismissed(false);
       }
     } catch (error) {
@@ -434,7 +436,11 @@ export function LeadsKanbanBoard({
       return;
     }
 
-    applyOptimisticMove(draggableId, destination.droppableId, destination.index);
+    applyOptimisticMove(
+      draggableId,
+      destination.droppableId,
+      destination.index,
+    );
     await persistStatus(draggableId, column, destination.index);
   }
 
@@ -490,7 +496,10 @@ export function LeadsKanbanBoard({
 
     try {
       const updated = portalClientView
-        ? await clientPortalService.togglePortalLeadCollapse(leadId, isMinimized)
+        ? await clientPortalService.togglePortalLeadCollapse(
+            leadId,
+            isMinimized,
+          )
         : await leadsService.toggleLeadCollapse(leadId, isMinimized);
       updateLeadInColumns(leadId, updated);
     } catch {
@@ -790,146 +799,159 @@ export function LeadsKanbanBoard({
               className="min-w-0"
               data-tour={portalClientView ? "portal-crm-board" : undefined}
             >
-            <KanbanHorizontalScroll>
-              {filteredColumns.map((column) => {
-                const columnKey = leadColumnKey(column);
-                const isOrcamento = isOrcamentoColumn(column);
-                return (
-                  <div key={columnKey} className="flex w-72 shrink-0 flex-col">
+              <KanbanHorizontalScroll>
+                {filteredColumns.map((column) => {
+                  const columnKey = leadColumnKey(column);
+                  const isOrcamento = isOrcamentoColumn(column);
+                  return (
                     <div
-                      className="rounded-t-2xl border border-b-0 px-3 py-2.5"
-                      style={{
-                        borderColor: `${column.color}40`,
-                        backgroundColor: `${column.color}14`,
-                      }}
+                      key={columnKey}
+                      className="flex w-72 shrink-0 flex-col"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="size-2.5 rounded-full"
-                            style={{ backgroundColor: column.color }}
-                          />
-                          <h2 className="text-sm font-semibold text-[var(--atria-primary)]">
-                            {column.title}
-                          </h2>
-                          {!portalClientView &&
-                            crmMoveZone === "sdr" &&
-                            isSdrZoneStatus(column.status) && (
-                              <span className="text-[10px] text-[var(--atria-primary)]/45">
-                                SDR
-                              </span>
-                            )}
-                          {!portalClientView &&
-                            crmMoveZone === "client" &&
-                            isClientZoneStatus(column.status) && (
-                              <span className="text-[10px] text-[var(--atria-primary)]/45">
-                                Cliente
-                              </span>
-                            )}
-                        </div>
-                        <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-medium text-[var(--atria-primary)]/70">
-                          {column.leads.length}
-                        </span>
-                      </div>
-                      {isOrcamento && (
-                        <p className="mt-1 pl-[18px] text-[11px] font-semibold text-[var(--atria-primary)]/80">
-                          {formatLeadOrcamento(sumLeadOrcamentos(column.leads)) ||
-                            "R$ 0,00"}
-                        </p>
-                      )}
-                    </div>
-
-                    <Droppable
-                      droppableId={columnKey}
-                      isDropDisabled={
-                        portalClientView
-                          ? false
-                          : !canMoveLeadToColumn(crmMoveZone, column.status)
-                      }
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`flex min-h-[420px] flex-1 flex-col gap-3 rounded-b-2xl border border-t-0 p-3 transition-colors ${
-                            snapshot.isDraggingOver
-                              ? "border-[var(--atria-accent)] bg-[var(--atria-accent)]/10"
-                              : "border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02]"
-                          }`}
-                          style={{
-                            borderLeftColor: `${column.color}55`,
-                            borderLeftWidth: 2,
-                          }}
-                        >
-                          {column.leads.length === 0 && (
-                            <p className="py-8 text-center text-xs text-[var(--atria-primary)]/40">
-                              {hasActiveFilters
-                                ? "Nenhum lead corresponde aos filtros"
-                                : "Arraste leads para cá"}
-                            </p>
-                          )}
-
-                          {column.leads.map((lead, index) => (
-                            <Draggable
-                              key={lead.id}
-                              draggableId={lead.id}
-                              index={index}
-                              isDragDisabled={isCardDragDisabled(lead)}
-                            >
-                              {(dragProvided, dragSnapshot) => (
-                                <div
-                                  ref={dragProvided.innerRef}
-                                  {...dragProvided.draggableProps}
-                                  className={
-                                    dragSnapshot.isDragging
-                                      ? "opacity-95 shadow-lg"
-                                      : ""
-                                  }
-                                >
-                                  <LeadKanbanCard
-                                    lead={lead}
-                                    columns={filteredColumns}
-                                    currentColumn={column}
-                                    crmMoveZone={crmMoveZone}
-                                    portalClientView={portalClientView}
-                                    dragHandleProps={
-                                      dragProvided.dragHandleProps as React.HTMLAttributes<HTMLButtonElement>
-                                    }
-                                    onStatusChange={(id, nextColumnKey) =>
-                                      void handleStatusChange(id, nextColumnKey)
-                                    }
-                                    onCollapseChange={(id, isMinimized) =>
-                                      void handleCollapseChange(id, isMinimized)
-                                    }
-                                    onOpenDetails={(selected) => {
-                                      setSelectedLead(selected);
-                                      setDetailOpen(true);
-                                    }}
-                                    onRemove={
-                                      portalClientView
-                                        ? undefined
-                                        : (id) => void handleRemoveLead(id)
-                                    }
-                                    showOrcamento={isOrcamento}
-                                    onOrcamentoChange={
-                                      portalClientView
-                                        ? undefined
-                                        : (id, next) =>
-                                            void handleOrcamentoChange(id, next)
-                                    }
-                                  />
-                                </div>
+                      <div
+                        className="rounded-t-2xl border border-b-0 px-3 py-2.5"
+                        style={{
+                          borderColor: `${column.color}40`,
+                          backgroundColor: `${column.color}14`,
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="size-2.5 rounded-full"
+                              style={{ backgroundColor: column.color }}
+                            />
+                            <h2 className="text-sm font-semibold text-[var(--atria-primary)]">
+                              {column.title}
+                            </h2>
+                            {!portalClientView &&
+                              crmMoveZone === "sdr" &&
+                              isSdrZoneStatus(column.status) && (
+                                <span className="text-[10px] text-[var(--atria-primary)]/45">
+                                  SDR
+                                </span>
                               )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
+                            {!portalClientView &&
+                              crmMoveZone === "client" &&
+                              isClientZoneStatus(column.status) && (
+                                <span className="text-[10px] text-[var(--atria-primary)]/45">
+                                  Cliente
+                                </span>
+                              )}
+                          </div>
+                          <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-medium text-[var(--atria-primary)]/70">
+                            {column.leads.length}
+                          </span>
                         </div>
-                      )}
-                    </Droppable>
-                  </div>
-                );
-              })}
-            </KanbanHorizontalScroll>
+                        {isOrcamento && (
+                          <p className="mt-1 pl-[18px] text-[11px] font-semibold text-[var(--atria-primary)]/80">
+                            {formatLeadOrcamento(
+                              sumLeadOrcamentos(column.leads),
+                            ) || "R$ 0,00"}
+                          </p>
+                        )}
+                      </div>
+
+                      <Droppable
+                        droppableId={columnKey}
+                        isDropDisabled={
+                          portalClientView
+                            ? false
+                            : !canMoveLeadToColumn(crmMoveZone, column.status)
+                        }
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className={`flex min-h-[420px] flex-1 flex-col gap-3 rounded-b-2xl border border-t-0 p-3 transition-colors ${
+                              snapshot.isDraggingOver
+                                ? "border-[var(--atria-accent)] bg-[var(--atria-accent)]/10"
+                                : "border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02]"
+                            }`}
+                            style={{
+                              borderLeftColor: `${column.color}55`,
+                              borderLeftWidth: 2,
+                            }}
+                          >
+                            {column.leads.length === 0 && (
+                              <p className="py-8 text-center text-xs text-[var(--atria-primary)]/40">
+                                {hasActiveFilters
+                                  ? "Nenhum lead corresponde aos filtros"
+                                  : "Arraste leads para cá"}
+                              </p>
+                            )}
+
+                            {column.leads.map((lead, index) => (
+                              <Draggable
+                                key={lead.id}
+                                draggableId={lead.id}
+                                index={index}
+                                isDragDisabled={isCardDragDisabled(lead)}
+                              >
+                                {(dragProvided, dragSnapshot) => (
+                                  <div
+                                    ref={dragProvided.innerRef}
+                                    {...dragProvided.draggableProps}
+                                    className={
+                                      dragSnapshot.isDragging
+                                        ? "opacity-95 shadow-lg"
+                                        : ""
+                                    }
+                                  >
+                                    <LeadKanbanCard
+                                      lead={lead}
+                                      columns={filteredColumns}
+                                      currentColumn={column}
+                                      crmMoveZone={crmMoveZone}
+                                      portalClientView={portalClientView}
+                                      dragHandleProps={
+                                        dragProvided.dragHandleProps as React.HTMLAttributes<HTMLButtonElement>
+                                      }
+                                      onStatusChange={(id, nextColumnKey) =>
+                                        void handleStatusChange(
+                                          id,
+                                          nextColumnKey,
+                                        )
+                                      }
+                                      onCollapseChange={(id, isMinimized) =>
+                                        void handleCollapseChange(
+                                          id,
+                                          isMinimized,
+                                        )
+                                      }
+                                      onOpenDetails={(selected) => {
+                                        setSelectedLead(selected);
+                                        setDetailOpen(true);
+                                      }}
+                                      onRemove={
+                                        portalClientView
+                                          ? undefined
+                                          : (id) => void handleRemoveLead(id)
+                                      }
+                                      showOrcamento={isOrcamento}
+                                      onOrcamentoChange={
+                                        portalClientView
+                                          ? undefined
+                                          : (id, next) =>
+                                              void handleOrcamentoChange(
+                                                id,
+                                                next,
+                                              )
+                                      }
+                                    />
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </div>
+                  );
+                })}
+              </KanbanHorizontalScroll>
             </div>
           </DragDropContext>
         </>

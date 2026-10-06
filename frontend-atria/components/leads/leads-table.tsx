@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -79,6 +80,55 @@ interface LeadsTableProps {
 
 const LEADS_PAGE_SIZE = 25;
 
+function clampLeadPage(value: number, totalPages: number) {
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(totalPages, Math.max(1, Math.trunc(value)));
+}
+
+function PageJumpFilter({
+  id,
+  pageDraft,
+  totalPages,
+  onDraftChange,
+  onCommit,
+}: {
+  id: string;
+  pageDraft: string;
+  totalPages: number;
+  onDraftChange: (value: string) => void;
+  onCommit: (value: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <label
+        htmlFor={id}
+        className="text-sm font-medium whitespace-nowrap text-[var(--atria-primary)]"
+      >
+        Página
+      </label>
+      <Input
+        id={id}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={pageDraft}
+        onChange={(event) => onDraftChange(event.target.value)}
+        onBlur={(event) => onCommit(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            onCommit(event.currentTarget.value);
+          }
+        }}
+        aria-label={`Ir para a página, de 1 a ${totalPages}`}
+        className="h-10 w-18 text-center text-base font-semibold"
+      />
+      <span className="text-sm text-[var(--atria-primary)]/55">
+        de {totalPages}
+      </span>
+    </div>
+  );
+}
+
 export function LeadsTable({
   leads,
   loading,
@@ -95,6 +145,7 @@ export function LeadsTable({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
+  const [pageDraft, setPageDraft] = useState("1");
   const [qualificationDialogLeadId, setQualificationDialogLeadId] = useState<
     string | null
   >(null);
@@ -129,6 +180,33 @@ export function LeadsTable({
   const rangeStart = leads.length === 0 ? 0 : (page - 1) * LEADS_PAGE_SIZE + 1;
   const rangeEnd = Math.min(page * LEADS_PAGE_SIZE, leads.length);
 
+  function commitPage(raw: string) {
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) {
+      setPageDraft(String(page));
+      return;
+    }
+    const next = clampLeadPage(Number.parseInt(digits, 10), totalPages);
+    setPage(next);
+    setPageDraft(String(next));
+  }
+
+  function handlePageDraftChange(raw: string) {
+    const digits = raw.replace(/\D/g, "");
+    setPageDraft(digits);
+    if (!digits) return;
+
+    const parsed = Number.parseInt(digits, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return;
+
+    const maxDigits = String(totalPages).length;
+    if (digits.length >= maxDigits || parsed >= totalPages) {
+      const next = clampLeadPage(parsed, totalPages);
+      setPage(next);
+      setPageDraft(String(next));
+    }
+  }
+
   useEffect(() => {
     setPage(1);
     setSelectedIds(new Set());
@@ -137,6 +215,10 @@ export function LeadsTable({
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
+
+  useEffect(() => {
+    setPageDraft(String(page));
+  }, [page]);
 
   useEffect(() => {
     if (skipScrollOnMount.current) {
@@ -234,16 +316,27 @@ export function LeadsTable({
   return (
     <div ref={listTopRef} className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-[var(--atria-primary)]">
-            {leads.length} lead{leads.length === 1 ? "" : "s"}
-          </p>
-          <p className="text-xs text-[var(--atria-primary)]/50">
-            Resultados de prospecção para {organizationLabel}
-            {leads.length > LEADS_PAGE_SIZE
-              ? ` · exibindo ${rangeStart}–${rangeEnd} de ${leads.length}`
-              : null}
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+          <div>
+            <p className="text-sm font-medium text-[var(--atria-primary)]">
+              {leads.length} lead{leads.length === 1 ? "" : "s"}
+            </p>
+            <p className="text-xs text-[var(--atria-primary)]/50">
+              Resultados de prospecção para {organizationLabel}
+              {leads.length > LEADS_PAGE_SIZE
+                ? ` · exibindo ${rangeStart}–${rangeEnd} de ${leads.length}`
+                : null}
+            </p>
+          </div>
+          {totalPages > 1 ? (
+            <PageJumpFilter
+              id="leads-page-filter"
+              pageDraft={pageDraft}
+              totalPages={totalPages}
+              onDraftChange={handlePageDraftChange}
+              onCommit={commitPage}
+            />
+          ) : null}
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           {dialer && dialableLeads.length > 0 && (
@@ -712,13 +805,18 @@ export function LeadsTable({
 
       {totalPages > 1 && (
         <div className="flex flex-col gap-3 rounded-2xl border border-[var(--atria-primary)]/15 bg-white p-4 sm:p-5">
-          <p className="text-center text-sm font-medium text-[var(--atria-primary)]">
-            Página {page} de {totalPages}
-            <span className="font-normal text-[var(--atria-primary)]/55">
-              {" "}
+          <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+            <PageJumpFilter
+              id="leads-page-filter-footer"
+              pageDraft={pageDraft}
+              totalPages={totalPages}
+              onDraftChange={handlePageDraftChange}
+              onCommit={commitPage}
+            />
+            <span className="text-sm text-[var(--atria-primary)]/55">
               · {rangeStart}–{rangeEnd} de {leads.length}
             </span>
-          </p>
+          </div>
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
             <Button
               type="button"
