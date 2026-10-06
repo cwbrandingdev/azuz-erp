@@ -48,6 +48,7 @@ const envSchema = z
     TWILIO_CALLER_ID: z.string().optional().or(z.literal('')),
     TWILIO_WEBHOOK_BASE_URL: z.string().optional().or(z.literal('')),
     DIALER_MODE: z.enum(['native', 'twilio']).optional(),
+    WHATSAPP_VERIFY_TOKEN: z.string().optional().or(z.literal('')),
   })
   .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);
