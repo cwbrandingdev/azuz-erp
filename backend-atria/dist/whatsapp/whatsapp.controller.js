@@ -14,11 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhatsappController = void 0;
 const common_1 = require("@nestjs/common");
+const permissions_1 = require("../auth/constants/permissions");
 const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const permissions_guard_1 = require("../auth/guards/permissions.guard");
 const rbac_1 = require("../auth/utils/rbac");
+const complete_embedded_signup_dto_1 = require("./dto/complete-embedded-signup.dto");
 const list_whatsapp_query_1 = require("./dto/list-whatsapp.query");
 const send_whatsapp_message_dto_1 = require("./dto/send-whatsapp-message.dto");
 const whatsapp_service_1 = require("./whatsapp.service");
@@ -29,6 +31,9 @@ let WhatsappController = class WhatsappController {
     }
     getConfig() {
         return this.whatsappService.getPublicConfig();
+    }
+    completeEmbeddedSignup(dto) {
+        return this.whatsappService.completeEmbeddedSignup(dto);
     }
     listConversations(user, query) {
         return this.whatsappService.listConversations(user, query);
@@ -47,6 +52,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], WhatsappController.prototype, "getConfig", null);
+__decorate([
+    (0, common_1.Post)('embedded-signup'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [complete_embedded_signup_dto_1.CompleteEmbeddedSignupDto]),
+    __metadata("design:returntype", void 0)
+], WhatsappController.prototype, "completeEmbeddedSignup", null);
 __decorate([
     (0, common_1.Get)('conversations'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
@@ -74,7 +86,7 @@ __decorate([
 exports.WhatsappController = WhatsappController = __decorate([
     (0, common_1.Controller)('whatsapp'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
-    (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredCrmPermissions)()),
+    (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredCrmPermissions)(), permissions_1.Permission.SETTINGS_MANAGE),
     __metadata("design:paramtypes", [whatsapp_service_1.WhatsappService])
 ], WhatsappController);
 //# sourceMappingURL=whatsapp.controller.js.map

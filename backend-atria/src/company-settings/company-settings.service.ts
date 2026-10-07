@@ -40,11 +40,15 @@ export interface CompanyIntegrationsResponse {
   whatsappPhoneNumberId: string | null;
   whatsappBusinessAccountId: string | null;
   whatsappVerifyToken: string | null;
+  whatsappEmbeddedSignupConfigId: string | null;
+  whatsappAppId: string | null;
+  whatsappAppSecret: string | null;
   hasMetaPageAccessToken: boolean;
   hasMetaAppSecret: boolean;
   hasApifyApiToken: boolean;
   hasWhatsappApiToken: boolean;
   hasWhatsappVerifyToken: boolean;
+  hasWhatsappAppSecret: boolean;
   whatsappConfigured: boolean;
   whatsappWebhookUrl: string | null;
   updatedAt: string;
@@ -93,6 +97,9 @@ type CompanyRecord = {
   whatsappPhoneNumberId: string | null;
   whatsappBusinessAccountId: string | null;
   whatsappVerifyToken: string | null;
+  whatsappEmbeddedSignupConfigId: string | null;
+  whatsappAppId: string | null;
+  whatsappAppSecret: string | null;
   updatedAt: Date;
 };
 
@@ -177,6 +184,9 @@ export class CompanySettingsService {
       whatsappPhoneNumberId?: string | null;
       whatsappBusinessAccountId?: string | null;
       whatsappVerifyToken?: string | null;
+      whatsappEmbeddedSignupConfigId?: string | null;
+      whatsappAppId?: string | null;
+      whatsappAppSecret?: string | null;
     } = {};
 
     if (dto.metaAdAccountId !== undefined) {
@@ -244,6 +254,25 @@ export class CompanySettingsService {
       }
     }
 
+    if (dto.whatsappEmbeddedSignupConfigId !== undefined) {
+      data.whatsappEmbeddedSignupConfigId = this.normalizeOptionalString(
+        dto.whatsappEmbeddedSignupConfigId,
+      );
+    }
+
+    if (dto.whatsappAppId !== undefined) {
+      data.whatsappAppId = this.normalizeOptionalString(dto.whatsappAppId);
+    }
+
+    if (dto.whatsappAppSecret !== undefined) {
+      if (!shouldPreserveMaskedSecret(dto.whatsappAppSecret)) {
+        data.whatsappAppSecret = this.normalizeSecretInput(
+          dto.whatsappAppSecret,
+          secretKey,
+        );
+      }
+    }
+
     const updated = await this.updateCompany(company.id, data);
     return this.toIntegrationsResponse(updated);
   }
@@ -305,6 +334,58 @@ export class CompanySettingsService {
     }
 
     return null;
+  }
+
+  async getMetaAppAuthForCurrentTenant(): Promise<{
+    appId: string | null;
+    appSecret: string | null;
+  }> {
+    const company = await this.loadCurrentCompany();
+    const secretKey = this.getSecretKey();
+    return {
+      appId:
+        company.whatsappAppId?.trim() ||
+        this.config.get<string>('WHATSAPP_APP_ID')?.trim() ||
+        this.config.get<string>('META_APP_ID')?.trim() ||
+        null,
+      appSecret:
+        this.decryptOptionalSecret(company.whatsappAppSecret, secretKey) ||
+        this.config.get<string>('WHATSAPP_APP_SECRET')?.trim() ||
+        this.config.get<string>('META_APP_SECRET')?.trim() ||
+        null,
+    };
+  }
+
+  async getWhatsappEmbeddedSignupPublicConfig() {
+    const company = await this.loadCurrentCompany();
+    const appId =
+      company.whatsappAppId?.trim() ||
+      this.config.get<string>('WHATSAPP_APP_ID')?.trim() ||
+      this.config.get<string>('META_APP_ID')?.trim() ||
+      null;
+    const configId =
+      company.whatsappEmbeddedSignupConfigId?.trim() ||
+      this.config.get<string>('WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID')?.trim() ||
+      null;
+    return {
+      enabled: Boolean(appId && configId),
+      appId,
+      configId,
+    };
+  }
+
+  async saveWhatsappConnection(input: {
+    accessToken: string;
+    phoneNumberId: string;
+    businessAccountId: string | null;
+  }) {
+    const company = await this.loadCurrentCompany();
+    const secretKey = this.getSecretKey();
+    await this.updateCompany(company.id, {
+      whatsappApiToken: encryptSecret(input.accessToken, secretKey),
+      whatsappPhoneNumberId: input.phoneNumberId,
+      whatsappBusinessAccountId: input.businessAccountId,
+    });
   }
 
   async getIntegrationCredentialsForCurrentTenant(): Promise<CompanyIntegrationCredentials> {
@@ -405,11 +486,18 @@ export class CompanySettingsService {
         company.whatsappVerifyToken,
         secretKey,
       ),
+      whatsappEmbeddedSignupConfigId: company.whatsappEmbeddedSignupConfigId,
+      whatsappAppId: company.whatsappAppId,
+      whatsappAppSecret: this.maskOptionalSecret(
+        company.whatsappAppSecret,
+        secretKey,
+      ),
       hasMetaPageAccessToken: Boolean(company.metaPageAccessToken),
       hasMetaAppSecret: Boolean(company.metaAppSecret),
       hasApifyApiToken: Boolean(company.apifyApiToken),
       hasWhatsappApiToken: Boolean(company.whatsappApiToken),
       hasWhatsappVerifyToken: Boolean(company.whatsappVerifyToken),
+      hasWhatsappAppSecret: Boolean(company.whatsappAppSecret),
       whatsappConfigured: Boolean(
         company.whatsappApiToken && company.whatsappPhoneNumberId,
       ),
@@ -424,6 +512,7 @@ export class CompanySettingsService {
     whatsappPhoneNumberId: string | null;
     whatsappBusinessAccountId: string | null;
     whatsappVerifyToken: string | null;
+    whatsappAppSecret?: string | null;
     metaAppSecret: string | null;
   }): CompanyWhatsappCredentials {
     const secretKey = this.getSecretKey();
@@ -439,10 +528,9 @@ export class CompanySettingsService {
         company.whatsappVerifyToken,
         secretKey,
       ),
-      metaAppSecret: this.decryptOptionalSecret(
-        company.metaAppSecret,
-        secretKey,
-      ),
+      metaAppSecret:
+        this.decryptOptionalSecret(company.whatsappAppSecret ?? null, secretKey) ||
+        this.decryptOptionalSecret(company.metaAppSecret, secretKey),
     };
   }
 

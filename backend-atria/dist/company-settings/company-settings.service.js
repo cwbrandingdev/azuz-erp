@@ -98,6 +98,17 @@ let CompanySettingsService = class CompanySettingsService {
                 data.whatsappVerifyToken = this.normalizeSecretInput(dto.whatsappVerifyToken, secretKey);
             }
         }
+        if (dto.whatsappEmbeddedSignupConfigId !== undefined) {
+            data.whatsappEmbeddedSignupConfigId = this.normalizeOptionalString(dto.whatsappEmbeddedSignupConfigId);
+        }
+        if (dto.whatsappAppId !== undefined) {
+            data.whatsappAppId = this.normalizeOptionalString(dto.whatsappAppId);
+        }
+        if (dto.whatsappAppSecret !== undefined) {
+            if (!(0, secret_crypto_1.shouldPreserveMaskedSecret)(dto.whatsappAppSecret)) {
+                data.whatsappAppSecret = this.normalizeSecretInput(dto.whatsappAppSecret, secretKey);
+            }
+        }
         const updated = await this.updateCompany(company.id, data);
         return this.toIntegrationsResponse(updated);
     }
@@ -146,6 +157,44 @@ let CompanySettingsService = class CompanySettingsService {
             }
         }
         return null;
+    }
+    async getMetaAppAuthForCurrentTenant() {
+        const company = await this.loadCurrentCompany();
+        const secretKey = this.getSecretKey();
+        return {
+            appId: company.whatsappAppId?.trim() ||
+                this.config.get('WHATSAPP_APP_ID')?.trim() ||
+                this.config.get('META_APP_ID')?.trim() ||
+                null,
+            appSecret: this.decryptOptionalSecret(company.whatsappAppSecret, secretKey) ||
+                this.config.get('WHATSAPP_APP_SECRET')?.trim() ||
+                this.config.get('META_APP_SECRET')?.trim() ||
+                null,
+        };
+    }
+    async getWhatsappEmbeddedSignupPublicConfig() {
+        const company = await this.loadCurrentCompany();
+        const appId = company.whatsappAppId?.trim() ||
+            this.config.get('WHATSAPP_APP_ID')?.trim() ||
+            this.config.get('META_APP_ID')?.trim() ||
+            null;
+        const configId = company.whatsappEmbeddedSignupConfigId?.trim() ||
+            this.config.get('WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID')?.trim() ||
+            null;
+        return {
+            enabled: Boolean(appId && configId),
+            appId,
+            configId,
+        };
+    }
+    async saveWhatsappConnection(input) {
+        const company = await this.loadCurrentCompany();
+        const secretKey = this.getSecretKey();
+        await this.updateCompany(company.id, {
+            whatsappApiToken: (0, secret_crypto_1.encryptSecret)(input.accessToken, secretKey),
+            whatsappPhoneNumberId: input.phoneNumberId,
+            whatsappBusinessAccountId: input.businessAccountId,
+        });
     }
     async getIntegrationCredentialsForCurrentTenant() {
         const company = await this.loadCurrentCompany();
@@ -206,11 +255,15 @@ let CompanySettingsService = class CompanySettingsService {
             whatsappPhoneNumberId: company.whatsappPhoneNumberId,
             whatsappBusinessAccountId: company.whatsappBusinessAccountId,
             whatsappVerifyToken: this.maskOptionalSecret(company.whatsappVerifyToken, secretKey),
+            whatsappEmbeddedSignupConfigId: company.whatsappEmbeddedSignupConfigId,
+            whatsappAppId: company.whatsappAppId,
+            whatsappAppSecret: this.maskOptionalSecret(company.whatsappAppSecret, secretKey),
             hasMetaPageAccessToken: Boolean(company.metaPageAccessToken),
             hasMetaAppSecret: Boolean(company.metaAppSecret),
             hasApifyApiToken: Boolean(company.apifyApiToken),
             hasWhatsappApiToken: Boolean(company.whatsappApiToken),
             hasWhatsappVerifyToken: Boolean(company.whatsappVerifyToken),
+            hasWhatsappAppSecret: Boolean(company.whatsappAppSecret),
             whatsappConfigured: Boolean(company.whatsappApiToken && company.whatsappPhoneNumberId),
             whatsappWebhookUrl: this.buildWhatsappWebhookUrl(),
             updatedAt: company.updatedAt.toISOString(),
@@ -224,7 +277,8 @@ let CompanySettingsService = class CompanySettingsService {
             phoneNumberId: company.whatsappPhoneNumberId,
             businessAccountId: company.whatsappBusinessAccountId,
             verifyToken: this.decryptOptionalSecret(company.whatsappVerifyToken, secretKey),
-            metaAppSecret: this.decryptOptionalSecret(company.metaAppSecret, secretKey),
+            metaAppSecret: this.decryptOptionalSecret(company.whatsappAppSecret ?? null, secretKey) ||
+                this.decryptOptionalSecret(company.metaAppSecret, secretKey),
         };
     }
     buildWhatsappWebhookUrl() {

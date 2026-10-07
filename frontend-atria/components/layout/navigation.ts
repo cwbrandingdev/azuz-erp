@@ -15,6 +15,7 @@ import {
   KanbanSquareIcon,
   MessageSquarePlus,
   Megaphone,
+  MessageCircle,
 } from "lucide-react";
 
 export interface NavChild {
@@ -73,6 +74,7 @@ export const navSections: NavSection[] = [
     items: [
       { name: "Prospecção de Leads", href: "/leads", icon: Layers },
       { name: "Leads Kanban", href: "/leads/kanban", icon: KanbanSquareIcon },
+      { name: "WhatsApp", href: "/whatsapp", icon: MessageCircle },
     ],
   },
 

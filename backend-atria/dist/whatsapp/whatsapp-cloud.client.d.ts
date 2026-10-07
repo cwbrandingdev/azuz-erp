@@ -41,5 +41,9 @@ export declare class WhatsappCloudClient {
     sendText(accessToken: string, phoneNumberId: string, to: string, body: string): Promise<WhatsappCloudSendResult>;
     sendTemplate(accessToken: string, phoneNumberId: string, to: string, templateName: string, languageCode: string, parameters?: string[]): Promise<WhatsappCloudSendResult>;
     private send;
+    exchangeEmbeddedSignupCode(appId: string, appSecret: string, code: string): Promise<string>;
+    subscribeWaba(accessToken: string, wabaId: string): Promise<void>;
+    registerPhoneNumber(accessToken: string, phoneNumberId: string, pin: string): Promise<void>;
+    private requestJson;
     private graphBase;
 }

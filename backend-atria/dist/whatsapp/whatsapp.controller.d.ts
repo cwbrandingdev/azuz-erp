@@ -1,4 +1,5 @@
 import { type AuthenticatedUser } from '../auth/decorators/current-user.decorator';
+import { CompleteEmbeddedSignupDto } from './dto/complete-embedded-signup.dto';
 import { ListWhatsappConversationsQueryDto } from './dto/list-whatsapp.query';
 import { SendWhatsappMessageDto } from './dto/send-whatsapp-message.dto';
 import { WhatsappService } from './whatsapp.service';
@@ -9,6 +10,21 @@ export declare class WhatsappController {
         configured: boolean;
         phoneNumberId: string | null;
         webhookUrl: string;
+        embeddedSignup: {
+            enabled: boolean;
+            appId: string | null;
+            configId: string | null;
+        };
+    }>;
+    completeEmbeddedSignup(dto: CompleteEmbeddedSignupDto): Promise<{
+        configured: boolean;
+        phoneNumberId: string | null;
+        webhookUrl: string;
+        embeddedSignup: {
+            enabled: boolean;
+            appId: string | null;
+            configId: string | null;
+        };
     }>;
     listConversations(user: AuthenticatedUser, query: ListWhatsappConversationsQueryDto): Promise<{
         id: string;

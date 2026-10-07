@@ -26,11 +26,15 @@ export interface CompanyIntegrationsResponse {
     whatsappPhoneNumberId: string | null;
     whatsappBusinessAccountId: string | null;
     whatsappVerifyToken: string | null;
+    whatsappEmbeddedSignupConfigId: string | null;
+    whatsappAppId: string | null;
+    whatsappAppSecret: string | null;
     hasMetaPageAccessToken: boolean;
     hasMetaAppSecret: boolean;
     hasApifyApiToken: boolean;
     hasWhatsappApiToken: boolean;
     hasWhatsappVerifyToken: boolean;
+    hasWhatsappAppSecret: boolean;
     whatsappConfigured: boolean;
     whatsappWebhookUrl: string | null;
     updatedAt: string;
@@ -73,6 +77,20 @@ export declare class CompanySettingsService {
     getWhatsappCredentialsForCurrentTenant(): Promise<CompanyWhatsappCredentials>;
     findWhatsappCredentialsByPhoneNumberId(phoneNumberId: string): Promise<CompanyWhatsappCredentials | null>;
     findWhatsappCredentialsByVerifyToken(token: string): Promise<CompanyWhatsappCredentials | null>;
+    getMetaAppAuthForCurrentTenant(): Promise<{
+        appId: string | null;
+        appSecret: string | null;
+    }>;
+    getWhatsappEmbeddedSignupPublicConfig(): Promise<{
+        enabled: boolean;
+        appId: string | null;
+        configId: string | null;
+    }>;
+    saveWhatsappConnection(input: {
+        accessToken: string;
+        phoneNumberId: string;
+        businessAccountId: string | null;
+    }): Promise<void>;
     getIntegrationCredentialsForCurrentTenant(): Promise<CompanyIntegrationCredentials>;
     private loadCurrentCompany;
     private updateCompany;
