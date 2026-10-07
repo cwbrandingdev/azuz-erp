@@ -15,7 +15,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhatsappController = void 0;
 const common_1 = require("@nestjs/common");
 const allow_authenticated_decorator_1 = require("../auth/decorators/allow-authenticated.decorator");
+const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const company_constants_1 = require("../company/company.constants");
+const create_whatsapp_conversation_dto_1 = require("./dto/create-whatsapp-conversation.dto");
 const send_whatsapp_message_dto_1 = require("./dto/send-whatsapp-message.dto");
 const whatsapp_webhook_service_1 = require("./whatsapp-webhook.service");
 let WhatsappController = class WhatsappController {
@@ -23,16 +26,52 @@ let WhatsappController = class WhatsappController {
     constructor(webhookService) {
         this.webhookService = webhookService;
     }
-    send(dto) {
-        return this.webhookService.sendText(dto.to, dto.body);
+    listConversations(user) {
+        return this.webhookService.listConversations(this.companyId(user));
+    }
+    createConversation(user, dto) {
+        return this.webhookService.createConversation(this.companyId(user), dto.phone, dto.name);
+    }
+    listMessages(user, id) {
+        return this.webhookService.listMessages(this.companyId(user), id);
+    }
+    send(user, dto) {
+        return this.webhookService.sendText(this.companyId(user), user.userId, dto.to, dto.body);
+    }
+    companyId(user) {
+        return user.companyId ?? company_constants_1.DEFAULT_COMPANY_ID;
     }
 };
 exports.WhatsappController = WhatsappController;
 __decorate([
-    (0, common_1.Post)('messages'),
-    __param(0, (0, common_1.Body)()),
+    (0, common_1.Get)('conversations'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [send_whatsapp_message_dto_1.SendWhatsappMessageDto]),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], WhatsappController.prototype, "listConversations", null);
+__decorate([
+    (0, common_1.Post)('conversations'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, create_whatsapp_conversation_dto_1.CreateWhatsappConversationDto]),
+    __metadata("design:returntype", void 0)
+], WhatsappController.prototype, "createConversation", null);
+__decorate([
+    (0, common_1.Get)('conversations/:id/messages'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], WhatsappController.prototype, "listMessages", null);
+__decorate([
+    (0, common_1.Post)('messages'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, send_whatsapp_message_dto_1.SendWhatsappMessageDto]),
     __metadata("design:returntype", void 0)
 ], WhatsappController.prototype, "send", null);
 exports.WhatsappController = WhatsappController = __decorate([

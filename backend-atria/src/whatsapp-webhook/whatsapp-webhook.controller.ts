@@ -28,8 +28,8 @@ export class WhatsappWebhookController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  handleWebhook(@Body() payload: any): { status: string } {
-    this.webhookService.handleIncomingPayload(payload);
+  async handleWebhook(@Body() payload: any): Promise<{ status: string }> {
+    await this.webhookService.handleIncomingPayload(payload);
     return { status: 'EVENT_RECEIVED' };
   }
 }

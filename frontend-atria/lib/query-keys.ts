@@ -113,3 +113,11 @@ export const assetKeys = {
   grouped: (companyId: string) => ["assets", companyId, "grouped"] as const,
   root: ["assets"] as const,
 };
+
+export const whatsappKeys = {
+  conversations: (companyId: string) =>
+    ["whatsapp", companyId, "conversations"] as const,
+  messages: (companyId: string, conversationId: string) =>
+    ["whatsapp", companyId, "messages", conversationId] as const,
+  root: ["whatsapp"] as const,
+};

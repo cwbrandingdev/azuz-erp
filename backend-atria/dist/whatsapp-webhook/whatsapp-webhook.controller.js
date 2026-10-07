@@ -25,8 +25,8 @@ let WhatsappWebhookController = class WhatsappWebhookController {
     verifyWebhook(mode, token, challenge) {
         return this.webhookService.verifyWebhook(mode, token, challenge);
     }
-    handleWebhook(payload) {
-        this.webhookService.handleIncomingPayload(payload);
+    async handleWebhook(payload) {
+        await this.webhookService.handleIncomingPayload(payload);
         return { status: 'EVENT_RECEIVED' };
     }
 };
@@ -46,7 +46,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Object)
+    __metadata("design:returntype", Promise)
 ], WhatsappWebhookController.prototype, "handleWebhook", null);
 exports.WhatsappWebhookController = WhatsappWebhookController = __decorate([
     (0, public_decorator_1.Public)(),
