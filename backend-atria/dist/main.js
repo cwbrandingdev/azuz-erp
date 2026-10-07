@@ -22,9 +22,7 @@ const DEFAULT_CORS_ORIGINS = [
     'http://127.0.0.1:3000',
 ];
 async function bootstrap() {
-    const app = await core_1.NestFactory.create(app_module_1.AppModule, {
-        rawBody: true,
-    });
+    const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const configService = app.get(config_1.ConfigService);
     app.useStaticAssets((0, path_1.join)(process.cwd(), 'uploads'), { prefix: '/uploads/' });
     app.use((0, cookie_parser_1.default)());

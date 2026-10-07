@@ -21,9 +21,7 @@ const DEFAULT_CORS_ORIGINS = [
 ];
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    rawBody: true,
-  });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
