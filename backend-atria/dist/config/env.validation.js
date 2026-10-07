@@ -52,6 +52,9 @@ const envSchema = zod_1.z
     DIALER_MODE: zod_1.z.enum(['native', 'twilio']).optional(),
     META_APP_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
     META_APP_SECRET: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    WEBHOOK_VERIFY_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    WHATSAPP_PHONE_NUMBER_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    WHATSAPP_ACCESS_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
 })
     .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);

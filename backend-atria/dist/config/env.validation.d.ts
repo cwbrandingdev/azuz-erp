@@ -56,6 +56,9 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     }>>;
     META_APP_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     META_APP_SECRET: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    WEBHOOK_VERIFY_TOKEN: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    WHATSAPP_PHONE_NUMBER_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    WHATSAPP_ACCESS_TOKEN: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
 }, z.core.$strip>, z.ZodTransform<{
     DIRECT_URL: string;
     SUPABASE_URL: string | undefined;
@@ -103,6 +106,9 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     DIALER_MODE?: "native" | "twilio" | undefined;
     META_APP_ID?: string | undefined;
     META_APP_SECRET?: string | undefined;
+    WEBHOOK_VERIFY_TOKEN?: string | undefined;
+    WHATSAPP_PHONE_NUMBER_ID?: string | undefined;
+    WHATSAPP_ACCESS_TOKEN?: string | undefined;
 }, {
     NODE_ENV: "production" | "development" | "test";
     PORT: number;
@@ -150,6 +156,9 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     DIALER_MODE?: "native" | "twilio" | undefined;
     META_APP_ID?: string | undefined;
     META_APP_SECRET?: string | undefined;
+    WEBHOOK_VERIFY_TOKEN?: string | undefined;
+    WHATSAPP_PHONE_NUMBER_ID?: string | undefined;
+    WHATSAPP_ACCESS_TOKEN?: string | undefined;
 }>>;
 export type AppEnv = z.infer<typeof envSchema>;
 export declare function validateEnv(config: Record<string, unknown>): AppEnv;

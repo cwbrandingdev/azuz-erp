@@ -51,6 +51,8 @@ const envSchema = z
     META_APP_ID: z.string().optional().or(z.literal('')),
     META_APP_SECRET: z.string().optional().or(z.literal('')),
     WEBHOOK_VERIFY_TOKEN: z.string().optional().or(z.literal('')),
+    WHATSAPP_PHONE_NUMBER_ID: z.string().optional().or(z.literal('')),
+    WHATSAPP_ACCESS_TOKEN: z.string().optional().or(z.literal('')),
   })
   .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);
