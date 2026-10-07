@@ -45,3 +45,5 @@ next-env.d.ts
 
 # copied from pdfjs-dist during Next.js startup
 /public/pdf.worker.min.mjs
+
+certificates

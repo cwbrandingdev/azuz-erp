@@ -40,7 +40,48 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             configured: this.isConfigured(credentials),
             phoneNumberId: credentials.phoneNumberId,
             webhookUrl: this.buildWebhookUrl(),
+            embeddedSignup: await this.companySettings.getWhatsappEmbeddedSignupPublicConfig(),
         };
+    }
+    async completeEmbeddedSignup(dto) {
+        const auth = await this.companySettings.getMetaAppAuthForCurrentTenant();
+        if (!auth.appId || !auth.appSecret) {
+            throw new common_1.ServiceUnavailableException('Preencha App ID e App Secret do WhatsApp em Integrações APIs para conectar pelo QR.');
+        }
+        const code = dto.code.trim();
+        const wabaId = dto.wabaId.trim();
+        const phoneNumberId = dto.phoneNumberId.trim();
+        if (!code || !wabaId || !phoneNumberId) {
+            throw new common_1.BadRequestException('O popup da Meta não devolveu code, WABA ID e Phone Number ID.');
+        }
+        let accessToken;
+        try {
+            accessToken = await this.cloud.exchangeEmbeddedSignupCode(auth.appId, auth.appSecret, code);
+        }
+        catch (error) {
+            throw new common_1.ServiceUnavailableException(error instanceof whatsapp_cloud_client_1.WhatsappCloudApiError
+                ? error.message
+                : 'Não foi possível trocar o código do Embedded Signup por um token.');
+        }
+        try {
+            await this.cloud.subscribeWaba(accessToken, wabaId);
+        }
+        catch (error) {
+            this.logger.warn(`Falha ao inscrever webhooks da WABA ${wabaId}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        try {
+            await this.cloud.registerPhoneNumber(accessToken, phoneNumberId, dto.pin?.trim() || '000000');
+        }
+        catch (error) {
+            this.logger.warn(`Registro do número ${phoneNumberId}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        await this.companySettings.saveWhatsappConnection({
+            accessToken,
+            phoneNumberId,
+            businessAccountId: wabaId,
+        });
+        this.logger.log(`WhatsApp conectado via Embedded Signup (WABA ${wabaId}, phone ${phoneNumberId}).`);
+        return this.getPublicConfig();
     }
     async verifyWebhook(query) {
         const mode = this.hubQueryValue(query, 'mode');

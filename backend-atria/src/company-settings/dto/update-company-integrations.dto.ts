@@ -45,4 +45,19 @@ export class UpdateCompanyIntegrationsDto {
   @IsOptional()
   @MaxLength(2000)
   whatsappVerifyToken?: string | null;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  whatsappEmbeddedSignupConfigId?: string | null;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  whatsappAppId?: string | null;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  whatsappAppSecret?: string | null;
 }

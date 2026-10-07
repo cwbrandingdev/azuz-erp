@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ExternalLink, Loader2, MessageCircle, Send } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -111,20 +112,31 @@ export function LeadWhatsAppPanel({ leadId, phone }: LeadWhatsAppPanelProps) {
             WhatsApp
           </h3>
         </div>
-        {waUrl ? (
+        <div className="flex items-center gap-1">
           <Button
             type="button"
             variant="outline"
             size="xs"
             className="gap-1"
-            render={
-              <a href={waUrl} target="_blank" rel="noopener noreferrer" />
-            }
+            render={<Link href={`/whatsapp?leadId=${leadId}`} />}
           >
-            <ExternalLink className="size-3" />
-            Abrir app
+            Chat
           </Button>
-        ) : null}
+          {waUrl ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              className="gap-1"
+              render={
+                <a href={waUrl} target="_blank" rel="noopener noreferrer" />
+              }
+            >
+              <ExternalLink className="size-3" />
+              Abrir app
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {loading ? (
@@ -135,8 +147,7 @@ export function LeadWhatsAppPanel({ leadId, phone }: LeadWhatsAppPanelProps) {
         <>
           {!configured && (
             <p className="mb-3 text-xs text-[var(--atria-primary)]/50">
-              API ainda não configurada. Use “Abrir app” ou preencha o token em
-              Configurações → Integrações APIs.
+              API ainda não configurada. Conecte pelo QR em Integrações APIs.
             </p>
           )}
 

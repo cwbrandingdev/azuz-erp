@@ -37,3 +37,15 @@ export async function sendWhatsappMessage(data: SendWhatsappMessageInput) {
     body: data,
   });
 }
+
+export async function completeEmbeddedSignup(data: {
+  code: string;
+  wabaId: string;
+  phoneNumberId: string;
+  pin?: string;
+}) {
+  return apiRequest<WhatsappConfig>("/whatsapp/embedded-signup", {
+    method: "POST",
+    body: data,
+  });
+}

@@ -24,6 +24,9 @@ model Company {
   whatsappPhoneNumberId      String?                     @unique @map("whatsapp_phone_number_id")
   whatsappBusinessAccountId  String?                     @map("whatsapp_business_account_id")
   whatsappVerifyToken        String?                     @map("whatsapp_verify_token")
+  whatsappEmbeddedSignupConfigId String?                 @map("whatsapp_embedded_signup_config_id")
+  whatsappAppId              String?                     @map("whatsapp_app_id")
+  whatsappAppSecret          String?                     @map("whatsapp_app_secret")
   hasCrmModuleEnabled        Boolean                     @default(false) @map("has_crm_module_enabled")
   crmShowOrcamento           Boolean                     @default(true) @map("crm_show_orcamento")
   agencySettings             AgencySettings?

@@ -16,6 +16,26 @@ export declare class WhatsappService {
         configured: boolean;
         phoneNumberId: string | null;
         webhookUrl: string;
+        embeddedSignup: {
+            enabled: boolean;
+            appId: string | null;
+            configId: string | null;
+        };
+    }>;
+    completeEmbeddedSignup(dto: {
+        code: string;
+        wabaId: string;
+        phoneNumberId: string;
+        pin?: string;
+    }): Promise<{
+        configured: boolean;
+        phoneNumberId: string | null;
+        webhookUrl: string;
+        embeddedSignup: {
+            enabled: boolean;
+            appId: string | null;
+            configId: string | null;
+        };
     }>;
     verifyWebhook(query: Record<string, unknown>): Promise<string>;
     handleWebhook(req: {

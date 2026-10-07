@@ -8,4 +8,7 @@ export declare class UpdateCompanyIntegrationsDto {
     whatsappPhoneNumberId?: string | null;
     whatsappBusinessAccountId?: string | null;
     whatsappVerifyToken?: string | null;
+    whatsappEmbeddedSignupConfigId?: string | null;
+    whatsappAppId?: string | null;
+    whatsappAppSecret?: string | null;
 }

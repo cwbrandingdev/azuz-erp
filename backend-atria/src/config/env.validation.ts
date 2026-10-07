@@ -49,6 +49,11 @@ const envSchema = z
     TWILIO_WEBHOOK_BASE_URL: z.string().optional().or(z.literal('')),
     DIALER_MODE: z.enum(['native', 'twilio']).optional(),
     WHATSAPP_VERIFY_TOKEN: z.string().optional().or(z.literal('')),
+    WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID: z.string().optional().or(z.literal('')),
+    WHATSAPP_APP_ID: z.string().optional().or(z.literal('')),
+    WHATSAPP_APP_SECRET: z.string().optional().or(z.literal('')),
+    META_APP_ID: z.string().optional().or(z.literal('')),
+    META_APP_SECRET: z.string().optional().or(z.literal('')),
   })
   .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);

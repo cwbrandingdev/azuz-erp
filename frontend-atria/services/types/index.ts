@@ -1527,11 +1527,15 @@ export interface CompanyIntegrations {
   whatsappPhoneNumberId: string | null;
   whatsappBusinessAccountId: string | null;
   whatsappVerifyToken: string | null;
+  whatsappEmbeddedSignupConfigId: string | null;
+  whatsappAppId: string | null;
+  whatsappAppSecret: string | null;
   hasMetaPageAccessToken: boolean;
   hasMetaAppSecret: boolean;
   hasApifyApiToken: boolean;
   hasWhatsappApiToken: boolean;
   hasWhatsappVerifyToken: boolean;
+  hasWhatsappAppSecret: boolean;
   whatsappConfigured: boolean;
   whatsappWebhookUrl: string | null;
   updatedAt: string;
@@ -2657,6 +2661,11 @@ export interface WhatsappConfig {
   configured: boolean;
   phoneNumberId: string | null;
   webhookUrl: string;
+  embeddedSignup: {
+    enabled: boolean;
+    appId: string | null;
+    configId: string | null;
+  };
 }
 
 export interface WhatsappConversation {
