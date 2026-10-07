@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { WhatsappWebhookService } from './whatsapp-webhook.service';
 
-@Controller('webhook')
+@Controller('whatsapp-webhook')
 export class WhatsappWebhookController {
   constructor(private readonly webhookService: WhatsappWebhookService) {}
 
