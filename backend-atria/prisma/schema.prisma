@@ -60,6 +60,8 @@ model Company {
   appUpdates                 AppUpdate[]
   tasks                      Task[]
   leadCalls                  LeadCall[]
+  whatsappConversations      WhatsappConversation[]
+  whatsappMessages           WhatsappMessage[]
 }
 
 model Role {
@@ -129,6 +131,7 @@ model User {
   systemSuggestions            SystemSuggestion[]
   appUpdatesCreated            AppUpdate[]
   leadCalls                    LeadCall[]
+  whatsappMessagesSent         WhatsappMessage[]
 
   @@unique([companyId, email])
   @@index([clientId])
@@ -1668,6 +1671,47 @@ model SystemSuggestion {
   @@index([submittedById])
   @@index([status])
   @@map("system_suggestions")
+}
+
+model WhatsappConversation {
+  id                 String            @id @default(uuid())
+  companyId          String            @map("company_id")
+  waId               String            @map("wa_id")
+  phone              String?
+  name               String?
+  lastMessageAt      DateTime          @default(now()) @map("last_message_at")
+  lastMessagePreview String?           @map("last_message_preview")
+  unreadCount        Int               @default(0) @map("unread_count")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  company            Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  messages           WhatsappMessage[]
+
+  @@unique([companyId, waId])
+  @@index([companyId, lastMessageAt])
+  @@map("whatsapp_conversations")
+}
+
+model WhatsappMessage {
+  id             String                @id @default(uuid())
+  conversationId String                @map("conversation_id")
+  companyId      String                @map("company_id")
+  direction      String
+  type           String                @default("TEXT")
+  body           String?
+  waMessageId    String?               @unique @map("wa_message_id")
+  status         String                @default("PENDING")
+  errorMessage   String?               @map("error_message")
+  sentByUserId   String?               @map("sent_by_user_id")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  conversation   WhatsappConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  company        Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sentBy         User?                 @relation(fields: [sentByUserId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([companyId])
+  @@index([sentByUserId])
+  @@map("whatsapp_messages")
 }
 
 model AppUpdate {
