@@ -20,13 +20,6 @@ model Company {
   metaAppId                  String?
   metaAppSecret              String?
   apifyApiToken              String?
-  whatsappApiToken           String?
-  whatsappPhoneNumberId      String?                     @unique @map("whatsapp_phone_number_id")
-  whatsappBusinessAccountId  String?                     @map("whatsapp_business_account_id")
-  whatsappVerifyToken        String?                     @map("whatsapp_verify_token")
-  whatsappEmbeddedSignupConfigId String?                 @map("whatsapp_embedded_signup_config_id")
-  whatsappAppId              String?                     @map("whatsapp_app_id")
-  whatsappAppSecret          String?                     @map("whatsapp_app_secret")
   hasCrmModuleEnabled        Boolean                     @default(false) @map("has_crm_module_enabled")
   crmShowOrcamento           Boolean                     @default(true) @map("crm_show_orcamento")
   agencySettings             AgencySettings?
@@ -63,8 +56,6 @@ model Company {
   leadStages                 LeadStage[]
   leads                      Lead[]
   notifications              Notification[]
-  whatsappConversations      WhatsappConversation[]
-  whatsappMessages           WhatsappMessage[]
   systemSuggestions          SystemSuggestion[]
   appUpdates                 AppUpdate[]
   tasks                      Task[]
@@ -138,7 +129,6 @@ model User {
   systemSuggestions            SystemSuggestion[]
   appUpdatesCreated            AppUpdate[]
   leadCalls                    LeadCall[]
-  whatsappMessagesSent         WhatsappMessage[]         @relation("WhatsappMessageSender")
 
   @@unique([companyId, email])
   @@index([clientId])
@@ -511,7 +501,6 @@ model Client {
   leads                 Lead[]
   tasks                 Task[]
   crmScopes             UserCrmScope[]
-  whatsappConversations WhatsappConversation[]
 
   @@index([companyName])
   @@index([clientGroupId])
@@ -1272,7 +1261,6 @@ model Lead {
   reminderTasks  CrmReminderTask[]
   comments              LeadComment[]
   calls                 LeadCall[]
-  whatsappConversations WhatsappConversation[]
   company               Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deletedBy      User?             @relation("LeadDeletedBy", fields: [deletedById], references: [id])
   organization   Client?           @relation(fields: [organizationId], references: [id])
@@ -1329,53 +1317,6 @@ model LeadCall {
   @@index([companyId])
   @@index([userId])
   @@map("lead_calls")
-}
-
-model WhatsappConversation {
-  id                  String             @id @default(uuid())
-  companyId           String             @map("company_id")
-  waId                String             @map("wa_id")
-  phone               String?
-  leadId              String?            @map("lead_id")
-  clientId            String?            @map("client_id")
-  lastMessageAt       DateTime           @default(now()) @map("last_message_at")
-  lastMessagePreview  String?            @map("last_message_preview")
-  unreadCount         Int                @default(0) @map("unread_count")
-  createdAt           DateTime           @default(now()) @map("created_at")
-  updatedAt           DateTime           @updatedAt @map("updated_at")
-  company             Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  lead                Lead?              @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  client              Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  messages            WhatsappMessage[]
-
-  @@unique([companyId, waId])
-  @@index([companyId, lastMessageAt])
-  @@index([leadId])
-  @@index([clientId])
-  @@map("whatsapp_conversations")
-}
-
-model WhatsappMessage {
-  id              String                @id @default(uuid())
-  conversationId  String                @map("conversation_id")
-  companyId       String                @map("company_id")
-  direction       String
-  type            String                @default("TEXT")
-  body            String?
-  templateName    String?               @map("template_name")
-  waMessageId     String?               @unique @map("wa_message_id")
-  status          String                @default("PENDING")
-  errorMessage    String?               @map("error_message")
-  sentByUserId    String?               @map("sent_by_user_id")
-  createdAt       DateTime              @default(now()) @map("created_at")
-  conversation    WhatsappConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  company         Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  sentBy          User?                 @relation("WhatsappMessageSender", fields: [sentByUserId], references: [id], onDelete: SetNull)
-
-  @@index([conversationId, createdAt])
-  @@index([companyId])
-  @@index([sentByUserId])
-  @@map("whatsapp_messages")
 }
 
 model DeletionHistory {

@@ -110,14 +110,6 @@ describe('P1 authorization (e2e)', () => {
     await request(app.getHttpServer()).get('/messages').expect(401);
   });
 
-  it('GET /whatsapp/config — rejects unauthenticated access', async () => {
-    await request(app.getHttpServer()).get('/whatsapp/config').expect(401);
-  });
-
-  it('GET /whatsapp/webhook — stays public', async () => {
-    await request(app.getHttpServer()).get('/whatsapp/webhook').expect(400);
-  });
-
   it('POST /leadminer/search — designer cannot use paid lead search', async () => {
     await request(app.getHttpServer())
       .post('/leadminer/search')

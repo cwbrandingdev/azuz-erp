@@ -20,7 +20,6 @@ const ROUTE_PERMISSIONS: Record<string, PermissionKey[]> = {
   "/calendar": [Permission.CALENDAR_ALL_EDIT, Permission.CALENDAR_OWN_EDIT],
   "/leads": [Permission.CRM_ALL, Permission.CRM_ORG_LEADS],
   "/leads/kanban": [Permission.CRM_ALL, Permission.CRM_ORG_LEADS],
-  "/whatsapp": [Permission.CRM_ALL, Permission.CRM_ORG_LEADS],
   "/financial": [Permission.FINANCE_ACCESS],
   "/financeiro-antigo": [Permission.FINANCE_ACCESS],
   "/contracts": [Permission.FINANCE_ACCESS],
@@ -57,9 +56,6 @@ function resolveAccessRouteKey(href: string): string {
   }
   if (href === "/clients" || href.startsWith("/clients/")) {
     return "/clients";
-  }
-  if (href === "/whatsapp" || href.startsWith("/whatsapp/")) {
-    return "/whatsapp";
   }
   return href;
 }

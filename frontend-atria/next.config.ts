@@ -40,11 +40,6 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "localhost",
-        pathname: "/uploads/**",
-      },
-      {
-        protocol: "https",
         hostname: "atria-erp.onrender.com",
         pathname: "/uploads/**",
       },
@@ -74,17 +69,6 @@ const nextConfig: NextConfig = {
         pathname: "/storage/v1/object/public/**",
       },
     ],
-  },
-  async rewrites() {
-    const backend =
-      process.env.API_REWRITE_TARGET?.replace(/\/$/, "") ||
-      "http://127.0.0.1:3001";
-    return [
-      {
-        source: "/__api/:path*",
-        destination: `${backend}/:path*`,
-      },
-    ];
   },
   async redirects() {
     return [
