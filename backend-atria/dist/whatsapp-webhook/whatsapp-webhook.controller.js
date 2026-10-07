@@ -14,6 +14,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhatsappWebhookController = void 0;
 const common_1 = require("@nestjs/common");
+const throttler_1 = require("@nestjs/throttler");
+const public_decorator_1 = require("../auth/decorators/public.decorator");
 const whatsapp_webhook_service_1 = require("./whatsapp-webhook.service");
 let WhatsappWebhookController = class WhatsappWebhookController {
     webhookService;
@@ -47,6 +49,8 @@ __decorate([
     __metadata("design:returntype", Object)
 ], WhatsappWebhookController.prototype, "handleWebhook", null);
 exports.WhatsappWebhookController = WhatsappWebhookController = __decorate([
+    (0, public_decorator_1.Public)(),
+    (0, throttler_1.SkipThrottle)(),
     (0, common_1.Controller)('whatsapp-webhook'),
     __metadata("design:paramtypes", [whatsapp_webhook_service_1.WhatsappWebhookService])
 ], WhatsappWebhookController);

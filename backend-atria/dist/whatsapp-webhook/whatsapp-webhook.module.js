@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhatsappWebhookModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const whatsapp_controller_1 = require("./whatsapp.controller");
 const whatsapp_webhook_controller_1 = require("./whatsapp-webhook.controller");
 const whatsapp_webhook_service_1 = require("./whatsapp-webhook.service");
 let WhatsappWebhookModule = class WhatsappWebhookModule {
@@ -17,7 +18,7 @@ exports.WhatsappWebhookModule = WhatsappWebhookModule;
 exports.WhatsappWebhookModule = WhatsappWebhookModule = __decorate([
     (0, common_1.Module)({
         imports: [config_1.ConfigModule],
-        controllers: [whatsapp_webhook_controller_1.WhatsappWebhookController],
+        controllers: [whatsapp_webhook_controller_1.WhatsappWebhookController, whatsapp_controller_1.WhatsappController],
         providers: [whatsapp_webhook_service_1.WhatsappWebhookService],
         exports: [whatsapp_webhook_service_1.WhatsappWebhookService],
     })

@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { WhatsappController } from './whatsapp.controller';
 import { WhatsappWebhookController } from './whatsapp-webhook.controller';
 import { WhatsappWebhookService } from './whatsapp-webhook.service';
 
 @Module({
   imports: [ConfigModule],
-  controllers: [WhatsappWebhookController],
+  controllers: [WhatsappWebhookController, WhatsappController],
   providers: [WhatsappWebhookService],
   exports: [WhatsappWebhookService],
 })

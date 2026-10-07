@@ -41,6 +41,51 @@ let WhatsappWebhookService = class WhatsappWebhookService {
             this.processStatus(messageId, statusType);
         }
     }
+    async sendText(to, body) {
+        const phoneNumberId = this.configService
+            .get('WHATSAPP_PHONE_NUMBER_ID')
+            ?.trim();
+        const accessToken = this.configService
+            .get('WHATSAPP_ACCESS_TOKEN')
+            ?.trim();
+        const version = this.configService.get('META_API_VERSION')?.trim() || 'v21.0';
+        if (!phoneNumberId || !accessToken) {
+            throw new common_1.ServiceUnavailableException('WhatsApp is not configured (WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_ACCESS_TOKEN)');
+        }
+        const recipient = this.normalizeRecipient(to);
+        const response = await fetch(`https://graph.facebook.com/${version.replace(/^\/+/, '')}/${phoneNumberId}/messages`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: recipient,
+                type: 'text',
+                text: { preview_url: false, body },
+            }),
+        });
+        const data = (await response.json().catch(() => null));
+        if (!response.ok) {
+            throw new common_1.BadGatewayException(data?.error?.message ?? 'Failed to send WhatsApp message');
+        }
+        return {
+            id: data?.messages?.[0]?.id ?? null,
+            to: data?.contacts?.[0]?.wa_id ?? recipient,
+        };
+    }
+    normalizeRecipient(input) {
+        let digits = input.replace(/\D/g, '');
+        if (digits.startsWith('00')) {
+            digits = digits.slice(2);
+        }
+        if (digits.length === 10 || digits.length === 11) {
+            digits = `55${digits}`;
+        }
+        return digits;
+    }
     processMessage(from, text) { }
     processStatus(messageId, status) { }
 };
