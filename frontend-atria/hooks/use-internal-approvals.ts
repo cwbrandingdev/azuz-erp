@@ -41,11 +41,14 @@ export function useInternalApprovalMutations() {
       id,
       file,
       caption,
+      onProgress,
     }: {
       id: string;
       file: File;
       caption?: string;
-    }) => internalApprovalsService.submitDelivery(id, file, caption),
+      onProgress?: (percent: number) => void;
+    }) =>
+      internalApprovalsService.submitDelivery(id, file, caption, onProgress),
     onSuccess: () => refresh(),
   });
 

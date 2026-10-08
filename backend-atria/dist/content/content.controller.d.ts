@@ -24,8 +24,8 @@ export declare class ContentController {
                 type: "rejection_reason" | "general_note";
                 user: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
                 createdAt: string;
             } | null;
@@ -34,9 +34,9 @@ export declare class ContentController {
             clientId: string;
             client: {
                 id: string;
-                avatarUrl: string | null;
                 companyName: string;
                 instagram: string | null;
+                avatarUrl: string | null;
             };
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "carousel" | "reels" | "static" | "story";
@@ -47,22 +47,22 @@ export declare class ContentController {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 postId: string;
+                url: string;
                 mimeType: string | null;
             }[];
             author: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
             platformColor: string;
             createdAt: string;
@@ -91,9 +91,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -104,22 +104,22 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
         createdAt: string;
@@ -146,8 +146,8 @@ export declare class ContentController {
             mediaUrls: string[];
             createdBy: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             createdAt: string;
         }[];
@@ -160,8 +160,8 @@ export declare class ContentController {
             type: "rejection_reason" | "general_note";
             user: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             createdAt: string;
         }[];
@@ -179,8 +179,8 @@ export declare class ContentController {
                 mediaUrls: string[];
                 createdBy: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
                 createdAt: string;
             };
@@ -197,8 +197,8 @@ export declare class ContentController {
                 type: "rejection_reason" | "general_note";
                 user: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
                 createdAt: string;
             };
@@ -210,9 +210,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -223,22 +223,22 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
         createdAt: string;
@@ -250,9 +250,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -263,22 +263,22 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
         createdAt: string;
@@ -290,9 +290,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -303,22 +303,22 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
         createdAt: string;
@@ -334,8 +334,8 @@ export declare class ContentController {
         mediaUrls: string[];
         createdBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         createdAt: string;
     }>;
@@ -345,9 +345,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -358,22 +358,22 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
         createdAt: string;
@@ -385,9 +385,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -398,22 +398,22 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
         createdAt: string;
@@ -425,9 +425,9 @@ export declare class ContentController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         platform: "instagram" | "tiktok" | "youtube" | "linkedin";
         format: "carousel" | "reels" | "static" | "story";
@@ -438,22 +438,22 @@ export declare class ContentController {
         copy: string;
         referenceUrl: string | null;
         attachments: {
-            url: string;
             id: string;
             createdAt: Date;
             name: string;
             postId: string;
+            url: string;
             mimeType: string | null;
         }[];
         author: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         assignee: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         platformColor: string;
         createdAt: string;

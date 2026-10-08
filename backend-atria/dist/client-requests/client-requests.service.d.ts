@@ -317,13 +317,13 @@ export declare class ClientRequestsService {
             } | null;
             assignees: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             }[];
             createdBy: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             assets: {
                 id: string;
@@ -335,8 +335,8 @@ export declare class ClientRequestsService {
                 uploadedAt: string;
                 uploadedBy: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
             }[];
             updatedAt: string;

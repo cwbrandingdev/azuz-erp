@@ -218,47 +218,88 @@ export async function apiRequestBlob(
   return response.blob();
 }
 
+export type UploadProgressHandler = (percent: number) => void;
+
+function sendFormData(
+  url: string,
+  formData: FormData,
+  token: string | null,
+  onProgress?: UploadProgressHandler,
+): Promise<{ status: number; data: unknown }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.withCredentials = true;
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (!onProgress) return;
+      if (event.lengthComputable && event.total > 0) {
+        onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+        return;
+      }
+      onProgress(0);
+    };
+
+    xhr.onload = () => {
+      let data: unknown = null;
+      try {
+        data = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+      } catch {
+        data = null;
+      }
+      resolve({ status: xhr.status, data });
+    };
+    xhr.onerror = () => reject(new ApiError("Upload failed", 0));
+    xhr.onabort = () => reject(new ApiError("Upload cancelled", 0));
+    xhr.send(formData);
+  });
+}
+
 export async function uploadFile<T>(
   endpoint: string,
   formData: FormData,
-  options: { skipToast?: boolean; skipAuth?: boolean } = {},
+  options: {
+    skipToast?: boolean;
+    skipAuth?: boolean;
+    onProgress?: UploadProgressHandler;
+  } = {},
 ): Promise<T> {
-  const makeRequest = async (token: string | null) => {
-    return fetch(`${API_BASE_URL}${endpoint}`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: formData,
-    });
-  };
+  const url = `${API_BASE_URL}${endpoint}`;
+  const makeRequest = (token: string | null) =>
+    sendFormData(url, formData, token, options.onProgress);
 
   let token = options.skipAuth ? null : getAccessToken();
-  let response = await makeRequest(token);
+  let result = await makeRequest(token);
 
-  if (response.status === 401 && !options.skipAuth) {
+  if (result.status === 401 && !options.skipAuth) {
     const newToken = await refreshAccessToken();
     if (newToken) {
       token = newToken;
-      response = await makeRequest(token);
+      result = await makeRequest(token);
     } else {
       clearAuthStorage();
     }
   }
 
-  const data = await response.json().catch(() => null);
+  const data = result.data;
 
-  if (!response.ok) {
+  if (result.status < 200 || result.status >= 300) {
     const message =
-      (data as { message?: string | string[] })?.message ?? "Upload failed";
+      (data as { message?: string | string[] } | null)?.message ??
+      "Upload failed";
     const error = new ApiError(
       Array.isArray(message) ? message.join(", ") : message,
-      response.status,
+      result.status,
       data,
     );
 
-    if (!options.skipToast && shouldShowApiErrorToast(response.status, endpoint, error.message)) {
+    if (
+      !options.skipToast &&
+      shouldShowApiErrorToast(result.status, endpoint, error.message)
+    ) {
       showApiError(error, endpoint);
     }
 

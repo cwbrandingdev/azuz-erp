@@ -77,14 +77,14 @@ let DeliverablesService = class DeliverablesService {
         });
         const existingItems = await this.prisma.deliverableItem.findMany({
             where: { deliverableId: deliverable.id },
-            select: { id: true, sourceAssetId: true, mediaUrl: true },
+            select: { id: true, sourceAssetId: true, mediaUrl: true, sortOrder: true },
         });
         const byAssetId = new Map(existingItems
             .filter((item) => item.sourceAssetId)
             .map((item) => [item.sourceAssetId, item.id]));
         const byUrl = new Map(existingItems.map((item) => [item.mediaUrl, item.id]));
         const keptItemIds = new Set();
-        let sortOrder = 0;
+        let nextSortOrder = existingItems.reduce((max, item) => Math.max(max, item.sortOrder), -1) + 1;
         for (const asset of task.assets) {
             const location = this.resolveStorageLocation(asset.fileUrl);
             const data = {
@@ -95,9 +95,7 @@ let DeliverablesService = class DeliverablesService {
                 storageBucket: location?.bucket ?? null,
                 storagePath: location?.path ?? null,
                 sourceAssetId: asset.id,
-                sortOrder,
             };
-            sortOrder += 1;
             const existingId = byAssetId.get(asset.id) ?? byUrl.get(asset.fileUrl);
             if (existingId) {
                 await this.prisma.deliverableItem.update({
@@ -111,10 +109,12 @@ let DeliverablesService = class DeliverablesService {
                     data: {
                         deliverableId: deliverable.id,
                         status: client_1.DeliverableItemStatus.PENDING,
+                        sortOrder: nextSortOrder,
                         ...data,
                     },
                     select: { id: true },
                 });
+                nextSortOrder += 1;
                 keptItemIds.add(created.id);
             }
         }
@@ -178,6 +178,31 @@ let DeliverablesService = class DeliverablesService {
             status: internal_review_dto_1.InternalReviewAction.REJECTED,
             note,
         });
+        return this.getFullView(deliverable.id);
+    }
+    async reorderItems(deliverableId, itemIds) {
+        const deliverable = await this.prisma.deliverable.findUnique({
+            where: { id: deliverableId },
+            select: { id: true },
+        });
+        if (!deliverable) {
+            throw new common_1.NotFoundException('Deliverable not found');
+        }
+        const items = await this.prisma.deliverableItem.findMany({
+            where: { deliverableId: deliverable.id },
+            select: { id: true },
+        });
+        const existingIds = new Set(items.map((item) => item.id));
+        const uniqueIds = new Set(itemIds);
+        if (itemIds.length !== existingIds.size ||
+            uniqueIds.size !== itemIds.length ||
+            itemIds.some((id) => !existingIds.has(id))) {
+            throw new common_1.BadRequestException('Item list must include every deliverable item exactly once');
+        }
+        await this.prisma.$transaction(itemIds.map((id, index) => this.prisma.deliverableItem.update({
+            where: { id },
+            data: { sortOrder: index },
+        })));
         return this.getFullView(deliverable.id);
     }
     async submit(deliverableId, userId, role, file, caption) {
@@ -331,7 +356,8 @@ let DeliverablesService = class DeliverablesService {
             };
             return result;
         }
-        if (item.mediaUrl.startsWith('http://') || item.mediaUrl.startsWith('https://')) {
+        if (item.mediaUrl.startsWith('http://') ||
+            item.mediaUrl.startsWith('https://')) {
             const result = {
                 itemId: item.id,
                 fileName,
@@ -394,8 +420,7 @@ let DeliverablesService = class DeliverablesService {
         const items = view.items;
         const counts = {
             total: items.length,
-            pending: items.filter((item) => item.status === client_1.DeliverableItemStatus.PENDING)
-                .length,
+            pending: items.filter((item) => item.status === client_1.DeliverableItemStatus.PENDING).length,
             approved: items.filter((item) => item.status === client_1.DeliverableItemStatus.APPROVED).length,
             requiresAdjustment: items.filter((item) => item.status === client_1.DeliverableItemStatus.REQUIRES_ADJUSTMENT).length,
         };
@@ -521,7 +546,7 @@ let DeliverablesService = class DeliverablesService {
             deliverable = byTask;
         }
         if (!deliverable?.kanbanTaskId) {
-            const synced = await this.looksLikeTaskId(deliverableId)
+            const synced = (await this.looksLikeTaskId(deliverableId))
                 ? await this.syncFromKanbanTask(deliverableId)
                 : null;
             if (!synced?.kanbanTaskId) {
@@ -556,7 +581,8 @@ let DeliverablesService = class DeliverablesService {
         else if (items.every((item) => item.status === client_1.DeliverableItemStatus.APPROVED)) {
             approvalStatus = client_1.DeliverableApprovalStatus.APPROVED;
         }
-        else if (current?.approvalStatus === client_1.DeliverableApprovalStatus.WAITING_CLIENT_APPROVAL ||
+        else if (current?.approvalStatus ===
+            client_1.DeliverableApprovalStatus.WAITING_CLIENT_APPROVAL ||
             current?.approvalStatus === client_1.DeliverableApprovalStatus.PENDING_APPROVAL) {
             approvalStatus = client_1.DeliverableApprovalStatus.WAITING_CLIENT_APPROVAL;
         }

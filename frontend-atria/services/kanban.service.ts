@@ -173,6 +173,7 @@ export async function uploadTaskAsset(
   taskId: string,
   file: File,
   caption?: string,
+  onProgress?: (percent: number) => void,
 ) {
   const formData = new FormData();
   formData.append("file", file);
@@ -188,7 +189,7 @@ export async function uploadTaskAsset(
     caption?: string | null;
     uploadedAt: string;
     uploadedBy: { id: string; name: string; avatarUrl: string | null };
-  }>(`/kanban/tasks/${taskId}/assets`, formData);
+  }>(`/kanban/tasks/${taskId}/assets`, formData, { onProgress });
 }
 
 export async function deleteTaskAsset(taskId: string, assetId: string) {

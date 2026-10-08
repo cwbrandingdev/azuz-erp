@@ -12,13 +12,20 @@ export function approve(id: string, note?: string) {
   });
 }
 
-export function submitDelivery(id: string, file: File, caption?: string) {
+export function submitDelivery(
+  id: string,
+  file: File,
+  caption?: string,
+  onProgress?: (percent: number) => void,
+) {
   const formData = new FormData();
   formData.append("file", file);
   if (caption?.trim()) {
     formData.append("caption", caption.trim());
   }
-  return uploadFile(`/internal-approvals/${id}/submit-delivery`, formData);
+  return uploadFile(`/internal-approvals/${id}/submit-delivery`, formData, {
+    onProgress,
+  });
 }
 
 export function requestAdjustment(id: string, note: string) {
