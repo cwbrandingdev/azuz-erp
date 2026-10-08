@@ -15,9 +15,9 @@ export declare class CalendarService {
     getTeamMembers(): Promise<{
         color: string;
         id: string;
+        name: string;
         email: string;
         avatarUrl: string | null;
-        name: string;
     }[]>;
     getEvents(query: QueryEventsDto & {
         includeUnmapped: true;
@@ -52,13 +52,13 @@ export declare class CalendarService {
         } | null;
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assignee: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         } | null;
         assignedGroupId: string | null;
         assignedGroup: {
@@ -93,13 +93,13 @@ export declare class CalendarService {
         } | null;
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assignee: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         } | null;
         assignedGroupId: string | null;
         assignedGroup: {
@@ -135,13 +135,13 @@ export declare class CalendarService {
         } | null;
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assignee: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         } | null;
         assignedGroupId: string | null;
         assignedGroup: {

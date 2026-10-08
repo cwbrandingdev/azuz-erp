@@ -22,6 +22,8 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { getRequiredKanbanEditPermissions } from '../auth/utils/rbac';
+import { UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES } from '../common/upload/upload-limits';
+import { ValidateUploadFileSizePipe } from '../common/upload/validate-upload-file-size.pipe';
 import { AssetsService } from './assets.service';
 import { CreateAssetDto, QueryAssetsDto } from './dto/asset.dto';
 
@@ -59,13 +61,13 @@ export class AssetsController {
           cb(null, unique);
         },
       }),
-      limits: { fileSize: 100 * 1024 * 1024 },
+      limits: { fileSize: UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES },
     }),
   )
   upload(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateAssetDto,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(ValidateUploadFileSizePipe) file: Express.Multer.File,
   ) {
     return this.assetsService.upload(user.userId, dto, file);
   }

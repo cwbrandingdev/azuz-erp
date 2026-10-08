@@ -7,9 +7,9 @@ export declare class CalendarController {
     getTeamMembers(): Promise<{
         color: string;
         id: string;
+        name: string;
         email: string;
         avatarUrl: string | null;
-        name: string;
     }[]>;
     getEvents(query: QueryEventsDto): Promise<{
         id: string;
@@ -37,13 +37,13 @@ export declare class CalendarController {
         } | null;
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assignee: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         } | null;
         assignedGroupId: string | null;
         assignedGroup: {
@@ -78,13 +78,13 @@ export declare class CalendarController {
         } | null;
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assignee: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         } | null;
         assignedGroupId: string | null;
         assignedGroup: {
@@ -119,13 +119,13 @@ export declare class CalendarController {
         } | null;
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assignee: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         } | null;
         assignedGroupId: string | null;
         assignedGroup: {

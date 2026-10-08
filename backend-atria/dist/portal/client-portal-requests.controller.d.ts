@@ -105,13 +105,13 @@ export declare class ClientPortalRequestsController {
             } | null;
             assignees: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             }[];
             createdBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
             assets: {
                 id: string;
@@ -123,8 +123,8 @@ export declare class ClientPortalRequestsController {
                 uploadedAt: string;
                 uploadedBy: {
                     id: string;
-                    avatarUrl: string | null;
                     name: string;
+                    avatarUrl: string | null;
                 };
             }[];
             updatedAt: string;

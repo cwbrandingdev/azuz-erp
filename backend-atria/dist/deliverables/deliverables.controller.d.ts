@@ -156,8 +156,8 @@ export declare class DeliverablesController {
         uploadedAt: string;
         uploadedBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
     }>;
     approveInternal(id: string, user: AuthenticatedUser): Promise<{

@@ -27,13 +27,13 @@ export declare class InternalApprovalsController {
         } | null;
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         revisionSummary: {
             total: number;
@@ -153,8 +153,8 @@ export declare class InternalApprovalsController {
         uploadedAt: string;
         uploadedBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
     }>;
     requestAdjustment(id: string, user: AuthenticatedUser, dto: RequestAdjustmentDto): Promise<{

@@ -11,6 +11,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RoleName } from '@prisma/client';
 import { memoryStorage } from 'multer';
+import { UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES } from '../common/upload/upload-limits';
+import { ValidateUploadFileSizePipe } from '../common/upload/validate-upload-file-size.pipe';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -39,12 +41,12 @@ export class ClientPortalFinancialController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: { fileSize: 100 * 1024 * 1024 },
+      limits: { fileSize: UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES },
     }),
   )
   uploadAttachment(
     @CurrentUser() user: AuthenticatedUser,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(ValidateUploadFileSizePipe) file: Express.Multer.File,
     @Body() dto: CreateClientFinancialAttachmentDto,
   ) {
     if (!file) {

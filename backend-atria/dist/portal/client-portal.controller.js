@@ -19,6 +19,8 @@ const client_1 = require("@prisma/client");
 const multer_1 = require("multer");
 const path_1 = require("path");
 const crypto_1 = require("crypto");
+const upload_limits_1 = require("../common/upload/upload-limits");
+const validate_upload_file_size_pipe_1 = require("../common/upload/validate-upload-file-size.pipe");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
@@ -351,11 +353,11 @@ __decorate([
                 cb(null, `${(0, crypto_1.randomUUID)()}${(0, path_1.extname)(file.originalname)}`);
             },
         }),
-        limits: { fileSize: 100 * 1024 * 1024 },
+        limits: { fileSize: upload_limits_1.UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES },
     })),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Query)('fileType')),
-    __param(2, (0, common_1.UploadedFile)()),
+    __param(2, (0, common_1.UploadedFile)(validate_upload_file_size_pipe_1.ValidateUploadFileSizePipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object, Object]),
     __metadata("design:returntype", void 0)

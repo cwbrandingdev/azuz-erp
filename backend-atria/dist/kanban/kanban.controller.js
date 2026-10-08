@@ -18,6 +18,8 @@ const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
 const path_1 = require("path");
 const crypto_1 = require("crypto");
+const upload_limits_1 = require("../common/upload/upload-limits");
+const validate_upload_file_size_pipe_1 = require("../common/upload/validate-upload-file-size.pipe");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
@@ -234,11 +236,11 @@ __decorate([
                 cb(null, `${(0, crypto_1.randomUUID)()}${(0, path_1.extname)(file.originalname)}`);
             },
         }),
-        limits: { fileSize: 100 * 1024 * 1024 },
+        limits: { fileSize: upload_limits_1.UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES },
     })),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
-    __param(2, (0, common_1.UploadedFile)()),
+    __param(2, (0, common_1.UploadedFile)(validate_upload_file_size_pipe_1.ValidateUploadFileSizePipe)),
     __param(3, (0, common_1.Body)('caption')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String, Object, String]),

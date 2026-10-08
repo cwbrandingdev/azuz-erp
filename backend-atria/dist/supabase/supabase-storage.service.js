@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseStorageService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const upload_limits_1 = require("../common/upload/upload-limits");
 const supabase_service_1 = require("./supabase.service");
 let SupabaseStorageService = class SupabaseStorageService {
     supabase;
@@ -164,16 +165,16 @@ let SupabaseStorageService = class SupabaseStorageService {
         if (exists) {
             const { error: updateError } = await this.supabase.admin.storage.updateBucket(bucket, {
                 public: true,
-                fileSizeLimit: 100 * 1024 * 1024,
+                fileSizeLimit: upload_limits_1.UPLOAD_MAX_FILE_SIZE_BYTES,
             });
             if (updateError) {
-                console.warn(`[storage] Could not raise ${bucket} size limit to 100MB: ${updateError.message}`);
+                console.warn(`[storage] Could not raise ${bucket} size limit to ${upload_limits_1.UPLOAD_MAX_FILE_SIZE_BYTES / (1024 * 1024)}MB: ${updateError.message}`);
             }
             return;
         }
         const { error: createError } = await this.supabase.admin.storage.createBucket(bucket, {
             public: true,
-            fileSizeLimit: 100 * 1024 * 1024,
+            fileSizeLimit: upload_limits_1.UPLOAD_MAX_FILE_SIZE_BYTES,
             allowedMimeTypes: [
                 'image/png',
                 'image/jpeg',
@@ -224,16 +225,16 @@ let SupabaseStorageService = class SupabaseStorageService {
         if (exists) {
             const { error: updateError } = await this.supabase.admin.storage.updateBucket(bucket, {
                 public: true,
-                fileSizeLimit: 100 * 1024 * 1024,
+                fileSizeLimit: upload_limits_1.UPLOAD_MAX_VIDEO_FILE_SIZE_BYTES,
             });
             if (updateError) {
-                console.warn(`[storage] Could not raise ${bucket} size limit to 100MB: ${updateError.message}`);
+                console.warn(`[storage] Could not raise ${bucket} size limit to ${upload_limits_1.UPLOAD_MAX_VIDEO_FILE_SIZE_BYTES / (1024 * 1024)}MB: ${updateError.message}`);
             }
             return;
         }
         const { error: createError } = await this.supabase.admin.storage.createBucket(bucket, {
             public: true,
-            fileSizeLimit: 100 * 1024 * 1024,
+            fileSizeLimit: upload_limits_1.UPLOAD_MAX_VIDEO_FILE_SIZE_BYTES,
             allowedMimeTypes: [
                 'image/png',
                 'image/jpeg',

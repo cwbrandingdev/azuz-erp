@@ -10,17 +10,21 @@ export declare class DeliverablesService {
     private readonly kanbanService;
     constructor(prisma: PrismaService, storage: SupabaseStorageService, kanbanService: KanbanService);
     syncFromKanbanTask(taskId: string): Promise<{
+        client: {
+            id: string;
+            companyName: string;
+        } | null;
         items: {
+            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            fileName: string | null;
+            fileSize: number | null;
             deliverableId: string;
             mediaUrl: string;
             mediaType: import("@prisma/client").$Enums.DeliverableMediaType;
-            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             adjustmentNotes: string | null;
-            fileName: string | null;
-            fileSize: number | null;
             storageBucket: string | null;
             storagePath: string | null;
             sourceAssetId: string | null;
@@ -28,25 +32,21 @@ export declare class DeliverablesService {
         }[];
         approvedBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
-        } | null;
-        client: {
-            id: string;
-            companyName: string;
+            avatarUrl: string | null;
         } | null;
     } & {
-        id: string;
-        kanbanTaskId: string | null;
-        contentPostId: string | null;
-        companyId: string;
         title: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        companyId: string;
         clientId: string | null;
+        contentPostId: string | null;
+        kanbanTaskId: string | null;
         approvalStatus: import("@prisma/client").$Enums.DeliverableApprovalStatus;
         approvedAt: Date | null;
         approvedById: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     findAllForClient(clientId: string, query?: QueryClientDeliverablesDto): Promise<{
         id: string;
@@ -373,8 +373,8 @@ export declare class DeliverablesService {
         uploadedAt: string;
         uploadedBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
     }>;
     rejectClient(deliverableId: string, dto: RejectClientDeliverableDto, userId?: string | null): Promise<{
