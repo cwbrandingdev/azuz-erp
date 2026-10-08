@@ -48,6 +48,15 @@ function extractInboundText(message) {
     if (message.type === 'image' && message.image?.caption) {
         return message.image.caption;
     }
+    if (message.type === 'interactive' &&
+        message.interactive?.type === 'call_permission_reply') {
+        const response = message.interactive.call_permission_reply?.response;
+        if (response === 'accept')
+            return 'Permissão para ligação aceita';
+        if (response === 'reject')
+            return 'Permissão para ligação recusada';
+        return 'Resposta de permissão de ligação';
+    }
     return null;
 }
 //# sourceMappingURL=whatsapp-message.js.map

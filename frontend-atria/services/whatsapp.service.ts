@@ -125,3 +125,88 @@ export async function createCannedResponse(data: {
     body: data,
   });
 }
+
+export type WhatsAppCallDirection = "INBOUND" | "OUTBOUND";
+export type WhatsAppCallStatus =
+  | "CONNECTING"
+  | "RINGING"
+  | "IN_PROGRESS"
+  | "ENDED"
+  | "REJECTED"
+  | "FAILED";
+
+export interface WhatsAppCall {
+  id: string;
+  whatsappCallId: string;
+  phone: string;
+  direction: WhatsAppCallDirection;
+  status: WhatsAppCallStatus;
+  offerSdp: string | null;
+  answerSdp: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WhatsAppCallPermission {
+  status: string;
+  expirationTime: number | null;
+  canStartCall: boolean;
+  canRequestPermission: boolean;
+}
+
+export async function listLiveCalls(): Promise<WhatsAppCall[]> {
+  return apiRequest<WhatsAppCall[]>("/whatsapp/calls");
+}
+
+export async function initiateCall(data: {
+  to: string;
+  sdp: string;
+}): Promise<WhatsAppCall> {
+  return apiRequest<WhatsAppCall>("/whatsapp/calls", {
+    method: "POST",
+    body: data,
+  });
+}
+
+export async function answerCall(
+  id: string,
+  sdp: string,
+): Promise<WhatsAppCall> {
+  return apiRequest<WhatsAppCall>(`/whatsapp/calls/${id}/answer`, {
+    method: "POST",
+    body: { sdp },
+  });
+}
+
+export async function rejectCall(id: string): Promise<WhatsAppCall> {
+  return apiRequest<WhatsAppCall>(`/whatsapp/calls/${id}/reject`, {
+    method: "POST",
+  });
+}
+
+export async function hangupCall(id: string): Promise<WhatsAppCall> {
+  return apiRequest<WhatsAppCall>(`/whatsapp/calls/${id}/hangup`, {
+    method: "POST",
+  });
+}
+
+export async function getCallPermissions(
+  phone: string,
+): Promise<WhatsAppCallPermission> {
+  return apiRequest<WhatsAppCallPermission>(
+    `/whatsapp/call-permissions/${encodeURIComponent(phone)}`,
+  );
+}
+
+export async function requestCallPermission(phone: string): Promise<{
+  alreadyGranted: boolean;
+  permissions: WhatsAppCallPermission;
+}> {
+  return apiRequest(
+    `/whatsapp/call-permissions/${encodeURIComponent(phone)}`,
+    { method: "POST" },
+  );
+}

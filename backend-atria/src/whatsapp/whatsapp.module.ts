@@ -1,5 +1,6 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
+import { WhatsAppCallingService } from './application/whatsapp-calling.service';
 import { WhatsAppService } from './application/whatsapp.service';
 import { WhatsAppGraphGateway } from './domain/whatsapp-graph.gateway';
 import { WhatsAppMessageRepository } from './domain/whatsapp-message.repository';
@@ -20,6 +21,7 @@ import { WhatsAppWebhookController } from './presentation/whatsapp-webhook.contr
   providers: [
     WhatsAppConfig,
     WhatsAppService,
+    WhatsAppCallingService,
     {
       provide: WhatsAppMessageRepository,
       useClass: PrismaWhatsAppMessageRepository,
@@ -29,6 +31,6 @@ import { WhatsAppWebhookController } from './presentation/whatsapp-webhook.contr
       useClass: MetaWhatsAppGraphClient,
     },
   ],
-  exports: [WhatsAppService],
+  exports: [WhatsAppService, WhatsAppCallingService],
 })
 export class WhatsAppModule {}

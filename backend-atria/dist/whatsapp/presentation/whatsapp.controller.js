@@ -17,16 +17,21 @@ const common_1 = require("@nestjs/common");
 const allow_authenticated_decorator_1 = require("../../auth/decorators/allow-authenticated.decorator");
 const current_user_decorator_1 = require("../../auth/decorators/current-user.decorator");
 const jwt_auth_guard_1 = require("../../auth/guards/jwt-auth.guard");
+const whatsapp_calling_service_1 = require("../application/whatsapp-calling.service");
 const whatsapp_service_1 = require("../application/whatsapp.service");
+const answer_whatsapp_call_dto_1 = require("./dto/answer-whatsapp-call.dto");
 const create_canned_response_dto_1 = require("./dto/create-canned-response.dto");
 const create_whatsapp_note_dto_1 = require("./dto/create-whatsapp-note.dto");
+const initiate_whatsapp_call_dto_1 = require("./dto/initiate-whatsapp-call.dto");
 const query_conversations_dto_1 = require("./dto/query-conversations.dto");
 const send_whatsapp_message_dto_1 = require("./dto/send-whatsapp-message.dto");
 const update_whatsapp_conversation_dto_1 = require("./dto/update-whatsapp-conversation.dto");
 let WhatsAppController = class WhatsAppController {
     whatsAppService;
-    constructor(whatsAppService) {
+    calling;
+    constructor(whatsAppService, calling) {
         this.whatsAppService = whatsAppService;
+        this.calling = calling;
     }
     send(user, dto) {
         return this.whatsAppService.send(dto.to, dto.message, user.userId);
@@ -60,6 +65,30 @@ let WhatsAppController = class WhatsAppController {
     }
     listByPhone(phone) {
         return this.whatsAppService.listByPhone(phone);
+    }
+    listLiveCalls() {
+        return this.calling.listLive();
+    }
+    getCall(id) {
+        return this.calling.getById(id);
+    }
+    initiateCall(user, dto) {
+        return this.calling.initiate(dto.to, dto.sdp, user.userId);
+    }
+    answerCall(id, dto) {
+        return this.calling.answer(id, dto.sdp);
+    }
+    rejectCall(id) {
+        return this.calling.reject(id);
+    }
+    hangupCall(id) {
+        return this.calling.hangup(id);
+    }
+    getCallPermissions(phone) {
+        return this.calling.getPermissions(phone);
+    }
+    requestCallPermission(user, phone) {
+        return this.calling.requestPermission(phone, user.userId);
     }
     listCannedResponses() {
         return this.whatsAppService.listCannedResponses();
@@ -120,6 +149,64 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], WhatsAppController.prototype, "listByPhone", null);
 __decorate([
+    (0, common_1.Get)('calls'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "listLiveCalls", null);
+__decorate([
+    (0, common_1.Get)('calls/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "getCall", null);
+__decorate([
+    (0, common_1.Post)('calls'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, initiate_whatsapp_call_dto_1.InitiateWhatsAppCallDto]),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "initiateCall", null);
+__decorate([
+    (0, common_1.Post)('calls/:id/answer'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, answer_whatsapp_call_dto_1.AnswerWhatsAppCallDto]),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "answerCall", null);
+__decorate([
+    (0, common_1.Post)('calls/:id/reject'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "rejectCall", null);
+__decorate([
+    (0, common_1.Post)('calls/:id/hangup'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "hangupCall", null);
+__decorate([
+    (0, common_1.Get)('call-permissions/:phone'),
+    __param(0, (0, common_1.Param)('phone')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "getCallPermissions", null);
+__decorate([
+    (0, common_1.Post)('call-permissions/:phone'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('phone')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "requestCallPermission", null);
+__decorate([
     (0, common_1.Get)('canned-responses'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -143,6 +230,7 @@ exports.WhatsAppController = WhatsAppController = __decorate([
     (0, common_1.Controller)('whatsapp'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, allow_authenticated_decorator_1.AllowAuthenticated)(),
-    __metadata("design:paramtypes", [whatsapp_service_1.WhatsAppService])
+    __metadata("design:paramtypes", [whatsapp_service_1.WhatsAppService,
+        whatsapp_calling_service_1.WhatsAppCallingService])
 ], WhatsAppController);
 //# sourceMappingURL=whatsapp.controller.js.map

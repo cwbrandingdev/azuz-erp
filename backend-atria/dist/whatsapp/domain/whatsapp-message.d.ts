@@ -81,4 +81,10 @@ export declare function extractInboundText(message: {
     image?: {
         caption?: string;
     };
+    interactive?: {
+        type?: string;
+        call_permission_reply?: {
+            response?: string;
+        };
+    };
 }): string | null;

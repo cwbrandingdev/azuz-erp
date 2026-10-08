@@ -94,12 +94,25 @@ export function extractInboundText(message: {
   type?: string;
   text?: { body?: string };
   image?: { caption?: string };
+  interactive?: {
+    type?: string;
+    call_permission_reply?: { response?: string };
+  };
 }): string | null {
   if (message.type === 'text' && message.text?.body) {
     return message.text.body;
   }
   if (message.type === 'image' && message.image?.caption) {
     return message.image.caption;
+  }
+  if (
+    message.type === 'interactive' &&
+    message.interactive?.type === 'call_permission_reply'
+  ) {
+    const response = message.interactive.call_permission_reply?.response;
+    if (response === 'accept') return 'Permissão para ligação aceita';
+    if (response === 'reject') return 'Permissão para ligação recusada';
+    return 'Resposta de permissão de ligação';
   }
   return null;
 }

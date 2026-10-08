@@ -8,22 +8,27 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var WhatsAppService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhatsAppService = void 0;
 const common_1 = require("@nestjs/common");
+const whatsapp_calling_service_1 = require("./whatsapp-calling.service");
 const whatsapp_message_1 = require("../domain/whatsapp-message");
 const whatsapp_graph_gateway_1 = require("../domain/whatsapp-graph.gateway");
 const whatsapp_message_repository_1 = require("../domain/whatsapp-message.repository");
 const whatsapp_phone_1 = require("../domain/whatsapp-phone");
 const whatsapp_config_1 = require("../infrastructure/whatsapp.config");
-let WhatsAppService = class WhatsAppService {
+let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
     messages;
     graph;
     config;
-    constructor(messages, graph, config) {
+    calling;
+    logger = new common_1.Logger(WhatsAppService_1.name);
+    constructor(messages, graph, config, calling) {
         this.messages = messages;
         this.graph = graph;
         this.config = config;
+        this.calling = calling;
     }
     verifyWebhook(mode, token, challenge) {
         if (mode === 'subscribe' && token === this.config.verifyToken) {
@@ -32,6 +37,12 @@ let WhatsAppService = class WhatsAppService {
         throw new common_1.UnauthorizedException('Verification failed');
     }
     async handleWebhook(payload) {
+        try {
+            await this.calling.handleWebhook(payload);
+        }
+        catch (error) {
+            this.logger.warn(`WhatsApp call webhook failed: ${error instanceof Error ? error.message : 'unknown'}`);
+        }
         const entries = payload.entry ?? [];
         for (const entry of entries) {
             for (const change of entry.changes ?? []) {
@@ -43,6 +54,8 @@ let WhatsAppService = class WhatsAppService {
                     await this.persistInbound(inbound, contactName);
                 }
                 for (const status of value.statuses ?? []) {
+                    if (status.type === 'call')
+                        continue;
                     await this.persistStatus(status);
                 }
             }
@@ -156,10 +169,11 @@ let WhatsAppService = class WhatsAppService {
     }
 };
 exports.WhatsAppService = WhatsAppService;
-exports.WhatsAppService = WhatsAppService = __decorate([
+exports.WhatsAppService = WhatsAppService = WhatsAppService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [whatsapp_message_repository_1.WhatsAppMessageRepository,
         whatsapp_graph_gateway_1.WhatsAppGraphGateway,
-        whatsapp_config_1.WhatsAppConfig])
+        whatsapp_config_1.WhatsAppConfig,
+        whatsapp_calling_service_1.WhatsAppCallingService])
 ], WhatsAppService);
 //# sourceMappingURL=whatsapp.service.js.map

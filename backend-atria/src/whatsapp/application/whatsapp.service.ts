@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { WhatsAppCallingService } from './whatsapp-calling.service';
 import {
   extractInboundText,
   mapMetaStatus,
@@ -26,9 +27,14 @@ type MetaWebhookPayload = {
           type?: string;
           text?: { body?: string };
           image?: { caption?: string };
+          interactive?: {
+            type?: string;
+            call_permission_reply?: { response?: string };
+          };
         }>;
         statuses?: Array<{
           id?: string;
+          type?: string;
           status?: string;
         }>;
       };
@@ -38,10 +44,13 @@ type MetaWebhookPayload = {
 
 @Injectable()
 export class WhatsAppService {
+  private readonly logger = new Logger(WhatsAppService.name);
+
   constructor(
     private readonly messages: WhatsAppMessageRepository,
     private readonly graph: WhatsAppGraphGateway,
     private readonly config: WhatsAppConfig,
+    private readonly calling: WhatsAppCallingService,
   ) {}
 
   verifyWebhook(mode: string, token: string, challenge: string): string {
@@ -52,6 +61,13 @@ export class WhatsAppService {
   }
 
   async handleWebhook(payload: MetaWebhookPayload): Promise<void> {
+    try {
+      await this.calling.handleWebhook(payload);
+    } catch (error) {
+      this.logger.warn(
+        `WhatsApp call webhook failed: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    }
     const entries = payload.entry ?? [];
 
     for (const entry of entries) {
@@ -65,6 +81,7 @@ export class WhatsAppService {
         }
 
         for (const status of value.statuses ?? []) {
+          if (status.type === 'call') continue;
           await this.persistStatus(status);
         }
       }
@@ -170,6 +187,10 @@ export class WhatsAppService {
       type?: string;
       text?: { body?: string };
       image?: { caption?: string };
+      interactive?: {
+        type?: string;
+        call_permission_reply?: { response?: string };
+      };
     },
     contactName: string | null,
   ): Promise<void> {

@@ -1,3 +1,4 @@
+import { WhatsAppCallingService } from './whatsapp-calling.service';
 import { type ConversationListFilter, type ConversationPatch, type WhatsAppCannedResponseRecord, type WhatsAppConversationSummary, type WhatsAppMessageRecord } from '../domain/whatsapp-message';
 import { WhatsAppGraphGateway } from '../domain/whatsapp-graph.gateway';
 import { WhatsAppMessageRepository } from '../domain/whatsapp-message.repository';
@@ -22,9 +23,16 @@ type MetaWebhookPayload = {
                     image?: {
                         caption?: string;
                     };
+                    interactive?: {
+                        type?: string;
+                        call_permission_reply?: {
+                            response?: string;
+                        };
+                    };
                 }>;
                 statuses?: Array<{
                     id?: string;
+                    type?: string;
                     status?: string;
                 }>;
             };
@@ -35,7 +43,9 @@ export declare class WhatsAppService {
     private readonly messages;
     private readonly graph;
     private readonly config;
-    constructor(messages: WhatsAppMessageRepository, graph: WhatsAppGraphGateway, config: WhatsAppConfig);
+    private readonly calling;
+    private readonly logger;
+    constructor(messages: WhatsAppMessageRepository, graph: WhatsAppGraphGateway, config: WhatsAppConfig, calling: WhatsAppCallingService);
     verifyWebhook(mode: string, token: string, challenge: string): string;
     handleWebhook(payload: MetaWebhookPayload): Promise<void>;
     send(to: string, message: string, userId?: string): Promise<WhatsAppMessageRecord>;
