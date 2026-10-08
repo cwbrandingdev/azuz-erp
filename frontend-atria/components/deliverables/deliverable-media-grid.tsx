@@ -1,11 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
 import { motion } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
   Download,
+  GripVertical,
   Loader2,
   MessageSquareWarning,
   Play,
@@ -59,8 +67,20 @@ interface DeliverableMediaGridProps {
   resolveMediaUrl?: (url: string) => string | undefined;
   showHeaderActions?: boolean;
   allowItemAdjustment?: boolean;
+  allowReorder?: boolean;
   emptyMessage?: string;
   className?: string;
+}
+
+function moveItem<T>(list: T[], fromIndex: number, toIndex: number) {
+  const next = [...list];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
+function withSortOrder(list: DeliverableItem[]) {
+  return list.map((item, index) => ({ ...item, sortOrder: index }));
 }
 
 function toLightboxItem(item: DeliverableItem): LightboxMediaItem {
@@ -92,6 +112,7 @@ export function DeliverableMediaGrid({
   resolveMediaUrl: resolveMediaUrlProp,
   showHeaderActions = true,
   allowItemAdjustment = true,
+  allowReorder = false,
   emptyMessage = "Nenhuma mídia disponível.",
   className,
 }: DeliverableMediaGridProps) {
@@ -107,6 +128,12 @@ export function DeliverableMediaGrid({
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const orderBeforeDragRef = useRef<DeliverableItem[] | null>(null);
+  const draggingIdRef = useRef<string | null>(null);
+  const droppedRef = useRef(false);
+  const sortedItemsRef = useRef<DeliverableItem[]>([]);
 
   const sortedItems = useMemo(
     () => [...items].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -128,7 +155,9 @@ export function DeliverableMediaGrid({
   );
 
   const hasMultiple = sortedItems.length > 1;
+  const canReorder = allowReorder && hasMultiple && Boolean(onItemsChange);
   const activeItem = sortedItems[activeIndex] ?? sortedItems[0] ?? null;
+  sortedItemsRef.current = sortedItems;
 
   useEffect(() => {
     setActiveIndex((current) => {
@@ -286,6 +315,73 @@ export function DeliverableMediaGrid({
     }
   }
 
+  async function persistOrder(ordered: DeliverableItem[]) {
+    const deliverableId = ordered[0]?.deliverableId;
+    if (!deliverableId) return;
+
+    const previous = orderBeforeDragRef.current;
+    const unchanged =
+      previous &&
+      previous.length === ordered.length &&
+      previous.every((item, index) => item.id === ordered[index]?.id);
+    if (unchanged) return;
+
+    setSavingOrder(true);
+    try {
+      await deliverablesService.reorderItems(
+        deliverableId,
+        ordered.map((item) => item.id),
+      );
+    } catch {
+      if (previous) onItemsChange?.(previous);
+      toast.error("Não foi possível salvar a ordem das mídias.");
+    } finally {
+      setSavingOrder(false);
+      orderBeforeDragRef.current = null;
+    }
+  }
+
+  function handleDragStart(itemId: string) {
+    droppedRef.current = false;
+    orderBeforeDragRef.current = sortedItems;
+    draggingIdRef.current = itemId;
+    setDraggingId(itemId);
+  }
+
+  function handleDragOver(targetId: string, event: DragEvent) {
+    const currentDraggingId = draggingIdRef.current;
+    if (!canReorder || !currentDraggingId) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (currentDraggingId === targetId) return;
+
+    const fromIndex = sortedItems.findIndex(
+      (item) => item.id === currentDraggingId,
+    );
+    const toIndex = sortedItems.findIndex((item) => item.id === targetId);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    onItemsChange?.(withSortOrder(moveItem(sortedItems, fromIndex, toIndex)));
+  }
+
+  function handleDrop(event: DragEvent) {
+    if (!canReorder) return;
+    event.preventDefault();
+    droppedRef.current = true;
+    draggingIdRef.current = null;
+    setDraggingId(null);
+    void persistOrder(sortedItemsRef.current);
+  }
+
+  function handleDragEnd() {
+    if (!droppedRef.current && orderBeforeDragRef.current) {
+      onItemsChange?.(orderBeforeDragRef.current);
+    }
+    droppedRef.current = false;
+    draggingIdRef.current = null;
+    setDraggingId(null);
+  }
+
   async function handleDownloadAll() {
     if (sortedItems.length === 0) return;
     setDownloadingAll(true);
@@ -346,6 +442,11 @@ export function DeliverableMediaGrid({
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-sm text-[var(--atria-primary)]/55">
               {sortedItems.length} mídia{sortedItems.length === 1 ? "" : "s"}
+              {canReorder
+                ? savingOrder
+                  ? " · salvando ordem..."
+                  : " · arraste para reordenar"
+                : ""}
             </p>
             {bulkDeleteEnabled && deletableItems.length > 0 && (
               <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--atria-primary)]/70">
@@ -488,16 +589,17 @@ export function DeliverableMediaGrid({
           const canSelectForBulkDelete =
             bulkDeleteEnabled && Boolean(item.sourceAssetId);
           const isSelected = selectedIds.has(item.id);
+          const isDragging = draggingId === item.id;
 
           return (
             <motion.div
               key={item.id}
-              layout
+              layout={!draggingId}
               initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: isDragging ? 0.55 : 1, y: 0 }}
               transition={{
                 duration: 0.25,
-                delay: Math.min(index * 0.04, 0.24),
+                delay: draggingId ? 0 : Math.min(index * 0.04, 0.24),
               }}
               className={cn(
                 "group relative overflow-hidden rounded-2xl border bg-[var(--atria-primary)]/[0.02]",
@@ -505,8 +607,11 @@ export function DeliverableMediaGrid({
                   ? "border-[var(--atria-primary)]/35 ring-2 ring-[var(--atria-primary)]/15"
                   : "border-[var(--atria-primary)]/10",
                 isSelected && "border-red-300/80 ring-2 ring-red-200/60",
+                isDragging && "ring-2 ring-[var(--atria-primary)]/40",
               )}
               onMouseEnter={() => setActiveIndex(index)}
+              onDragOver={(event) => handleDragOver(item.id, event)}
+              onDrop={handleDrop}
             >
               <button
                 type="button"
@@ -591,15 +696,33 @@ export function DeliverableMediaGrid({
               </div>
 
               <div className="space-y-3 border-t border-[var(--atria-primary)]/10 bg-white/80 p-3 backdrop-blur-sm">
-                <div>
-                  <p className="truncate text-sm font-semibold text-[var(--atria-primary)]">
-                    {item.fileName ?? "Arquivo"}
-                  </p>
-                  {item.feedbackNotes && (
-                    <p className="mt-1 line-clamp-2 text-xs text-amber-800/90">
-                      {item.feedbackNotes}
-                    </p>
+                <div className="flex items-start gap-2">
+                  {canReorder && (
+                    <button
+                      type="button"
+                      draggable
+                      className="mt-0.5 shrink-0 cursor-grab rounded-md p-1 text-[var(--atria-primary)]/35 hover:bg-[var(--atria-primary)]/5 hover:text-[var(--atria-primary)]/70 active:cursor-grabbing"
+                      aria-label={`Reordenar ${item.fileName ?? "mídia"}`}
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", item.id);
+                        handleDragStart(item.id);
+                      }}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <GripVertical className="size-4" />
+                    </button>
                   )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-[var(--atria-primary)]">
+                      {item.fileName ?? "Arquivo"}
+                    </p>
+                    {item.feedbackNotes && (
+                      <p className="mt-1 line-clamp-2 text-xs text-amber-800/90">
+                        {item.feedbackNotes}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">

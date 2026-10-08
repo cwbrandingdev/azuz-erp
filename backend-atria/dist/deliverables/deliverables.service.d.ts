@@ -10,21 +10,17 @@ export declare class DeliverablesService {
     private readonly kanbanService;
     constructor(prisma: PrismaService, storage: SupabaseStorageService, kanbanService: KanbanService);
     syncFromKanbanTask(taskId: string): Promise<{
-        client: {
-            id: string;
-            companyName: string;
-        } | null;
         items: {
-            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            fileName: string | null;
-            fileSize: number | null;
             deliverableId: string;
             mediaUrl: string;
             mediaType: import("@prisma/client").$Enums.DeliverableMediaType;
+            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             adjustmentNotes: string | null;
+            fileName: string | null;
+            fileSize: number | null;
             storageBucket: string | null;
             storagePath: string | null;
             sourceAssetId: string | null;
@@ -32,21 +28,25 @@ export declare class DeliverablesService {
         }[];
         approvedBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
+        } | null;
+        client: {
+            id: string;
+            companyName: string;
         } | null;
     } & {
-        title: string;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        companyId: string;
-        clientId: string | null;
-        contentPostId: string | null;
         kanbanTaskId: string | null;
+        contentPostId: string | null;
+        companyId: string;
+        title: string;
+        clientId: string | null;
         approvalStatus: import("@prisma/client").$Enums.DeliverableApprovalStatus;
         approvedAt: Date | null;
         approvedById: string | null;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     findAllForClient(clientId: string, query?: QueryClientDeliverablesDto): Promise<{
         id: string;
@@ -264,6 +264,105 @@ export declare class DeliverablesService {
         updatedAt: string;
         createdAt: string;
     }>;
+    reorderItems(deliverableId: string, itemIds: string[]): Promise<{
+        id: string;
+        title: string;
+        copy: string | null;
+        approval: {
+            status: string;
+            approvedAt: string | null;
+            approvedBy: {
+                id: string;
+                name: string;
+                avatarUrl: string | null;
+            } | null;
+        };
+        workflow: {
+            isBypassingInternalReview: boolean;
+            kanbanStatus: string | null;
+            internalReviewStatus: string | null;
+            internalReviewNote: string | null;
+            rejectionReason: string | null;
+        };
+        client: {
+            id: string;
+            companyName: string;
+        } | null;
+        links: {
+            kanbanTaskId: string | null;
+            contentPostId: string | null;
+        };
+        media: {
+            images: {
+                id: string;
+                deliverableId: string;
+                mediaUrl: string;
+                mediaType: string;
+                status: string;
+                adjustmentNotes: string | null;
+                feedbackNotes: string | null;
+                fileName: string | null;
+                fileSize: number | null;
+                sourceAssetId: string | null;
+                sortOrder: number;
+                createdAt: string;
+                updatedAt: string;
+            }[];
+            videos: {
+                id: string;
+                deliverableId: string;
+                mediaUrl: string;
+                mediaType: string;
+                status: string;
+                adjustmentNotes: string | null;
+                feedbackNotes: string | null;
+                fileName: string | null;
+                fileSize: number | null;
+                sourceAssetId: string | null;
+                sortOrder: number;
+                createdAt: string;
+                updatedAt: string;
+            }[];
+            other: {
+                id: string;
+                deliverableId: string;
+                mediaUrl: string;
+                mediaType: string;
+                status: string;
+                adjustmentNotes: string | null;
+                feedbackNotes: string | null;
+                fileName: string | null;
+                fileSize: number | null;
+                sourceAssetId: string | null;
+                sortOrder: number;
+                createdAt: string;
+                updatedAt: string;
+            }[];
+            all: {
+                id: string;
+                deliverableId: string;
+                mediaUrl: string;
+                mediaType: string;
+                status: string;
+                adjustmentNotes: string | null;
+                feedbackNotes: string | null;
+                fileName: string | null;
+                fileSize: number | null;
+                sourceAssetId: string | null;
+                sortOrder: number;
+                createdAt: string;
+                updatedAt: string;
+            }[];
+        };
+        revisionSummary: {
+            total: number;
+            pending: number;
+            approved: number;
+            requiresAdjustment: number;
+        };
+        updatedAt: string;
+        createdAt: string;
+    }>;
     submit(deliverableId: string, userId: string, role: string, file: Express.Multer.File, caption?: string): Promise<{
         id: string;
         fileName: string;
@@ -274,8 +373,8 @@ export declare class DeliverablesService {
         uploadedAt: string;
         uploadedBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
     }>;
     rejectClient(deliverableId: string, dto: RejectClientDeliverableDto, userId?: string | null): Promise<{

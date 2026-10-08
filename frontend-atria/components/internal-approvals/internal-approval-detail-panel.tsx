@@ -8,6 +8,11 @@ import {
   Upload,
 } from "lucide-react";
 import { DeliverableMediaGrid } from "@/components/deliverables/deliverable-media-grid";
+import {
+  FileUploadProgressList,
+  createFileUploadItems,
+  type FileUploadProgressItem,
+} from "@/components/deliverables/file-upload-progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ClientName } from "@/components/ui/client-name";
@@ -67,9 +72,14 @@ export function InternalApprovalDetailPanel({
   const [deliverableItems, setDeliverableItems] = useState<DeliverableItem[]>(
     [],
   );
+  const [uploadProgress, setUploadProgress] = useState<
+    FileUploadProgressItem[]
+  >([]);
 
   const hasDelivery =
-    item.assetCount > 0 || item.revisionSummary.total > 0 || deliverableItems.length > 0;
+    item.assetCount > 0 ||
+    item.revisionSummary.total > 0 ||
+    deliverableItems.length > 0;
   const busy =
     approve.isPending ||
     submitDelivery.isPending ||
@@ -144,10 +154,45 @@ export function InternalApprovalDetailPanel({
     if (fileList.length === 0) return;
 
     setError(null);
+    const items = createFileUploadItems(fileList);
+    setUploadProgress(items);
     let uploadedCount = 0;
     try {
-      for (const file of fileList) {
-        await submitDelivery.mutateAsync({ id: item.id, file });
+      for (let index = 0; index < fileList.length; index += 1) {
+        const file = fileList[index];
+        const itemId = items[index]?.id;
+        if (!file || !itemId) continue;
+        setUploadProgress((prev) =>
+          prev.map((entry) =>
+            entry.id === itemId
+              ? { ...entry, status: "uploading", progress: 0 }
+              : entry,
+          ),
+        );
+        await submitDelivery.mutateAsync({
+          id: item.id,
+          file,
+          onProgress: (percent) => {
+            setUploadProgress((prev) =>
+              prev.map((entry) =>
+                entry.id === itemId
+                  ? {
+                      ...entry,
+                      status: percent >= 100 ? "processing" : "uploading",
+                      progress: percent,
+                    }
+                  : entry,
+              ),
+            );
+          },
+        });
+        setUploadProgress((prev) =>
+          prev.map((entry) =>
+            entry.id === itemId
+              ? { ...entry, status: "done", progress: 100 }
+              : entry,
+          ),
+        );
         uploadedCount += 1;
       }
       toast.success(
@@ -156,7 +201,15 @@ export function InternalApprovalDetailPanel({
           : `${uploadedCount} entregas enviadas para revisão interna`,
       );
       await reloadMedia();
+      setUploadProgress([]);
     } catch (err) {
+      setUploadProgress((prev) =>
+        prev.map((entry) =>
+          entry.status === "uploading" || entry.status === "processing"
+            ? { ...entry, status: "error" }
+            : entry,
+        ),
+      );
       setError(
         err instanceof ApiError
           ? err.message
@@ -287,19 +340,23 @@ export function InternalApprovalDetailPanel({
         <p className="mb-3 text-sm font-medium text-[var(--atria-primary)]">
           Conteúdo para revisão
         </p>
-        {loadingMedia ? (
-          <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-dashed border-[var(--atria-primary)]/15">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
-          </div>
-        ) : (
-          <DeliverableMediaGrid
-            items={deliverableItems}
-            onItemsChange={setDeliverableItems}
-            onRevisionSubmitted={reloadMedia}
-            showHeaderActions={deliverableItems.length > 0}
-            emptyMessage="Nenhuma mídia anexada. Use “Fazer Entrega” para enviar o conteúdo."
-          />
-        )}
+        <div className="flex flex-col gap-4">
+          <FileUploadProgressList items={uploadProgress} />
+          {loadingMedia ? (
+            <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-dashed border-[var(--atria-primary)]/15">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
+            </div>
+          ) : (
+            <DeliverableMediaGrid
+              items={deliverableItems}
+              onItemsChange={setDeliverableItems}
+              onRevisionSubmitted={reloadMedia}
+              showHeaderActions={deliverableItems.length > 0}
+              allowReorder
+              emptyMessage="Nenhuma mídia anexada. Use “Fazer Entrega” para enviar o conteúdo."
+            />
+          )}
+        </div>
       </div>
 
       {error ? (
@@ -373,7 +430,9 @@ export function InternalApprovalDetailPanel({
               />
             </Field>
             <DialogFooter>
-              <DialogClose render={<Button variant="outline">Cancelar</Button>} />
+              <DialogClose
+                render={<Button variant="outline">Cancelar</Button>}
+              />
               <Button
                 type="button"
                 disabled={requestAdjustment.isPending || !adjustmentNote.trim()}
@@ -391,8 +450,7 @@ export function InternalApprovalDetailPanel({
 
       {deliverableView ? (
         <p className="text-xs text-[var(--atria-primary)]/40">
-          Entrega vinculada · atualizado{" "}
-          {formatDate(deliverableView.updatedAt)}
+          Entrega vinculada · atualizado {formatDate(deliverableView.updatedAt)}
         </p>
       ) : null}
     </div>

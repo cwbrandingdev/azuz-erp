@@ -11,11 +11,11 @@ export declare class ReportsController {
         clientId: string;
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         month: number;
         year: number;
@@ -23,8 +23,8 @@ export declare class ReportsController {
         data: import("@prisma/client/runtime/library").JsonValue;
         generatedBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         createdAt: string;
     }[]>;
@@ -33,11 +33,11 @@ export declare class ReportsController {
         clientId: string;
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         month: number;
         year: number;
@@ -45,8 +45,8 @@ export declare class ReportsController {
         data: import("@prisma/client/runtime/library").JsonValue;
         generatedBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         createdAt: string;
     }>;
@@ -55,11 +55,11 @@ export declare class ReportsController {
         clientId: string;
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
         };
         month: number;
         year: number;
@@ -67,8 +67,8 @@ export declare class ReportsController {
         data: import("@prisma/client/runtime/library").JsonValue;
         generatedBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         createdAt: string;
     }>;

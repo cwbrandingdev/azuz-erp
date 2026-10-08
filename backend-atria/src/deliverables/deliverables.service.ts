@@ -90,7 +90,7 @@ export class DeliverablesService {
 
     const existingItems = await this.prisma.deliverableItem.findMany({
       where: { deliverableId: deliverable.id },
-      select: { id: true, sourceAssetId: true, mediaUrl: true },
+      select: { id: true, sourceAssetId: true, mediaUrl: true, sortOrder: true },
     });
 
     const byAssetId = new Map(
@@ -98,10 +98,13 @@ export class DeliverablesService {
         .filter((item) => item.sourceAssetId)
         .map((item) => [item.sourceAssetId!, item.id]),
     );
-    const byUrl = new Map(existingItems.map((item) => [item.mediaUrl, item.id]));
+    const byUrl = new Map(
+      existingItems.map((item) => [item.mediaUrl, item.id]),
+    );
 
     const keptItemIds = new Set<string>();
-    let sortOrder = 0;
+    let nextSortOrder =
+      existingItems.reduce((max, item) => Math.max(max, item.sortOrder), -1) + 1;
     for (const asset of task.assets) {
       const location = this.resolveStorageLocation(asset.fileUrl);
       const data = {
@@ -112,9 +115,7 @@ export class DeliverablesService {
         storageBucket: location?.bucket ?? null,
         storagePath: location?.path ?? null,
         sourceAssetId: asset.id,
-        sortOrder,
       };
-      sortOrder += 1;
 
       const existingId = byAssetId.get(asset.id) ?? byUrl.get(asset.fileUrl);
       if (existingId) {
@@ -128,10 +129,12 @@ export class DeliverablesService {
           data: {
             deliverableId: deliverable.id,
             status: DeliverableItemStatus.PENDING,
+            sortOrder: nextSortOrder,
             ...data,
           },
           select: { id: true },
         });
+        nextSortOrder += 1;
         keptItemIds.add(created.id);
       }
     }
@@ -152,7 +155,10 @@ export class DeliverablesService {
     return record;
   }
 
-  async findAllForClient(clientId: string, query: QueryClientDeliverablesDto = {}) {
+  async findAllForClient(
+    clientId: string,
+    query: QueryClientDeliverablesDto = {},
+  ) {
     const where: Prisma.DeliverableWhereInput = {
       clientId,
     };
@@ -187,7 +193,9 @@ export class DeliverablesService {
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
     });
 
-    return deliverables.map((deliverable) => this.toClientListResponse(deliverable));
+    return deliverables.map((deliverable) =>
+      this.toClientListResponse(deliverable),
+    );
   }
 
   async approveInternal(
@@ -224,6 +232,44 @@ export class DeliverablesService {
         note,
       },
     );
+    return this.getFullView(deliverable.id);
+  }
+
+  async reorderItems(deliverableId: string, itemIds: string[]) {
+    const deliverable = await this.prisma.deliverable.findUnique({
+      where: { id: deliverableId },
+      select: { id: true },
+    });
+    if (!deliverable) {
+      throw new NotFoundException('Deliverable not found');
+    }
+
+    const items = await this.prisma.deliverableItem.findMany({
+      where: { deliverableId: deliverable.id },
+      select: { id: true },
+    });
+    const existingIds = new Set(items.map((item) => item.id));
+    const uniqueIds = new Set(itemIds);
+
+    if (
+      itemIds.length !== existingIds.size ||
+      uniqueIds.size !== itemIds.length ||
+      itemIds.some((id) => !existingIds.has(id))
+    ) {
+      throw new BadRequestException(
+        'Item list must include every deliverable item exactly once',
+      );
+    }
+
+    await this.prisma.$transaction(
+      itemIds.map((id, index) =>
+        this.prisma.deliverableItem.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+
     return this.getFullView(deliverable.id);
   }
 
@@ -377,7 +423,9 @@ export class DeliverablesService {
       select: itemSelect,
     });
 
-    const nextStatus = await this.refreshDeliverableApproval(item.deliverableId);
+    const nextStatus = await this.refreshDeliverableApproval(
+      item.deliverableId,
+    );
     await this.syncKanbanFromApproval(
       item.deliverable.kanbanTaskId,
       nextStatus,
@@ -442,7 +490,10 @@ export class DeliverablesService {
       return result;
     }
 
-    if (item.mediaUrl.startsWith('http://') || item.mediaUrl.startsWith('https://')) {
+    if (
+      item.mediaUrl.startsWith('http://') ||
+      item.mediaUrl.startsWith('https://')
+    ) {
       const result = {
         itemId: item.id,
         fileName,
@@ -522,8 +573,9 @@ export class DeliverablesService {
     const items = view.items;
     const counts = {
       total: items.length,
-      pending: items.filter((item) => item.status === DeliverableItemStatus.PENDING)
-        .length,
+      pending: items.filter(
+        (item) => item.status === DeliverableItemStatus.PENDING,
+      ).length,
       approved: items.filter(
         (item) => item.status === DeliverableItemStatus.APPROVED,
       ).length,
@@ -684,7 +736,7 @@ export class DeliverablesService {
     }
 
     if (!deliverable?.kanbanTaskId) {
-      const synced = await this.looksLikeTaskId(deliverableId)
+      const synced = (await this.looksLikeTaskId(deliverableId))
         ? await this.syncFromKanbanTask(deliverableId)
         : null;
       if (!synced?.kanbanTaskId) {
@@ -720,7 +772,9 @@ export class DeliverablesService {
     if (items.length === 0) {
       approvalStatus = DeliverableApprovalStatus.DRAFT;
     } else if (
-      items.some((item) => item.status === DeliverableItemStatus.REQUIRES_ADJUSTMENT)
+      items.some(
+        (item) => item.status === DeliverableItemStatus.REQUIRES_ADJUSTMENT,
+      )
     ) {
       approvalStatus = DeliverableApprovalStatus.REQUIRES_ADJUSTMENT;
     } else if (
@@ -728,7 +782,8 @@ export class DeliverablesService {
     ) {
       approvalStatus = DeliverableApprovalStatus.APPROVED;
     } else if (
-      current?.approvalStatus === DeliverableApprovalStatus.WAITING_CLIENT_APPROVAL ||
+      current?.approvalStatus ===
+        DeliverableApprovalStatus.WAITING_CLIENT_APPROVAL ||
       current?.approvalStatus === DeliverableApprovalStatus.PENDING_APPROVAL
     ) {
       approvalStatus = DeliverableApprovalStatus.WAITING_CLIENT_APPROVAL;

@@ -9,6 +9,11 @@ import {
   type DeliverableBulkActionsState,
 } from "@/components/deliverables/deliverable-media-grid";
 import {
+  FileUploadProgressList,
+  createFileUploadItems,
+  type FileUploadProgressItem,
+} from "@/components/deliverables/file-upload-progress";
+import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -35,9 +40,7 @@ import {
   DEFAULT_TASK_STATUS,
   STATUS_LABELS,
 } from "@/lib/kanban-utils";
-import {
-  DEFAULT_TASK_CONTENT_TYPE,
-} from "@/lib/task-content-type";
+import { DEFAULT_TASK_CONTENT_TYPE } from "@/lib/task-content-type";
 import { TaskContentTypePicker } from "@/components/kanban/task-content-type-picker";
 import {
   TaskStatusBadge,
@@ -131,6 +134,9 @@ export function TaskDetailDialog({
   const [tab, setTab] = useState<DetailTab>("deliverables");
   const [loading, setLoading] = useState(false);
   const [assetUploading, setAssetUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<
+    FileUploadProgressItem[]
+  >([]);
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -180,9 +186,7 @@ export function TaskDetailDialog({
     setAssigneeIds(task.assignees.map((a) => a.id));
     setAssignedGroupId(task.assignedGroupId ?? "");
     setClientId(task.clientId ?? "");
-    setDeliveryDate(
-      toDateTimeLocalValue(task.deliveryDate ?? task.dueDate),
-    );
+    setDeliveryDate(toDateTimeLocalValue(task.deliveryDate ?? task.dueDate));
     setPublicationDate(toDateTimeLocalValue(task.publicationDate));
     setReferenceUrl(task.referenceUrl ?? "");
     setInternalReviewStatus(task.internalReviewStatus);
@@ -426,13 +430,45 @@ export function TaskDetailDialog({
 
     setAssetUploading(true);
     setError(null);
+    const items = createFileUploadItems(fileList);
+    setUploadProgress(items);
     const uploaded: KanbanTaskAsset[] = [];
     try {
-      for (const file of fileList) {
+      for (let index = 0; index < fileList.length; index += 1) {
+        const file = fileList[index];
+        const itemId = items[index]?.id;
+        if (!file || !itemId) continue;
+        setUploadProgress((prev) =>
+          prev.map((item) =>
+            item.id === itemId
+              ? { ...item, status: "uploading", progress: 0 }
+              : item,
+          ),
+        );
         const asset = await kanbanService.uploadTaskAsset(
           task.id,
           file,
           assetCaption,
+          (percent) => {
+            setUploadProgress((prev) =>
+              prev.map((item) =>
+                item.id === itemId
+                  ? {
+                      ...item,
+                      status: percent >= 100 ? "processing" : "uploading",
+                      progress: percent,
+                    }
+                  : item,
+              ),
+            );
+          },
+        );
+        setUploadProgress((prev) =>
+          prev.map((item) =>
+            item.id === itemId
+              ? { ...item, status: "done", progress: 100 }
+              : item,
+          ),
         );
         uploaded.push(asset as KanbanTaskAsset);
       }
@@ -451,7 +487,15 @@ export function TaskDetailDialog({
             ? "Entrega enviada"
             : `${count} entregas enviadas`,
       );
+      setUploadProgress([]);
     } catch (err) {
+      setUploadProgress((prev) =>
+        prev.map((item) =>
+          item.status === "uploading" || item.status === "processing"
+            ? { ...item, status: "error" }
+            : item,
+        ),
+      );
       setError(
         err instanceof ApiError
           ? err.message
@@ -526,11 +570,16 @@ export function TaskDetailDialog({
 
     setLoading(true);
     try {
-      const result = await kanbanService.bulkDeleteTaskAssets(task.id, assetIds);
+      const result = await kanbanService.bulkDeleteTaskAssets(
+        task.id,
+        assetIds,
+      );
       const removedIds = new Set(assetIds);
       setAssets((prev) => prev.filter((asset) => !removedIds.has(asset.id)));
       setDeliverableItems((prev) =>
-        prev.filter((item) => !item.sourceAssetId || !removedIds.has(item.sourceAssetId)),
+        prev.filter(
+          (item) => !item.sourceAssetId || !removedIds.has(item.sourceAssetId),
+        ),
       );
       onUpdate();
       await Promise.all([loadHistory(task.id), loadDeliverableMedia(task.id)]);
@@ -889,6 +938,8 @@ export function TaskDetailDialog({
                 </div>
               )}
 
+              <FileUploadProgressList items={uploadProgress} />
+
               <DeliverableMediaGrid
                 items={deliverableItems}
                 onItemsChange={setDeliverableItems}
@@ -900,6 +951,7 @@ export function TaskDetailDialog({
                 onBulkActionsChange={
                   canEdit ? setBulkDeliverableActions : undefined
                 }
+                allowReorder={canEdit}
                 emptyMessage="Nenhuma entrega anexada ainda."
               />
             </div>
@@ -982,9 +1034,7 @@ export function TaskDetailDialog({
                     type="button"
                     variant="destructive"
                     onClick={bulkDeliverableActions.runBulkDelete}
-                    disabled={
-                      loading || bulkDeliverableActions.bulkDeleting
-                    }
+                    disabled={loading || bulkDeliverableActions.bulkDeleting}
                   >
                     <Trash2 className="size-4" />
                     {bulkDeliverableActions.bulkDeleting

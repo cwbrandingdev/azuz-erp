@@ -38,9 +38,9 @@ export declare class CreationService {
             clientId: string;
             client: {
                 id: string;
-                avatarUrl: string | null;
                 companyName: string;
                 instagram: string | null;
+                avatarUrl: string | null;
             };
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "carousel" | "reels" | "static" | "story";
@@ -51,22 +51,22 @@ export declare class CreationService {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 postId: string;
+                url: string;
                 mimeType: string | null;
             }[];
             author: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
             platformColor: string;
             createdAt: string;
@@ -104,13 +104,13 @@ export declare class CreationService {
             } | null;
             assignees: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             }[];
             createdBy: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             assets: {
                 id: string;
@@ -122,8 +122,8 @@ export declare class CreationService {
                 uploadedAt: string;
                 uploadedBy: {
                     id: string;
-                    name: string;
                     avatarUrl: string | null;
+                    name: string;
                 };
             }[];
             updatedAt: string;
@@ -414,8 +414,8 @@ export declare class CreationService {
             status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
             updatedAt: string;
             scheduledDate: string | null;

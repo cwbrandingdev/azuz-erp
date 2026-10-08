@@ -107,13 +107,13 @@ export declare class ClientsController {
             previewMimeType: string | null;
             author: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
             updatedAt: string;
             platformColor: string;
@@ -128,8 +128,8 @@ export declare class ClientsController {
             mediaUrls: string[];
             createdBy: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             createdAt: string;
         }[];
@@ -170,7 +170,7 @@ export declare class ClientsController {
             id: string;
             type: "event";
             title: string;
-            category: "meeting" | "deadline" | "publish" | "other";
+            category: "other" | "meeting" | "deadline" | "publish";
             startAt: string;
             endAt: string;
             referenceUrl: string | null;
@@ -178,8 +178,8 @@ export declare class ClientsController {
             color: string;
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
         } | {
             id: string;
@@ -200,7 +200,7 @@ export declare class ClientsController {
             id: string;
             type: "event";
             title: string;
-            category: "meeting" | "deadline" | "publish" | "other";
+            category: "other" | "meeting" | "deadline" | "publish";
             startAt: string;
             endAt: string;
             referenceUrl: string | null;
@@ -208,8 +208,8 @@ export declare class ClientsController {
             color: string;
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
         } | {
             id: string;
@@ -230,7 +230,7 @@ export declare class ClientsController {
             id: string;
             type: "event";
             title: string;
-            category: "meeting" | "deadline" | "publish" | "other";
+            category: "other" | "meeting" | "deadline" | "publish";
             startAt: string;
             endAt: string;
             referenceUrl: string | null;
@@ -238,8 +238,8 @@ export declare class ClientsController {
             color: string;
             assignee: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             } | null;
         } | {
             id: string;
@@ -354,8 +354,8 @@ export declare class ClientsController {
             };
             assignees: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             }[];
             isOverdue: boolean;
             updatedAt: string;

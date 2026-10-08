@@ -25,6 +25,7 @@ const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
 const client_review_dto_1 = require("./dto/client-review.dto");
+const reorder_items_dto_1 = require("./dto/reorder-items.dto");
 const revision_item_dto_1 = require("./dto/revision-item.dto");
 const deliverables_service_1 = require("./deliverables.service");
 const DELIVERABLE_SUBMISSION_ROLES = [
@@ -62,6 +63,9 @@ let DeliverablesController = class DeliverablesController {
             contentDisposition: payload.contentDisposition,
             source: payload.source,
         };
+    }
+    reorderItems(id, dto) {
+        return this.deliverablesService.reorderItems(id, dto.itemIds);
     }
     submit(id, user, file, caption) {
         return this.deliverablesService.submit(id, user.userId, user.role, file, caption);
@@ -106,6 +110,15 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], DeliverablesController.prototype, "downloadItem", null);
+__decorate([
+    (0, common_1.Patch)(':id/items/reorder'),
+    (0, roles_decorator_1.Roles)(...DELIVERABLE_SUBMISSION_ROLES),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, reorder_items_dto_1.ReorderDeliverableItemsDto]),
+    __metadata("design:returntype", void 0)
+], DeliverablesController.prototype, "reorderItems", null);
 __decorate([
     (0, common_1.Post)(':id/submit'),
     (0, roles_decorator_1.Roles)(...DELIVERABLE_SUBMISSION_ROLES),

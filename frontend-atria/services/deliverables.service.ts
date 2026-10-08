@@ -1,10 +1,5 @@
 import JSZip from "jszip";
-import {
-  API_BASE_URL,
-  ApiError,
-  apiRequest,
-  refreshAuthSession,
-} from "./api";
+import { API_BASE_URL, ApiError, apiRequest, refreshAuthSession } from "./api";
 import { clearAuthStorage, getAccessToken } from "@/lib/auth-storage";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
@@ -23,11 +18,24 @@ export function getFullView(id: string) {
   return apiRequest<DeliverableFullView>(`/deliverables/${id}/full-view`);
 }
 
+export function reorderItems(deliverableId: string, itemIds: string[]) {
+  return apiRequest<DeliverableFullView>(
+    `/deliverables/${deliverableId}/items/reorder`,
+    {
+      method: "PATCH",
+      body: { itemIds },
+    },
+  );
+}
+
 export function approveInternal(id: string) {
-  return apiRequest<DeliverableFullView>(`/deliverables/${id}/approve-internal`, {
-    method: "POST",
-    body: {},
-  });
+  return apiRequest<DeliverableFullView>(
+    `/deliverables/${id}/approve-internal`,
+    {
+      method: "POST",
+      body: {},
+    },
+  );
 }
 
 export function approveClient(id: string) {
@@ -52,17 +60,14 @@ export function reviseItem(
     feedbackNotes?: string | null;
   },
 ) {
-  return apiRequest<DeliverableItem>(
-    `/deliverables/items/${itemId}/revision`,
-    {
-      method: "PATCH",
-      body: {
-        status: data.status.toUpperCase(),
-        adjustmentNotes: data.adjustmentNotes ?? data.feedbackNotes,
-        feedbackNotes: data.feedbackNotes ?? data.adjustmentNotes,
-      },
+  return apiRequest<DeliverableItem>(`/deliverables/items/${itemId}/revision`, {
+    method: "PATCH",
+    body: {
+      status: data.status.toUpperCase(),
+      adjustmentNotes: data.adjustmentNotes ?? data.feedbackNotes,
+      feedbackNotes: data.feedbackNotes ?? data.adjustmentNotes,
     },
-  );
+  });
 }
 
 async function fetchDownloadResponse(itemId: string): Promise<Response> {

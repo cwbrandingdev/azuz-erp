@@ -26,6 +26,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { RejectClientDeliverableDto } from './dto/client-review.dto';
+import { ReorderDeliverableItemsDto } from './dto/reorder-items.dto';
 import { RevisionDeliverableItemDto } from './dto/revision-item.dto';
 import { DeliverablesService } from './deliverables.service';
 
@@ -90,6 +91,15 @@ export class DeliverablesController {
     };
   }
 
+  @Patch(':id/items/reorder')
+  @Roles(...DELIVERABLE_SUBMISSION_ROLES)
+  reorderItems(
+    @Param('id') id: string,
+    @Body() dto: ReorderDeliverableItemsDto,
+  ) {
+    return this.deliverablesService.reorderItems(id, dto.itemIds);
+  }
+
   @Post(':id/submit')
   @Roles(...DELIVERABLE_SUBMISSION_ROLES)
   @UseInterceptors(
@@ -111,7 +121,13 @@ export class DeliverablesController {
     @UploadedFile() file: Express.Multer.File,
     @Body('caption') caption?: string,
   ) {
-    return this.deliverablesService.submit(id, user.userId, user.role, file, caption);
+    return this.deliverablesService.submit(
+      id,
+      user.userId,
+      user.role,
+      file,
+      caption,
+    );
   }
 
   @Post(':id/approve-internal')
@@ -120,11 +136,7 @@ export class DeliverablesController {
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.deliverablesService.approveInternal(
-      id,
-      user.userId,
-      user.role,
-    );
+    return this.deliverablesService.approveInternal(id, user.userId, user.role);
   }
 
   @Post(':id/reject-client')

@@ -155,9 +155,9 @@ export declare class ClientPortalController {
         updatedAt: string;
         user: {
             id: string;
-            name: string;
             email: string;
             avatarUrl: string | null;
+            name: string;
         };
     }[]>;
     createCrmLeadComment(user: AuthenticatedUser, id: string, dto: CreateLeadCommentDto): Promise<{
@@ -167,20 +167,20 @@ export declare class ClientPortalController {
         updatedAt: string;
         user: {
             id: string;
-            name: string;
             email: string;
             avatarUrl: string | null;
+            name: string;
         };
     }>;
     getPortalData(user: AuthenticatedUser): Promise<{
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
-            isActive: boolean;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
+            isActive: boolean;
             hasCrmEnabled: boolean;
         };
         accountStatus: {
@@ -295,12 +295,12 @@ export declare class ClientPortalController {
         clientId: string;
         client: {
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
-            isActive: boolean;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             instagram: string | null;
+            avatarUrl: string | null;
+            isActive: boolean;
             hasCrmEnabled: boolean;
         };
         month: number;
@@ -309,8 +309,8 @@ export declare class ClientPortalController {
         data: import("@prisma/client/runtime/library").JsonValue;
         generatedBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         };
         createdAt: string;
     }>;
@@ -324,8 +324,8 @@ export declare class ClientPortalController {
             mediaUrls: string[];
             createdBy: {
                 id: string;
-                name: string;
                 avatarUrl: string | null;
+                name: string;
             };
             createdAt: string;
         }[];
@@ -378,15 +378,15 @@ export declare class ClientPortalController {
         client: {
             number: string | null;
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
             companyName: string;
             contactName: string | null;
+            email: string | null;
             phone: string | null;
             street: string | null;
             city: string | null;
             state: string | null;
             zipCode: string | null;
+            avatarUrl: string | null;
         };
         title: string;
         status: string;
@@ -398,9 +398,9 @@ export declare class ClientPortalController {
         pdfUrl: string | null;
         createdBy: {
             id: string;
-            name: string;
             email: string;
             avatarUrl: string | null;
+            name: string;
         };
         createdAt: string;
         updatedAt: string;
@@ -412,15 +412,15 @@ export declare class ClientPortalController {
             client: {
                 number: string | null;
                 id: string;
-                email: string | null;
-                avatarUrl: string | null;
                 companyName: string;
                 contactName: string | null;
+                email: string | null;
                 phone: string | null;
                 street: string | null;
                 city: string | null;
                 state: string | null;
                 zipCode: string | null;
+                avatarUrl: string | null;
             };
             title: string;
             status: "draft" | "sent" | "signed" | "expired" | "cancelled";
@@ -432,9 +432,9 @@ export declare class ClientPortalController {
             pdfUrl: string | null;
             createdBy: {
                 id: string;
-                name: string;
                 email: string;
                 avatarUrl: string | null;
+                name: string;
             };
             receivablesCount: number;
             createdAt: string;
@@ -970,8 +970,8 @@ export declare class ClientPortalController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
+            avatarUrl: string | null;
         };
         fileName: string;
         fileType: "image" | "logo" | "brand_guide" | "document";
@@ -979,8 +979,8 @@ export declare class ClientPortalController {
         fileSize: number;
         uploadedBy: {
             id: string;
-            name: string;
             avatarUrl: string | null;
+            name: string;
         } | null;
         uploadedAt: string;
     }>;
