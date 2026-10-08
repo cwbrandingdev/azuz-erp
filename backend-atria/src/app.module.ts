@@ -48,7 +48,7 @@ import { UserGroupsModule } from './user-groups/user-groups.module';
 import { UsersModule } from './users/users.module';
 import { VoiceModule } from './voice/voice.module';
 import { LeadMinerModule } from './leadminer/leadminer.module';
-import { WhatsappWebhookModule } from './whatsapp-webhook/whatsapp-webhook.module';
+import { WhatsAppModule } from './whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -105,7 +105,7 @@ import { WhatsappWebhookModule } from './whatsapp-webhook/whatsapp-webhook.modul
     UsersModule,
     VoiceModule,
     SlaModule,
-    WhatsappWebhookModule,
+    WhatsAppModule,
   ],
   providers: [
     {

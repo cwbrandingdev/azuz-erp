@@ -52,6 +52,7 @@ const envSchema = z
     META_APP_SECRET: z.string().optional().or(z.literal('')),
     WEBHOOK_VERIFY_TOKEN: z.string().optional().or(z.literal('')),
     WHATSAPP_PHONE_NUMBER_ID: z.string().optional().or(z.literal('')),
+    WHATSAPP_PERMANENT_TOKEN: z.string().optional().or(z.literal('')),
     WHATSAPP_ACCESS_TOKEN: z.string().optional().or(z.literal('')),
   })
   .transform((data) => {
@@ -68,6 +69,8 @@ const envSchema = z
       SUPABASE_ANON_KEY: data.SUPABASE_ANON_KEY || undefined,
       SUPABASE_SERVICE_ROLE_KEY: data.SUPABASE_SERVICE_ROLE_KEY || undefined,
       SUPABASE_DB_SCHEMA: schema,
+      WHATSAPP_PERMANENT_TOKEN:
+        data.WHATSAPP_PERMANENT_TOKEN || data.WHATSAPP_ACCESS_TOKEN || '',
     };
   });
 
