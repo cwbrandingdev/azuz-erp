@@ -23,6 +23,8 @@ const current_user_decorator_1 = require("../auth/decorators/current-user.decora
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const permissions_guard_1 = require("../auth/guards/permissions.guard");
 const rbac_1 = require("../auth/utils/rbac");
+const upload_limits_1 = require("../common/upload/upload-limits");
+const validate_upload_file_size_pipe_1 = require("../common/upload/validate-upload-file-size.pipe");
 const assets_service_1 = require("./assets.service");
 const asset_dto_1 = require("./dto/asset.dto");
 let AssetsController = class AssetsController {
@@ -80,11 +82,11 @@ __decorate([
                 cb(null, unique);
             },
         }),
-        limits: { fileSize: 100 * 1024 * 1024 },
+        limits: { fileSize: upload_limits_1.UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES },
     })),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.UploadedFile)()),
+    __param(2, (0, common_1.UploadedFile)(validate_upload_file_size_pipe_1.ValidateUploadFileSizePipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, asset_dto_1.CreateAssetDto, Object]),
     __metadata("design:returntype", void 0)

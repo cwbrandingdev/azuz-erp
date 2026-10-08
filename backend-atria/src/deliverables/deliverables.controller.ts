@@ -21,6 +21,8 @@ import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
+import { UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES } from '../common/upload/upload-limits';
+import { ValidateUploadFileSizePipe } from '../common/upload/validate-upload-file-size.pipe';
 import { DELIVERABLE_ACCESS_ROLES } from '../auth/constants/roles';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -112,13 +114,13 @@ export class DeliverablesController {
           cb(null, `${randomUUID()}${extname(file.originalname)}`);
         },
       }),
-      limits: { fileSize: 100 * 1024 * 1024 },
+      limits: { fileSize: UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES },
     }),
   )
   submit(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(ValidateUploadFileSizePipe) file: Express.Multer.File,
     @Body('caption') caption?: string,
   ) {
     return this.deliverablesService.submit(

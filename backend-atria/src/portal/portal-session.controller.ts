@@ -17,6 +17,8 @@ import { diskStorage, memoryStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
 import { Throttle } from '@nestjs/throttler';
+import { UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES } from '../common/upload/upload-limits';
+import { ValidateUploadFileSizePipe } from '../common/upload/validate-upload-file-size.pipe';
 import { AUTH_THROTTLE } from '../auth/constants/throttle';
 import { USER_MANAGEMENT_ROLES } from '../auth/constants/roles';
 import { PortalAuthenticated } from '../auth/decorators/portal-authenticated.decorator';
@@ -155,13 +157,13 @@ export class PortalSessionController {
           cb(null, `${randomUUID()}${extname(file.originalname)}`);
         },
       }),
-      limits: { fileSize: 100 * 1024 * 1024 },
+      limits: { fileSize: UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES },
     }),
   )
   uploadAsset(
     @Req() req: PortalRequest,
     @Query('fileType') fileType: string | undefined,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(ValidateUploadFileSizePipe) file: Express.Multer.File,
   ) {
     return this.portalService.uploadPortalAssetForClient(
       req.portalUser.clientId,
@@ -190,12 +192,12 @@ export class PortalSessionController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: { fileSize: 100 * 1024 * 1024 },
+      limits: { fileSize: UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES },
     }),
   )
   uploadFinancialAttachment(
     @Req() req: PortalRequest,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(ValidateUploadFileSizePipe) file: Express.Multer.File,
     @Body() dto: CreateClientFinancialAttachmentDto,
   ) {
     if (!file) {

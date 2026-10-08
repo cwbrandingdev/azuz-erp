@@ -17,6 +17,8 @@ import { RoleName } from '@prisma/client';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
+import { UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES } from '../common/upload/upload-limits';
+import { ValidateUploadFileSizePipe } from '../common/upload/validate-upload-file-size.pipe';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -309,13 +311,13 @@ export class ClientPortalController {
           cb(null, `${randomUUID()}${extname(file.originalname)}`);
         },
       }),
-      limits: { fileSize: 100 * 1024 * 1024 },
+      limits: { fileSize: UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES },
     }),
   )
   uploadAsset(
     @CurrentUser() user: AuthenticatedUser,
     @Query('fileType') fileType: string | undefined,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(ValidateUploadFileSizePipe) file: Express.Multer.File,
   ) {
     if (!file) {
       throw new BadRequestException('Arquivo obrigatório');

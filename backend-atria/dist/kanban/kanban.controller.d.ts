@@ -18,8 +18,8 @@ export declare class KanbanController {
             deletedAt: string;
             deletedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         total: number;
@@ -95,13 +95,13 @@ export declare class KanbanController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -113,8 +113,8 @@ export declare class KanbanController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -166,13 +166,13 @@ export declare class KanbanController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -184,8 +184,8 @@ export declare class KanbanController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -237,13 +237,13 @@ export declare class KanbanController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -255,8 +255,8 @@ export declare class KanbanController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -308,13 +308,13 @@ export declare class KanbanController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -326,8 +326,8 @@ export declare class KanbanController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -379,13 +379,13 @@ export declare class KanbanController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -397,8 +397,8 @@ export declare class KanbanController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -450,13 +450,13 @@ export declare class KanbanController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -468,8 +468,8 @@ export declare class KanbanController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -521,13 +521,13 @@ export declare class KanbanController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -539,8 +539,8 @@ export declare class KanbanController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -592,13 +592,13 @@ export declare class KanbanController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -610,8 +610,8 @@ export declare class KanbanController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -641,8 +641,8 @@ export declare class KanbanController {
         uploadedAt: string;
         uploadedBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
     }>;
     bulkDeleteTaskAssets(user: AuthenticatedUser, id: string, dto: BulkDeleteTaskAssetsDto): Promise<{
@@ -656,8 +656,8 @@ export declare class KanbanController {
         createdAt: string;
         user: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
     }[]>;
     createComment(user: AuthenticatedUser, id: string, dto: CreateCommentDto): Promise<{
@@ -666,8 +666,8 @@ export declare class KanbanController {
         createdAt: string;
         user: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
     }>;
     getHistory(id: string): Promise<{
@@ -676,8 +676,8 @@ export declare class KanbanController {
         createdAt: string;
         user: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
     }[]>;
 }

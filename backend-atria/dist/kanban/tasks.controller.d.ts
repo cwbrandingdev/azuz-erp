@@ -36,13 +36,13 @@ export declare class TasksController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -54,8 +54,8 @@ export declare class TasksController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -107,13 +107,13 @@ export declare class TasksController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -125,8 +125,8 @@ export declare class TasksController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -178,13 +178,13 @@ export declare class TasksController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -196,8 +196,8 @@ export declare class TasksController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;
@@ -249,13 +249,13 @@ export declare class TasksController {
         } | null;
         assignees: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         }[];
         createdBy: {
             id: string;
-            avatarUrl: string | null;
             name: string;
+            avatarUrl: string | null;
         };
         assets: {
             id: string;
@@ -267,8 +267,8 @@ export declare class TasksController {
             uploadedAt: string;
             uploadedBy: {
                 id: string;
-                avatarUrl: string | null;
                 name: string;
+                avatarUrl: string | null;
             };
         }[];
         updatedAt: string;

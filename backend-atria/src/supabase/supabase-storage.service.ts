@@ -4,6 +4,10 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  UPLOAD_MAX_FILE_SIZE_BYTES,
+  UPLOAD_MAX_VIDEO_FILE_SIZE_BYTES,
+} from '../common/upload/upload-limits';
 import { SupabaseService } from './supabase.service';
 
 @Injectable()
@@ -231,11 +235,11 @@ export class SupabaseStorageService {
       const { error: updateError } =
         await this.supabase.admin.storage.updateBucket(bucket, {
           public: true,
-          fileSizeLimit: 100 * 1024 * 1024,
+          fileSizeLimit: UPLOAD_MAX_FILE_SIZE_BYTES,
         });
       if (updateError) {
         console.warn(
-          `[storage] Could not raise ${bucket} size limit to 100MB: ${updateError.message}`,
+          `[storage] Could not raise ${bucket} size limit to ${UPLOAD_MAX_FILE_SIZE_BYTES / (1024 * 1024)}MB: ${updateError.message}`,
         );
       }
       return;
@@ -245,7 +249,7 @@ export class SupabaseStorageService {
       bucket,
       {
         public: true,
-        fileSizeLimit: 100 * 1024 * 1024,
+        fileSizeLimit: UPLOAD_MAX_FILE_SIZE_BYTES,
         allowedMimeTypes: [
           'image/png',
           'image/jpeg',
@@ -327,11 +331,11 @@ export class SupabaseStorageService {
       const { error: updateError } =
         await this.supabase.admin.storage.updateBucket(bucket, {
           public: true,
-          fileSizeLimit: 100 * 1024 * 1024,
+          fileSizeLimit: UPLOAD_MAX_VIDEO_FILE_SIZE_BYTES,
         });
       if (updateError) {
         console.warn(
-          `[storage] Could not raise ${bucket} size limit to 100MB: ${updateError.message}`,
+          `[storage] Could not raise ${bucket} size limit to ${UPLOAD_MAX_VIDEO_FILE_SIZE_BYTES / (1024 * 1024)}MB: ${updateError.message}`,
         );
       }
       return;
@@ -341,7 +345,7 @@ export class SupabaseStorageService {
       bucket,
       {
         public: true,
-        fileSizeLimit: 100 * 1024 * 1024,
+        fileSizeLimit: UPLOAD_MAX_VIDEO_FILE_SIZE_BYTES,
         allowedMimeTypes: [
           'image/png',
           'image/jpeg',
