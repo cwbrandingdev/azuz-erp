@@ -14,42 +14,19 @@ export function useWhatsappConversations() {
   });
 }
 
-export function useWhatsappMessages(conversationId: string | null) {
-  const companyId = useCompanyId();
-
-  return useQuery({
-    queryKey: whatsappKeys.messages(companyId ?? "", conversationId ?? ""),
-    queryFn: () => whatsappService.listMessages(conversationId as string),
-    enabled: Boolean(companyId) && Boolean(conversationId),
-    refetchInterval: 3000,
-  });
-}
-
 export function useWhatsappMutations() {
   const queryClient = useQueryClient();
   const companyId = useCompanyId();
 
-  const createConversation = useMutation({
-    mutationFn: (data: { phone: string; name?: string }) =>
-      whatsappService.createConversation(data),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: whatsappKeys.conversations(companyId ?? ""),
-      }),
-  });
-
   const sendMessage = useMutation({
-    mutationFn: (data: { to: string; body: string }) =>
+    mutationFn: (data: { to: string; message: string }) =>
       whatsappService.sendMessage(data),
-    onSuccess: (result) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: whatsappKeys.conversations(companyId ?? ""),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: whatsappKeys.messages(companyId ?? "", result.conversation.id),
+        queryKey: whatsappKeys.root,
       });
     },
   });
 
-  return { createConversation, sendMessage };
+  return { sendMessage };
 }

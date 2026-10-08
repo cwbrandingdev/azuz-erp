@@ -1,63 +1,42 @@
 import { apiRequest } from "./api";
 
-export interface WhatsappConversation {
-  id: string;
-  waId: string;
-  phone: string | null;
-  name: string | null;
-  lastMessageAt: string;
-  lastMessagePreview: string | null;
-  unreadCount: number;
-  createdAt: string;
-}
+export type WhatsAppMessageDirection = "INBOUND" | "OUTBOUND";
+export type WhatsAppMessageStatus = "SENT" | "DELIVERED" | "READ" | "FAILED";
 
-export interface WhatsappMessage {
+export interface WhatsAppMessage {
   id: string;
-  conversationId: string;
-  direction: "IN" | "OUT" | string;
-  type: string;
-  body: string | null;
-  waMessageId: string | null;
-  status: string;
-  createdAt: string;
-}
-
-export interface SendWhatsappMessageInput {
-  to: string;
+  whatsappMessageId: string | null;
+  fromPhone: string;
+  toPhone: string;
   body: string;
+  direction: WhatsAppMessageDirection;
+  status: WhatsAppMessageStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface SendWhatsappMessageResult {
-  conversation: WhatsappConversation;
-  message: WhatsappMessage;
-}
-
-export async function listConversations(): Promise<WhatsappConversation[]> {
-  return apiRequest<WhatsappConversation[]>("/whatsapp/conversations");
-}
-
-export async function createConversation(data: {
+export interface WhatsAppConversation {
   phone: string;
-  name?: string;
-}): Promise<WhatsappConversation> {
-  return apiRequest<WhatsappConversation>("/whatsapp/conversations", {
-    method: "POST",
-    body: data,
-  });
+  lastMessage: string;
+  lastMessageAt: string;
+  direction: WhatsAppMessageDirection;
 }
 
-export async function listMessages(
-  conversationId: string,
-): Promise<WhatsappMessage[]> {
-  return apiRequest<WhatsappMessage[]>(
-    `/whatsapp/conversations/${conversationId}/messages`,
+export async function listConversations(): Promise<WhatsAppConversation[]> {
+  return apiRequest<WhatsAppConversation[]>("/whatsapp/conversations");
+}
+
+export async function getMessages(phone: string): Promise<WhatsAppMessage[]> {
+  return apiRequest<WhatsAppMessage[]>(
+    `/whatsapp/messages/${encodeURIComponent(phone)}`,
   );
 }
 
-export async function sendMessage(
-  data: SendWhatsappMessageInput,
-): Promise<SendWhatsappMessageResult> {
-  return apiRequest<SendWhatsappMessageResult>("/whatsapp/messages", {
+export async function sendMessage(data: {
+  to: string;
+  message: string;
+}): Promise<WhatsAppMessage> {
+  return apiRequest<WhatsAppMessage>("/whatsapp/send", {
     method: "POST",
     body: data,
   });

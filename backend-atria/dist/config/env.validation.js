@@ -54,6 +54,7 @@ const envSchema = zod_1.z
     META_APP_SECRET: zod_1.z.string().optional().or(zod_1.z.literal('')),
     WEBHOOK_VERIFY_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
     WHATSAPP_PHONE_NUMBER_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    WHATSAPP_PERMANENT_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
     WHATSAPP_ACCESS_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
 })
     .transform((data) => {
@@ -68,6 +69,7 @@ const envSchema = zod_1.z
         SUPABASE_ANON_KEY: data.SUPABASE_ANON_KEY || undefined,
         SUPABASE_SERVICE_ROLE_KEY: data.SUPABASE_SERVICE_ROLE_KEY || undefined,
         SUPABASE_DB_SCHEMA: schema,
+        WHATSAPP_PERMANENT_TOKEN: data.WHATSAPP_PERMANENT_TOKEN || data.WHATSAPP_ACCESS_TOKEN || '',
     };
 });
 function validateEnv(config) {

@@ -57,7 +57,7 @@ const user_groups_module_1 = require("./user-groups/user-groups.module");
 const users_module_1 = require("./users/users.module");
 const voice_module_1 = require("./voice/voice.module");
 const leadminer_module_1 = require("./leadminer/leadminer.module");
-const whatsapp_webhook_module_1 = require("./whatsapp-webhook/whatsapp-webhook.module");
+const whatsapp_module_1 = require("./whatsapp/whatsapp.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -117,7 +117,7 @@ exports.AppModule = AppModule = __decorate([
             users_module_1.UsersModule,
             voice_module_1.VoiceModule,
             sla_module_1.SlaModule,
-            whatsapp_webhook_module_1.WhatsappWebhookModule,
+            whatsapp_module_1.WhatsAppModule,
         ],
         providers: [
             {
