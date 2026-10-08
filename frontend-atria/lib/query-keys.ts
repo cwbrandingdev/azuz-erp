@@ -117,7 +117,7 @@ export const assetKeys = {
 export const whatsappKeys = {
   conversations: (companyId: string) =>
     ["whatsapp", companyId, "conversations"] as const,
-  messages: (companyId: string, conversationId: string) =>
-    ["whatsapp", companyId, "messages", conversationId] as const,
+  messages: (companyId: string, phone: string) =>
+    ["whatsapp", companyId, "messages", phone] as const,
   root: ["whatsapp"] as const,
 };
