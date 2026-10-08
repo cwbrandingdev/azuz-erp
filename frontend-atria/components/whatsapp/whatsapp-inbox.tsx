@@ -5,6 +5,7 @@ import {
   Check,
   CheckCheck,
   MessageCircle,
+  Phone,
   Plus,
   Search,
   Send,
@@ -21,11 +22,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
+import { WhatsappCallDock } from "@/components/whatsapp/whatsapp-call-dock";
 import {
   useWhatsappCannedResponses,
   useWhatsappConversations,
   useWhatsappMutations,
 } from "@/hooks/use-whatsapp";
+import { useWhatsappVoice } from "@/hooks/use-whatsapp-voice";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { usersService } from "@/services";
@@ -107,6 +110,7 @@ function StatusTicks({ status }: { status: string }) {
 export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const { user } = useAuth();
   const { sendMessage, addNote, updateConversation } = useWhatsappMutations();
+  const voice = useWhatsappVoice();
   const { data: canned = [] } = useWhatsappCannedResponses();
   const membersQuery = useQuery({
     queryKey: ["whatsapp-members"],
@@ -207,6 +211,13 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
 
   return (
     <div className="-m-4 flex h-[calc(100dvh-3.5rem)] overflow-hidden border border-black/5 bg-white lg:-m-6 lg:h-[calc(100dvh-4rem)] xl:-m-8">
+      <WhatsappCallDock
+        voice={voice}
+        nameFor={(phone) => {
+          const conversation = conversations.find((item) => item.phone === phone);
+          return conversation ? displayName(conversation) : formatPhone(phone);
+        }}
+      />
       <aside className="flex w-full max-w-[360px] shrink-0 flex-col border-r border-black/10 bg-[#f8f9fc]">
         <div className="flex items-center justify-between border-b border-black/5 bg-white px-4 py-3">
           <div>
@@ -349,6 +360,18 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="outline"
+                  disabled={
+                    voice.busy || Boolean(voice.active) || Boolean(voice.incoming)
+                  }
+                  onClick={() => void voice.startCall(selectedPhone)}
+                  aria-label="Ligar no WhatsApp"
+                >
+                  <Phone className="size-4" />
+                </Button>
                 <select
                   className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
                   value={selected?.status ?? "OPEN"}

@@ -1699,6 +1699,20 @@ enum WhatsAppConversationPriority {
   URGENT
 }
 
+enum WhatsAppCallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum WhatsAppCallStatus {
+  CONNECTING
+  RINGING
+  IN_PROGRESS
+  ENDED
+  REJECTED
+  FAILED
+}
+
 model WhatsAppConversation {
   id                 String                       @id @default(uuid())
   phone              String                       @unique
@@ -1751,6 +1765,25 @@ model WhatsAppCannedResponse {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("whatsapp_canned_responses")
+}
+
+model WhatsAppCall {
+  id               String                @id @default(uuid())
+  whatsappCallId   String                @unique @map("whatsapp_call_id")
+  phone            String
+  direction        WhatsAppCallDirection
+  status           WhatsAppCallStatus
+  offerSdp         String?               @map("offer_sdp")
+  answerSdp        String?               @map("answer_sdp")
+  startedAt        DateTime?             @map("started_at")
+  endedAt          DateTime?             @map("ended_at")
+  durationSeconds  Int?                  @map("duration_seconds")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@index([phone, createdAt])
+  @@map("whatsapp_calls")
 }
 
 model AppUpdate {

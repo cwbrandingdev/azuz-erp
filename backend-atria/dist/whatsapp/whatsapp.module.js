@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhatsAppModule = void 0;
 const axios_1 = require("@nestjs/axios");
 const common_1 = require("@nestjs/common");
+const whatsapp_calling_service_1 = require("./application/whatsapp-calling.service");
 const whatsapp_service_1 = require("./application/whatsapp.service");
 const whatsapp_graph_gateway_1 = require("./domain/whatsapp-graph.gateway");
 const whatsapp_message_repository_1 = require("./domain/whatsapp-message.repository");
@@ -32,6 +33,7 @@ exports.WhatsAppModule = WhatsAppModule = __decorate([
         providers: [
             whatsapp_config_1.WhatsAppConfig,
             whatsapp_service_1.WhatsAppService,
+            whatsapp_calling_service_1.WhatsAppCallingService,
             {
                 provide: whatsapp_message_repository_1.WhatsAppMessageRepository,
                 useClass: prisma_whatsapp_message_repository_1.PrismaWhatsAppMessageRepository,
@@ -41,7 +43,7 @@ exports.WhatsAppModule = WhatsAppModule = __decorate([
                 useClass: meta_whatsapp_graph_client_1.MetaWhatsAppGraphClient,
             },
         ],
-        exports: [whatsapp_service_1.WhatsAppService],
+        exports: [whatsapp_service_1.WhatsAppService, whatsapp_calling_service_1.WhatsAppCallingService],
     })
 ], WhatsAppModule);
 //# sourceMappingURL=whatsapp.module.js.map
