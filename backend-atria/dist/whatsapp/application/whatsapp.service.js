@@ -38,8 +38,9 @@ let WhatsAppService = class WhatsAppService {
                 const value = change.value;
                 if (!value)
                     continue;
+                const contactName = value.contacts?.[0]?.profile?.name ?? null;
                 for (const inbound of value.messages ?? []) {
-                    await this.persistInbound(inbound);
+                    await this.persistInbound(inbound, contactName);
                 }
                 for (const status of value.statuses ?? []) {
                     await this.persistStatus(status);
@@ -47,10 +48,15 @@ let WhatsAppService = class WhatsAppService {
             }
         }
     }
-    async send(to, message) {
+    async send(to, message, userId) {
         const recipient = (0, whatsapp_phone_1.normalizeWhatsAppPhone)(to);
         const businessPhone = await this.graph.getBusinessPhone();
         const result = await this.graph.sendText(recipient, message);
+        const conversation = await this.messages.upsertConversation({
+            phone: recipient,
+            preview: message,
+            inbound: false,
+        });
         return this.messages.create({
             whatsappMessageId: result.whatsappMessageId,
             fromPhone: businessPhone,
@@ -58,15 +64,55 @@ let WhatsAppService = class WhatsAppService {
             body: message,
             direction: whatsapp_message_1.WhatsAppDirection.OUTBOUND,
             status: whatsapp_message_1.WhatsAppStatus.SENT,
+            isPrivate: false,
+            sentByUserId: userId ?? null,
+            conversationId: conversation.id,
+        });
+    }
+    async addPrivateNote(phone, body, userId) {
+        const recipient = (0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone);
+        const businessPhone = await this.graph.getBusinessPhone();
+        const conversation = await this.messages.upsertConversation({
+            phone: recipient,
+            preview: body,
+            inbound: false,
+        });
+        return this.messages.create({
+            whatsappMessageId: null,
+            fromPhone: businessPhone,
+            toPhone: recipient,
+            body,
+            direction: whatsapp_message_1.WhatsAppDirection.OUTBOUND,
+            status: whatsapp_message_1.WhatsAppStatus.SENT,
+            isPrivate: true,
+            sentByUserId: userId,
+            conversationId: conversation.id,
         });
     }
     async listByPhone(phone) {
-        return this.messages.findConversation((0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone));
+        const normalized = (0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone);
+        await this.messages.markConversationRead(normalized);
+        return this.messages.findConversation(normalized);
     }
-    async listConversations() {
-        return this.messages.listConversations();
+    async listConversations(filter) {
+        return this.messages.listConversations(filter);
     }
-    async persistInbound(message) {
+    async getConversation(phone) {
+        return this.messages.getConversation((0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone));
+    }
+    async updateConversation(phone, patch) {
+        return this.messages.updateConversation((0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone), patch);
+    }
+    listCannedResponses() {
+        return this.messages.listCannedResponses();
+    }
+    createCannedResponse(input) {
+        return this.messages.createCannedResponse(input);
+    }
+    deleteCannedResponse(id) {
+        return this.messages.deleteCannedResponse(id);
+    }
+    async persistInbound(message, contactName) {
         const body = (0, whatsapp_message_1.extractInboundText)(message);
         const from = message.from ? (0, whatsapp_phone_1.normalizeWhatsAppPhone)(message.from) : '';
         if (!body || !from) {
@@ -79,6 +125,13 @@ let WhatsAppService = class WhatsAppService {
             }
         }
         const businessPhone = await this.graph.getBusinessPhone();
+        const conversation = await this.messages.upsertConversation({
+            phone: from,
+            name: contactName,
+            preview: body,
+            inbound: true,
+            reopen: true,
+        });
         await this.messages.create({
             whatsappMessageId: message.id ?? null,
             fromPhone: from,
@@ -86,6 +139,9 @@ let WhatsAppService = class WhatsAppService {
             body,
             direction: whatsapp_message_1.WhatsAppDirection.INBOUND,
             status: whatsapp_message_1.WhatsAppStatus.DELIVERED,
+            isPrivate: false,
+            sentByUserId: null,
+            conversationId: conversation.id,
         });
     }
     async persistStatus(status) {

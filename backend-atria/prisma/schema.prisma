@@ -129,6 +129,8 @@ model User {
   systemSuggestions            SystemSuggestion[]
   appUpdatesCreated            AppUpdate[]
   leadCalls                    LeadCall[]
+  whatsappAssignedConversations WhatsAppConversation[]
+  whatsappMessagesSent          WhatsAppMessage[]
 
   @@unique([companyId, email])
   @@index([clientId])
@@ -1682,6 +1684,42 @@ enum WhatsAppMessageStatus {
   FAILED
 }
 
+enum WhatsAppConversationStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  SNOOZED
+}
+
+enum WhatsAppConversationPriority {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model WhatsAppConversation {
+  id                 String                       @id @default(uuid())
+  phone              String                       @unique
+  name               String?
+  status             WhatsAppConversationStatus   @default(OPEN)
+  priority           WhatsAppConversationPriority @default(NONE)
+  assignedUserId     String?                      @map("assigned_user_id")
+  labels             String[]                     @default([])
+  unreadCount        Int                          @default(0) @map("unread_count")
+  lastMessageAt      DateTime                     @default(now()) @map("last_message_at")
+  lastMessagePreview String?                      @map("last_message_preview")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
+  assignedUser       User?                        @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  messages           WhatsAppMessage[]
+
+  @@index([status, lastMessageAt])
+  @@index([assignedUserId])
+  @@map("whatsapp_conversations")
+}
+
 model WhatsAppMessage {
   id                String                    @id @default(uuid())
   whatsappMessageId String?                   @unique @map("whatsapp_message_id")
@@ -1690,12 +1728,29 @@ model WhatsAppMessage {
   body              String
   direction         WhatsAppMessageDirection
   status            WhatsAppMessageStatus
+  isPrivate         Boolean                   @default(false) @map("is_private")
+  sentByUserId      String?                   @map("sent_by_user_id")
+  conversationId    String?                   @map("conversation_id")
   createdAt         DateTime                  @default(now()) @map("created_at")
   updatedAt         DateTime                  @updatedAt @map("updated_at")
+  conversation      WhatsAppConversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  sentBy            User?                     @relation(fields: [sentByUserId], references: [id], onDelete: SetNull)
 
   @@index([fromPhone, createdAt])
   @@index([toPhone, createdAt])
+  @@index([conversationId, createdAt])
   @@map("whatsapp_messages")
+}
+
+model WhatsAppCannedResponse {
+  id        String   @id @default(uuid())
+  shortCode String   @unique @map("short_code")
+  title     String
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("whatsapp_canned_responses")
 }
 
 model AppUpdate {

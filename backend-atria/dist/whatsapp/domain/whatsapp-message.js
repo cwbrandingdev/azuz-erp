@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WhatsAppStatus = exports.WhatsAppDirection = void 0;
+exports.WhatsAppInboxPriority = exports.WhatsAppInboxStatus = exports.WhatsAppStatus = exports.WhatsAppDirection = void 0;
 exports.mapMetaStatus = mapMetaStatus;
 exports.extractInboundText = extractInboundText;
 var WhatsAppDirection;
@@ -15,6 +15,21 @@ var WhatsAppStatus;
     WhatsAppStatus["READ"] = "READ";
     WhatsAppStatus["FAILED"] = "FAILED";
 })(WhatsAppStatus || (exports.WhatsAppStatus = WhatsAppStatus = {}));
+var WhatsAppInboxStatus;
+(function (WhatsAppInboxStatus) {
+    WhatsAppInboxStatus["OPEN"] = "OPEN";
+    WhatsAppInboxStatus["PENDING"] = "PENDING";
+    WhatsAppInboxStatus["RESOLVED"] = "RESOLVED";
+    WhatsAppInboxStatus["SNOOZED"] = "SNOOZED";
+})(WhatsAppInboxStatus || (exports.WhatsAppInboxStatus = WhatsAppInboxStatus = {}));
+var WhatsAppInboxPriority;
+(function (WhatsAppInboxPriority) {
+    WhatsAppInboxPriority["NONE"] = "NONE";
+    WhatsAppInboxPriority["LOW"] = "LOW";
+    WhatsAppInboxPriority["MEDIUM"] = "MEDIUM";
+    WhatsAppInboxPriority["HIGH"] = "HIGH";
+    WhatsAppInboxPriority["URGENT"] = "URGENT";
+})(WhatsAppInboxPriority || (exports.WhatsAppInboxPriority = WhatsAppInboxPriority = {}));
 function mapMetaStatus(status) {
     if (status === 'sent')
         return WhatsAppStatus.SENT;
