@@ -4,6 +4,9 @@ import {
   mapMetaStatus,
   WhatsAppDirection,
   WhatsAppStatus,
+  type ConversationListFilter,
+  type ConversationPatch,
+  type WhatsAppCannedResponseRecord,
   type WhatsAppConversationSummary,
   type WhatsAppMessageRecord,
 } from '../domain/whatsapp-message';
@@ -16,6 +19,7 @@ type MetaWebhookPayload = {
   entry?: Array<{
     changes?: Array<{
       value?: {
+        contacts?: Array<{ profile?: { name?: string }; wa_id?: string }>;
         messages?: Array<{
           id?: string;
           from?: string;
@@ -54,9 +58,10 @@ export class WhatsAppService {
       for (const change of entry.changes ?? []) {
         const value = change.value;
         if (!value) continue;
+        const contactName = value.contacts?.[0]?.profile?.name ?? null;
 
         for (const inbound of value.messages ?? []) {
-          await this.persistInbound(inbound);
+          await this.persistInbound(inbound, contactName);
         }
 
         for (const status of value.statuses ?? []) {
@@ -66,10 +71,19 @@ export class WhatsAppService {
     }
   }
 
-  async send(to: string, message: string): Promise<WhatsAppMessageRecord> {
+  async send(
+    to: string,
+    message: string,
+    userId?: string,
+  ): Promise<WhatsAppMessageRecord> {
     const recipient = normalizeWhatsAppPhone(to);
     const businessPhone = await this.graph.getBusinessPhone();
     const result = await this.graph.sendText(recipient, message);
+    const conversation = await this.messages.upsertConversation({
+      phone: recipient,
+      preview: message,
+      inbound: false,
+    });
 
     return this.messages.create({
       whatsappMessageId: result.whatsappMessageId,
@@ -78,24 +92,87 @@ export class WhatsAppService {
       body: message,
       direction: WhatsAppDirection.OUTBOUND,
       status: WhatsAppStatus.SENT,
+      isPrivate: false,
+      sentByUserId: userId ?? null,
+      conversationId: conversation.id,
+    });
+  }
+
+  async addPrivateNote(
+    phone: string,
+    body: string,
+    userId: string,
+  ): Promise<WhatsAppMessageRecord> {
+    const recipient = normalizeWhatsAppPhone(phone);
+    const businessPhone = await this.graph.getBusinessPhone();
+    const conversation = await this.messages.upsertConversation({
+      phone: recipient,
+      preview: body,
+      inbound: false,
+    });
+
+    return this.messages.create({
+      whatsappMessageId: null,
+      fromPhone: businessPhone,
+      toPhone: recipient,
+      body,
+      direction: WhatsAppDirection.OUTBOUND,
+      status: WhatsAppStatus.SENT,
+      isPrivate: true,
+      sentByUserId: userId,
+      conversationId: conversation.id,
     });
   }
 
   async listByPhone(phone: string): Promise<WhatsAppMessageRecord[]> {
-    return this.messages.findConversation(normalizeWhatsAppPhone(phone));
+    const normalized = normalizeWhatsAppPhone(phone);
+    await this.messages.markConversationRead(normalized);
+    return this.messages.findConversation(normalized);
   }
 
-  async listConversations(): Promise<WhatsAppConversationSummary[]> {
-    return this.messages.listConversations();
+  async listConversations(
+    filter: ConversationListFilter,
+  ): Promise<WhatsAppConversationSummary[]> {
+    return this.messages.listConversations(filter);
   }
 
-  private async persistInbound(message: {
-    id?: string;
-    from?: string;
-    type?: string;
-    text?: { body?: string };
-    image?: { caption?: string };
-  }): Promise<void> {
+  async getConversation(phone: string): Promise<WhatsAppConversationSummary | null> {
+    return this.messages.getConversation(normalizeWhatsAppPhone(phone));
+  }
+
+  async updateConversation(phone: string, patch: ConversationPatch) {
+    return this.messages.updateConversation(
+      normalizeWhatsAppPhone(phone),
+      patch,
+    );
+  }
+
+  listCannedResponses(): Promise<WhatsAppCannedResponseRecord[]> {
+    return this.messages.listCannedResponses();
+  }
+
+  createCannedResponse(input: {
+    shortCode: string;
+    title: string;
+    content: string;
+  }): Promise<WhatsAppCannedResponseRecord> {
+    return this.messages.createCannedResponse(input);
+  }
+
+  deleteCannedResponse(id: string): Promise<void> {
+    return this.messages.deleteCannedResponse(id);
+  }
+
+  private async persistInbound(
+    message: {
+      id?: string;
+      from?: string;
+      type?: string;
+      text?: { body?: string };
+      image?: { caption?: string };
+    },
+    contactName: string | null,
+  ): Promise<void> {
     const body = extractInboundText(message);
     const from = message.from ? normalizeWhatsAppPhone(message.from) : '';
     if (!body || !from) {
@@ -110,6 +187,14 @@ export class WhatsAppService {
     }
 
     const businessPhone = await this.graph.getBusinessPhone();
+    const conversation = await this.messages.upsertConversation({
+      phone: from,
+      name: contactName,
+      preview: body,
+      inbound: true,
+      reopen: true,
+    });
+
     await this.messages.create({
       whatsappMessageId: message.id ?? null,
       fromPhone: from,
@@ -117,6 +202,9 @@ export class WhatsAppService {
       body,
       direction: WhatsAppDirection.INBOUND,
       status: WhatsAppStatus.DELIVERED,
+      isPrivate: false,
+      sentByUserId: null,
+      conversationId: conversation.id,
     });
   }
 

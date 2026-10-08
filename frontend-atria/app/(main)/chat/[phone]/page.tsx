@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { WhatsappChat } from "@/components/whatsapp/whatsapp-chat";
+import { WhatsappInbox } from "@/components/whatsapp/whatsapp-inbox";
 
 export default function ChatPhonePage() {
   const params = useParams<{ phone: string }>();
@@ -11,5 +11,5 @@ export default function ChatPhonePage() {
     return null;
   }
 
-  return <WhatsappChat phone={phone} />;
+  return <WhatsappInbox initialPhone={phone} />;
 }
