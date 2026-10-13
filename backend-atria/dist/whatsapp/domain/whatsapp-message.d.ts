@@ -21,6 +21,16 @@ export declare enum WhatsAppInboxPriority {
     HIGH = "HIGH",
     URGENT = "URGENT"
 }
+export declare enum WhatsAppMessageKind {
+    TEXT = "TEXT",
+    IMAGE = "IMAGE",
+    DOCUMENT = "DOCUMENT",
+    AUDIO = "AUDIO",
+    VIDEO = "VIDEO",
+    LOCATION = "LOCATION",
+    TEMPLATE = "TEMPLATE",
+    STICKER = "STICKER"
+}
 export type WhatsAppAssignedUser = {
     id: string;
     name: string;
@@ -32,6 +42,19 @@ export type WhatsAppMessageRecord = {
     fromPhone: string;
     toPhone: string;
     body: string;
+    kind: WhatsAppMessageKind;
+    mediaUrl: string | null;
+    mediaMimeType: string | null;
+    mediaFilename: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    locationName: string | null;
+    locationAddress: string | null;
+    isViewOnce: boolean;
+    isVoiceNote: boolean;
+    transcription: string | null;
+    templateName: string | null;
+    templateLanguage: string | null;
     direction: WhatsAppDirection;
     status: WhatsAppStatus;
     isPrivate: boolean;
@@ -39,6 +62,14 @@ export type WhatsAppMessageRecord = {
     sentByName: string | null;
     createdAt: Date;
     updatedAt: Date;
+};
+export type WhatsAppLinkedLead = {
+    id: string;
+    name: string;
+    status: string;
+    source: string;
+    stageId: string | null;
+    stageName: string | null;
 };
 export type WhatsAppConversationSummary = {
     id: string;
@@ -52,18 +83,36 @@ export type WhatsAppConversationSummary = {
     lastMessageAt: Date;
     direction: WhatsAppDirection | null;
     assignedUser: WhatsAppAssignedUser | null;
+    queuedAt: Date | null;
+    assignedAt: Date | null;
+    lastAgentReplyAt: Date | null;
+    waitingSeconds: number;
+    slaBreached: boolean;
+    needsAgentReply: boolean;
+    lead: WhatsAppLinkedLead | null;
 };
 export type WhatsAppCannedResponseRecord = {
     id: string;
     shortCode: string;
     title: string;
     content: string;
+    kind: WhatsAppMessageKind;
+    mediaUrl: string | null;
+    mediaMimeType: string | null;
+    mediaFilename: string | null;
 };
 export type ConversationListFilter = {
+    tab?: 'OPEN' | 'MINE' | 'UNASSIGNED' | 'WAITING' | 'CLOSED';
     status?: WhatsAppInboxStatus;
     assignee?: 'mine' | 'unassigned' | 'all';
     userId?: string;
     query?: string;
+    operatorId?: string;
+    label?: string;
+    stageId?: string;
+    source?: string;
+    leadStatus?: string;
+    slaMinutes?: number;
 };
 export type ConversationPatch = {
     name?: string | null;
@@ -71,20 +120,10 @@ export type ConversationPatch = {
     priority?: WhatsAppInboxPriority;
     assignedUserId?: string | null;
     labels?: string[];
+    queuedAt?: Date | null;
+    assignedAt?: Date | null;
+    lastAgentReplyAt?: Date | null;
+    lastCustomerMessageAt?: Date | null;
 };
 export declare function mapMetaStatus(status: unknown): WhatsAppStatus | null;
-export declare function extractInboundText(message: {
-    type?: string;
-    text?: {
-        body?: string;
-    };
-    image?: {
-        caption?: string;
-    };
-    interactive?: {
-        type?: string;
-        call_permission_reply?: {
-            response?: string;
-        };
-    };
-}): string | null;
+export declare function kindFromMime(mimeType: string | undefined): WhatsAppMessageKind;

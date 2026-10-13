@@ -2179,7 +2179,9 @@ export type NotificationType =
   | "due_date_warning"
   | "new_request"
   | "system"
-  | "app_update";
+  | "app_update"
+  | "whatsapp_mention"
+  | "whatsapp_transfer";
 
 export interface AppNotification {
   id: string;
@@ -2467,6 +2469,8 @@ export interface Lead {
   kanbanTracked: boolean;
   kanbanOrder: number;
   orcamento?: number | null;
+  cnpj?: string | null;
+  jobTitle?: string | null;
   aiScore: number | null;
   aiNotes: string | null;
   source: string;
@@ -2505,6 +2509,8 @@ export interface UpdateCrmLeadInput {
   category?: string;
   source?: string;
   orcamento?: number | null;
+  cnpj?: string | null;
+  jobTitle?: string | null;
 }
 
 export interface AddLeadToKanbanInput {

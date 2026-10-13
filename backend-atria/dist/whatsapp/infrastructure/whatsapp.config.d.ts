@@ -6,5 +6,6 @@ export declare class WhatsAppConfig {
     get permanentToken(): string;
     get verifyToken(): string;
     get graphVersion(): string;
+    get wabaId(): string;
     get isConfigured(): boolean;
 }

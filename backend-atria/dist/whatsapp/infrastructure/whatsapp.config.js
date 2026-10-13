@@ -31,6 +31,13 @@ let WhatsAppConfig = class WhatsAppConfig {
     get graphVersion() {
         return 'v23.0';
     }
+    get wabaId() {
+        return (this.configService.get('WHATSAPP_WABA_ID')?.trim() ||
+            this.configService
+                .get('WHATSAPP_BUSINESS_ACCOUNT_ID')
+                ?.trim() ||
+            '');
+    }
     get isConfigured() {
         return Boolean(this.phoneNumberId && this.permanentToken);
     }

@@ -4,6 +4,7 @@ import {
   WhatsAppConversationPriority,
   WhatsAppConversationStatus,
   WhatsAppMessageDirection,
+  WhatsAppMessageKind as PrismaMessageKind,
   WhatsAppMessageStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -18,7 +19,10 @@ import type {
   WhatsAppMessageRecord,
   WhatsAppStatus,
 } from '../domain/whatsapp-message';
-import { WhatsAppDirection } from '../domain/whatsapp-message';
+import {
+  WhatsAppDirection,
+  WhatsAppMessageKind,
+} from '../domain/whatsapp-message';
 import { WhatsAppMessageRepository } from '../domain/whatsapp-message.repository';
 
 const assignedUserSelect = {
@@ -45,6 +49,19 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
         fromPhone: data.fromPhone,
         toPhone: data.toPhone,
         body: data.body,
+        kind: (data.kind ?? WhatsAppMessageKind.TEXT) as PrismaMessageKind,
+        mediaUrl: data.mediaUrl ?? null,
+        mediaMimeType: data.mediaMimeType ?? null,
+        mediaFilename: data.mediaFilename ?? null,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
+        locationName: data.locationName ?? null,
+        locationAddress: data.locationAddress ?? null,
+        isViewOnce: data.isViewOnce ?? false,
+        isVoiceNote: data.isVoiceNote ?? false,
+        transcription: data.transcription ?? null,
+        templateName: data.templateName ?? null,
+        templateLanguage: data.templateLanguage ?? null,
         direction: data.direction as WhatsAppMessageDirection,
         status: data.status as WhatsAppMessageStatus,
         isPrivate: data.isPrivate,
@@ -85,14 +102,37 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     await this.backfillConversations();
 
     const where: Prisma.WhatsAppConversationWhereInput = {};
-    if (filter.status) {
+    const tab = filter.tab;
+    if (tab === 'OPEN') {
+      where.status = WhatsAppConversationStatus.OPEN;
+    } else if (tab === 'WAITING') {
+      where.status = WhatsAppConversationStatus.PENDING;
+    } else if (tab === 'CLOSED') {
+      where.status = WhatsAppConversationStatus.RESOLVED;
+    } else if (tab === 'MINE' && filter.userId) {
+      where.assignedUserId = filter.userId;
+      where.status = { not: WhatsAppConversationStatus.RESOLVED };
+    } else if (tab === 'UNASSIGNED') {
+      where.assignedUserId = null;
+      where.status = { not: WhatsAppConversationStatus.RESOLVED };
+    } else if (filter.status) {
       where.status = filter.status as WhatsAppConversationStatus;
     }
-    if (filter.assignee === 'mine' && filter.userId) {
-      where.assignedUserId = filter.userId;
+
+    if (!tab) {
+      if (filter.assignee === 'mine' && filter.userId) {
+        where.assignedUserId = filter.userId;
+      }
+      if (filter.assignee === 'unassigned') {
+        where.assignedUserId = null;
+      }
     }
-    if (filter.assignee === 'unassigned') {
-      where.assignedUserId = null;
+
+    if (filter.operatorId) {
+      where.assignedUserId = filter.operatorId;
+    }
+    if (filter.label?.trim()) {
+      where.labels = { has: filter.label.trim() };
     }
     if (filter.query?.trim()) {
       const q = filter.query.trim();
@@ -106,9 +146,15 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     const rows = await this.prisma.whatsAppConversation.findMany({
       where,
       include: { assignedUser: { select: assignedUserSelect } },
-      orderBy: { lastMessageAt: 'desc' },
+      orderBy:
+        tab === 'UNASSIGNED'
+          ? [
+              { queuedAt: { sort: 'asc', nulls: 'last' } },
+              { lastMessageAt: 'desc' },
+            ]
+          : { lastMessageAt: 'desc' },
     });
-    return rows.map((row) => this.toConversation(row));
+    return rows.map((row) => this.toConversation(row, filter.slaMinutes ?? 5));
   }
 
   async getConversation(
@@ -127,22 +173,55 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     preview: string;
     inbound: boolean;
     reopen?: boolean;
+    agentReply?: boolean;
   }): Promise<WhatsAppConversationSummary> {
+    const now = new Date();
+    const existing = await this.prisma.whatsAppConversation.findUnique({
+      where: { phone: input.phone },
+    });
+    const queuedAt = existing?.queuedAt ?? null;
+    const lastAgentReplyAt = existing?.lastAgentReplyAt ?? null;
+    const stillWaiting = Boolean(
+      queuedAt && (!lastAgentReplyAt || lastAgentReplyAt < queuedAt),
+    );
+
     const row = await this.prisma.whatsAppConversation.upsert({
       where: { phone: input.phone },
       create: {
         phone: input.phone,
         name: input.name?.trim() || null,
-        lastMessageAt: new Date(),
+        lastMessageAt: now,
         lastMessagePreview: input.preview.slice(0, 180),
         unreadCount: input.inbound ? 1 : 0,
-        status: WhatsAppConversationStatus.OPEN,
+        status: input.agentReply
+          ? WhatsAppConversationStatus.PENDING
+          : WhatsAppConversationStatus.OPEN,
+        queuedAt: input.inbound ? now : null,
+        lastCustomerMessageAt: input.inbound ? now : null,
+        lastAgentReplyAt: input.agentReply ? now : null,
       },
       update: {
-        lastMessageAt: new Date(),
+        lastMessageAt: now,
         lastMessagePreview: input.preview.slice(0, 180),
         ...(input.name?.trim() ? { name: input.name.trim() } : {}),
-        ...(input.inbound ? { unreadCount: { increment: 1 } } : {}),
+        ...(input.inbound
+          ? {
+              unreadCount: { increment: 1 },
+              lastCustomerMessageAt: now,
+              queuedAt: stillWaiting ? queuedAt : now,
+            }
+          : {}),
+        ...(input.agentReply
+          ? {
+              lastAgentReplyAt: now,
+              queuedAt: null,
+              status:
+                existing?.status === WhatsAppConversationStatus.RESOLVED ||
+                existing?.status === WhatsAppConversationStatus.SNOOZED
+                  ? existing.status
+                  : WhatsAppConversationStatus.PENDING,
+            }
+          : {}),
         ...(input.reopen ? { status: WhatsAppConversationStatus.OPEN } : {}),
       },
       include: { assignedUser: { select: assignedUserSelect } },
@@ -172,9 +251,22 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
           ? { priority: patch.priority as WhatsAppConversationPriority }
           : {}),
         ...(patch.assignedUserId !== undefined
-          ? { assignedUserId: patch.assignedUserId }
+          ? {
+              assignedUserId: patch.assignedUserId,
+              assignedAt: patch.assignedUserId ? new Date() : null,
+            }
           : {}),
         ...(patch.labels ? { labels: patch.labels } : {}),
+        ...(patch.queuedAt !== undefined ? { queuedAt: patch.queuedAt } : {}),
+        ...(patch.assignedAt !== undefined
+          ? { assignedAt: patch.assignedAt }
+          : {}),
+        ...(patch.lastAgentReplyAt !== undefined
+          ? { lastAgentReplyAt: patch.lastAgentReplyAt }
+          : {}),
+        ...(patch.lastCustomerMessageAt !== undefined
+          ? { lastCustomerMessageAt: patch.lastCustomerMessageAt }
+          : {}),
       },
       include: { assignedUser: { select: assignedUserSelect } },
     });
@@ -199,27 +291,57 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
   }
 
   async listCannedResponses(): Promise<WhatsAppCannedResponseRecord[]> {
-    return this.prisma.whatsAppCannedResponse.findMany({
+    const rows = await this.prisma.whatsAppCannedResponse.findMany({
       orderBy: { shortCode: 'asc' },
     });
+    return rows.map((row) => this.toCanned(row));
   }
 
   async createCannedResponse(input: {
     shortCode: string;
     title: string;
     content: string;
+    kind?: WhatsAppMessageKind;
+    mediaUrl?: string | null;
+    mediaMimeType?: string | null;
+    mediaFilename?: string | null;
   }): Promise<WhatsAppCannedResponseRecord> {
-    return this.prisma.whatsAppCannedResponse.create({
+    const row = await this.prisma.whatsAppCannedResponse.create({
       data: {
         shortCode: input.shortCode.replace(/^\//, '').trim().toLowerCase(),
         title: input.title.trim(),
-        content: input.content.trim(),
+        content: input.content.trim() || (input.mediaUrl ? '[Mídia]' : ''),
+        kind: (input.kind ?? WhatsAppMessageKind.TEXT) as PrismaMessageKind,
+        mediaUrl: input.mediaUrl ?? null,
+        mediaMimeType: input.mediaMimeType ?? null,
+        mediaFilename: input.mediaFilename ?? null,
       },
     });
+    return this.toCanned(row);
   }
 
   async deleteCannedResponse(id: string): Promise<void> {
     await this.prisma.whatsAppCannedResponse.delete({ where: { id } });
+  }
+
+  async updateMessage(
+    id: string,
+    patch: Partial<
+      Pick<WhatsAppMessageRecord, 'transcription' | 'mediaUrl' | 'mediaMimeType'>
+    >,
+  ): Promise<void> {
+    await this.prisma.whatsAppMessage.update({
+      where: { id },
+      data: {
+        ...(patch.transcription !== undefined
+          ? { transcription: patch.transcription }
+          : {}),
+        ...(patch.mediaUrl !== undefined ? { mediaUrl: patch.mediaUrl } : {}),
+        ...(patch.mediaMimeType !== undefined
+          ? { mediaMimeType: patch.mediaMimeType }
+          : {}),
+      },
+    });
   }
 
   private async backfillConversations(): Promise<void> {
@@ -247,12 +369,47 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     }
   }
 
+  private toCanned(row: {
+    id: string;
+    shortCode: string;
+    title: string;
+    content: string;
+    kind: PrismaMessageKind;
+    mediaUrl: string | null;
+    mediaMimeType: string | null;
+    mediaFilename: string | null;
+  }): WhatsAppCannedResponseRecord {
+    return {
+      id: row.id,
+      shortCode: row.shortCode,
+      title: row.title,
+      content: row.content,
+      kind: row.kind as WhatsAppMessageKind,
+      mediaUrl: row.mediaUrl,
+      mediaMimeType: row.mediaMimeType,
+      mediaFilename: row.mediaFilename,
+    };
+  }
+
   private toMessage(row: {
     id: string;
     whatsappMessageId: string | null;
     fromPhone: string;
     toPhone: string;
     body: string;
+    kind?: PrismaMessageKind;
+    mediaUrl?: string | null;
+    mediaMimeType?: string | null;
+    mediaFilename?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    locationName?: string | null;
+    locationAddress?: string | null;
+    isViewOnce?: boolean;
+    isVoiceNote?: boolean;
+    transcription?: string | null;
+    templateName?: string | null;
+    templateLanguage?: string | null;
     direction: WhatsAppMessageDirection;
     status: WhatsAppMessageStatus;
     isPrivate: boolean;
@@ -267,6 +424,19 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
       fromPhone: row.fromPhone,
       toPhone: row.toPhone,
       body: row.body,
+      kind: (row.kind ?? 'TEXT') as WhatsAppMessageKind,
+      mediaUrl: row.mediaUrl ?? null,
+      mediaMimeType: row.mediaMimeType ?? null,
+      mediaFilename: row.mediaFilename ?? null,
+      latitude: row.latitude ?? null,
+      longitude: row.longitude ?? null,
+      locationName: row.locationName ?? null,
+      locationAddress: row.locationAddress ?? null,
+      isViewOnce: row.isViewOnce ?? false,
+      isVoiceNote: row.isVoiceNote ?? false,
+      transcription: row.transcription ?? null,
+      templateName: row.templateName ?? null,
+      templateLanguage: row.templateLanguage ?? null,
       direction: row.direction as WhatsAppDirection,
       status: row.status as WhatsAppStatus,
       isPrivate: row.isPrivate,
@@ -277,18 +447,35 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     };
   }
 
-  private toConversation(row: {
-    id: string;
-    phone: string;
-    name: string | null;
-    status: WhatsAppConversationStatus;
-    priority: WhatsAppConversationPriority;
-    labels: string[];
-    unreadCount: number;
-    lastMessagePreview: string | null;
-    lastMessageAt: Date;
-    assignedUser: WhatsAppAssignedUser | null;
-  }): WhatsAppConversationSummary {
+  private toConversation(
+    row: {
+      id: string;
+      phone: string;
+      name: string | null;
+      status: WhatsAppConversationStatus;
+      priority: WhatsAppConversationPriority;
+      labels: string[];
+      unreadCount: number;
+      lastMessagePreview: string | null;
+      lastMessageAt: Date;
+      queuedAt?: Date | null;
+      assignedAt?: Date | null;
+      lastAgentReplyAt?: Date | null;
+      assignedUser: WhatsAppAssignedUser | null;
+    },
+    slaMinutes = 5,
+  ): WhatsAppConversationSummary {
+    const queuedAt = row.queuedAt ?? null;
+    const assignedAt = row.assignedAt ?? null;
+    const lastAgentReplyAt = row.lastAgentReplyAt ?? null;
+    const needsAgentReply = Boolean(
+      queuedAt && (!lastAgentReplyAt || lastAgentReplyAt < queuedAt),
+    );
+    const waitFrom = assignedAt && row.assignedUser ? assignedAt : queuedAt;
+    const waitingSeconds =
+      needsAgentReply && waitFrom
+        ? Math.max(0, Math.round((Date.now() - waitFrom.getTime()) / 1000))
+        : 0;
     return {
       id: row.id,
       phone: row.phone,
@@ -301,6 +488,13 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
       lastMessageAt: row.lastMessageAt,
       direction: null,
       assignedUser: row.assignedUser,
+      queuedAt,
+      assignedAt,
+      lastAgentReplyAt,
+      waitingSeconds,
+      slaBreached: waitingSeconds > slaMinutes * 60,
+      needsAgentReply,
+      lead: null,
     };
   }
 }

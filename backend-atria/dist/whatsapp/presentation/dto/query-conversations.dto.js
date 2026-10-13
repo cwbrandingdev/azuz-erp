@@ -12,12 +12,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.QueryConversationsDto = void 0;
 const class_validator_1 = require("class-validator");
 const whatsapp_message_1 = require("../../domain/whatsapp-message");
+const whatsapp_routing_1 = require("../../domain/whatsapp-routing");
 class QueryConversationsDto {
+    tab;
     status;
     assignee;
     q;
+    operatorId;
+    label;
+    stageId;
+    source;
+    leadStatus;
 }
 exports.QueryConversationsDto = QueryConversationsDto;
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(whatsapp_routing_1.WhatsAppInboxTab),
+    __metadata("design:type", String)
+], QueryConversationsDto.prototype, "tab", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(whatsapp_message_1.WhatsAppInboxStatus),
@@ -33,4 +45,29 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], QueryConversationsDto.prototype, "q", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], QueryConversationsDto.prototype, "operatorId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], QueryConversationsDto.prototype, "label", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], QueryConversationsDto.prototype, "stageId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], QueryConversationsDto.prototype, "source", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], QueryConversationsDto.prototype, "leadStatus", void 0);
 //# sourceMappingURL=query-conversations.dto.js.map

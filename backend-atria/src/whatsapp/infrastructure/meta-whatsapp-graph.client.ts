@@ -1,6 +1,5 @@
 import {
   BadGatewayException,
-  ForbiddenException,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -9,44 +8,60 @@ import { firstValueFrom } from 'rxjs';
 import { normalizeWhatsAppPhone } from '../domain/whatsapp-phone';
 import {
   WhatsAppGraphGateway,
-  type WhatsAppCallPermissionsResult,
-  type WhatsAppCallSession,
-  type WhatsAppSendTextResult,
+  type WhatsAppDownloadedMedia,
+  type WhatsAppHsmTemplate,
+  type WhatsAppSendResult,
 } from '../domain/whatsapp-graph.gateway';
+import { WhatsAppMessageKind } from '../domain/whatsapp-message';
 import { WhatsAppConfig } from './whatsapp.config';
 
-type GraphErrorBody = {
-  error?: { message?: string; code?: number; error_user_msg?: string };
-};
-
-type GraphSendResponse = GraphErrorBody & {
+type GraphSendResponse = {
+  error?: { message?: string };
   messages?: Array<{ id: string }>;
   contacts?: Array<{ wa_id: string }>;
 };
 
-type GraphPhoneResponse = GraphErrorBody & {
+type GraphPhoneResponse = {
+  error?: { message?: string };
   display_phone_number?: string;
+  whatsapp_business_account?: { id?: string };
 };
 
-type GraphCallResponse = GraphErrorBody & {
-  success?: boolean;
-  calls?: Array<{ id: string }>;
+type GraphMediaUploadResponse = {
+  error?: { message?: string };
+  id?: string;
 };
 
-type GraphCallPermissionsResponse = GraphErrorBody & {
-  permission?: { status?: string; expiration_time?: number };
-  actions?: Array<{
-    action_name?: string;
-    can_perform_action?: boolean;
+type GraphMediaMetaResponse = {
+  error?: { message?: string };
+  url?: string;
+  mime_type?: string;
+  file_size?: number;
+};
+
+type GraphTemplatesResponse = {
+  error?: { message?: string };
+  data?: Array<{
+    name?: string;
+    language?: string;
+    status?: string;
+    category?: string;
+    components?: WhatsAppHsmTemplate['components'];
   }>;
 };
 
-const CALL_PERMISSION_ERROR = 138006;
+const GRAPH_MEDIA_KINDS: Partial<Record<WhatsAppMessageKind, string>> = {
+  [WhatsAppMessageKind.IMAGE]: 'image',
+  [WhatsAppMessageKind.DOCUMENT]: 'document',
+  [WhatsAppMessageKind.AUDIO]: 'audio',
+  [WhatsAppMessageKind.VIDEO]: 'video',
+  [WhatsAppMessageKind.STICKER]: 'sticker',
+};
 
 @Injectable()
 export class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
   private businessPhoneCache: string | null = null;
-  private callingEnabled = false;
+  private wabaIdCache: string | null = null;
 
   constructor(
     private readonly http: HttpService,
@@ -55,24 +70,181 @@ export class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
     super();
   }
 
-  async sendText(to: string, body: string): Promise<WhatsAppSendTextResult> {
-    this.assertConfigured();
+  async sendText(to: string, body: string): Promise<WhatsAppSendResult> {
+    return this.sendMessage(to, {
+      type: 'text',
+      text: { preview_url: false, body },
+    });
+  }
 
-    const data = await this.graphPost<GraphSendResponse>(
-      `${this.phoneUrl()}/messages`,
-      {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to,
-        type: 'text',
-        text: { preview_url: false, body },
+  async sendMedia(
+    to: string,
+    kind: WhatsAppMessageKind,
+    mediaId: string,
+    options?: { caption?: string; filename?: string },
+  ): Promise<WhatsAppSendResult> {
+    const type = GRAPH_MEDIA_KINDS[kind];
+    if (!type) {
+      throw new BadGatewayException('Unsupported WhatsApp media type');
+    }
+    const payload: Record<string, unknown> = { id: mediaId };
+    if (options?.caption && type !== 'audio' && type !== 'sticker') {
+      payload.caption = options.caption;
+    }
+    if (options?.filename && type === 'document') {
+      payload.filename = options.filename;
+    }
+    return this.sendMessage(to, { type, [type]: payload });
+  }
+
+  async sendLocation(
+    to: string,
+    latitude: number,
+    longitude: number,
+    name?: string,
+    address?: string,
+  ): Promise<WhatsAppSendResult> {
+    return this.sendMessage(to, {
+      type: 'location',
+      location: {
+        latitude,
+        longitude,
+        ...(name ? { name } : {}),
+        ...(address ? { address } : {}),
       },
+    });
+  }
+
+  async sendTemplate(
+    to: string,
+    name: string,
+    language: string,
+    bodyParameters: string[],
+  ): Promise<WhatsAppSendResult> {
+    return this.sendMessage(to, {
+      type: 'template',
+      template: {
+        name,
+        language: { code: language },
+        ...(bodyParameters.length > 0
+          ? {
+              components: [
+                {
+                  type: 'body',
+                  parameters: bodyParameters.map((text) => ({
+                    type: 'text',
+                    text,
+                  })),
+                },
+              ],
+            }
+          : {}),
+      },
+    });
+  }
+
+  async uploadMedia(
+    buffer: Buffer,
+    mimeType: string,
+    filename: string,
+  ): Promise<string> {
+    this.assertConfigured();
+    const form = new FormData();
+    form.append('messaging_product', 'whatsapp');
+    form.append('type', mimeType.split(';')[0].trim());
+    form.append(
+      'file',
+      new Blob([new Uint8Array(buffer)], { type: mimeType }),
+      filename,
     );
 
-    return {
-      whatsappMessageId: data.messages?.[0]?.id ?? null,
-      to: data.contacts?.[0]?.wa_id ?? to,
-    };
+    try {
+      const response = await firstValueFrom(
+        this.http.post<GraphMediaUploadResponse>(
+          this.messagesUrl().replace(/\/messages$/, '/media'),
+          form,
+          {
+            headers: { Authorization: `Bearer ${this.config.permanentToken}` },
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
+            timeout: 60_000,
+          },
+        ),
+      );
+      const id = response.data.id;
+      if (!id) {
+        throw new BadGatewayException('WhatsApp media upload returned no id');
+      }
+      return id;
+    } catch (error) {
+      throw new BadGatewayException(this.readGraphError(error));
+    }
+  }
+
+  async downloadMedia(mediaId: string): Promise<WhatsAppDownloadedMedia> {
+    this.assertConfigured();
+    const metaUrl = `https://graph.facebook.com/${this.config.graphVersion}/${mediaId}`;
+    try {
+      const meta = await firstValueFrom(
+        this.http.get<GraphMediaMetaResponse>(metaUrl, {
+          headers: { Authorization: `Bearer ${this.config.permanentToken}` },
+        }),
+      );
+      const fileUrl = meta.data.url;
+      if (!fileUrl) {
+        throw new BadGatewayException('WhatsApp media URL missing');
+      }
+      const file = await firstValueFrom(
+        this.http.get<ArrayBuffer>(fileUrl, {
+          responseType: 'arraybuffer',
+          maxRedirects: 5,
+          headers: { Authorization: `Bearer ${this.config.permanentToken}` },
+          timeout: 60_000,
+        }),
+      );
+      const mimeType =
+        meta.data.mime_type ||
+        String(file.headers['content-type'] ?? 'application/octet-stream');
+      const ext = mimeType.split('/')[1]?.split(';')[0] || 'bin';
+      return {
+        buffer: Buffer.from(file.data),
+        mimeType,
+        filename: `${mediaId}.${ext}`,
+      };
+    } catch (error) {
+      throw new BadGatewayException(this.readGraphError(error));
+    }
+  }
+
+  async listTemplates(): Promise<WhatsAppHsmTemplate[]> {
+    this.assertConfigured();
+    const wabaId = await this.resolveWabaId();
+    if (!wabaId) return [];
+    try {
+      const response = await firstValueFrom(
+        this.http.get<GraphTemplatesResponse>(
+          `https://graph.facebook.com/${this.config.graphVersion}/${wabaId}/message_templates`,
+          {
+            params: {
+              fields: 'name,status,language,category,components',
+              limit: 100,
+            },
+            headers: { Authorization: `Bearer ${this.config.permanentToken}` },
+          },
+        ),
+      );
+      return (response.data.data ?? [])
+        .filter((row) => row.name && row.language)
+        .map((row) => ({
+          name: row.name as string,
+          language: row.language as string,
+          status: row.status ?? 'UNKNOWN',
+          category: row.category ?? 'UTILITY',
+          components: row.components ?? [],
+        }));
+    } catch (error) {
+      throw new BadGatewayException(this.readGraphError(error));
+    }
   }
 
   async getBusinessPhone(): Promise<string> {
@@ -83,171 +255,74 @@ export class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
     this.assertConfigured();
 
     try {
-      const data = await this.graphGet<GraphPhoneResponse>(this.phoneUrl(), {
-        fields: 'display_phone_number',
-      });
-      const display = data.display_phone_number;
+      const response = await firstValueFrom(
+        this.http.get<GraphPhoneResponse>(this.phoneUrl(), {
+          params: { fields: 'display_phone_number,whatsapp_business_account' },
+          headers: {
+            Authorization: `Bearer ${this.config.permanentToken}`,
+          },
+        }),
+      );
+
+      const display = response.data.display_phone_number;
       this.businessPhoneCache = display
         ? normalizeWhatsAppPhone(display)
         : this.config.phoneNumberId;
+      if (response.data.whatsapp_business_account?.id) {
+        this.wabaIdCache = response.data.whatsapp_business_account.id;
+      }
       return this.businessPhoneCache;
     } catch {
       return this.config.phoneNumberId;
     }
   }
 
-  async enableCalling(): Promise<void> {
-    if (this.callingEnabled) {
-      return;
-    }
-    this.assertConfigured();
-    await this.graphPost(`${this.phoneUrl()}/settings`, {
-      calling: {
-        status: 'ENABLED',
-        callback_permission_status: 'ENABLED',
-        call_icon_visibility: 'DEFAULT',
-      },
-    });
-    this.callingEnabled = true;
-  }
-
-  async getCallPermissions(
-    userWaId: string,
-  ): Promise<WhatsAppCallPermissionsResult> {
-    this.assertConfigured();
-    const data = await this.graphGet<GraphCallPermissionsResponse>(
-      `${this.phoneUrl()}/call_permissions`,
-      { user_wa_id: userWaId },
-    );
-    const actions = data.actions ?? [];
-    return {
-      status: data.permission?.status ?? 'no_permission',
-      expirationTime: data.permission?.expiration_time ?? null,
-      canStartCall: Boolean(
-        actions.find((item) => item.action_name === 'start_call')
-          ?.can_perform_action,
-      ),
-      canRequestPermission: Boolean(
-        actions.find(
-          (item) => item.action_name === 'send_call_permission_request',
-        )?.can_perform_action,
-      ),
-    };
-  }
-
-  async sendCallPermissionRequest(
+  private async sendMessage(
     to: string,
-  ): Promise<WhatsAppSendTextResult> {
+    payload: Record<string, unknown>,
+  ): Promise<WhatsAppSendResult> {
     this.assertConfigured();
-    const data = await this.graphPost<GraphSendResponse>(
-      `${this.phoneUrl()}/messages`,
-      {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to,
-        type: 'interactive',
-        interactive: {
-          type: 'call_permission_request',
-          action: { name: 'call_permission_request' },
-          body: {
-            text: 'Podemos te ligar pelo WhatsApp para continuar o atendimento?',
+    try {
+      const response = await firstValueFrom(
+        this.http.post<GraphSendResponse>(
+          this.messagesUrl(),
+          {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to,
+            ...payload,
           },
-        },
-      },
-    );
-    return {
-      whatsappMessageId: data.messages?.[0]?.id ?? null,
-      to: data.contacts?.[0]?.wa_id ?? to,
-    };
-  }
-
-  async connectCall(
-    to: string,
-    session: WhatsAppCallSession,
-  ): Promise<{ callId: string }> {
-    await this.enableCalling().catch(() => undefined);
-    const data = await this.graphPost<GraphCallResponse>(
-      `${this.phoneUrl()}/calls`,
-      {
-        messaging_product: 'whatsapp',
-        to,
-        action: 'connect',
-        session: {
-          sdp_type: session.sdpType,
-          sdp: session.sdp,
-        },
-      },
-    );
-    const callId = data.calls?.[0]?.id;
-    if (!callId) {
-      throw new BadGatewayException('WhatsApp did not return a call id');
-    }
-    return { callId };
-  }
-
-  async callAction(
-    callId: string,
-    action: 'pre_accept' | 'accept' | 'reject' | 'terminate',
-    session?: WhatsAppCallSession,
-  ): Promise<void> {
-    this.assertConfigured();
-    await this.graphPost<GraphCallResponse>(`${this.phoneUrl()}/calls`, {
-      messaging_product: 'whatsapp',
-      call_id: callId,
-      action,
-      ...(session
-        ? {
-            session: {
-              sdp_type: session.sdpType,
-              sdp: session.sdp,
+          {
+            headers: {
+              Authorization: `Bearer ${this.config.permanentToken}`,
+              'Content-Type': 'application/json',
             },
-          }
-        : {}),
-    });
+          },
+        ),
+      );
+      const data = response.data;
+      return {
+        whatsappMessageId: data.messages?.[0]?.id ?? null,
+        to: data.contacts?.[0]?.wa_id ?? to,
+      };
+    } catch (error) {
+      throw new BadGatewayException(this.readGraphError(error));
+    }
+  }
+
+  private async resolveWabaId(): Promise<string> {
+    if (this.config.wabaId) return this.config.wabaId;
+    if (this.wabaIdCache) return this.wabaIdCache;
+    await this.getBusinessPhone();
+    return this.wabaIdCache ?? '';
+  }
+
+  private messagesUrl(): string {
+    return `https://graph.facebook.com/${this.config.graphVersion}/${this.config.phoneNumberId}/messages`;
   }
 
   private phoneUrl(): string {
     return `https://graph.facebook.com/${this.config.graphVersion}/${this.config.phoneNumberId}`;
-  }
-
-  private authHeaders() {
-    return {
-      Authorization: `Bearer ${this.config.permanentToken}`,
-      'Content-Type': 'application/json',
-    };
-  }
-
-  private async graphGet<T extends GraphErrorBody>(
-    url: string,
-    params?: Record<string, string>,
-  ): Promise<T> {
-    this.assertConfigured();
-    try {
-      const response = await firstValueFrom(
-        this.http.get<T>(url, {
-          params,
-          headers: this.authHeaders(),
-        }),
-      );
-      return response.data;
-    } catch (error) {
-      throw this.toGraphException(error);
-    }
-  }
-
-  private async graphPost<T extends GraphErrorBody>(
-    url: string,
-    body: Record<string, unknown>,
-  ): Promise<T> {
-    this.assertConfigured();
-    try {
-      const response = await firstValueFrom(
-        this.http.post<T>(url, body, { headers: this.authHeaders() }),
-      );
-      return response.data;
-    } catch (error) {
-      throw this.toGraphException(error);
-    }
   }
 
   private assertConfigured(): void {
@@ -258,18 +333,7 @@ export class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
     }
   }
 
-  private toGraphException(error: unknown): Error {
-    const parsed = this.readGraphError(error);
-    if (parsed.code === CALL_PERMISSION_ERROR) {
-      return new ForbiddenException({
-        message: parsed.message,
-        code: 'CALL_PERMISSION_REQUIRED',
-      });
-    }
-    return new BadGatewayException(parsed.message);
-  }
-
-  private readGraphError(error: unknown): { message: string; code?: number } {
+  private readGraphError(error: unknown): string {
     if (
       typeof error === 'object' &&
       error !== null &&
@@ -278,16 +342,14 @@ export class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
       error.response !== null &&
       'data' in error.response
     ) {
-      const data = error.response.data as GraphErrorBody;
-      const message =
-        data.error?.error_user_msg ||
-        data.error?.message ||
-        'Failed to call WhatsApp Graph API';
-      return { message, code: data.error?.code };
+      const data = error.response.data as GraphSendResponse;
+      if (data.error?.message) {
+        return data.error.message;
+      }
     }
     if (error instanceof Error) {
-      return { message: error.message };
+      return error.message;
     }
-    return { message: 'Failed to call WhatsApp Graph API' };
+    return 'Failed to send WhatsApp message';
   }
 }

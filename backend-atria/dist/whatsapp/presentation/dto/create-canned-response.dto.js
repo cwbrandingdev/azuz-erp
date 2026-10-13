@@ -30,8 +30,8 @@ __decorate([
     __metadata("design:type", String)
 ], CreateCannedResponseDto.prototype, "title", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.MaxLength)(4096),
     __metadata("design:type", String)
 ], CreateCannedResponseDto.prototype, "content", void 0);

@@ -25,6 +25,8 @@ class UpdateCrmLeadDto {
     category;
     source;
     orcamento;
+    cnpj;
+    jobTitle;
 }
 exports.UpdateCrmLeadDto = UpdateCrmLeadDto;
 __decorate([
@@ -101,4 +103,16 @@ __decorate([
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Object)
 ], UpdateCrmLeadDto.prototype, "orcamento", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(32),
+    __metadata("design:type", Object)
+], UpdateCrmLeadDto.prototype, "cnpj", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(120),
+    __metadata("design:type", Object)
+], UpdateCrmLeadDto.prototype, "jobTitle", void 0);
 //# sourceMappingURL=update-crm-lead.dto.js.map

@@ -2,15 +2,22 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowRightLeft,
   Check,
   CheckCheck,
+  Clock,
+  FileText,
+  LayoutTemplate,
+  MapPin,
   MessageCircle,
-  Phone,
+  Paperclip,
   Plus,
   Search,
   Send,
+  Settings2,
   StickyNote,
   UserRound,
+  Zap,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -22,38 +29,47 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
-import { WhatsappCallDock } from "@/components/whatsapp/whatsapp-call-dock";
+import { WhatsappCannedManager } from "@/components/whatsapp/whatsapp-canned-manager";
+import { WhatsappCrmPanel } from "@/components/whatsapp/whatsapp-crm-panel";
+import { WhatsappAutomationDialog } from "@/components/whatsapp/whatsapp-automation-dialog";
+import { WhatsappCopilotBar } from "@/components/whatsapp/whatsapp-copilot-bar";
+import {
+  activeMentionQuery,
+  insertMention,
+  mentionTokenFor,
+} from "@/components/whatsapp/whatsapp-mention";
+import { WhatsappRoutingSettings } from "@/components/whatsapp/whatsapp-routing-settings";
+import { WhatsappTransferDialog } from "@/components/whatsapp/whatsapp-transfer-dialog";
+import { WhatsappTemplateDialog } from "@/components/whatsapp/whatsapp-template-dialog";
 import {
   useWhatsappCannedResponses,
   useWhatsappConversations,
+  useWhatsappInboxCounts,
   useWhatsappMutations,
 } from "@/hooks/use-whatsapp";
-import { useWhatsappVoice } from "@/hooks/use-whatsapp-voice";
+import { LEAD_STATUS_LABELS } from "@/lib/leads-kanban-utils";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
-import { usersService } from "@/services";
 import * as whatsappService from "@/services/whatsapp.service";
+import { leadsService, usersService } from "@/services";
 import type {
-  WhatsAppAssigneeFilter,
   WhatsAppConversation,
+  WhatsAppInboxCounts,
   WhatsAppInboxPriority,
   WhatsAppInboxStatus,
+  WhatsAppInboxTab,
   WhatsAppMessage,
 } from "@/services/whatsapp.service";
+import { whatsappMediaSrc } from "@/services/whatsapp.service";
 
-const STATUS_OPTIONS: Array<{ id: WhatsAppInboxStatus | "ALL"; label: string }> =
+const TABS: Array<{ id: WhatsAppInboxTab; label: string; countKey: keyof WhatsAppInboxCounts }> =
   [
-    { id: "OPEN", label: "Abertas" },
-    { id: "PENDING", label: "Pendentes" },
-    { id: "SNOOZED", label: "Adiadas" },
-    { id: "RESOLVED", label: "Resolvidas" },
+    { id: "OPEN", label: "Abertas", countKey: "open" },
+    { id: "MINE", label: "Minhas", countKey: "mine" },
+    { id: "UNASSIGNED", label: "Não atribuídas", countKey: "unassigned" },
+    { id: "WAITING", label: "Aguardando cliente", countKey: "waiting" },
+    { id: "CLOSED", label: "Finalizadas", countKey: "closed" },
   ];
-
-const ASSIGNEE_OPTIONS: Array<{ id: WhatsAppAssigneeFilter; label: string }> = [
-  { id: "all", label: "Todas" },
-  { id: "mine", label: "Minhas" },
-  { id: "unassigned", label: "Não atribuídas" },
-];
 
 const PRIORITY_LABEL: Record<WhatsAppInboxPriority, string> = {
   NONE: "Nenhuma",
@@ -96,6 +112,116 @@ function displayName(conversation: WhatsAppConversation) {
   return conversation.name?.trim() || formatPhone(conversation.phone);
 }
 
+function formatWait(seconds: number) {
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}min`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}min`;
+}
+
+function MessageBody({
+  message,
+  outbound,
+}: {
+  message: WhatsAppMessage;
+  outbound: boolean;
+}) {
+  const media = whatsappMediaSrc(message.mediaUrl);
+  const maps =
+    message.latitude != null && message.longitude != null
+      ? `https://www.google.com/maps?q=${message.latitude},${message.longitude}`
+      : null;
+
+  return (
+    <>
+      {message.isViewOnce ? (
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">
+          Visualização única
+        </p>
+      ) : null}
+      {message.kind === "IMAGE" || message.kind === "STICKER" ? (
+        media ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={media}
+            alt={message.body}
+            className="mb-1 max-h-64 rounded-lg object-contain"
+          />
+        ) : (
+          <p>Imagem indisponível</p>
+        )
+      ) : null}
+      {message.kind === "VIDEO" && media ? (
+        <video src={media} controls className="mb-1 max-h-64 rounded-lg" />
+      ) : null}
+      {message.kind === "AUDIO" && media ? (
+        <audio src={media} controls className="mb-1 w-full" />
+      ) : null}
+      {message.kind === "DOCUMENT" && media ? (
+        <a
+          href={media}
+          target="_blank"
+          rel="noreferrer"
+          className="mb-1 flex items-center gap-1 underline"
+        >
+          <FileText className="size-3.5" />
+          {message.mediaFilename || "Documento"}
+        </a>
+      ) : null}
+      {maps ? (
+        <a
+          href={maps}
+          target="_blank"
+          rel="noreferrer"
+          className="mb-1 inline-flex items-center gap-1 underline"
+        >
+          <MapPin className="size-3.5" />
+          {message.locationName || message.body}
+        </a>
+      ) : null}
+      {message.kind === "TEMPLATE" ? (
+        <p className="mb-1 text-[11px] opacity-80">
+          Template {message.templateName}
+        </p>
+      ) : null}
+      {message.body &&
+      message.kind !== "LOCATION" &&
+      message.kind !== "AUDIO" &&
+      message.kind !== "STICKER" ? (
+        <p className="whitespace-pre-wrap break-words">{message.body}</p>
+      ) : null}
+      {message.transcription ? (
+        <p
+          className={cn(
+            "mt-1 text-[11px] italic",
+            outbound ? "text-white/80" : "text-slate-500",
+          )}
+        >
+          Transcrição: {message.transcription}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function NoteBody({ body }: { body: string }) {
+  const parts = body.split(/(@[\p{L}\p{N}._-]+)/u);
+  return (
+    <p className="whitespace-pre-wrap">
+      {parts.map((part, index) =>
+        part.startsWith("@") ? (
+          <span key={index} className="font-semibold text-amber-800">
+            {part}
+          </span>
+        ) : (
+          <span key={index}>{part}</span>
+        ),
+      )}
+    </p>
+  );
+}
+
 function StatusTicks({ status }: { status: string }) {
   if (status === "FAILED") return <span className="text-red-500">!</span>;
   if (status === "READ") {
@@ -109,17 +235,36 @@ function StatusTicks({ status }: { status: string }) {
 
 export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const { user } = useAuth();
-  const { sendMessage, addNote, updateConversation } = useWhatsappMutations();
-  const voice = useWhatsappVoice();
+  const {
+    sendMessage,
+    sendMedia,
+    sendLocation,
+    sendTemplate,
+    sendCanned,
+    addNote,
+    updateConversation,
+  } = useWhatsappMutations();
   const { data: canned = [] } = useWhatsappCannedResponses();
+  const { data: counts } = useWhatsappInboxCounts();
   const membersQuery = useQuery({
     queryKey: ["whatsapp-members"],
     queryFn: () => usersService.getMembers(),
   });
+  const stagesQuery = useQuery({
+    queryKey: ["whatsapp-stages"],
+    queryFn: () => leadsService.listLeadStages(),
+  });
 
-  const [status, setStatus] = useState<WhatsAppInboxStatus | "ALL">("OPEN");
-  const [assignee, setAssignee] = useState<WhatsAppAssigneeFilter>("all");
+  const [tab, setTab] = useState<WhatsAppInboxTab>("OPEN");
   const [query, setQuery] = useState("");
+  const [operatorId, setOperatorId] = useState("");
+  const [labelFilter, setLabelFilter] = useState("");
+  const [stageId, setStageId] = useState("");
+  const [source, setSource] = useState("");
+  const [leadStatus, setLeadStatus] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [automationOpen, setAutomationOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(
     initialPhone ?? null,
   );
@@ -130,12 +275,20 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [labelDraft, setLabelDraft] = useState("");
   const [nameDraft, setNameDraft] = useState("");
+  const [attachFile, setAttachFile] = useState<File | null>(null);
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [cannedOpen, setCannedOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations = [], isLoading } = useWhatsappConversations({
-    status: status === "ALL" ? undefined : status,
-    assignee,
+    tab,
     q: query || undefined,
+    operatorId: operatorId || undefined,
+    label: labelFilter || undefined,
+    stageId: stageId || undefined,
+    source: source || undefined,
+    leadStatus: leadStatus || undefined,
   });
 
   const selected =
@@ -187,6 +340,15 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     );
   }, [canned, draft]);
 
+  const mentionQuery = mode === "note" ? activeMentionQuery(draft) : null;
+  const mentionMatches = useMemo(() => {
+    if (mentionQuery == null) return [];
+    const needle = mentionQuery.toLowerCase();
+    return (membersQuery.data ?? []).filter((member) =>
+      member.name.toLowerCase().includes(needle),
+    ).slice(0, 6);
+  }, [mentionQuery, membersQuery.data]);
+
   function openChat(phone: string) {
     setSelectedPhone(phone.replace(/\D/g, ""));
     setNewOpen(false);
@@ -195,81 +357,124 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!selectedPhone || !draft.trim()) return;
+    if (!selectedPhone) return;
     const text = draft.trim();
+    if (mode === "note") {
+      if (!text) return;
+      try {
+        const created = await addNote.mutateAsync({
+          phone: selectedPhone,
+          message: text,
+        });
+        setMessages((current) => [...current, created]);
+        setDraft("");
+      } catch {
+        return;
+      }
+      return;
+    }
+    if (!attachFile && !text) return;
     try {
-      const created =
-        mode === "note"
-          ? await addNote.mutateAsync({ phone: selectedPhone, message: text })
-          : await sendMessage.mutateAsync({ to: selectedPhone, message: text });
+      const created = attachFile
+        ? await sendMedia.mutateAsync({
+            to: selectedPhone,
+            file: attachFile,
+            caption: text || undefined,
+          })
+        : await sendMessage.mutateAsync({ to: selectedPhone, message: text });
       setMessages((current) => [...current, created]);
       setDraft("");
+      setAttachFile(null);
     } catch {
       return;
     }
   }
 
+  async function handleSendLocation() {
+    if (!selectedPhone || !navigator.geolocation) {
+      toast.error("Localização não disponível neste navegador.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const created = await sendLocation.mutateAsync({
+            to: selectedPhone,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+          setMessages((current) => [...current, created]);
+        } catch {
+          toast.error("Não foi possível enviar a localização.");
+        }
+      },
+      () => toast.error("Permissão de localização negada."),
+    );
+  }
+
   return (
     <div className="-m-4 flex h-[calc(100dvh-3.5rem)] overflow-hidden border border-black/5 bg-white lg:-m-6 lg:h-[calc(100dvh-4rem)] xl:-m-8">
-      <WhatsappCallDock
-        voice={voice}
-        nameFor={(phone) => {
-          const conversation = conversations.find((item) => item.phone === phone);
-          return conversation ? displayName(conversation) : formatPhone(phone);
-        }}
-      />
       <aside className="flex w-full max-w-[360px] shrink-0 flex-col border-r border-black/10 bg-[#f8f9fc]">
         <div className="flex items-center justify-between border-b border-black/5 bg-white px-4 py-3">
           <div>
             <h1 className="text-base font-semibold text-slate-800">Conversas</h1>
             <p className="text-xs text-slate-500">Inbox compartilhada</p>
           </div>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="outline"
-            onClick={() => setNewOpen(true)}
-            aria-label="Nova conversa"
-          >
-            <Plus className="size-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              onClick={() => setAutomationOpen(true)}
+              aria-label="Automação"
+            >
+              <Zap className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Roteamento e SLA"
+            >
+              <Settings2 className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="outline"
+              onClick={() => setNewOpen(true)}
+              aria-label="Nova conversa"
+            >
+              <Plus className="size-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-1 overflow-x-auto border-b border-black/5 bg-white px-2 py-2">
-          {STATUS_OPTIONS.map((item) => (
+          {TABS.map((item) => (
             <button
               key={item.id}
               type="button"
-              onClick={() => setStatus(item.id)}
+              onClick={() => setTab(item.id)}
               className={cn(
                 "rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap",
-                status === item.id
+                tab === item.id
                   ? "bg-[var(--atria-primary)] text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200",
               )}
             >
               {item.label}
+              {counts ? ` ${counts[item.countKey]}` : ""}
             </button>
           ))}
         </div>
 
-        <div className="flex gap-1 border-b border-black/5 px-2 py-2">
-          {ASSIGNEE_OPTIONS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setAssignee(item.id)}
-              className={cn(
-                "rounded-md px-2 py-1 text-[11px] font-medium",
-                assignee === item.id
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800",
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {counts && counts.slaBreached > 0 ? (
+          <div className="border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-800">
+            {counts.slaBreached} conversa(s) acima do SLA de primeira resposta
+          </div>
+        ) : null}
 
         <div className="border-b border-black/5 px-3 py-2">
           <div className="relative">
@@ -279,6 +484,56 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Buscar conversas"
               className="h-9 rounded-lg border-slate-200 bg-white pl-9"
+            />
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-1">
+            <select
+              className="h-7 rounded-md border border-slate-200 bg-white px-1 text-[11px]"
+              value={operatorId}
+              onChange={(event) => setOperatorId(event.target.value)}
+            >
+              <option value="">Operador</option>
+              {(membersQuery.data ?? []).map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+            <Input
+              value={labelFilter}
+              onChange={(event) => setLabelFilter(event.target.value)}
+              placeholder="Etiqueta"
+              className="h-7 text-[11px]"
+            />
+            <select
+              className="h-7 rounded-md border border-slate-200 bg-white px-1 text-[11px]"
+              value={stageId}
+              onChange={(event) => setStageId(event.target.value)}
+            >
+              <option value="">Funil</option>
+              {(stagesQuery.data ?? []).map((stage) => (
+                <option key={stage.id} value={stage.id}>
+                  {stage.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-7 rounded-md border border-slate-200 bg-white px-1 text-[11px]"
+              value={leadStatus}
+              onChange={(event) => setLeadStatus(event.target.value)}
+            >
+              <option value="">Status do lead</option>
+              {Object.entries(LEAD_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <Input
+              value={source}
+              onChange={(event) => setSource(event.target.value)}
+              placeholder="Origem da campanha"
+              className="col-span-2 h-7 text-[11px]"
             />
           </div>
         </div>
@@ -327,6 +582,20 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                         </span>
                       ) : null}
                     </span>
+                    {conversation.needsAgentReply ? (
+                      <span
+                        className={cn(
+                          "mt-1 inline-flex items-center gap-1 text-[10px] font-medium",
+                          conversation.slaBreached
+                            ? "text-red-600"
+                            : "text-amber-600",
+                        )}
+                      >
+                        <Clock className="size-3" />
+                        {formatWait(conversation.waitingSeconds)}
+                        {conversation.slaBreached ? " · SLA" : ""}
+                      </span>
+                    ) : null}
                     {conversation.labels.length > 0 ? (
                       <span className="mt-1 flex flex-wrap gap-1">
                         {conversation.labels.slice(0, 3).map((label) => (
@@ -360,18 +629,6 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="outline"
-                  disabled={
-                    voice.busy || Boolean(voice.active) || Boolean(voice.incoming)
-                  }
-                  onClick={() => void voice.startCall(selectedPhone)}
-                  aria-label="Ligar no WhatsApp"
-                >
-                  <Phone className="size-4" />
-                </Button>
                 <select
                   className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
                   value={selected?.status ?? "OPEN"}
@@ -383,9 +640,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   }
                 >
                   <option value="OPEN">Aberta</option>
-                  <option value="PENDING">Pendente</option>
+                  <option value="PENDING">Aguardando cliente</option>
                   <option value="SNOOZED">Adiada</option>
-                  <option value="RESOLVED">Resolvida</option>
+                  <option value="RESOLVED">Finalizada</option>
                 </select>
                 <Button
                   type="button"
@@ -399,7 +656,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                     })
                   }
                 >
-                  {selected?.status === "RESOLVED" ? "Reabrir" : "Resolver"}
+                  {selected?.status === "RESOLVED" ? "Reabrir" : "Finalizar"}
                 </Button>
               </div>
             </header>
@@ -417,7 +674,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                         Nota privada
                         {message.sentByName ? ` · ${message.sentByName}` : ""}
                       </p>
-                      <p className="whitespace-pre-wrap">{message.body}</p>
+                      <NoteBody body={message.body} />
                     </div>
                   );
                 }
@@ -438,9 +695,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                           : "rounded-bl-md bg-white text-slate-800",
                       )}
                     >
-                      <p className="whitespace-pre-wrap break-words">
-                        {message.body}
-                      </p>
+                      <MessageBody message={message} outbound={outbound} />
                       <span
                         className={cn(
                           "mt-1 flex items-center justify-end gap-1 text-[11px]",
@@ -487,13 +742,34 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   Nota privada
                 </button>
               </div>
+              {selectedPhone ? (
+                <WhatsappCopilotBar
+                  phone={selectedPhone}
+                  draft={draft}
+                  onUse={setDraft}
+                />
+              ) : null}
               {cannedMatches.length > 0 ? (
                 <div className="mb-2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                   {cannedMatches.map((item) => (
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setDraft(item.content)}
+                      onClick={() => {
+                        if (item.mediaUrl && selectedPhone) {
+                          void sendCanned
+                            .mutateAsync({
+                              to: selectedPhone,
+                              cannedId: item.id,
+                            })
+                            .then((created) => {
+                              setMessages((current) => [...current, created]);
+                              setDraft("");
+                            });
+                          return;
+                        }
+                        setDraft(item.content);
+                      }}
                       className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-slate-50"
                     >
                       <span className="text-xs font-semibold text-slate-700">
@@ -502,6 +778,82 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                       <span className="truncate text-xs text-slate-500">
                         {item.content}
                       </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {attachFile ? (
+                <div className="mb-2 flex items-center justify-between rounded-md bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                  <span className="truncate">{attachFile.name}</span>
+                  <button type="button" onClick={() => setAttachFile(null)}>
+                    ×
+                  </button>
+                </div>
+              ) : null}
+              <div className="mb-2 flex items-center gap-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,audio/*,video/*,.pdf,.doc,.docx"
+                  className="hidden"
+                  onChange={(event) => {
+                    setAttachFile(event.target.files?.[0] ?? null);
+                    event.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label="Anexar arquivo"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Paperclip className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label="Enviar localização"
+                  onClick={() => void handleSendLocation()}
+                >
+                  <MapPin className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label="Template HSM"
+                  onClick={() => setTemplateOpen(true)}
+                >
+                  <LayoutTemplate className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label="Respostas prontas"
+                  onClick={() => setCannedOpen(true)}
+                >
+                  <FileText className="size-4" />
+                </Button>
+              </div>
+              {mentionMatches.length > 0 ? (
+                <div className="mb-2 overflow-hidden rounded-lg border border-amber-200 bg-white shadow-sm">
+                  {mentionMatches.map((member) => (
+                    <button
+                      key={member.id}
+                      type="button"
+                      className="flex w-full px-3 py-1.5 text-left text-sm hover:bg-amber-50"
+                      onClick={() => {
+                        const token = mentionTokenFor(
+                          member.name,
+                          (membersQuery.data ?? []).map((item) => item.name),
+                        );
+                        setDraft((current) => insertMention(current, token));
+                      }}
+                    >
+                      @{member.name}
                     </button>
                   ))}
                 </div>
@@ -519,7 +871,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   rows={2}
                   placeholder={
                     mode === "note"
-                      ? "Nota visível só para a equipe..."
+                      ? "Nota visível só para a equipe. Use @ para mencionar"
                       : "Mensagem. Digite / para respostas prontas"
                   }
                   className="max-h-32 min-h-12 flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--atria-primary)]"
@@ -528,8 +880,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   type="submit"
                   size="icon"
                   disabled={
-                    !draft.trim() ||
+                    (!draft.trim() && !attachFile) ||
                     sendMessage.isPending ||
+                    sendMedia.isPending ||
                     addNote.isPending
                   }
                   className="size-10 rounded-full"
@@ -586,27 +939,39 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
             />
           </label>
 
-          <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
-            Atribuir a
-            <select
-              className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-800"
-              value={selected?.assignedUser?.id ?? ""}
-              onChange={(event) =>
-                void updateConversation.mutateAsync({
-                  phone: selectedPhone,
-                  assignedUserId: event.target.value || null,
-                })
-              }
-            >
-              <option value="">Não atribuído</option>
-              {(membersQuery.data ?? []).map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                    {member.id === user?.id ? " (eu)" : ""}
-                  </option>
-                ))}
-            </select>
-          </label>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-slate-500">Atendente</p>
+            <p className="text-sm text-slate-800">
+              {selected?.assignedUser?.name ?? "Não atribuído"}
+              {selected?.assignedUser?.id === user?.id ? " (você)" : ""}
+            </p>
+            <div className="flex gap-2">
+              {selected?.assignedUser?.id !== user?.id ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    void updateConversation.mutateAsync({
+                      phone: selectedPhone,
+                      assignedUserId: user?.id ?? null,
+                    })
+                  }
+                >
+                  Assumir
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setTransferOpen(true)}
+              >
+                <ArrowRightLeft className="mr-1 size-3.5" />
+                Transferir
+              </Button>
+            </div>
+          </div>
 
           <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
             Prioridade
@@ -672,8 +1037,50 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
               Atendente: {selected.assignedUser.name}
             </p>
           ) : null}
+          {selected?.needsAgentReply ? (
+            <p
+              className={cn(
+                "text-xs font-medium",
+                selected.slaBreached ? "text-red-600" : "text-amber-700",
+              )}
+            >
+              Espera: {formatWait(selected.waitingSeconds)}
+              {selected.slaBreached ? " — fora do SLA" : ""}
+            </p>
+          ) : null}
+          <WhatsappCrmPanel phone={selectedPhone} />
         </aside>
       ) : null}
+
+      <WhatsappAutomationDialog
+        open={automationOpen}
+        onOpenChange={setAutomationOpen}
+      />
+      {selectedPhone ? (
+        <WhatsappTransferDialog
+          open={transferOpen}
+          onOpenChange={setTransferOpen}
+          phone={selectedPhone}
+          onTransferred={(note) =>
+            setMessages((current) => [...current, note])
+          }
+        />
+      ) : null}
+      <WhatsappRoutingSettings open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <WhatsappCannedManager open={cannedOpen} onOpenChange={setCannedOpen} />
+      <WhatsappTemplateDialog
+        open={templateOpen}
+        onOpenChange={setTemplateOpen}
+        sending={sendTemplate.isPending}
+        onSend={async (input) => {
+          if (!selectedPhone) return;
+          const created = await sendTemplate.mutateAsync({
+            to: selectedPhone,
+            ...input,
+          });
+          setMessages((current) => [...current, created]);
+        }}
+      />
 
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
         <DialogContent>

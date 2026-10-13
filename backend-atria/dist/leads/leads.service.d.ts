@@ -15,6 +15,8 @@ import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadStagesService } from './lead-stages.service';
 import { LeadQualificationService } from './qualification/lead-qualification.service';
 import { MapsScraperService } from './maps-scraper/maps-scraper.service';
+import { WhatsAppAutomationService } from '../whatsapp/application/whatsapp-automation.service';
+import { WhatsAppCrmService } from '../whatsapp/application/whatsapp-crm.service';
 import { LeadSearchSessionService } from './company-lookup/application/lead-search-session.service';
 export declare class LeadsService {
     private readonly configService;
@@ -27,8 +29,10 @@ export declare class LeadsService {
     private readonly leadQualification;
     private readonly mapsScraper;
     private readonly leadSearchSessions;
+    private readonly whatsAppCrm;
+    private readonly whatsAppAutomation;
     private readonly logger;
-    constructor(configService: ConfigService, prisma: PrismaService, aiService: AiService, companySettings: CompanySettingsService, leadStages: LeadStagesService, crmScope: CrmScopeService, leadNotifications: LeadNotificationService, leadQualification: LeadQualificationService, mapsScraper: MapsScraperService, leadSearchSessions: LeadSearchSessionService);
+    constructor(configService: ConfigService, prisma: PrismaService, aiService: AiService, companySettings: CompanySettingsService, leadStages: LeadStagesService, crmScope: CrmScopeService, leadNotifications: LeadNotificationService, leadQualification: LeadQualificationService, mapsScraper: MapsScraperService, leadSearchSessions: LeadSearchSessionService, whatsAppCrm: WhatsAppCrmService, whatsAppAutomation: WhatsAppAutomationService);
     preQualify(user: AuthenticatedUser, id: string): Promise<{
         id: string;
         companyId: string;
@@ -59,6 +63,8 @@ export declare class LeadsService {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -187,6 +193,8 @@ export declare class LeadsService {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -232,6 +240,8 @@ export declare class LeadsService {
                 kanbanTracked: boolean;
                 kanbanOrder: number;
                 orcamento: number | null;
+                cnpj: string | null;
+                jobTitle: string | null;
                 aiScore: number | null;
                 aiNotes: string | null;
                 source: string;
@@ -283,6 +293,8 @@ export declare class LeadsService {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -320,6 +332,8 @@ export declare class LeadsService {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -438,6 +452,8 @@ export declare class LeadsService {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -478,6 +494,8 @@ export declare class LeadsService {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -515,6 +533,8 @@ export declare class LeadsService {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -552,6 +572,8 @@ export declare class LeadsService {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;

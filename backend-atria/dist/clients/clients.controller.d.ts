@@ -139,7 +139,7 @@ export declare class ClientsController {
         contracts: {
             id: string;
             title: string;
-            status: "draft" | "sent" | "signed" | "expired" | "cancelled";
+            status: "sent" | "draft" | "signed" | "expired" | "cancelled";
             recurringValue: number;
             paymentFrequency: "monthly" | "one_time";
             startDate: string;
@@ -394,7 +394,7 @@ export declare class ClientsController {
         activeContracts: {
             id: string;
             title: string;
-            status: "draft" | "sent" | "signed" | "expired" | "cancelled";
+            status: "sent" | "draft" | "signed" | "expired" | "cancelled";
             recurringValue: number;
             paymentFrequency: "monthly" | "one_time";
             startDate: string;

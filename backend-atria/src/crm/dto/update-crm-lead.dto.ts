@@ -70,4 +70,14 @@ export class UpdateCrmLeadDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   orcamento?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  cnpj?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  jobTitle?: string | null;
 }

@@ -13,6 +13,7 @@ export declare abstract class WhatsAppMessageRepository {
         preview: string;
         inbound: boolean;
         reopen?: boolean;
+        agentReply?: boolean;
     }): Promise<WhatsAppConversationSummary>;
     abstract updateConversation(phone: string, patch: ConversationPatch): Promise<WhatsAppConversationSummary>;
     abstract markConversationRead(phone: string): Promise<void>;
@@ -22,6 +23,11 @@ export declare abstract class WhatsAppMessageRepository {
         shortCode: string;
         title: string;
         content: string;
+        kind?: WhatsAppCannedResponseRecord['kind'];
+        mediaUrl?: string | null;
+        mediaMimeType?: string | null;
+        mediaFilename?: string | null;
     }): Promise<WhatsAppCannedResponseRecord>;
     abstract deleteCannedResponse(id: string): Promise<void>;
+    abstract updateMessage(id: string, patch: Partial<Pick<WhatsAppMessageRecord, 'transcription' | 'mediaUrl' | 'mediaMimeType'>>): Promise<void>;
 }

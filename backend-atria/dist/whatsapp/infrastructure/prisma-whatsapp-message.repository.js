@@ -13,6 +13,7 @@ exports.PrismaWhatsAppMessageRepository = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const whatsapp_message_1 = require("../domain/whatsapp-message");
 const whatsapp_message_repository_1 = require("../domain/whatsapp-message.repository");
 const assignedUserSelect = {
     id: true,
@@ -32,6 +33,19 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
                 fromPhone: data.fromPhone,
                 toPhone: data.toPhone,
                 body: data.body,
+                kind: (data.kind ?? whatsapp_message_1.WhatsAppMessageKind.TEXT),
+                mediaUrl: data.mediaUrl ?? null,
+                mediaMimeType: data.mediaMimeType ?? null,
+                mediaFilename: data.mediaFilename ?? null,
+                latitude: data.latitude ?? null,
+                longitude: data.longitude ?? null,
+                locationName: data.locationName ?? null,
+                locationAddress: data.locationAddress ?? null,
+                isViewOnce: data.isViewOnce ?? false,
+                isVoiceNote: data.isVoiceNote ?? false,
+                transcription: data.transcription ?? null,
+                templateName: data.templateName ?? null,
+                templateLanguage: data.templateLanguage ?? null,
                 direction: data.direction,
                 status: data.status,
                 isPrivate: data.isPrivate,
@@ -64,14 +78,40 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
     async listConversations(filter) {
         await this.backfillConversations();
         const where = {};
-        if (filter.status) {
+        const tab = filter.tab;
+        if (tab === 'OPEN') {
+            where.status = client_1.WhatsAppConversationStatus.OPEN;
+        }
+        else if (tab === 'WAITING') {
+            where.status = client_1.WhatsAppConversationStatus.PENDING;
+        }
+        else if (tab === 'CLOSED') {
+            where.status = client_1.WhatsAppConversationStatus.RESOLVED;
+        }
+        else if (tab === 'MINE' && filter.userId) {
+            where.assignedUserId = filter.userId;
+            where.status = { not: client_1.WhatsAppConversationStatus.RESOLVED };
+        }
+        else if (tab === 'UNASSIGNED') {
+            where.assignedUserId = null;
+            where.status = { not: client_1.WhatsAppConversationStatus.RESOLVED };
+        }
+        else if (filter.status) {
             where.status = filter.status;
         }
-        if (filter.assignee === 'mine' && filter.userId) {
-            where.assignedUserId = filter.userId;
+        if (!tab) {
+            if (filter.assignee === 'mine' && filter.userId) {
+                where.assignedUserId = filter.userId;
+            }
+            if (filter.assignee === 'unassigned') {
+                where.assignedUserId = null;
+            }
         }
-        if (filter.assignee === 'unassigned') {
-            where.assignedUserId = null;
+        if (filter.operatorId) {
+            where.assignedUserId = filter.operatorId;
+        }
+        if (filter.label?.trim()) {
+            where.labels = { has: filter.label.trim() };
         }
         if (filter.query?.trim()) {
             const q = filter.query.trim();
@@ -84,9 +124,14 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
         const rows = await this.prisma.whatsAppConversation.findMany({
             where,
             include: { assignedUser: { select: assignedUserSelect } },
-            orderBy: { lastMessageAt: 'desc' },
+            orderBy: tab === 'UNASSIGNED'
+                ? [
+                    { queuedAt: { sort: 'asc', nulls: 'last' } },
+                    { lastMessageAt: 'desc' },
+                ]
+                : { lastMessageAt: 'desc' },
         });
-        return rows.map((row) => this.toConversation(row));
+        return rows.map((row) => this.toConversation(row, filter.slaMinutes ?? 5));
     }
     async getConversation(phone) {
         const row = await this.prisma.whatsAppConversation.findUnique({
@@ -96,21 +141,49 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
         return row ? this.toConversation(row) : null;
     }
     async upsertConversation(input) {
+        const now = new Date();
+        const existing = await this.prisma.whatsAppConversation.findUnique({
+            where: { phone: input.phone },
+        });
+        const queuedAt = existing?.queuedAt ?? null;
+        const lastAgentReplyAt = existing?.lastAgentReplyAt ?? null;
+        const stillWaiting = Boolean(queuedAt && (!lastAgentReplyAt || lastAgentReplyAt < queuedAt));
         const row = await this.prisma.whatsAppConversation.upsert({
             where: { phone: input.phone },
             create: {
                 phone: input.phone,
                 name: input.name?.trim() || null,
-                lastMessageAt: new Date(),
+                lastMessageAt: now,
                 lastMessagePreview: input.preview.slice(0, 180),
                 unreadCount: input.inbound ? 1 : 0,
-                status: client_1.WhatsAppConversationStatus.OPEN,
+                status: input.agentReply
+                    ? client_1.WhatsAppConversationStatus.PENDING
+                    : client_1.WhatsAppConversationStatus.OPEN,
+                queuedAt: input.inbound ? now : null,
+                lastCustomerMessageAt: input.inbound ? now : null,
+                lastAgentReplyAt: input.agentReply ? now : null,
             },
             update: {
-                lastMessageAt: new Date(),
+                lastMessageAt: now,
                 lastMessagePreview: input.preview.slice(0, 180),
                 ...(input.name?.trim() ? { name: input.name.trim() } : {}),
-                ...(input.inbound ? { unreadCount: { increment: 1 } } : {}),
+                ...(input.inbound
+                    ? {
+                        unreadCount: { increment: 1 },
+                        lastCustomerMessageAt: now,
+                        queuedAt: stillWaiting ? queuedAt : now,
+                    }
+                    : {}),
+                ...(input.agentReply
+                    ? {
+                        lastAgentReplyAt: now,
+                        queuedAt: null,
+                        status: existing?.status === client_1.WhatsAppConversationStatus.RESOLVED ||
+                            existing?.status === client_1.WhatsAppConversationStatus.SNOOZED
+                            ? existing.status
+                            : client_1.WhatsAppConversationStatus.PENDING,
+                    }
+                    : {}),
                 ...(input.reopen ? { status: client_1.WhatsAppConversationStatus.OPEN } : {}),
             },
             include: { assignedUser: { select: assignedUserSelect } },
@@ -135,9 +208,22 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
                     ? { priority: patch.priority }
                     : {}),
                 ...(patch.assignedUserId !== undefined
-                    ? { assignedUserId: patch.assignedUserId }
+                    ? {
+                        assignedUserId: patch.assignedUserId,
+                        assignedAt: patch.assignedUserId ? new Date() : null,
+                    }
                     : {}),
                 ...(patch.labels ? { labels: patch.labels } : {}),
+                ...(patch.queuedAt !== undefined ? { queuedAt: patch.queuedAt } : {}),
+                ...(patch.assignedAt !== undefined
+                    ? { assignedAt: patch.assignedAt }
+                    : {}),
+                ...(patch.lastAgentReplyAt !== undefined
+                    ? { lastAgentReplyAt: patch.lastAgentReplyAt }
+                    : {}),
+                ...(patch.lastCustomerMessageAt !== undefined
+                    ? { lastCustomerMessageAt: patch.lastCustomerMessageAt }
+                    : {}),
             },
             include: { assignedUser: { select: assignedUserSelect } },
         });
@@ -156,21 +242,41 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
         });
     }
     async listCannedResponses() {
-        return this.prisma.whatsAppCannedResponse.findMany({
+        const rows = await this.prisma.whatsAppCannedResponse.findMany({
             orderBy: { shortCode: 'asc' },
         });
+        return rows.map((row) => this.toCanned(row));
     }
     async createCannedResponse(input) {
-        return this.prisma.whatsAppCannedResponse.create({
+        const row = await this.prisma.whatsAppCannedResponse.create({
             data: {
                 shortCode: input.shortCode.replace(/^\//, '').trim().toLowerCase(),
                 title: input.title.trim(),
-                content: input.content.trim(),
+                content: input.content.trim() || (input.mediaUrl ? '[Mídia]' : ''),
+                kind: (input.kind ?? whatsapp_message_1.WhatsAppMessageKind.TEXT),
+                mediaUrl: input.mediaUrl ?? null,
+                mediaMimeType: input.mediaMimeType ?? null,
+                mediaFilename: input.mediaFilename ?? null,
             },
         });
+        return this.toCanned(row);
     }
     async deleteCannedResponse(id) {
         await this.prisma.whatsAppCannedResponse.delete({ where: { id } });
+    }
+    async updateMessage(id, patch) {
+        await this.prisma.whatsAppMessage.update({
+            where: { id },
+            data: {
+                ...(patch.transcription !== undefined
+                    ? { transcription: patch.transcription }
+                    : {}),
+                ...(patch.mediaUrl !== undefined ? { mediaUrl: patch.mediaUrl } : {}),
+                ...(patch.mediaMimeType !== undefined
+                    ? { mediaMimeType: patch.mediaMimeType }
+                    : {}),
+            },
+        });
     }
     async backfillConversations() {
         const messages = await this.prisma.whatsAppMessage.findMany({
@@ -196,6 +302,18 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
             });
         }
     }
+    toCanned(row) {
+        return {
+            id: row.id,
+            shortCode: row.shortCode,
+            title: row.title,
+            content: row.content,
+            kind: row.kind,
+            mediaUrl: row.mediaUrl,
+            mediaMimeType: row.mediaMimeType,
+            mediaFilename: row.mediaFilename,
+        };
+    }
     toMessage(row) {
         return {
             id: row.id,
@@ -203,6 +321,19 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
             fromPhone: row.fromPhone,
             toPhone: row.toPhone,
             body: row.body,
+            kind: (row.kind ?? 'TEXT'),
+            mediaUrl: row.mediaUrl ?? null,
+            mediaMimeType: row.mediaMimeType ?? null,
+            mediaFilename: row.mediaFilename ?? null,
+            latitude: row.latitude ?? null,
+            longitude: row.longitude ?? null,
+            locationName: row.locationName ?? null,
+            locationAddress: row.locationAddress ?? null,
+            isViewOnce: row.isViewOnce ?? false,
+            isVoiceNote: row.isVoiceNote ?? false,
+            transcription: row.transcription ?? null,
+            templateName: row.templateName ?? null,
+            templateLanguage: row.templateLanguage ?? null,
             direction: row.direction,
             status: row.status,
             isPrivate: row.isPrivate,
@@ -212,7 +343,15 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
             updatedAt: row.updatedAt,
         };
     }
-    toConversation(row) {
+    toConversation(row, slaMinutes = 5) {
+        const queuedAt = row.queuedAt ?? null;
+        const assignedAt = row.assignedAt ?? null;
+        const lastAgentReplyAt = row.lastAgentReplyAt ?? null;
+        const needsAgentReply = Boolean(queuedAt && (!lastAgentReplyAt || lastAgentReplyAt < queuedAt));
+        const waitFrom = assignedAt && row.assignedUser ? assignedAt : queuedAt;
+        const waitingSeconds = needsAgentReply && waitFrom
+            ? Math.max(0, Math.round((Date.now() - waitFrom.getTime()) / 1000))
+            : 0;
         return {
             id: row.id,
             phone: row.phone,
@@ -225,6 +364,13 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
             lastMessageAt: row.lastMessageAt,
             direction: null,
             assignedUser: row.assignedUser,
+            queuedAt,
+            assignedAt,
+            lastAgentReplyAt,
+            waitingSeconds,
+            slaBreached: waitingSeconds > slaMinutes * 60,
+            needsAgentReply,
+            lead: null,
         };
     }
 };
