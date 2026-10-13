@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WhatsAppInboxPriority = exports.WhatsAppInboxStatus = exports.WhatsAppStatus = exports.WhatsAppDirection = void 0;
+exports.WhatsAppMessageKind = exports.WhatsAppInboxPriority = exports.WhatsAppInboxStatus = exports.WhatsAppStatus = exports.WhatsAppDirection = void 0;
 exports.mapMetaStatus = mapMetaStatus;
-exports.extractInboundText = extractInboundText;
+exports.kindFromMime = kindFromMime;
 var WhatsAppDirection;
 (function (WhatsAppDirection) {
     WhatsAppDirection["INBOUND"] = "INBOUND";
@@ -30,6 +30,17 @@ var WhatsAppInboxPriority;
     WhatsAppInboxPriority["HIGH"] = "HIGH";
     WhatsAppInboxPriority["URGENT"] = "URGENT";
 })(WhatsAppInboxPriority || (exports.WhatsAppInboxPriority = WhatsAppInboxPriority = {}));
+var WhatsAppMessageKind;
+(function (WhatsAppMessageKind) {
+    WhatsAppMessageKind["TEXT"] = "TEXT";
+    WhatsAppMessageKind["IMAGE"] = "IMAGE";
+    WhatsAppMessageKind["DOCUMENT"] = "DOCUMENT";
+    WhatsAppMessageKind["AUDIO"] = "AUDIO";
+    WhatsAppMessageKind["VIDEO"] = "VIDEO";
+    WhatsAppMessageKind["LOCATION"] = "LOCATION";
+    WhatsAppMessageKind["TEMPLATE"] = "TEMPLATE";
+    WhatsAppMessageKind["STICKER"] = "STICKER";
+})(WhatsAppMessageKind || (exports.WhatsAppMessageKind = WhatsAppMessageKind = {}));
 function mapMetaStatus(status) {
     if (status === 'sent')
         return WhatsAppStatus.SENT;
@@ -41,22 +52,14 @@ function mapMetaStatus(status) {
         return WhatsAppStatus.FAILED;
     return null;
 }
-function extractInboundText(message) {
-    if (message.type === 'text' && message.text?.body) {
-        return message.text.body;
-    }
-    if (message.type === 'image' && message.image?.caption) {
-        return message.image.caption;
-    }
-    if (message.type === 'interactive' &&
-        message.interactive?.type === 'call_permission_reply') {
-        const response = message.interactive.call_permission_reply?.response;
-        if (response === 'accept')
-            return 'Permissão para ligação aceita';
-        if (response === 'reject')
-            return 'Permissão para ligação recusada';
-        return 'Resposta de permissão de ligação';
-    }
-    return null;
+function kindFromMime(mimeType) {
+    const mime = mimeType?.split(';')[0].trim().toLowerCase() ?? '';
+    if (mime.startsWith('image/'))
+        return WhatsAppMessageKind.IMAGE;
+    if (mime.startsWith('audio/'))
+        return WhatsAppMessageKind.AUDIO;
+    if (mime.startsWith('video/'))
+        return WhatsAppMessageKind.VIDEO;
+    return WhatsAppMessageKind.DOCUMENT;
 }
 //# sourceMappingURL=whatsapp-message.js.map

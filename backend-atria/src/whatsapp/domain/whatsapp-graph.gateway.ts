@@ -1,43 +1,68 @@
-export type WhatsAppSendTextResult = {
+import type { WhatsAppMessageKind } from './whatsapp-message';
+
+export type WhatsAppSendResult = {
   whatsappMessageId: string | null;
   to: string;
 };
 
-export type WhatsAppCallSession = {
-  sdpType: 'offer' | 'answer';
-  sdp: string;
+export type WhatsAppDownloadedMedia = {
+  buffer: Buffer;
+  mimeType: string;
+  filename: string;
 };
 
-export type WhatsAppCallPermissionsResult = {
+export type WhatsAppTemplateComponent = {
+  type: string;
+  text?: string;
+  format?: string;
+  example?: {
+    body_text?: string[][];
+    header_text?: string[];
+  };
+};
+
+export type WhatsAppHsmTemplate = {
+  name: string;
+  language: string;
   status: string;
-  expirationTime: number | null;
-  canStartCall: boolean;
-  canRequestPermission: boolean;
+  category: string;
+  components: WhatsAppTemplateComponent[];
 };
 
 export abstract class WhatsAppGraphGateway {
-  abstract sendText(to: string, body: string): Promise<WhatsAppSendTextResult>;
+  abstract sendText(to: string, body: string): Promise<WhatsAppSendResult>;
+
+  abstract sendMedia(
+    to: string,
+    kind: WhatsAppMessageKind,
+    mediaId: string,
+    options?: { caption?: string; filename?: string },
+  ): Promise<WhatsAppSendResult>;
+
+  abstract sendLocation(
+    to: string,
+    latitude: number,
+    longitude: number,
+    name?: string,
+    address?: string,
+  ): Promise<WhatsAppSendResult>;
+
+  abstract sendTemplate(
+    to: string,
+    name: string,
+    language: string,
+    bodyParameters: string[],
+  ): Promise<WhatsAppSendResult>;
+
+  abstract uploadMedia(
+    buffer: Buffer,
+    mimeType: string,
+    filename: string,
+  ): Promise<string>;
+
+  abstract downloadMedia(mediaId: string): Promise<WhatsAppDownloadedMedia>;
+
+  abstract listTemplates(): Promise<WhatsAppHsmTemplate[]>;
 
   abstract getBusinessPhone(): Promise<string>;
-
-  abstract enableCalling(): Promise<void>;
-
-  abstract getCallPermissions(
-    userWaId: string,
-  ): Promise<WhatsAppCallPermissionsResult>;
-
-  abstract sendCallPermissionRequest(
-    to: string,
-  ): Promise<WhatsAppSendTextResult>;
-
-  abstract connectCall(
-    to: string,
-    session: WhatsAppCallSession,
-  ): Promise<{ callId: string }>;
-
-  abstract callAction(
-    callId: string,
-    action: 'pre_accept' | 'accept' | 'reject' | 'terminate',
-    session?: WhatsAppCallSession,
-  ): Promise<void>;
 }

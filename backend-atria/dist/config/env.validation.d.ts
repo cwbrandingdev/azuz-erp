@@ -60,6 +60,8 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     WHATSAPP_PHONE_NUMBER_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     WHATSAPP_PERMANENT_TOKEN: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     WHATSAPP_ACCESS_TOKEN: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    WHATSAPP_WABA_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    WHATSAPP_BUSINESS_ACCOUNT_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
 }, z.core.$strip>, z.ZodTransform<{
     DIRECT_URL: string;
     SUPABASE_URL: string | undefined;
@@ -111,6 +113,8 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     WEBHOOK_VERIFY_TOKEN?: string | undefined;
     WHATSAPP_PHONE_NUMBER_ID?: string | undefined;
     WHATSAPP_ACCESS_TOKEN?: string | undefined;
+    WHATSAPP_WABA_ID?: string | undefined;
+    WHATSAPP_BUSINESS_ACCOUNT_ID?: string | undefined;
 }, {
     NODE_ENV: "production" | "development" | "test";
     PORT: number;
@@ -162,6 +166,8 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     WHATSAPP_PHONE_NUMBER_ID?: string | undefined;
     WHATSAPP_PERMANENT_TOKEN?: string | undefined;
     WHATSAPP_ACCESS_TOKEN?: string | undefined;
+    WHATSAPP_WABA_ID?: string | undefined;
+    WHATSAPP_BUSINESS_ACCOUNT_ID?: string | undefined;
 }>>;
 export type AppEnv = z.infer<typeof envSchema>;
 export declare function validateEnv(config: Record<string, unknown>): AppEnv;

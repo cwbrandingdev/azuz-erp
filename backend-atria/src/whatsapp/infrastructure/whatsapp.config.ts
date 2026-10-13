@@ -29,6 +29,16 @@ export class WhatsAppConfig {
     return 'v23.0';
   }
 
+  get wabaId(): string {
+    return (
+      this.configService.get<string>('WHATSAPP_WABA_ID')?.trim() ||
+      this.configService
+        .get<string>('WHATSAPP_BUSINESS_ACCOUNT_ID')
+        ?.trim() ||
+      ''
+    );
+  }
+
   get isConfigured(): boolean {
     return Boolean(this.phoneNumberId && this.permanentToken);
   }

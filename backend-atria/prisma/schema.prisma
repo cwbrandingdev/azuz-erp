@@ -60,6 +60,14 @@ model Company {
   appUpdates                 AppUpdate[]
   tasks                      Task[]
   leadCalls                  LeadCall[]
+  whatsappInboxSettings      WhatsAppInboxSettings?
+  whatsappRoutingRules       WhatsAppRoutingRule[]
+  whatsappStageMessages      WhatsAppStageMessage[]
+  whatsappCrmEvents          WhatsAppCrmEvent[]
+  whatsappBotFlows           WhatsAppBotFlow[]
+  whatsappBotSessions        WhatsAppBotSession[]
+  whatsappBroadcasts         WhatsAppBroadcast[]
+  whatsappTriggers           WhatsAppTrigger[]
 }
 
 model Role {
@@ -131,6 +139,7 @@ model User {
   leadCalls                    LeadCall[]
   whatsappAssignedConversations WhatsAppConversation[]
   whatsappMessagesSent          WhatsAppMessage[]
+  whatsappCrmEvents             WhatsAppCrmEvent[]
 
   @@unique([companyId, email])
   @@index([clientId])
@@ -1134,8 +1143,9 @@ model LeadStage {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
   company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  organization   Client?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  leads          Lead[]
+  organization           Client?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  leads                  Lead[]
+  whatsappStageMessages  WhatsAppStageMessage[]
 
   @@index([companyId, order])
   @@index([organizationId])
@@ -1253,6 +1263,8 @@ model Lead {
   kanbanTracked  Boolean           @default(false) @map("kanban_tracked")
   kanbanOrder    Int               @default(0) @map("kanban_order")
   orcamento      Decimal?          @map("orcamento") @db.Decimal(12, 2)
+  cnpj           String?
+  jobTitle       String?           @map("job_title")
   deletedAt      DateTime?         @map("deleted_at")
   deletedById    String?           @map("deleted_by")
   crmStatus      CrmLeadStatus     @default(ACTIVE) @map("crm_status")
@@ -1263,6 +1275,7 @@ model Lead {
   reminderTasks  CrmReminderTask[]
   comments              LeadComment[]
   calls                 LeadCall[]
+  whatsappCrmEvents     WhatsAppCrmEvent[]
   company               Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deletedBy      User?             @relation("LeadDeletedBy", fields: [deletedById], references: [id])
   organization   Client?           @relation(fields: [organizationId], references: [id])
@@ -1419,6 +1432,8 @@ enum NotificationType {
   NEW_REQUEST
   SYSTEM
   APP_UPDATE
+  WHATSAPP_MENTION
+  WHATSAPP_TRANSFER
 }
 
 enum TransactionType {
@@ -1699,39 +1714,83 @@ enum WhatsAppConversationPriority {
   URGENT
 }
 
-enum WhatsAppCallDirection {
-  INBOUND
-  OUTBOUND
+enum WhatsAppRoutingMode {
+  MANUAL
+  ROUND_ROBIN
+  WORKLOAD
+  SPECIALTY
 }
 
-enum WhatsAppCallStatus {
-  CONNECTING
-  RINGING
-  IN_PROGRESS
-  ENDED
-  REJECTED
-  FAILED
+enum WhatsAppMessageKind {
+  TEXT
+  IMAGE
+  DOCUMENT
+  AUDIO
+  VIDEO
+  LOCATION
+  TEMPLATE
+  STICKER
 }
 
 model WhatsAppConversation {
-  id                 String                       @id @default(uuid())
-  phone              String                       @unique
-  name               String?
-  status             WhatsAppConversationStatus   @default(OPEN)
-  priority           WhatsAppConversationPriority @default(NONE)
-  assignedUserId     String?                      @map("assigned_user_id")
-  labels             String[]                     @default([])
-  unreadCount        Int                          @default(0) @map("unread_count")
-  lastMessageAt      DateTime                     @default(now()) @map("last_message_at")
-  lastMessagePreview String?                      @map("last_message_preview")
-  createdAt          DateTime                     @default(now()) @map("created_at")
-  updatedAt          DateTime                     @updatedAt @map("updated_at")
-  assignedUser       User?                        @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
-  messages           WhatsAppMessage[]
+  id                   String                       @id @default(uuid())
+  phone                String                       @unique
+  name                 String?
+  status               WhatsAppConversationStatus   @default(OPEN)
+  priority             WhatsAppConversationPriority @default(NONE)
+  assignedUserId       String?                      @map("assigned_user_id")
+  labels               String[]                     @default([])
+  unreadCount          Int                          @default(0) @map("unread_count")
+  lastMessageAt        DateTime                     @default(now()) @map("last_message_at")
+  lastMessagePreview   String?                      @map("last_message_preview")
+  queuedAt             DateTime?                    @map("queued_at")
+  assignedAt           DateTime?                    @map("assigned_at")
+  lastAgentReplyAt     DateTime?                    @map("last_agent_reply_at")
+  lastCustomerMessageAt DateTime?                   @map("last_customer_message_at")
+  createdAt            DateTime                     @default(now()) @map("created_at")
+  updatedAt            DateTime                     @updatedAt @map("updated_at")
+  assignedUser         User?                        @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  messages             WhatsAppMessage[]
 
   @@index([status, lastMessageAt])
   @@index([assignedUserId])
+  @@index([queuedAt])
   @@map("whatsapp_conversations")
+}
+
+model WhatsAppInboxSettings {
+  id                      String              @id @default(uuid())
+  companyId               String              @unique @map("company_id")
+  routingMode             WhatsAppRoutingMode @default(MANUAL) @map("routing_mode")
+  slaFirstResponseMinutes Int                 @default(5) @map("sla_first_response_minutes")
+  autoReassignEnabled     Boolean             @default(false) @map("auto_reassign_enabled")
+  autoReassignMinutes     Int                 @default(15) @map("auto_reassign_minutes")
+  roundRobinIndex         Int                 @default(0) @map("round_robin_index")
+  agentUserIds            String[]            @default([]) @map("agent_user_ids")
+  botEnabled              Boolean             @default(false) @map("bot_enabled")
+  aiAutoReply             Boolean             @default(false) @map("ai_auto_reply")
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+  company                 Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_inbox_settings")
+}
+
+model WhatsAppRoutingRule {
+  id                String   @id @default(uuid())
+  companyId         String   @map("company_id")
+  matchLabel        String?  @map("match_label")
+  matchStageId      String?  @map("match_stage_id")
+  matchSource       String?  @map("match_source")
+  targetUserGroupId String?  @map("target_user_group_id")
+  targetUserId      String?  @map("target_user_id")
+  priority          Int      @default(0)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, priority])
+  @@map("whatsapp_routing_rules")
 }
 
 model WhatsAppMessage {
@@ -1740,6 +1799,19 @@ model WhatsAppMessage {
   fromPhone         String                    @map("from_phone")
   toPhone           String                    @map("to_phone")
   body              String
+  kind              WhatsAppMessageKind       @default(TEXT)
+  mediaUrl          String?                   @map("media_url")
+  mediaMimeType     String?                   @map("media_mime_type")
+  mediaFilename     String?                   @map("media_filename")
+  latitude          Float?
+  longitude         Float?
+  locationName      String?                   @map("location_name")
+  locationAddress   String?                   @map("location_address")
+  isViewOnce        Boolean                   @default(false) @map("is_view_once")
+  isVoiceNote       Boolean                   @default(false) @map("is_voice_note")
+  transcription     String?
+  templateName      String?                   @map("template_name")
+  templateLanguage  String?                   @map("template_language")
   direction         WhatsAppMessageDirection
   status            WhatsAppMessageStatus
   isPrivate         Boolean                   @default(false) @map("is_private")
@@ -1756,34 +1828,213 @@ model WhatsAppMessage {
   @@map("whatsapp_messages")
 }
 
-model WhatsAppCannedResponse {
-  id        String   @id @default(uuid())
-  shortCode String   @unique @map("short_code")
-  title     String
-  content   String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("whatsapp_canned_responses")
+enum WhatsAppBotSessionStatus {
+  ACTIVE
+  HANDED_OFF
+  STOPPED
 }
 
-model WhatsAppCall {
-  id               String                @id @default(uuid())
-  whatsappCallId   String                @unique @map("whatsapp_call_id")
-  phone            String
-  direction        WhatsAppCallDirection
-  status           WhatsAppCallStatus
-  offerSdp         String?               @map("offer_sdp")
-  answerSdp        String?               @map("answer_sdp")
-  startedAt        DateTime?             @map("started_at")
-  endedAt          DateTime?             @map("ended_at")
-  durationSeconds  Int?                  @map("duration_seconds")
-  createdAt        DateTime              @default(now()) @map("created_at")
-  updatedAt        DateTime              @updatedAt @map("updated_at")
+enum WhatsAppBroadcastStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  DONE
+  FAILED
+}
 
-  @@index([status, createdAt])
+enum WhatsAppBroadcastRecipientStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  REPLIED
+  FAILED
+}
+
+enum WhatsAppTriggerEvent {
+  CART_ABANDONED
+  APPOINTMENT
+  PIX_BOLETO
+  POST_SALE
+}
+
+model WhatsAppBotFlow {
+  id          String              @id @default(uuid())
+  companyId   String              @map("company_id")
+  name        String
+  enabled     Boolean             @default(true)
+  definition  Json
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  company     Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sessions    WhatsAppBotSession[]
+
+  @@index([companyId, enabled])
+  @@map("whatsapp_bot_flows")
+}
+
+model WhatsAppBotSession {
+  id          String                   @id @default(uuid())
+  companyId   String                   @map("company_id")
+  phone       String
+  flowId      String                   @map("flow_id")
+  nodeId      String                   @map("node_id")
+  waitingType String                   @default("NONE") @map("waiting_type")
+  collected   Json                     @default("{}")
+  status      WhatsAppBotSessionStatus @default(ACTIVE)
+  createdAt   DateTime                 @default(now()) @map("created_at")
+  updatedAt   DateTime                 @updatedAt @map("updated_at")
+  company     Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  flow        WhatsAppBotFlow          @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, phone])
+  @@index([flowId])
+  @@map("whatsapp_bot_sessions")
+}
+
+model WhatsAppBroadcast {
+  id                 String                  @id @default(uuid())
+  companyId          String                  @map("company_id")
+  name               String
+  status             WhatsAppBroadcastStatus @default(DRAFT)
+  body               String?
+  templateName       String?                 @map("template_name")
+  templateLanguage   String?                 @map("template_language")
+  matchLabel         String?                 @map("match_label")
+  matchStageId       String?                 @map("match_stage_id")
+  matchSource        String?                 @map("match_source")
+  matchLeadStatus    String?                 @map("match_lead_status")
+  scheduledAt        DateTime?               @map("scheduled_at")
+  ratePerMinute      Int                     @default(20) @map("rate_per_minute")
+  startedAt          DateTime?               @map("started_at")
+  finishedAt         DateTime?               @map("finished_at")
+  sentCount          Int                     @default(0) @map("sent_count")
+  deliveredCount     Int                     @default(0) @map("delivered_count")
+  readCount          Int                     @default(0) @map("read_count")
+  repliedCount       Int                     @default(0) @map("replied_count")
+  failedCount        Int                     @default(0) @map("failed_count")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+  company            Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  recipients         WhatsAppBroadcastRecipient[]
+
+  @@index([companyId, status])
+  @@map("whatsapp_broadcasts")
+}
+
+model WhatsAppBroadcastRecipient {
+  id                 String                            @id @default(uuid())
+  broadcastId        String                            @map("broadcast_id")
+  phone              String
+  status             WhatsAppBroadcastRecipientStatus  @default(PENDING)
+  whatsappMessageId  String?                           @map("whatsapp_message_id")
+  error              String?
+  sentAt             DateTime?                         @map("sent_at")
+  createdAt          DateTime                          @default(now()) @map("created_at")
+  broadcast          WhatsAppBroadcast                 @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  @@index([broadcastId, status])
+  @@index([whatsappMessageId])
+  @@index([phone])
+  @@map("whatsapp_broadcast_recipients")
+}
+
+model WhatsAppTrigger {
+  id                String                @id @default(uuid())
+  companyId         String                @map("company_id")
+  name              String
+  enabled           Boolean               @default(true)
+  eventType         WhatsAppTriggerEvent  @map("event_type")
+  delayMinutes      Int                   @default(0) @map("delay_minutes")
+  body              String?
+  templateName      String?               @map("template_name")
+  templateLanguage  String?               @map("template_language")
+  matchStageId      String?               @map("match_stage_id")
+  matchLabel        String?               @map("match_label")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  company           Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dispatches        WhatsAppTriggerDispatch[]
+
+  @@index([companyId, eventType, enabled])
+  @@map("whatsapp_triggers")
+}
+
+model WhatsAppTriggerDispatch {
+  id         String          @id @default(uuid())
+  triggerId  String          @map("trigger_id")
+  phone      String
+  entityKey  String          @map("entity_key")
+  sentAt     DateTime        @default(now()) @map("sent_at")
+  trigger    WhatsAppTrigger @relation(fields: [triggerId], references: [id], onDelete: Cascade)
+
+  @@unique([triggerId, entityKey])
+  @@index([phone])
+  @@map("whatsapp_trigger_dispatches")
+}
+
+enum WhatsAppCrmEventType {
+  STAGE_CHANGE
+  FIELD_CHANGE
+  AUTO_MESSAGE
+  LEAD_CREATED
+  TRANSFER
+  MENTION
+}
+
+model WhatsAppStageMessage {
+  id                String    @id @default(uuid())
+  companyId         String    @map("company_id")
+  stageId           String    @map("stage_id")
+  enabled           Boolean   @default(true)
+  body              String?
+  templateName      String?   @map("template_name")
+  templateLanguage  String?   @map("template_language")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stage             LeadStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, stageId])
+  @@index([companyId])
+  @@map("whatsapp_stage_messages")
+}
+
+model WhatsAppCrmEvent {
+  id          String               @id @default(uuid())
+  companyId   String               @map("company_id")
+  leadId      String?              @map("lead_id")
+  phone       String
+  type        WhatsAppCrmEventType
+  title       String
+  body        String?
+  metadata    Json?
+  actorUserId String?              @map("actor_user_id")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  company     Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead        Lead?                @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  actor       User?                @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
   @@index([phone, createdAt])
-  @@map("whatsapp_calls")
+  @@index([leadId, createdAt])
+  @@index([companyId, createdAt])
+  @@map("whatsapp_crm_events")
+}
+
+model WhatsAppCannedResponse {
+  id            String              @id @default(uuid())
+  shortCode     String              @unique @map("short_code")
+  title         String
+  content       String
+  kind          WhatsAppMessageKind @default(TEXT)
+  mediaUrl      String?             @map("media_url")
+  mediaMimeType String?             @map("media_mime_type")
+  mediaFilename String?             @map("media_filename")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@map("whatsapp_canned_responses")
 }
 
 model AppUpdate {

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateCannedResponseDto {
   @IsString()
@@ -11,8 +11,8 @@ export class CreateCannedResponseDto {
   @MaxLength(80)
   title: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(4096)
-  content: string;
+  content?: string;
 }

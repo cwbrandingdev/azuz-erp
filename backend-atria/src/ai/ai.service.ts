@@ -154,6 +154,84 @@ export class AiService {
     return this.qualifyFallback(input);
   }
 
+  async replyWhatsApp(input: {
+    inbound: string;
+    leadName?: string | null;
+    collected?: Record<string, string>;
+  }): Promise<string> {
+    const prompt = `You are a WhatsApp assistant for a Brazilian digital agency.
+Reply in Brazilian Portuguese, at most 3 short sentences, no markdown, no bullet lists.
+Be helpful and ask at most one follow-up question.
+If the customer asks for a human, say you will transfer them to an attendant.
+Customer name: ${input.leadName || 'desconhecido'}
+Collected data: ${JSON.stringify(input.collected ?? {})}
+Customer message:
+"""
+${input.inbound}
+"""`;
+    const openaiKey = this.config.get<string>('OPENAI_API_KEY');
+    const geminiKey = this.config.get<string>('GEMINI_API_KEY');
+    const provider = this.config.get<string>('AI_PROVIDER') ?? 'openai';
+
+    if (provider === 'gemini' && geminiKey) {
+      try {
+        return await this.completePlainGemini(prompt, geminiKey);
+      } catch (error) {
+        this.logger.warn(`Gemini WhatsApp reply failed: ${error}`);
+      }
+    }
+    if (openaiKey) {
+      try {
+        return await this.completePlainOpenAI(prompt, openaiKey);
+      } catch (error) {
+        this.logger.warn(`OpenAI WhatsApp reply failed: ${error}`);
+      }
+    }
+    if (geminiKey && provider !== 'gemini') {
+      try {
+        return await this.completePlainGemini(prompt, geminiKey);
+      } catch (error) {
+        this.logger.warn(`Gemini WhatsApp reply fallback failed: ${error}`);
+      }
+    }
+    const name = input.leadName?.trim().split(/\s+/)[0];
+    return name
+      ? `Oi ${name}, recebi sua mensagem. Um atendente já vai te responder por aqui.`
+      : 'Recebi sua mensagem. Um atendente já vai te responder por aqui.';
+  }
+
+  async completePlain(
+    prompt: string,
+    system = 'You write short WhatsApp replies in Brazilian Portuguese.',
+  ): Promise<string> {
+    const openaiKey = this.config.get<string>('OPENAI_API_KEY');
+    const geminiKey = this.config.get<string>('GEMINI_API_KEY');
+    const provider = this.config.get<string>('AI_PROVIDER') ?? 'openai';
+
+    if (provider === 'gemini' && geminiKey) {
+      try {
+        return await this.completePlainGemini(prompt, geminiKey);
+      } catch (error) {
+        this.logger.warn(`Gemini completePlain failed: ${error}`);
+      }
+    }
+    if (openaiKey) {
+      try {
+        return await this.completePlainOpenAI(prompt, openaiKey, system);
+      } catch (error) {
+        this.logger.warn(`OpenAI completePlain failed: ${error}`);
+      }
+    }
+    if (geminiKey && provider !== 'gemini') {
+      try {
+        return await this.completePlainGemini(prompt, geminiKey);
+      } catch (error) {
+        this.logger.warn(`Gemini completePlain fallback failed: ${error}`);
+      }
+    }
+    return prompt.slice(0, 280);
+  }
+
   private buildPrompt(input: GeneratePlanInput, platform: ContentPlatform) {
     const formats = VALID_FORMATS.join(', ');
     return `You are a senior social media strategist for a digital agency.
@@ -793,5 +871,107 @@ Responda JSON:
     if (!content) throw new Error('Empty Gemini response');
 
     return this.parseCommercialFitAi(content, 'gemini');
+  }
+
+  private async completePlainOpenAI(
+    prompt: string,
+    apiKey: string,
+    system = 'You write short WhatsApp replies in Brazilian Portuguese.',
+  ): Promise<string> {
+    const model = this.config.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini';
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.4,
+        messages: [
+          {
+            role: 'system',
+            content: system,
+          },
+          { role: 'user', content: prompt },
+        ],
+      }),
+    });
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`OpenAI API error ${response.status}: ${body}`);
+    }
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const text = data.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error('Empty OpenAI response');
+    return text;
+  }
+
+  private async completePlainGemini(
+    prompt: string,
+    apiKey: string,
+  ): Promise<string> {
+    const model =
+      this.config.get<string>('GEMINI_MODEL') ?? 'gemini-1.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.4 },
+      }),
+    });
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Gemini API error ${response.status}: ${body}`);
+    }
+    const data = (await response.json()) as {
+      candidates?: Array<{
+        content?: { parts?: Array<{ text?: string }> };
+      }>;
+    };
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!text) throw new Error('Empty Gemini response');
+    return text;
+  }
+
+  async transcribeAudio(
+    buffer: Buffer,
+    mimeType: string,
+  ): Promise<string | null> {
+    const openaiKey = this.config.get<string>('OPENAI_API_KEY');
+    if (!openaiKey) return null;
+
+    const ext = mimeType.includes('ogg')
+      ? 'ogg'
+      : mimeType.includes('mpeg') || mimeType.includes('mp3')
+        ? 'mp3'
+        : mimeType.includes('mp4') || mimeType.includes('m4a')
+          ? 'm4a'
+          : 'webm';
+    const form = new FormData();
+    form.append('model', 'whisper-1');
+    form.append('language', 'pt');
+    form.append(
+      'file',
+      new Blob([new Uint8Array(buffer)], { type: mimeType }),
+      `audio.${ext}`,
+    );
+
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${openaiKey}` },
+      body: form,
+    });
+    if (!response.ok) {
+      const body = await response.text();
+      this.logger.warn(`Whisper failed ${response.status}: ${body}`);
+      return null;
+    }
+    const data = (await response.json()) as { text?: string };
+    return data.text?.trim() || null;
   }
 }

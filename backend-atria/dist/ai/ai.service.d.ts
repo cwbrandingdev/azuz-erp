@@ -60,6 +60,12 @@ export declare class AiService {
     constructor(config: ConfigService);
     generateContentPlan(input: GeneratePlanInput): Promise<BriefContentPlan>;
     qualifyLead(input: LeadQualificationInput): Promise<LeadQualificationResult>;
+    replyWhatsApp(input: {
+        inbound: string;
+        leadName?: string | null;
+        collected?: Record<string, string>;
+    }): Promise<string>;
+    completePlain(prompt: string, system?: string): Promise<string>;
     private buildPrompt;
     private generateWithOpenAI;
     private generateWithGemini;
@@ -83,5 +89,8 @@ export declare class AiService {
     private parseCommercialFitAi;
     private commercialFitWithOpenAI;
     private commercialFitWithGemini;
+    private completePlainOpenAI;
+    private completePlainGemini;
+    transcribeAudio(buffer: Buffer, mimeType: string): Promise<string | null>;
 }
 export {};

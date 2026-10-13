@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CompanySettingsModule } from '../company-settings/company-settings.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { CompanyLookupModule } from './company-lookup/company-lookup.module';
 import { LeadQualificationModule } from './qualification/lead-qualification.module';
 import { MapsScraperModule } from './maps-scraper/maps-scraper.module';
@@ -17,6 +18,7 @@ import { LeadsService } from './leads.service';
     MapsScraperModule,
     CompanySettingsModule,
     NotificationsModule,
+    WhatsAppModule,
   ],
   controllers: [LeadsController],
   providers: [

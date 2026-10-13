@@ -54,6 +54,8 @@ const envSchema = z
     WHATSAPP_PHONE_NUMBER_ID: z.string().optional().or(z.literal('')),
     WHATSAPP_PERMANENT_TOKEN: z.string().optional().or(z.literal('')),
     WHATSAPP_ACCESS_TOKEN: z.string().optional().or(z.literal('')),
+    WHATSAPP_WABA_ID: z.string().optional().or(z.literal('')),
+    WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().or(z.literal('')),
   })
   .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);

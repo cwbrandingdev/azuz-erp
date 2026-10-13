@@ -15,31 +15,157 @@ const axios_1 = require("@nestjs/axios");
 const rxjs_1 = require("rxjs");
 const whatsapp_phone_1 = require("../domain/whatsapp-phone");
 const whatsapp_graph_gateway_1 = require("../domain/whatsapp-graph.gateway");
+const whatsapp_message_1 = require("../domain/whatsapp-message");
 const whatsapp_config_1 = require("./whatsapp.config");
-const CALL_PERMISSION_ERROR = 138006;
+const GRAPH_MEDIA_KINDS = {
+    [whatsapp_message_1.WhatsAppMessageKind.IMAGE]: 'image',
+    [whatsapp_message_1.WhatsAppMessageKind.DOCUMENT]: 'document',
+    [whatsapp_message_1.WhatsAppMessageKind.AUDIO]: 'audio',
+    [whatsapp_message_1.WhatsAppMessageKind.VIDEO]: 'video',
+    [whatsapp_message_1.WhatsAppMessageKind.STICKER]: 'sticker',
+};
 let MetaWhatsAppGraphClient = class MetaWhatsAppGraphClient extends whatsapp_graph_gateway_1.WhatsAppGraphGateway {
     http;
     config;
     businessPhoneCache = null;
-    callingEnabled = false;
+    wabaIdCache = null;
     constructor(http, config) {
         super();
         this.http = http;
         this.config = config;
     }
     async sendText(to, body) {
-        this.assertConfigured();
-        const data = await this.graphPost(`${this.phoneUrl()}/messages`, {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to,
+        return this.sendMessage(to, {
             type: 'text',
             text: { preview_url: false, body },
         });
-        return {
-            whatsappMessageId: data.messages?.[0]?.id ?? null,
-            to: data.contacts?.[0]?.wa_id ?? to,
-        };
+    }
+    async sendMedia(to, kind, mediaId, options) {
+        const type = GRAPH_MEDIA_KINDS[kind];
+        if (!type) {
+            throw new common_1.BadGatewayException('Unsupported WhatsApp media type');
+        }
+        const payload = { id: mediaId };
+        if (options?.caption && type !== 'audio' && type !== 'sticker') {
+            payload.caption = options.caption;
+        }
+        if (options?.filename && type === 'document') {
+            payload.filename = options.filename;
+        }
+        return this.sendMessage(to, { type, [type]: payload });
+    }
+    async sendLocation(to, latitude, longitude, name, address) {
+        return this.sendMessage(to, {
+            type: 'location',
+            location: {
+                latitude,
+                longitude,
+                ...(name ? { name } : {}),
+                ...(address ? { address } : {}),
+            },
+        });
+    }
+    async sendTemplate(to, name, language, bodyParameters) {
+        return this.sendMessage(to, {
+            type: 'template',
+            template: {
+                name,
+                language: { code: language },
+                ...(bodyParameters.length > 0
+                    ? {
+                        components: [
+                            {
+                                type: 'body',
+                                parameters: bodyParameters.map((text) => ({
+                                    type: 'text',
+                                    text,
+                                })),
+                            },
+                        ],
+                    }
+                    : {}),
+            },
+        });
+    }
+    async uploadMedia(buffer, mimeType, filename) {
+        this.assertConfigured();
+        const form = new FormData();
+        form.append('messaging_product', 'whatsapp');
+        form.append('type', mimeType.split(';')[0].trim());
+        form.append('file', new Blob([new Uint8Array(buffer)], { type: mimeType }), filename);
+        try {
+            const response = await (0, rxjs_1.firstValueFrom)(this.http.post(this.messagesUrl().replace(/\/messages$/, '/media'), form, {
+                headers: { Authorization: `Bearer ${this.config.permanentToken}` },
+                maxBodyLength: Infinity,
+                maxContentLength: Infinity,
+                timeout: 60_000,
+            }));
+            const id = response.data.id;
+            if (!id) {
+                throw new common_1.BadGatewayException('WhatsApp media upload returned no id');
+            }
+            return id;
+        }
+        catch (error) {
+            throw new common_1.BadGatewayException(this.readGraphError(error));
+        }
+    }
+    async downloadMedia(mediaId) {
+        this.assertConfigured();
+        const metaUrl = `https://graph.facebook.com/${this.config.graphVersion}/${mediaId}`;
+        try {
+            const meta = await (0, rxjs_1.firstValueFrom)(this.http.get(metaUrl, {
+                headers: { Authorization: `Bearer ${this.config.permanentToken}` },
+            }));
+            const fileUrl = meta.data.url;
+            if (!fileUrl) {
+                throw new common_1.BadGatewayException('WhatsApp media URL missing');
+            }
+            const file = await (0, rxjs_1.firstValueFrom)(this.http.get(fileUrl, {
+                responseType: 'arraybuffer',
+                maxRedirects: 5,
+                headers: { Authorization: `Bearer ${this.config.permanentToken}` },
+                timeout: 60_000,
+            }));
+            const mimeType = meta.data.mime_type ||
+                String(file.headers['content-type'] ?? 'application/octet-stream');
+            const ext = mimeType.split('/')[1]?.split(';')[0] || 'bin';
+            return {
+                buffer: Buffer.from(file.data),
+                mimeType,
+                filename: `${mediaId}.${ext}`,
+            };
+        }
+        catch (error) {
+            throw new common_1.BadGatewayException(this.readGraphError(error));
+        }
+    }
+    async listTemplates() {
+        this.assertConfigured();
+        const wabaId = await this.resolveWabaId();
+        if (!wabaId)
+            return [];
+        try {
+            const response = await (0, rxjs_1.firstValueFrom)(this.http.get(`https://graph.facebook.com/${this.config.graphVersion}/${wabaId}/message_templates`, {
+                params: {
+                    fields: 'name,status,language,category,components',
+                    limit: 100,
+                },
+                headers: { Authorization: `Bearer ${this.config.permanentToken}` },
+            }));
+            return (response.data.data ?? [])
+                .filter((row) => row.name && row.language)
+                .map((row) => ({
+                name: row.name,
+                language: row.language,
+                status: row.status ?? 'UNKNOWN',
+                category: row.category ?? 'UTILITY',
+                components: row.components ?? [],
+            }));
+        }
+        catch (error) {
+            throw new common_1.BadGatewayException(this.readGraphError(error));
+        }
     }
     async getBusinessPhone() {
         if (this.businessPhoneCache) {
@@ -47,144 +173,67 @@ let MetaWhatsAppGraphClient = class MetaWhatsAppGraphClient extends whatsapp_gra
         }
         this.assertConfigured();
         try {
-            const data = await this.graphGet(this.phoneUrl(), {
-                fields: 'display_phone_number',
-            });
-            const display = data.display_phone_number;
+            const response = await (0, rxjs_1.firstValueFrom)(this.http.get(this.phoneUrl(), {
+                params: { fields: 'display_phone_number,whatsapp_business_account' },
+                headers: {
+                    Authorization: `Bearer ${this.config.permanentToken}`,
+                },
+            }));
+            const display = response.data.display_phone_number;
             this.businessPhoneCache = display
                 ? (0, whatsapp_phone_1.normalizeWhatsAppPhone)(display)
                 : this.config.phoneNumberId;
+            if (response.data.whatsapp_business_account?.id) {
+                this.wabaIdCache = response.data.whatsapp_business_account.id;
+            }
             return this.businessPhoneCache;
         }
         catch {
             return this.config.phoneNumberId;
         }
     }
-    async enableCalling() {
-        if (this.callingEnabled) {
-            return;
-        }
+    async sendMessage(to, payload) {
         this.assertConfigured();
-        await this.graphPost(`${this.phoneUrl()}/settings`, {
-            calling: {
-                status: 'ENABLED',
-                callback_permission_status: 'ENABLED',
-                call_icon_visibility: 'DEFAULT',
-            },
-        });
-        this.callingEnabled = true;
-    }
-    async getCallPermissions(userWaId) {
-        this.assertConfigured();
-        const data = await this.graphGet(`${this.phoneUrl()}/call_permissions`, { user_wa_id: userWaId });
-        const actions = data.actions ?? [];
-        return {
-            status: data.permission?.status ?? 'no_permission',
-            expirationTime: data.permission?.expiration_time ?? null,
-            canStartCall: Boolean(actions.find((item) => item.action_name === 'start_call')
-                ?.can_perform_action),
-            canRequestPermission: Boolean(actions.find((item) => item.action_name === 'send_call_permission_request')?.can_perform_action),
-        };
-    }
-    async sendCallPermissionRequest(to) {
-        this.assertConfigured();
-        const data = await this.graphPost(`${this.phoneUrl()}/messages`, {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to,
-            type: 'interactive',
-            interactive: {
-                type: 'call_permission_request',
-                action: { name: 'call_permission_request' },
-                body: {
-                    text: 'Podemos te ligar pelo WhatsApp para continuar o atendimento?',
+        try {
+            const response = await (0, rxjs_1.firstValueFrom)(this.http.post(this.messagesUrl(), {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to,
+                ...payload,
+            }, {
+                headers: {
+                    Authorization: `Bearer ${this.config.permanentToken}`,
+                    'Content-Type': 'application/json',
                 },
-            },
-        });
-        return {
-            whatsappMessageId: data.messages?.[0]?.id ?? null,
-            to: data.contacts?.[0]?.wa_id ?? to,
-        };
-    }
-    async connectCall(to, session) {
-        await this.enableCalling().catch(() => undefined);
-        const data = await this.graphPost(`${this.phoneUrl()}/calls`, {
-            messaging_product: 'whatsapp',
-            to,
-            action: 'connect',
-            session: {
-                sdp_type: session.sdpType,
-                sdp: session.sdp,
-            },
-        });
-        const callId = data.calls?.[0]?.id;
-        if (!callId) {
-            throw new common_1.BadGatewayException('WhatsApp did not return a call id');
+            }));
+            const data = response.data;
+            return {
+                whatsappMessageId: data.messages?.[0]?.id ?? null,
+                to: data.contacts?.[0]?.wa_id ?? to,
+            };
         }
-        return { callId };
+        catch (error) {
+            throw new common_1.BadGatewayException(this.readGraphError(error));
+        }
     }
-    async callAction(callId, action, session) {
-        this.assertConfigured();
-        await this.graphPost(`${this.phoneUrl()}/calls`, {
-            messaging_product: 'whatsapp',
-            call_id: callId,
-            action,
-            ...(session
-                ? {
-                    session: {
-                        sdp_type: session.sdpType,
-                        sdp: session.sdp,
-                    },
-                }
-                : {}),
-        });
+    async resolveWabaId() {
+        if (this.config.wabaId)
+            return this.config.wabaId;
+        if (this.wabaIdCache)
+            return this.wabaIdCache;
+        await this.getBusinessPhone();
+        return this.wabaIdCache ?? '';
+    }
+    messagesUrl() {
+        return `https://graph.facebook.com/${this.config.graphVersion}/${this.config.phoneNumberId}/messages`;
     }
     phoneUrl() {
         return `https://graph.facebook.com/${this.config.graphVersion}/${this.config.phoneNumberId}`;
-    }
-    authHeaders() {
-        return {
-            Authorization: `Bearer ${this.config.permanentToken}`,
-            'Content-Type': 'application/json',
-        };
-    }
-    async graphGet(url, params) {
-        this.assertConfigured();
-        try {
-            const response = await (0, rxjs_1.firstValueFrom)(this.http.get(url, {
-                params,
-                headers: this.authHeaders(),
-            }));
-            return response.data;
-        }
-        catch (error) {
-            throw this.toGraphException(error);
-        }
-    }
-    async graphPost(url, body) {
-        this.assertConfigured();
-        try {
-            const response = await (0, rxjs_1.firstValueFrom)(this.http.post(url, body, { headers: this.authHeaders() }));
-            return response.data;
-        }
-        catch (error) {
-            throw this.toGraphException(error);
-        }
     }
     assertConfigured() {
         if (!this.config.isConfigured) {
             throw new common_1.ServiceUnavailableException('WhatsApp is not configured (WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_PERMANENT_TOKEN)');
         }
-    }
-    toGraphException(error) {
-        const parsed = this.readGraphError(error);
-        if (parsed.code === CALL_PERMISSION_ERROR) {
-            return new common_1.ForbiddenException({
-                message: parsed.message,
-                code: 'CALL_PERMISSION_REQUIRED',
-            });
-        }
-        return new common_1.BadGatewayException(parsed.message);
     }
     readGraphError(error) {
         if (typeof error === 'object' &&
@@ -194,15 +243,14 @@ let MetaWhatsAppGraphClient = class MetaWhatsAppGraphClient extends whatsapp_gra
             error.response !== null &&
             'data' in error.response) {
             const data = error.response.data;
-            const message = data.error?.error_user_msg ||
-                data.error?.message ||
-                'Failed to call WhatsApp Graph API';
-            return { message, code: data.error?.code };
+            if (data.error?.message) {
+                return data.error.message;
+            }
         }
         if (error instanceof Error) {
-            return { message: error.message };
+            return error.message;
         }
-        return { message: 'Failed to call WhatsApp Graph API' };
+        return 'Failed to send WhatsApp message';
     }
 };
 exports.MetaWhatsAppGraphClient = MetaWhatsAppGraphClient;

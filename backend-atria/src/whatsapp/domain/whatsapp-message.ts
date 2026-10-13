@@ -25,6 +25,17 @@ export enum WhatsAppInboxPriority {
   URGENT = 'URGENT',
 }
 
+export enum WhatsAppMessageKind {
+  TEXT = 'TEXT',
+  IMAGE = 'IMAGE',
+  DOCUMENT = 'DOCUMENT',
+  AUDIO = 'AUDIO',
+  VIDEO = 'VIDEO',
+  LOCATION = 'LOCATION',
+  TEMPLATE = 'TEMPLATE',
+  STICKER = 'STICKER',
+}
+
 export type WhatsAppAssignedUser = {
   id: string;
   name: string;
@@ -37,6 +48,19 @@ export type WhatsAppMessageRecord = {
   fromPhone: string;
   toPhone: string;
   body: string;
+  kind: WhatsAppMessageKind;
+  mediaUrl: string | null;
+  mediaMimeType: string | null;
+  mediaFilename: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  locationName: string | null;
+  locationAddress: string | null;
+  isViewOnce: boolean;
+  isVoiceNote: boolean;
+  transcription: string | null;
+  templateName: string | null;
+  templateLanguage: string | null;
   direction: WhatsAppDirection;
   status: WhatsAppStatus;
   isPrivate: boolean;
@@ -44,6 +68,15 @@ export type WhatsAppMessageRecord = {
   sentByName: string | null;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type WhatsAppLinkedLead = {
+  id: string;
+  name: string;
+  status: string;
+  source: string;
+  stageId: string | null;
+  stageName: string | null;
 };
 
 export type WhatsAppConversationSummary = {
@@ -58,6 +91,13 @@ export type WhatsAppConversationSummary = {
   lastMessageAt: Date;
   direction: WhatsAppDirection | null;
   assignedUser: WhatsAppAssignedUser | null;
+  queuedAt: Date | null;
+  assignedAt: Date | null;
+  lastAgentReplyAt: Date | null;
+  waitingSeconds: number;
+  slaBreached: boolean;
+  needsAgentReply: boolean;
+  lead: WhatsAppLinkedLead | null;
 };
 
 export type WhatsAppCannedResponseRecord = {
@@ -65,13 +105,24 @@ export type WhatsAppCannedResponseRecord = {
   shortCode: string;
   title: string;
   content: string;
+  kind: WhatsAppMessageKind;
+  mediaUrl: string | null;
+  mediaMimeType: string | null;
+  mediaFilename: string | null;
 };
 
 export type ConversationListFilter = {
+  tab?: 'OPEN' | 'MINE' | 'UNASSIGNED' | 'WAITING' | 'CLOSED';
   status?: WhatsAppInboxStatus;
   assignee?: 'mine' | 'unassigned' | 'all';
   userId?: string;
   query?: string;
+  operatorId?: string;
+  label?: string;
+  stageId?: string;
+  source?: string;
+  leadStatus?: string;
+  slaMinutes?: number;
 };
 
 export type ConversationPatch = {
@@ -80,6 +131,10 @@ export type ConversationPatch = {
   priority?: WhatsAppInboxPriority;
   assignedUserId?: string | null;
   labels?: string[];
+  queuedAt?: Date | null;
+  assignedAt?: Date | null;
+  lastAgentReplyAt?: Date | null;
+  lastCustomerMessageAt?: Date | null;
 };
 
 export function mapMetaStatus(status: unknown): WhatsAppStatus | null {
@@ -90,29 +145,10 @@ export function mapMetaStatus(status: unknown): WhatsAppStatus | null {
   return null;
 }
 
-export function extractInboundText(message: {
-  type?: string;
-  text?: { body?: string };
-  image?: { caption?: string };
-  interactive?: {
-    type?: string;
-    call_permission_reply?: { response?: string };
-  };
-}): string | null {
-  if (message.type === 'text' && message.text?.body) {
-    return message.text.body;
-  }
-  if (message.type === 'image' && message.image?.caption) {
-    return message.image.caption;
-  }
-  if (
-    message.type === 'interactive' &&
-    message.interactive?.type === 'call_permission_reply'
-  ) {
-    const response = message.interactive.call_permission_reply?.response;
-    if (response === 'accept') return 'Permissão para ligação aceita';
-    if (response === 'reject') return 'Permissão para ligação recusada';
-    return 'Resposta de permissão de ligação';
-  }
-  return null;
+export function kindFromMime(mimeType: string | undefined): WhatsAppMessageKind {
+  const mime = mimeType?.split(';')[0].trim().toLowerCase() ?? '';
+  if (mime.startsWith('image/')) return WhatsAppMessageKind.IMAGE;
+  if (mime.startsWith('audio/')) return WhatsAppMessageKind.AUDIO;
+  if (mime.startsWith('video/')) return WhatsAppMessageKind.VIDEO;
+  return WhatsAppMessageKind.DOCUMENT;
 }

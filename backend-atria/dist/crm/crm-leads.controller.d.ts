@@ -41,6 +41,8 @@ export declare class CrmLeadsController {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -81,6 +83,8 @@ export declare class CrmLeadsController {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -126,6 +130,8 @@ export declare class CrmLeadsController {
                 kanbanTracked: boolean;
                 kanbanOrder: number;
                 orcamento: number | null;
+                cnpj: string | null;
+                jobTitle: string | null;
                 aiScore: number | null;
                 aiNotes: string | null;
                 source: string;
@@ -171,6 +177,8 @@ export declare class CrmLeadsController {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -208,6 +216,8 @@ export declare class CrmLeadsController {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -248,6 +258,8 @@ export declare class CrmLeadsController {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;
@@ -285,6 +297,8 @@ export declare class CrmLeadsController {
         kanbanTracked: boolean;
         kanbanOrder: number;
         orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
         aiScore: number | null;
         aiNotes: string | null;
         source: string;

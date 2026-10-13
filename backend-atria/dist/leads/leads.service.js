@@ -31,6 +31,8 @@ const maps_contact_merge_util_1 = require("./maps-scraper/maps-contact-merge.uti
 const company_place_match_util_1 = require("./maps-scraper/company-place-match.util");
 const registry_signals_util_1 = require("./qualification/registry-signals.util");
 const company_constants_1 = require("../company/company.constants");
+const whatsapp_automation_service_1 = require("../whatsapp/application/whatsapp-automation.service");
+const whatsapp_crm_service_1 = require("../whatsapp/application/whatsapp-crm.service");
 const lead_search_session_service_1 = require("./company-lookup/application/lead-search-session.service");
 const DEFAULT_SCRAPER_URL = 'https://leadminer-one.vercel.app/api/scraper';
 const SCRAPER_TIMEOUT_MS = 120_000;
@@ -50,8 +52,10 @@ let LeadsService = LeadsService_1 = class LeadsService {
     leadQualification;
     mapsScraper;
     leadSearchSessions;
+    whatsAppCrm;
+    whatsAppAutomation;
     logger = new common_1.Logger(LeadsService_1.name);
-    constructor(configService, prisma, aiService, companySettings, leadStages, crmScope, leadNotifications, leadQualification, mapsScraper, leadSearchSessions) {
+    constructor(configService, prisma, aiService, companySettings, leadStages, crmScope, leadNotifications, leadQualification, mapsScraper, leadSearchSessions, whatsAppCrm, whatsAppAutomation) {
         this.configService = configService;
         this.prisma = prisma;
         this.aiService = aiService;
@@ -62,6 +66,8 @@ let LeadsService = LeadsService_1 = class LeadsService {
         this.leadQualification = leadQualification;
         this.mapsScraper = mapsScraper;
         this.leadSearchSessions = leadSearchSessions;
+        this.whatsAppCrm = whatsAppCrm;
+        this.whatsAppAutomation = whatsAppAutomation;
     }
     async preQualify(user, id) {
         const lead = await this.resolveLeadForUser(user, id);
@@ -406,6 +412,8 @@ let LeadsService = LeadsService_1 = class LeadsService {
         const emptyToNull = (value) => {
             if (value === undefined)
                 return undefined;
+            if (value === null)
+                return null;
             const trimmed = value.trim();
             return trimmed.length > 0 ? trimmed : null;
         };
@@ -438,6 +446,10 @@ let LeadsService = LeadsService_1 = class LeadsService {
                     ? { source: emptyToNull(dto.source) ?? 'manual' }
                     : {}),
                 ...(dto.orcamento !== undefined ? { orcamento: dto.orcamento } : {}),
+                ...(dto.cnpj !== undefined ? { cnpj: emptyToNull(dto.cnpj) } : {}),
+                ...(dto.jobTitle !== undefined
+                    ? { jobTitle: emptyToNull(dto.jobTitle) }
+                    : {}),
             },
         });
         return this.toLeadResponse(updated);
@@ -602,6 +614,12 @@ let LeadsService = LeadsService_1 = class LeadsService {
         const targetOrder = dto.order ?? (await this.nextKanbanOrderAtTop(status, id));
         const crmStatus = this.deriveCrmStatusFromPipeline(status);
         const autoMinimize = this.shouldAutoMinimize(crmStatus);
+        const previousStage = lead.stageId
+            ? await this.prisma.leadStage.findUnique({
+                where: { id: lead.stageId },
+                select: { name: true },
+            })
+            : null;
         const updated = await this.prisma.lead.update({
             where: { id },
             data: {
@@ -613,6 +631,28 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 kanbanOrder: targetOrder,
             },
         });
+        if (stage.id !== lead.stageId) {
+            void this.whatsAppCrm
+                .notifyStageMove({
+                companyId: lead.companyId,
+                leadId: lead.id,
+                phone: lead.phone,
+                fromStageName: previousStage?.name ?? null,
+                toStageId: stage.id,
+                toStageName: stage.name,
+                actorUserId: user.userId,
+            })
+                .catch((error) => this.logger.warn(`WhatsApp stage message skipped: ${error instanceof Error ? error.message : error}`));
+            void this.whatsAppAutomation
+                .onStageMove({
+                companyId: lead.companyId,
+                leadId: lead.id,
+                phone: lead.phone,
+                toStageId: stage.id,
+                toStageName: stage.name,
+            })
+                .catch((error) => this.logger.warn(`WhatsApp post-sale trigger skipped: ${error instanceof Error ? error.message : error}`));
+        }
         return this.toLeadResponse(updated);
     }
     async qualify(user, id) {
@@ -995,6 +1035,8 @@ let LeadsService = LeadsService_1 = class LeadsService {
             kanbanTracked: lead.kanbanTracked,
             kanbanOrder: lead.kanbanOrder,
             orcamento: lead.orcamento == null ? null : Number(lead.orcamento),
+            cnpj: lead.cnpj,
+            jobTitle: lead.jobTitle,
             aiScore: lead.aiScore,
             aiNotes: lead.aiNotes,
             source: lead.source,
@@ -1222,6 +1264,8 @@ exports.LeadsService = LeadsService = LeadsService_1 = __decorate([
         lead_notification_service_1.LeadNotificationService,
         lead_qualification_service_1.LeadQualificationService,
         maps_scraper_service_1.MapsScraperService,
-        lead_search_session_service_1.LeadSearchSessionService])
+        lead_search_session_service_1.LeadSearchSessionService,
+        whatsapp_crm_service_1.WhatsAppCrmService,
+        whatsapp_automation_service_1.WhatsAppAutomationService])
 ], LeadsService);
 //# sourceMappingURL=leads.service.js.map

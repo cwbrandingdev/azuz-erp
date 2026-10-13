@@ -9,13 +9,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhatsAppModule = void 0;
 const axios_1 = require("@nestjs/axios");
 const common_1 = require("@nestjs/common");
-const whatsapp_calling_service_1 = require("./application/whatsapp-calling.service");
+const notifications_module_1 = require("../notifications/notifications.module");
+const whatsapp_automation_service_1 = require("./application/whatsapp-automation.service");
+const whatsapp_collaboration_service_1 = require("./application/whatsapp-collaboration.service");
+const whatsapp_crm_service_1 = require("./application/whatsapp-crm.service");
+const whatsapp_routing_service_1 = require("./application/whatsapp-routing.service");
 const whatsapp_service_1 = require("./application/whatsapp.service");
 const whatsapp_graph_gateway_1 = require("./domain/whatsapp-graph.gateway");
 const whatsapp_message_repository_1 = require("./domain/whatsapp-message.repository");
 const meta_whatsapp_graph_client_1 = require("./infrastructure/meta-whatsapp-graph.client");
 const prisma_whatsapp_message_repository_1 = require("./infrastructure/prisma-whatsapp-message.repository");
 const whatsapp_config_1 = require("./infrastructure/whatsapp.config");
+const whatsapp_media_store_1 = require("./infrastructure/whatsapp-media.store");
 const whatsapp_controller_1 = require("./presentation/whatsapp.controller");
 const whatsapp_webhook_controller_1 = require("./presentation/whatsapp-webhook.controller");
 let WhatsAppModule = class WhatsAppModule {
@@ -25,15 +30,20 @@ exports.WhatsAppModule = WhatsAppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             axios_1.HttpModule.register({
-                timeout: 15_000,
-                maxRedirects: 0,
+                timeout: 60_000,
+                maxRedirects: 5,
             }),
+            notifications_module_1.NotificationsModule,
         ],
         controllers: [whatsapp_webhook_controller_1.WhatsAppWebhookController, whatsapp_controller_1.WhatsAppController],
         providers: [
             whatsapp_config_1.WhatsAppConfig,
+            whatsapp_media_store_1.WhatsAppMediaStore,
             whatsapp_service_1.WhatsAppService,
-            whatsapp_calling_service_1.WhatsAppCallingService,
+            whatsapp_crm_service_1.WhatsAppCrmService,
+            whatsapp_routing_service_1.WhatsAppRoutingService,
+            whatsapp_automation_service_1.WhatsAppAutomationService,
+            whatsapp_collaboration_service_1.WhatsAppCollaborationService,
             {
                 provide: whatsapp_message_repository_1.WhatsAppMessageRepository,
                 useClass: prisma_whatsapp_message_repository_1.PrismaWhatsAppMessageRepository,
@@ -43,7 +53,13 @@ exports.WhatsAppModule = WhatsAppModule = __decorate([
                 useClass: meta_whatsapp_graph_client_1.MetaWhatsAppGraphClient,
             },
         ],
-        exports: [whatsapp_service_1.WhatsAppService, whatsapp_calling_service_1.WhatsAppCallingService],
+        exports: [
+            whatsapp_service_1.WhatsAppService,
+            whatsapp_routing_service_1.WhatsAppRoutingService,
+            whatsapp_crm_service_1.WhatsAppCrmService,
+            whatsapp_automation_service_1.WhatsAppAutomationService,
+            whatsapp_collaboration_service_1.WhatsAppCollaborationService,
+        ],
     })
 ], WhatsAppModule);
 //# sourceMappingURL=whatsapp.module.js.map

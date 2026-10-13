@@ -1,26 +1,28 @@
 import { HttpService } from '@nestjs/axios';
-import { WhatsAppGraphGateway, type WhatsAppCallPermissionsResult, type WhatsAppCallSession, type WhatsAppSendTextResult } from '../domain/whatsapp-graph.gateway';
+import { WhatsAppGraphGateway, type WhatsAppDownloadedMedia, type WhatsAppHsmTemplate, type WhatsAppSendResult } from '../domain/whatsapp-graph.gateway';
+import { WhatsAppMessageKind } from '../domain/whatsapp-message';
 import { WhatsAppConfig } from './whatsapp.config';
 export declare class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
     private readonly http;
     private readonly config;
     private businessPhoneCache;
-    private callingEnabled;
+    private wabaIdCache;
     constructor(http: HttpService, config: WhatsAppConfig);
-    sendText(to: string, body: string): Promise<WhatsAppSendTextResult>;
+    sendText(to: string, body: string): Promise<WhatsAppSendResult>;
+    sendMedia(to: string, kind: WhatsAppMessageKind, mediaId: string, options?: {
+        caption?: string;
+        filename?: string;
+    }): Promise<WhatsAppSendResult>;
+    sendLocation(to: string, latitude: number, longitude: number, name?: string, address?: string): Promise<WhatsAppSendResult>;
+    sendTemplate(to: string, name: string, language: string, bodyParameters: string[]): Promise<WhatsAppSendResult>;
+    uploadMedia(buffer: Buffer, mimeType: string, filename: string): Promise<string>;
+    downloadMedia(mediaId: string): Promise<WhatsAppDownloadedMedia>;
+    listTemplates(): Promise<WhatsAppHsmTemplate[]>;
     getBusinessPhone(): Promise<string>;
-    enableCalling(): Promise<void>;
-    getCallPermissions(userWaId: string): Promise<WhatsAppCallPermissionsResult>;
-    sendCallPermissionRequest(to: string): Promise<WhatsAppSendTextResult>;
-    connectCall(to: string, session: WhatsAppCallSession): Promise<{
-        callId: string;
-    }>;
-    callAction(callId: string, action: 'pre_accept' | 'accept' | 'reject' | 'terminate', session?: WhatsAppCallSession): Promise<void>;
+    private sendMessage;
+    private resolveWabaId;
+    private messagesUrl;
     private phoneUrl;
-    private authHeaders;
-    private graphGet;
-    private graphPost;
     private assertConfigured;
-    private toGraphException;
     private readGraphError;
 }

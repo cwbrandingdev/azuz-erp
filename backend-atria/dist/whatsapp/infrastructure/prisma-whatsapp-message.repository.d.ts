@@ -1,5 +1,6 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import type { ConversationListFilter, ConversationPatch, WhatsAppCannedResponseRecord, WhatsAppConversationSummary, WhatsAppMessageRecord, WhatsAppStatus } from '../domain/whatsapp-message';
+import { WhatsAppMessageKind } from '../domain/whatsapp-message';
 import { WhatsAppMessageRepository } from '../domain/whatsapp-message.repository';
 export declare class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     private readonly prisma;
@@ -17,6 +18,7 @@ export declare class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepo
         preview: string;
         inbound: boolean;
         reopen?: boolean;
+        agentReply?: boolean;
     }): Promise<WhatsAppConversationSummary>;
     updateConversation(phone: string, patch: ConversationPatch): Promise<WhatsAppConversationSummary>;
     markConversationRead(phone: string): Promise<void>;
@@ -26,9 +28,15 @@ export declare class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepo
         shortCode: string;
         title: string;
         content: string;
+        kind?: WhatsAppMessageKind;
+        mediaUrl?: string | null;
+        mediaMimeType?: string | null;
+        mediaFilename?: string | null;
     }): Promise<WhatsAppCannedResponseRecord>;
     deleteCannedResponse(id: string): Promise<void>;
+    updateMessage(id: string, patch: Partial<Pick<WhatsAppMessageRecord, 'transcription' | 'mediaUrl' | 'mediaMimeType'>>): Promise<void>;
     private backfillConversations;
+    private toCanned;
     private toMessage;
     private toConversation;
 }

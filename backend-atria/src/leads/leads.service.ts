@@ -51,6 +51,8 @@ import {
 import { matchPlacesToCompanies } from './maps-scraper/company-place-match.util';
 import { readLegalNameFromRawData } from './qualification/registry-signals.util';
 import { DEFAULT_COMPANY_ID } from '../company/company.constants';
+import { WhatsAppAutomationService } from '../whatsapp/application/whatsapp-automation.service';
+import { WhatsAppCrmService } from '../whatsapp/application/whatsapp-crm.service';
 import {
   CATALOG_PREVIEW_ID_PREFIX,
   isCatalogPreviewId,
@@ -119,6 +121,8 @@ export class LeadsService {
     private readonly leadQualification: LeadQualificationService,
     private readonly mapsScraper: MapsScraperService,
     private readonly leadSearchSessions: LeadSearchSessionService,
+    private readonly whatsAppCrm: WhatsAppCrmService,
+    private readonly whatsAppAutomation: WhatsAppAutomationService,
   ) {}
 
   async preQualify(user: AuthenticatedUser, id: string) {
@@ -587,8 +591,9 @@ export class LeadsService {
       throw new BadRequestException('Informe o nome da empresa ou contato.');
     }
 
-    const emptyToNull = (value: string | undefined) => {
+    const emptyToNull = (value: string | null | undefined) => {
       if (value === undefined) return undefined;
+      if (value === null) return null;
       const trimmed = value.trim();
       return trimmed.length > 0 ? trimmed : null;
     };
@@ -622,6 +627,10 @@ export class LeadsService {
           ? { source: emptyToNull(dto.source) ?? 'manual' }
           : {}),
         ...(dto.orcamento !== undefined ? { orcamento: dto.orcamento } : {}),
+        ...(dto.cnpj !== undefined ? { cnpj: emptyToNull(dto.cnpj) } : {}),
+        ...(dto.jobTitle !== undefined
+          ? { jobTitle: emptyToNull(dto.jobTitle) }
+          : {}),
       },
     });
 
@@ -834,6 +843,13 @@ export class LeadsService {
     const crmStatus = this.deriveCrmStatusFromPipeline(status);
     const autoMinimize = this.shouldAutoMinimize(crmStatus);
 
+    const previousStage = lead.stageId
+      ? await this.prisma.leadStage.findUnique({
+          where: { id: lead.stageId },
+          select: { name: true },
+        })
+      : null;
+
     const updated = await this.prisma.lead.update({
       where: { id },
       data: {
@@ -845,6 +861,41 @@ export class LeadsService {
         kanbanOrder: targetOrder,
       },
     });
+
+    if (stage.id !== lead.stageId) {
+      void this.whatsAppCrm
+        .notifyStageMove({
+          companyId: lead.companyId,
+          leadId: lead.id,
+          phone: lead.phone,
+          fromStageName: previousStage?.name ?? null,
+          toStageId: stage.id,
+          toStageName: stage.name,
+          actorUserId: user.userId,
+        })
+        .catch((error) =>
+          this.logger.warn(
+            `WhatsApp stage message skipped: ${
+              error instanceof Error ? error.message : error
+            }`,
+          ),
+        );
+      void this.whatsAppAutomation
+        .onStageMove({
+          companyId: lead.companyId,
+          leadId: lead.id,
+          phone: lead.phone,
+          toStageId: stage.id,
+          toStageName: stage.name,
+        })
+        .catch((error) =>
+          this.logger.warn(
+            `WhatsApp post-sale trigger skipped: ${
+              error instanceof Error ? error.message : error
+            }`,
+          ),
+        );
+    }
 
     return this.toLeadResponse(updated);
   }
@@ -1341,6 +1392,8 @@ export class LeadsService {
       kanbanTracked: lead.kanbanTracked,
       kanbanOrder: lead.kanbanOrder,
       orcamento: lead.orcamento == null ? null : Number(lead.orcamento),
+      cnpj: lead.cnpj,
+      jobTitle: lead.jobTitle,
       aiScore: lead.aiScore,
       aiNotes: lead.aiNotes,
       source: lead.source,
