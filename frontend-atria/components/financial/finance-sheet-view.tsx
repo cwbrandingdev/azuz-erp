@@ -151,10 +151,10 @@ function SheetColumnTable({
   onDelete: (transaction: FinanceTransaction) => void;
 }) {
   return (
-    <Table className="text-sm">
+    <Table className="w-full min-w-[36rem] text-sm">
       <TableHeader className="sticky top-0 z-10 bg-[#f8fafc]">
         <TableRow className="bg-[#f8fafc] hover:bg-[#f8fafc]">
-          <TableHead className="h-8 px-2 text-xs text-[var(--atria-primary)]/50">
+          <TableHead className="h-8 min-w-[14rem] px-2 text-xs text-[var(--atria-primary)]/50">
             Descrição
           </TableHead>
           <TableHead className="h-8 px-2 text-xs text-[var(--atria-primary)]/50">
@@ -203,14 +203,14 @@ function SheetColumnTable({
               >
                 <TableCell
                   className={cn(
-                    "max-w-0 px-2 py-1.5 font-medium",
+                    "min-w-[14rem] px-2 py-1.5 font-medium",
                     isPaid ? "text-emerald-900" : "text-[var(--atria-primary)]",
                   )}
                 >
-                  <p className="truncate">
+                  <p className="break-words whitespace-normal">
                     {getTransactionLabel(transaction)}
                   </p>
-                  <p className="truncate text-xs font-normal opacity-60">
+                  <p className="break-words text-xs font-normal whitespace-normal opacity-60">
                     {transaction.category}
                   </p>
                 </TableCell>
@@ -431,7 +431,7 @@ export function FinanceSheetView({
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3">
+      <div className="flex w-full flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--atria-primary)]/10 bg-white px-3 py-2">
           {FILTER_BUTTONS.map((item) => (
             <Button
@@ -481,12 +481,12 @@ export function FinanceSheetView({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar..."
-            className="h-7 max-w-[180px]"
+            className="ml-auto h-7 min-w-[12rem] max-w-sm flex-1 sm:flex-none"
           />
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <section className="overflow-hidden rounded-xl border border-red-100 bg-white">
+        <div className="grid gap-4 xl:grid-cols-2">
+          <section className="overflow-x-auto rounded-xl border border-red-100 bg-white">
             <header className="flex items-center justify-between gap-2 border-b border-red-100 bg-red-50/70 px-3 py-2">
               <div>
                 <h2 className="text-base font-semibold text-red-800">Saídas</h2>
@@ -512,7 +512,7 @@ export function FinanceSheetView({
             />
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-emerald-100 bg-white">
+          <section className="overflow-x-auto rounded-xl border border-emerald-100 bg-white">
             <header className="flex items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/70 px-3 py-2">
               <div>
                 <h2 className="text-base font-semibold text-emerald-800">Entradas</h2>
