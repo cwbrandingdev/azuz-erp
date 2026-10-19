@@ -26,7 +26,7 @@ import type { FinanceTransaction } from "@/services/types";
 
 export default function FinancialPage() {
   const [scope, setScope] = useState<FinanceScope>(getCurrentScope);
-  const [viewMode, setViewMode] = useState<"dashboard" | "sheet">("dashboard");
+  const [viewMode, setViewMode] = useState<"dashboard" | "sheet">("sheet");
   const [sheetEpoch, setSheetEpoch] = useState(0);
   const sheetPeriod = scopeToPeriod(scope);
   const invalidateFinance = useInvalidateFinance();
