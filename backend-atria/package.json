@@ -28,6 +28,7 @@
     "seed:master": "ts-node prisma/scripts/create-master-user.ts",
     "ingest:cnpj": "ts-node prisma/scripts/ingest-receita-cnpj.ts",
     "copy:client-logins": "node scripts/copy-client-logins-from-public.mjs",
+    "deploy:fly": "fly deploy --local-only",
     "test:client-portal-live": "node scripts/test-client-portal-live.mjs"
   },
   "prisma": {
