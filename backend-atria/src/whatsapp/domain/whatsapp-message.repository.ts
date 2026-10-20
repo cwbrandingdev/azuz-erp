@@ -27,6 +27,7 @@ export abstract class WhatsAppMessageRepository {
 
   abstract getConversation(
     phone: string,
+    slaMinutes?: number,
   ): Promise<WhatsAppConversationSummary | null>;
 
   abstract upsertConversation(input: {

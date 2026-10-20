@@ -18,7 +18,7 @@ import {
   Plus,
   Search,
   Send,
-  Settings2,
+  Cog,
   StickyNote,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -205,7 +205,9 @@ function MessageBody({
       message.kind !== "LOCATION" &&
       message.kind !== "AUDIO" &&
       message.kind !== "STICKER" ? (
-        <p className="whitespace-pre-wrap break-words">{message.body}</p>
+        <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+          {message.body}
+        </p>
       ) : null}
       {message.transcription ? (
         <p
@@ -465,7 +467,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   />
                 }
               >
-                <Settings2 className="size-4" />
+                <Cog className="size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuLabel>Configurações</DropdownMenuLabel>
@@ -632,8 +634,18 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                       </span>
                     </span>
                     <span className="mt-0.5 flex items-center justify-between gap-2">
-                      <span className="truncate text-[13px] text-slate-500">
-                        {conversation.lastMessage || "Sem mensagens"}
+                      <span className="flex min-w-0 items-center gap-1">
+                        {conversation.direction === "OUTBOUND" &&
+                        conversation.lastMessageStatus ? (
+                          <span className="shrink-0">
+                            <StatusTicks
+                              status={conversation.lastMessageStatus}
+                            />
+                          </span>
+                        ) : null}
+                        <span className="truncate text-[13px] text-slate-500">
+                          {conversation.lastMessage || "Sem mensagens"}
+                        </span>
                       </span>
                       {conversation.unreadCount > 0 ? (
                         <span className="rounded-full bg-[var(--atria-primary)] px-1.5 text-[10px] font-semibold text-white">
@@ -710,12 +722,14 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                 <select
                   className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
                   value={selected?.status ?? "OPEN"}
-                  onChange={(event) =>
-                    void updateConversation.mutateAsync({
-                      phone: selectedPhone,
-                      status: event.target.value as WhatsAppInboxStatus,
-                    })
-                  }
+                  onChange={(event) => {
+                    const status = event.target.value as WhatsAppInboxStatus;
+                    void updateConversation
+                      .mutateAsync({ phone: selectedPhone, status })
+                      .catch(() =>
+                        toast.error("Não foi possível atualizar o status."),
+                      );
+                  }}
                 >
                   <option value="OPEN">Aberta</option>
                   <option value="PENDING">Aguardando cliente</option>
@@ -770,7 +784,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   >
                     <div
                       className={cn(
-                        "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
+                        "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-base shadow-sm",
                         outbound
                           ? "rounded-br-md bg-[var(--atria-primary)] text-white"
                           : "rounded-bl-md bg-white text-slate-800",
@@ -1039,8 +1053,8 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
               {selected?.assignedUser?.id !== user?.id ? (
                 <Button
                   type="button"
-                  size="sm"
-                  variant="outline"
+                  size="default"
+                  className="min-h-10 flex-1 bg-green-900 text-base font-medium text-white hover:bg-green-950"
                   onClick={() =>
                     void updateConversation.mutateAsync({
                       phone: selectedPhone,
@@ -1178,6 +1192,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
         open={templateOpen}
         onOpenChange={setTemplateOpen}
         sending={sendTemplate.isPending}
+        contactName={selected?.name ?? nameDraft}
         onSend={async (input) => {
           if (!selectedPhone) return;
           const created = await sendTemplate.mutateAsync({

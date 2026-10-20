@@ -1059,6 +1059,7 @@ export class WhatsAppAutomationService {
       lastMessage: row.lastMessagePreview,
       lastMessageAt: row.lastMessageAt,
       direction: null,
+      lastMessageStatus: null,
       assignedUser: null,
       queuedAt: row.queuedAt,
       assignedAt: row.assignedAt,

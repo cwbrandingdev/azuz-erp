@@ -29,10 +29,7 @@ import { WhatsAppMessageRepository } from '../domain/whatsapp-message.repository
 import { normalizeWhatsAppPhone } from '../domain/whatsapp-phone';
 import { WhatsAppConfig } from '../infrastructure/whatsapp.config';
 import { WhatsAppMediaStore } from '../infrastructure/whatsapp-media.store';
-import {
-  agentDebugLog,
-  maskPhone,
-} from '../../common/debug/agent-debug-log';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { WhatsAppAutomationService } from './whatsapp-automation.service';
 import { WhatsAppRoutingService } from './whatsapp-routing.service';
 
@@ -64,6 +61,7 @@ export class WhatsAppService {
     private readonly ai: AiService,
     @Inject(forwardRef(() => WhatsAppAutomationService))
     private readonly automation: WhatsAppAutomationService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   verifyWebhook(mode: string, token: string, challenge: string): string {
@@ -100,48 +98,7 @@ export class WhatsAppService {
     agentReply = true,
   ): Promise<WhatsAppMessageRecord> {
     const recipient = normalizeWhatsAppPhone(to);
-    // #region agent log
-    agentDebugLog(
-      'whatsapp.service.ts:send',
-      'normalized recipient before graph',
-      {
-        toMasked: maskPhone(to),
-        recipientMasked: maskPhone(recipient),
-        recipientLen: recipient.length,
-        configured: this.config.isConfigured,
-      },
-      'D',
-    );
-    // #endregion
-    let result;
-    try {
-      result = await this.graph.sendText(recipient, message);
-    } catch (error) {
-      // #region agent log
-      agentDebugLog(
-        'whatsapp.service.ts:send',
-        'graph sendText failed',
-        {
-          recipientMasked: maskPhone(recipient),
-          error:
-            error instanceof Error ? error.message : 'unknown',
-        },
-        'A',
-      );
-      // #endregion
-      throw error;
-    }
-    // #region agent log
-    agentDebugLog(
-      'whatsapp.service.ts:send',
-      'graph sendText ok',
-      {
-        recipientMasked: maskPhone(recipient),
-        hasWaMessageId: Boolean(result.whatsappMessageId),
-      },
-      'A',
-    );
-    // #endregion
+    const result = await this.graph.sendText(recipient, message);
     return this.persistOutbound({
       to: result.to,
       body: message,
@@ -377,18 +334,19 @@ export class WhatsAppService {
     phone: string,
     companyId?: string,
   ): Promise<WhatsAppConversationSummary | null> {
+    const resolvedCompanyId =
+      companyId ?? '00000000-0000-4000-8000-000000000001';
+    const settings = await this.routing.getSettings(resolvedCompanyId);
     const conversation = await this.messages.getConversation(
       normalizeWhatsAppPhone(phone),
+      settings.slaFirstResponseMinutes,
     );
     if (!conversation) return null;
-    const settings = await this.routing.getSettings(
-      companyId ?? '00000000-0000-4000-8000-000000000001',
-    );
     conversation.slaBreached =
       conversation.waitingSeconds > settings.slaFirstResponseMinutes * 60;
     const [enriched] = await this.routing.attachLeads(
       [conversation],
-      companyId ?? '00000000-0000-4000-8000-000000000001',
+      resolvedCompanyId,
     );
     return enriched;
   }
@@ -590,6 +548,27 @@ export class WhatsAppService {
           }`,
         ),
       );
+
+    const companyId = '00000000-0000-4000-8000-000000000001';
+    void this.routing
+      .getSettings(companyId)
+      .then((settings) =>
+        this.notifications.notifyWhatsAppInbound({
+          companyId,
+          phone: from,
+          contactName: withLead.name ?? contactName,
+          preview: parsed.body.slice(0, 200),
+          assignedUserId: withLead.assignedUser?.id ?? null,
+          agentUserIds: settings.agentUserIds,
+        }),
+      )
+      .catch((error) =>
+        this.logger.warn(
+          `WhatsApp inbound notify failed: ${
+            error instanceof Error ? error.message : error
+          }`,
+        ),
+      );
   }
 
   private async transcribeLater(
@@ -621,16 +600,6 @@ export class WhatsAppService {
     const mapped = mapMetaStatus(status.status);
     if (!mapped) {
       return;
-    }
-    if (mapped === WhatsAppStatus.FAILED) {
-      // #region agent log
-      agentDebugLog(
-        'whatsapp.service.ts:persistStatus',
-        'meta delivery failed webhook',
-        { waMessageIdPrefix: status.id?.slice(0, 8) ?? '' },
-        'C',
-      );
-      // #endregion
     }
     await this.messages.updateStatusByWhatsappMessageId(status.id, mapped);
     void this.automation

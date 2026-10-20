@@ -8,7 +8,7 @@ primary_region = 'gru'
 
 [build]
 [deploy]
-  release_command = 'sh prisma/fly-release.sh'
+  # Migrations run via docker-entrypoint.sh on app start (avoids extra release_command VM in GRU).
   seed_command = 'ts-node prisma/seed.ts'
 
 [http_service]

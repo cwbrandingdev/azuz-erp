@@ -5,10 +5,6 @@ WORKDIR /usr/src/app
 COPY package*.json tsconfig*.json ./
 COPY prisma ./prisma/
 
-# #region agent log
-RUN node -e "fetch('https://binaries.prisma.sh').then(r=>console.log('DEBUG prisma-binaries',r.status)).catch(e=>console.log('DEBUG prisma-binaries-err',e.message))"
-# #endregion
-
 RUN npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 \
   || npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
@@ -23,12 +19,16 @@ FROM node:22-slim
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
+RUN chown node:node /usr/src/app
 
 ENV NODE_ENV=production
 ENV PORT=8080
 
-COPY package*.json ./
-COPY prisma ./prisma/
+COPY --chown=node:node package*.json ./
+COPY --chown=node:node prisma ./prisma/
+COPY --chown=node:node docker-entrypoint.sh ./docker-entrypoint.sh
+
+USER node
 
 RUN (npm ci --omit=dev --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 \
   || npm ci --omit=dev --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000) \
@@ -36,12 +36,11 @@ RUN (npm ci --omit=dev --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-
 
 RUN npx prisma generate
 
-COPY --from=build /usr/src/app/dist ./dist
+COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 
-RUN mkdir -p /usr/src/app/uploads && chown -R node:node /usr/src/app
+RUN mkdir -p uploads && chmod +x docker-entrypoint.sh
 
 EXPOSE 8080
 
-USER node
-
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "dist/main.js"]

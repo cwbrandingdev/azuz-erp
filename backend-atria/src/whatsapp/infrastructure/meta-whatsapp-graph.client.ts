@@ -14,7 +14,6 @@ import {
   type WhatsAppSendResult,
 } from '../domain/whatsapp-graph.gateway';
 import { WhatsAppMessageKind } from '../domain/whatsapp-message';
-import { agentDebugLog } from '../../common/debug/agent-debug-log';
 import { WhatsAppConfig } from './whatsapp.config';
 
 type GraphSendResponse = {
@@ -340,32 +339,7 @@ export class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
     to: string,
     payload: Record<string, unknown>,
   ): Promise<WhatsAppSendResult> {
-    try {
-      this.assertConfigured();
-    } catch (error) {
-      // #region agent log
-      agentDebugLog(
-        'meta-whatsapp-graph.client.ts:sendMessage',
-        'whatsapp not configured',
-        {
-          hasPhoneId: Boolean(this.config.phoneNumberId),
-          hasToken: Boolean(this.config.permanentToken),
-        },
-        'A',
-      );
-      // #endregion
-      throw error;
-    }
-    const payloadType =
-      typeof payload.type === 'string' ? payload.type : 'unknown';
-    // #region agent log
-    agentDebugLog(
-      'meta-whatsapp-graph.client.ts:sendMessage',
-      'graph post starting',
-      { payloadType },
-      'E',
-    );
-    // #endregion
+    this.assertConfigured();
     try {
       const response = await firstValueFrom(
         this.http.post<GraphSendResponse>(
@@ -385,34 +359,12 @@ export class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
         ),
       );
       const data = response.data;
-      const result = {
+      return {
         whatsappMessageId: data.messages?.[0]?.id ?? null,
         to: data.contacts?.[0]?.wa_id ?? to,
       };
-      // #region agent log
-      agentDebugLog(
-        'meta-whatsapp-graph.client.ts:sendMessage',
-        'graph post success',
-        {
-          payloadType,
-          hasWaMessageId: Boolean(result.whatsappMessageId),
-          graphError: data.error?.message ?? null,
-        },
-        'A',
-      );
-      // #endregion
-      return result;
     } catch (error) {
-      const graphMessage = this.readGraphError(error);
-      // #region agent log
-      agentDebugLog(
-        'meta-whatsapp-graph.client.ts:sendMessage',
-        'graph post error',
-        { payloadType, graphMessage },
-        'A',
-      );
-      // #endregion
-      throw new BadGatewayException(graphMessage);
+      throw new BadGatewayException(this.readGraphError(error));
     }
   }
 
