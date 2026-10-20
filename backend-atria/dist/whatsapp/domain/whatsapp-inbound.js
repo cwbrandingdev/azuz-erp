@@ -10,6 +10,19 @@ function parseInboundMessage(message) {
             return null;
         return base({ kind: whatsapp_message_1.WhatsAppMessageKind.TEXT, body });
     }
+    if (type === 'interactive') {
+        const button = message.interactive?.button_reply;
+        const list = message.interactive?.list_reply;
+        const selectionId = (button?.id ?? list?.id)?.trim();
+        const title = (button?.title ?? list?.title)?.trim();
+        if (!selectionId)
+            return null;
+        return base({
+            kind: whatsapp_message_1.WhatsAppMessageKind.TEXT,
+            body: title ? `▸ ${title}` : selectionId,
+            menuSelectionId: selectionId,
+        });
+    }
     if (type === 'location') {
         const latitude = message.location?.latitude;
         const longitude = message.location?.longitude;
@@ -75,6 +88,7 @@ function parseInboundMessage(message) {
 }
 function base(partial) {
     return {
+        menuSelectionId: null,
         mediaId: null,
         mediaMimeType: null,
         mediaFilename: null,

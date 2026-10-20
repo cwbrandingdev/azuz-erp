@@ -40,6 +40,55 @@ let MetaWhatsAppGraphClient = class MetaWhatsAppGraphClient extends whatsapp_gra
             text: { preview_url: false, body },
         });
     }
+    async sendInteractiveMenu(to, bodyText, options) {
+        const trimmed = options
+            .filter((item) => item.id.trim() && item.title.trim())
+            .slice(0, 10)
+            .map((item) => ({
+            id: item.id.trim().slice(0, 200),
+            title: item.title.trim().slice(0, 24),
+        }));
+        if (trimmed.length === 0) {
+            return this.sendText(to, bodyText);
+        }
+        if (trimmed.length <= 3) {
+            return this.sendMessage(to, {
+                type: 'interactive',
+                interactive: {
+                    type: 'button',
+                    body: { text: bodyText.slice(0, 1024) },
+                    action: {
+                        buttons: trimmed.map((item) => ({
+                            type: 'reply',
+                            reply: {
+                                id: item.id,
+                                title: item.title.slice(0, 20),
+                            },
+                        })),
+                    },
+                },
+            });
+        }
+        return this.sendMessage(to, {
+            type: 'interactive',
+            interactive: {
+                type: 'list',
+                body: { text: bodyText.slice(0, 1024) },
+                action: {
+                    button: 'Ver opções',
+                    sections: [
+                        {
+                            title: 'Opções',
+                            rows: trimmed.map((item) => ({
+                                id: item.id,
+                                title: item.title,
+                            })),
+                        },
+                    ],
+                },
+            },
+        });
+    }
     async sendMedia(to, kind, mediaId, options) {
         const type = GRAPH_MEDIA_KINDS[kind];
         if (!type) {

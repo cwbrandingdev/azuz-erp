@@ -5,19 +5,21 @@ import {
   ArrowRightLeft,
   Check,
   CheckCheck,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   FileText,
   LayoutTemplate,
   MapPin,
   MessageCircle,
   Paperclip,
+  PanelRightClose,
+  PanelRightOpen,
   Plus,
   Search,
   Send,
   Settings2,
   StickyNote,
-  UserRound,
-  Zap,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -27,11 +29,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import { WhatsappCannedManager } from "@/components/whatsapp/whatsapp-canned-manager";
 import { WhatsappCrmPanel } from "@/components/whatsapp/whatsapp-crm-panel";
-import { WhatsappAutomationDialog } from "@/components/whatsapp/whatsapp-automation-dialog";
+import {
+  WhatsappAutomationDialog,
+  type WhatsappAutomationTab,
+} from "@/components/whatsapp/whatsapp-automation-dialog";
 import { WhatsappCopilotBar } from "@/components/whatsapp/whatsapp-copilot-bar";
 import {
   activeMentionQuery,
@@ -281,6 +294,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const [attachFile, setAttachFile] = useState<File | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [cannedOpen, setCannedOpen] = useState(false);
+  const [automationInitialTab, setAutomationInitialTab] =
+    useState<WhatsappAutomationTab>("bot");
+  const [detailPanelOpen, setDetailPanelOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -358,6 +374,22 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     setSelectedPhone(phone.replace(/\D/g, ""));
     setNewOpen(false);
     setNewPhone("");
+    setDetailPanelOpen(true);
+  }
+
+  function openAutomation(tab: WhatsappAutomationTab) {
+    setAutomationInitialTab(tab);
+    setAutomationOpen(true);
+  }
+
+  async function copyPhoneToClipboard() {
+    if (!selectedPhone) return;
+    try {
+      await navigator.clipboard.writeText(selectedPhone);
+      toast.success("Número copiado.");
+    } catch {
+      toast.error("Não foi possível copiar o número.");
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -420,42 +452,61 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   return (
     <div className="-m-4 flex h-[calc(100dvh-3.5rem)] overflow-hidden border border-black/5 bg-white lg:-m-6 lg:h-[calc(100dvh-4rem)] xl:-m-8">
       <aside className="flex w-full max-w-[360px] shrink-0 flex-col border-r border-black/10 bg-[#f8f9fc]">
-        <div className="flex items-center justify-between border-b border-black/5 bg-white px-4 py-3">
-          <div>
-            <h1 className="text-base font-semibold text-slate-800">
-              Conversas
-            </h1>
-            <p className="text-xs text-slate-500">Inbox compartilhada</p>
+        <div className="flex items-center justify-between gap-2 border-b border-black/5 bg-white px-3 py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="outline"
+                    aria-label="Configurações do WhatsApp"
+                  />
+                }
+              >
+                <Settings2 className="size-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel>Configurações</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => openAutomation("campaigns")}>
+                  Campanhas
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openAutomation("bot")}>
+                  Fluxograma do bot
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openAutomation("triggers")}>
+                  Gatilhos automáticos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCannedOpen(true)}>
+                  Respostas prontas
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                  Atribuição, SLA e funil
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openAutomation("ai")}>
+                  Bot e respostas com IA
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-semibold text-slate-800">
+                Conversas
+              </h1>
+              <p className="text-xs text-slate-500">Inbox compartilhada</p>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="outline"
-              onClick={() => setAutomationOpen(true)}
-              aria-label="Automação"
-            >
-              <Zap className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="outline"
-              onClick={() => setSettingsOpen(true)}
-              aria-label="Roteamento e SLA"
-            >
-              <Settings2 className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="outline"
-              onClick={() => setNewOpen(true)}
-              aria-label="Nova conversa"
-            >
-              <Plus className="size-4" />
-            </Button>
-          </div>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="outline"
+            onClick={() => setNewOpen(true)}
+            aria-label="Nova conversa"
+          >
+            <Plus className="size-4" />
+          </Button>
         </div>
 
         <div className="flex gap-1 overflow-x-auto border-b border-black/5 bg-white px-2 py-2">
@@ -639,6 +690,23 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="outline"
+                  aria-label={
+                    detailPanelOpen
+                      ? "Recolher painel do cliente"
+                      : "Abrir painel do cliente"
+                  }
+                  onClick={() => setDetailPanelOpen((open) => !open)}
+                >
+                  {detailPanelOpen ? (
+                    <PanelRightClose className="size-4" />
+                  ) : (
+                    <PanelRightOpen className="size-4" />
+                  )}
+                </Button>
                 <select
                   className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
                   value={selected?.status ?? "OPEN"}
@@ -921,39 +989,46 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
         )}
       </section>
 
-      {selectedPhone ? (
-        <aside className="hidden w-[300px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-black/10 bg-white p-4 xl:flex">
-          <div className="flex items-center gap-3">
-            <span className="flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-600">
-              <UserRound className="size-6" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-800">
-                {selected ? displayName(selected) : formatPhone(selectedPhone)}
-              </p>
-              <p className="text-xs text-slate-500">
+      {selectedPhone && detailPanelOpen ? (
+        <aside className="flex w-[min(300px,42vw)] shrink-0 flex-col border-l border-black/10 bg-white">
+          <div className="flex items-start justify-between gap-2 border-b border-black/5 px-3 py-3">
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              className="shrink-0 text-slate-500"
+              aria-label="Recolher painel"
+              onClick={() => setDetailPanelOpen(false)}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+            <div className="min-w-0 flex-1 text-right">
+              <Input
+                value={nameDraft}
+                onChange={(event) => setNameDraft(event.target.value)}
+                onBlur={() => {
+                  if (nameDraft !== (selected?.name ?? "")) {
+                    void updateConversation.mutateAsync({
+                      phone: selectedPhone,
+                      name: nameDraft,
+                    });
+                  }
+                }}
+                placeholder="Nome do cliente"
+                className="h-8 border-transparent bg-transparent px-1 text-right text-sm font-semibold text-slate-800 shadow-none hover:border-slate-200 focus-visible:border-slate-300"
+              />
+              <button
+                type="button"
+                onClick={() => void copyPhoneToClipboard()}
+                title="Clique para copiar o número"
+                className="mt-0.5 w-full truncate text-right text-xs text-slate-500 hover:text-slate-800"
+              >
                 {formatPhone(selectedPhone)}
-              </p>
+              </button>
             </div>
           </div>
 
-          <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
-            Nome do contato
-            <Input
-              value={nameDraft}
-              onChange={(event) => setNameDraft(event.target.value)}
-              onBlur={() => {
-                if (nameDraft !== (selected?.name ?? "")) {
-                  void updateConversation.mutateAsync({
-                    phone: selectedPhone,
-                    name: nameDraft,
-                  });
-                }
-              }}
-              className="h-8 text-sm"
-            />
-          </label>
-
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           <div className="flex flex-col gap-2">
             <p className="text-xs font-medium text-slate-500">Atendente</p>
             <p className="text-sm text-slate-800">
@@ -1066,12 +1141,25 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
             </p>
           ) : null}
           <WhatsappCrmPanel phone={selectedPhone} />
+          </div>
         </aside>
+      ) : null}
+
+      {selectedPhone && !detailPanelOpen ? (
+        <button
+          type="button"
+          className="flex w-9 shrink-0 flex-col items-center justify-center gap-1 border-l border-black/10 bg-white text-slate-500 hover:bg-slate-50"
+          aria-label="Abrir painel do cliente"
+          onClick={() => setDetailPanelOpen(true)}
+        >
+          <ChevronLeft className="size-4" />
+        </button>
       ) : null}
 
       <WhatsappAutomationDialog
         open={automationOpen}
         onOpenChange={setAutomationOpen}
+        initialTab={automationInitialTab}
       />
       {selectedPhone ? (
         <WhatsappTransferDialog

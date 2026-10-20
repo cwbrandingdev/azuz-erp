@@ -24,8 +24,13 @@ export type WhatsAppHsmTemplate = {
     category: string;
     components: WhatsAppTemplateComponent[];
 };
+export type WhatsAppInteractiveOption = {
+    id: string;
+    title: string;
+};
 export declare abstract class WhatsAppGraphGateway {
     abstract sendText(to: string, body: string): Promise<WhatsAppSendResult>;
+    abstract sendInteractiveMenu(to: string, bodyText: string, options: WhatsAppInteractiveOption[]): Promise<WhatsAppSendResult>;
     abstract sendMedia(to: string, kind: WhatsAppMessageKind, mediaId: string, options?: {
         caption?: string;
         filename?: string;

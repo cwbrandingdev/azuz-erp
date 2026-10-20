@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { WhatsappBotFlowDiagram } from "@/components/whatsapp/whatsapp-bot-flow-diagram";
+import { WhatsappBotNodeEditor } from "@/components/whatsapp/whatsapp-bot-node-editor";
 import {
   useWhatsappBotFlows,
   useWhatsappBroadcasts,
@@ -29,7 +31,9 @@ import type {
   WhatsAppTriggerEvent,
 } from "@/services/whatsapp.service";
 
-type Tab = "bot" | "campaigns" | "triggers" | "ai";
+export type WhatsappAutomationTab = "bot" | "campaigns" | "triggers" | "ai";
+
+type Tab = WhatsappAutomationTab;
 
 const NODE_TYPES: Array<{ id: WhatsAppBotNodeType; label: string }> = [
   { id: "message", label: "Mensagem" },
@@ -80,11 +84,13 @@ function emptyNode(type: WhatsAppBotNodeType, index: number): WhatsAppBotNode {
 export function WhatsappAutomationDialog({
   open,
   onOpenChange,
+  initialTab = "bot",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialTab?: WhatsappAutomationTab;
 }) {
-  const [tab, setTab] = useState<Tab>("bot");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const { data: settings } = useWhatsappInboxSettings();
   const { data: flows } = useWhatsappBotFlows();
   const { data: broadcasts } = useWhatsappBroadcasts();
@@ -113,6 +119,7 @@ export function WhatsappAutomationDialog({
     startId: "",
     nodes: [],
   });
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const [botEnabled, setBotEnabled] = useState(false);
   const [aiAutoReply, setAiAutoReply] = useState(false);
@@ -136,13 +143,21 @@ export function WhatsappAutomationDialog({
   const [cartPhone, setCartPhone] = useState("");
 
   useEffect(() => {
+    if (!open) return;
+    setTab(initialTab);
+  }, [open, initialTab]);
+
+  useEffect(() => {
     if (!flow) return;
     setFlowName(flow.name);
     setFlowEnabled(flow.enabled);
-    setDefinition({
+    const nextDefinition = {
       startId: flow.definition?.startId || flow.definition?.nodes?.[0]?.id || "",
       nodes: flow.definition?.nodes ?? [],
-    });
+    };
+    setDefinition(nextDefinition);
+    const start = nextDefinition.startId || nextDefinition.nodes[0]?.id;
+    setSelectedNodeId(start ?? null);
   }, [flow]);
 
   useEffect(() => {
@@ -154,6 +169,11 @@ export function WhatsappAutomationDialog({
   const nodeIds = useMemo(
     () => definition.nodes.map((node) => node.id),
     [definition.nodes],
+  );
+
+  const selectedNode = useMemo(
+    () => definition.nodes.find((node) => node.id === selectedNodeId) ?? null,
+    [definition.nodes, selectedNodeId],
   );
 
   function updateNode(id: string, patch: Partial<WhatsAppBotNode>) {
@@ -247,7 +267,11 @@ export function WhatsappAutomationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent
+        className={`max-h-[90vh] overflow-y-auto ${
+          tab === "bot" ? "sm:max-w-4xl" : "sm:max-w-2xl"
+        }`}
+      >
         <DialogHeader>
           <DialogTitle>Automação WhatsApp</DialogTitle>
         </DialogHeader>
@@ -255,7 +279,7 @@ export function WhatsappAutomationDialog({
         <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-xs">
           {(
             [
-              ["bot", "Chatbot"],
+              ["bot", "Fluxograma"],
               ["campaigns", "Campanhas"],
               ["triggers", "Gatilhos"],
               ["ai", "IA"],
@@ -277,8 +301,9 @@ export function WhatsappAutomationDialog({
         {tab === "bot" ? (
           <div className="flex flex-col gap-3 text-sm">
             <p className="text-xs text-slate-500">
-              O bot responde conversas não atribuídas. Menu, pergunta e IA
-              qualificam; o passo Transferir passa para um atendente.
+              O bot atende conversas não atribuídas. Passos de menu enviam
+              botões ou lista clicável no WhatsApp. Clique em um bloco no
+              fluxograma para editar.
             </p>
             <div className="grid grid-cols-2 gap-2">
               <Input
@@ -295,171 +320,46 @@ export function WhatsappAutomationDialog({
                 Fluxo ativo
               </label>
             </div>
-            <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
-              Passo inicial
-              <select
-                className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm"
-                value={definition.startId}
-                onChange={(event) =>
+
+            <WhatsappBotFlowDiagram
+              definition={definition}
+              selectedNodeId={selectedNodeId}
+              onSelectNode={setSelectedNodeId}
+            />
+
+            {selectedNode ? (
+              <WhatsappBotNodeEditor
+                node={selectedNode}
+                nodeIds={nodeIds}
+                isStart={selectedNode.id === definition.startId}
+                onSetStart={() =>
                   setDefinition((current) => ({
                     ...current,
-                    startId: event.target.value,
+                    startId: selectedNode.id,
                   }))
                 }
-              >
-                {definition.nodes.map((node) => (
-                  <option key={node.id} value={node.id}>
-                    {node.id}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {definition.nodes.map((node, index) => (
-              <div
-                key={node.id}
-                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
-              >
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-slate-600">
-                    {index + 1}. {node.id}
-                  </span>
-                  <button
-                    type="button"
-                    className="text-xs text-red-600"
-                    onClick={() =>
-                      setDefinition((current) => ({
-                        ...current,
-                        nodes: current.nodes.filter((item) => item.id !== node.id),
-                      }))
-                    }
-                  >
-                    Remover
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <select
-                    className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
-                    value={node.type}
-                    onChange={(event) =>
-                      updateNode(node.id, {
-                        type: event.target.value as WhatsAppBotNodeType,
-                      })
-                    }
-                  >
-                    {NODE_TYPES.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
-                    value={node.nextId ?? ""}
-                    onChange={(event) =>
-                      updateNode(node.id, { nextId: event.target.value || null })
-                    }
-                  >
-                    <option value="">Próximo passo</option>
-                    {nodeIds
-                      .filter((id) => id !== node.id)
-                      .map((id) => (
-                        <option key={id} value={id}>
-                          {id}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <textarea
-                  className="mt-2 min-h-16 w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
-                  placeholder="Texto (use {{primeiro_nome}})"
-                  value={node.text ?? ""}
-                  onChange={(event) =>
-                    updateNode(node.id, { text: event.target.value })
-                  }
-                />
-                {node.type === "question" ? (
-                  <Input
-                    className="mt-2 h-8 text-xs"
-                    placeholder="Campo coletado (ex: nome)"
-                    value={node.field ?? ""}
-                    onChange={(event) =>
-                      updateNode(node.id, { field: event.target.value })
-                    }
-                  />
-                ) : null}
-                {node.type === "menu"
-                  ? (node.options ?? []).map((option, optionIndex) => (
-                      <div key={optionIndex} className="mt-2 grid grid-cols-3 gap-1">
-                        <Input
-                          className="h-8 text-xs"
-                          value={option.key}
-                          onChange={(event) => {
-                            const options = [...(node.options ?? [])];
-                            options[optionIndex] = {
-                              ...option,
-                              key: event.target.value,
-                            };
-                            updateNode(node.id, { options });
-                          }}
-                        />
-                        <Input
-                          className="h-8 text-xs"
-                          value={option.label}
-                          onChange={(event) => {
-                            const options = [...(node.options ?? [])];
-                            options[optionIndex] = {
-                              ...option,
-                              label: event.target.value,
-                            };
-                            updateNode(node.id, { options });
-                          }}
-                        />
-                        <select
-                          className="h-8 rounded-md border border-slate-200 bg-white px-1 text-xs"
-                          value={option.nextId ?? ""}
-                          onChange={(event) => {
-                            const options = [...(node.options ?? [])];
-                            options[optionIndex] = {
-                              ...option,
-                              nextId: event.target.value || null,
-                            };
-                            updateNode(node.id, { options });
-                          }}
-                        >
-                          <option value="">Destino</option>
-                          {nodeIds.map((id) => (
-                            <option key={id} value={id}>
-                              {id}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ))
-                  : null}
-                {node.type === "menu" ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() =>
-                      updateNode(node.id, {
-                        options: [
-                          ...(node.options ?? []),
-                          {
-                            key: String((node.options?.length ?? 0) + 1),
-                            label: "Nova opção",
-                            nextId: null,
-                          },
-                        ],
-                      })
-                    }
-                  >
-                    Adicionar opção
-                  </Button>
-                ) : null}
-              </div>
-            ))}
+                onUpdate={(patch) => updateNode(selectedNode.id, patch)}
+                onRemove={() => {
+                  setDefinition((current) => ({
+                    ...current,
+                    startId:
+                      current.startId === selectedNode.id
+                        ? current.nodes.find((n) => n.id !== selectedNode.id)
+                            ?.id ?? ""
+                        : current.startId,
+                    nodes: current.nodes.filter(
+                      (item) => item.id !== selectedNode.id,
+                    ),
+                  }));
+                  setSelectedNodeId(null);
+                }}
+              />
+            ) : (
+              <p className="text-xs text-slate-400">
+                Selecione um passo no fluxograma para editar.
+              </p>
+            )}
+
             <div className="flex flex-wrap gap-2">
               {NODE_TYPES.map((item) => (
                 <Button
@@ -470,6 +370,7 @@ export function WhatsappAutomationDialog({
                   onClick={() =>
                     setDefinition((current) => {
                       const node = emptyNode(item.id, current.nodes.length);
+                      setSelectedNodeId(node.id);
                       return {
                         startId: current.startId || node.id,
                         nodes: [...current.nodes, node],

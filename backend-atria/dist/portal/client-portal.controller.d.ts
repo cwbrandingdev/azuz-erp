@@ -181,12 +181,12 @@ export declare class ClientPortalController {
     getPortalData(user: AuthenticatedUser): Promise<{
         client: {
             id: string;
+            contactName: string | null;
             email: string | null;
+            instagram: string | null;
+            companyName: string;
             avatarUrl: string | null;
             isActive: boolean;
-            companyName: string;
-            contactName: string | null;
-            instagram: string | null;
             hasCrmEnabled: boolean;
         };
         accountStatus: {
@@ -301,12 +301,12 @@ export declare class ClientPortalController {
         clientId: string;
         client: {
             id: string;
+            contactName: string | null;
             email: string | null;
+            instagram: string | null;
+            companyName: string;
             avatarUrl: string | null;
             isActive: boolean;
-            companyName: string;
-            contactName: string | null;
-            instagram: string | null;
             hasCrmEnabled: boolean;
         };
         month: number;
@@ -384,15 +384,15 @@ export declare class ClientPortalController {
         client: {
             number: string | null;
             id: string;
-            email: string | null;
-            avatarUrl: string | null;
-            companyName: string;
-            contactName: string | null;
             phone: string | null;
-            street: string | null;
+            contactName: string | null;
+            email: string | null;
             city: string | null;
+            companyName: string;
+            street: string | null;
             state: string | null;
             zipCode: string | null;
+            avatarUrl: string | null;
         };
         title: string;
         status: string;
@@ -418,15 +418,15 @@ export declare class ClientPortalController {
             client: {
                 number: string | null;
                 id: string;
-                email: string | null;
-                avatarUrl: string | null;
-                companyName: string;
-                contactName: string | null;
                 phone: string | null;
-                street: string | null;
+                contactName: string | null;
+                email: string | null;
                 city: string | null;
+                companyName: string;
+                street: string | null;
                 state: string | null;
                 zipCode: string | null;
+                avatarUrl: string | null;
             };
             title: string;
             status: "draft" | "sent" | "signed" | "expired" | "cancelled";
@@ -976,8 +976,8 @@ export declare class ClientPortalController {
         clientId: string;
         client: {
             id: string;
-            avatarUrl: string | null;
             companyName: string;
+            avatarUrl: string | null;
         };
         fileName: string;
         fileType: "image" | "logo" | "brand_guide" | "document";

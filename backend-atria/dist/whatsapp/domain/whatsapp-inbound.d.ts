@@ -6,6 +6,18 @@ export type MetaInboundMessage = {
     text?: {
         body?: string;
     };
+    interactive?: {
+        type?: string;
+        button_reply?: {
+            id?: string;
+            title?: string;
+        };
+        list_reply?: {
+            id?: string;
+            title?: string;
+            description?: string;
+        };
+    };
     image?: MetaInboundMedia;
     video?: MetaInboundMedia;
     document?: MetaInboundMedia;
@@ -33,6 +45,7 @@ type MetaInboundMedia = {
 export type ParsedInboundMessage = {
     kind: WhatsAppMessageKind;
     body: string;
+    menuSelectionId: string | null;
     mediaId: string | null;
     mediaMimeType: string | null;
     mediaFilename: string | null;

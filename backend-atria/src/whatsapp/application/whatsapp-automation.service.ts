@@ -738,7 +738,7 @@ export class WhatsAppAutomationService {
       const matched = this.matchMenu(current, inbound);
       if (!matched) {
         await this.sendAutomated(input.companyId, input.phone, {
-          body: 'Não entendi. Responda com o número da opção.',
+          body: 'Não entendi. Toque em uma das opções ou responda com o número.',
         });
         return true;
       }
@@ -783,15 +783,44 @@ export class WhatsAppAutomationService {
       }
 
       if (node.type === 'menu') {
-        const lines = [
-          interpolateTemplate(node.text || 'Escolha uma opção:', vars),
-          ...(node.options ?? []).map(
-            (option) => `${option.key}. ${option.label}`,
-          ),
-        ];
-        await this.sendAutomated(input.companyId, input.phone, {
-          body: lines.join('\n'),
-        });
+        const prompt = interpolateTemplate(
+          node.text || 'Escolha uma opção:',
+          vars,
+        );
+        const options = (node.options ?? []).filter(
+          (option) => option.key && option.label,
+        );
+        if (options.length > 0) {
+          try {
+            await this.whatsApp.sendInteractiveMenu(
+              input.phone,
+              prompt,
+              options.map((option) => ({
+                id: option.key,
+                title: option.label,
+              })),
+              undefined,
+              false,
+            );
+          } catch (error) {
+            this.logger.warn(
+              `Interactive menu failed, falling back to text: ${
+                error instanceof Error ? error.message : error
+              }`,
+            );
+            const lines = [
+              prompt,
+              ...options.map((option) => `${option.key}. ${option.label}`),
+            ];
+            await this.sendAutomated(input.companyId, input.phone, {
+              body: lines.join('\n'),
+            });
+          }
+        } else {
+          await this.sendAutomated(input.companyId, input.phone, {
+            body: prompt,
+          });
+        }
         await this.prisma.whatsAppBotSession.update({
           where: { id: session.id },
           data: {
