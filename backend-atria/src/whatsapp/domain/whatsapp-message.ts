@@ -90,6 +90,7 @@ export type WhatsAppConversationSummary = {
   lastMessage: string | null;
   lastMessageAt: Date;
   direction: WhatsAppDirection | null;
+  lastMessageStatus: WhatsAppStatus | null;
   assignedUser: WhatsAppAssignedUser | null;
   queuedAt: Date | null;
   assignedAt: Date | null;

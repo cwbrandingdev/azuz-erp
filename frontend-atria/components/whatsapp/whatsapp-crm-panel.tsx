@@ -11,20 +11,6 @@ import {
 } from "@/hooks/use-whatsapp";
 import { leadsService } from "@/services";
 
-const DEAL_KIND: Record<string, string> = {
-  lead: "Lead",
-  proposal: "Proposta",
-  contract: "Contrato",
-};
-
-function money(value: number | null) {
-  if (value == null) return null;
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
 export function WhatsappCrmPanel({ phone }: { phone: string }) {
   const { data, isLoading } = useWhatsappCrm(phone);
   const { updateCrmContact, invalidate } = useWhatsappMutations();
@@ -40,7 +26,6 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
   const [cnpj, setCnpj] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [source, setSource] = useState("");
-  const [orcamento, setOrcamento] = useState("");
 
   useEffect(() => {
     if (!contact) return;
@@ -50,7 +35,6 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
     setCnpj(contact.cnpj ?? "");
     setJobTitle(contact.jobTitle ?? "");
     setSource(contact.source ?? "");
-    setOrcamento(contact.orcamento != null ? String(contact.orcamento) : "");
   }, [contact]);
 
   async function save(patch: {
@@ -60,7 +44,6 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
     cnpj?: string | null;
     jobTitle?: string | null;
     source?: string;
-    orcamento?: number | null;
   }) {
     try {
       await updateCrmContact.mutateAsync({ phone, ...patch });
@@ -142,21 +125,6 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
             placeholder="Origem do lead"
             className="h-8 text-sm"
           />
-          <Input
-            value={orcamento}
-            onChange={(event) => setOrcamento(event.target.value)}
-            onBlur={() => {
-              const next = orcamento.trim()
-                ? Number(orcamento.replace(",", "."))
-                : null;
-              const current = contact?.orcamento ?? null;
-              if (next !== current) {
-                void save({ orcamento: Number.isFinite(next) ? next : null });
-              }
-            }}
-            placeholder="Ticket estimado"
-            className="h-8 text-sm"
-          />
         </div>
         {!contact ? (
           <p className="mt-2 text-[11px] text-slate-400">
@@ -197,30 +165,6 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
           </span>
         </label>
       ) : null}
-
-      <div>
-        <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-          Negócios abertos
-        </p>
-        {(data?.openDeals ?? []).length === 0 ? (
-          <p className="text-[11px] text-slate-400">Nenhum negócio aberto.</p>
-        ) : (
-          <ul className="flex flex-col gap-1.5">
-            {(data?.openDeals ?? []).map((deal) => (
-              <li
-                key={`${deal.kind}-${deal.id}`}
-                className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs"
-              >
-                <p className="font-medium text-slate-800">{deal.title}</p>
-                <p className="text-slate-500">
-                  {DEAL_KIND[deal.kind] ?? deal.kind} · {deal.status}
-                  {money(deal.value) ? ` · ${money(deal.value)}` : ""}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
 
       <div>
         <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">

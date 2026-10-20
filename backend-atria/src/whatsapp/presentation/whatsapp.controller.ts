@@ -15,10 +15,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import {
-  agentDebugLog,
-  maskPhone,
-} from '../../common/debug/agent-debug-log';
 import { UPLOAD_MULTER_FILE_SIZE_LIMIT_BYTES } from '../../common/upload/upload-limits';
 import { ValidateUploadFileSizePipe } from '../../common/upload/validate-upload-file-size.pipe';
 import { AllowAuthenticated } from '../../auth/decorators/allow-authenticated.decorator';
@@ -71,17 +67,6 @@ export class WhatsAppController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: SendWhatsAppMessageDto,
   ) {
-    // #region agent log
-    agentDebugLog(
-      'whatsapp.controller.ts:send',
-      'inbox send requested',
-      {
-        toMasked: maskPhone(dto.to),
-        messageLen: dto.message?.length ?? 0,
-      },
-      'B',
-    );
-    // #endregion
     return this.whatsAppService.send(dto.to, dto.message, user.userId);
   }
 

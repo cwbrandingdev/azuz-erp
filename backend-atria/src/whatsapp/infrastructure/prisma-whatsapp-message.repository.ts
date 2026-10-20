@@ -159,12 +159,13 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
 
   async getConversation(
     phone: string,
+    slaMinutes = 5,
   ): Promise<WhatsAppConversationSummary | null> {
     const row = await this.prisma.whatsAppConversation.findUnique({
       where: { phone },
       include: { assignedUser: { select: assignedUserSelect } },
     });
-    return row ? this.toConversation(row) : null;
+    return row ? this.toConversation(row, slaMinutes) : null;
   }
 
   async upsertConversation(input: {
@@ -185,6 +186,13 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
       queuedAt && (!lastAgentReplyAt || lastAgentReplyAt < queuedAt),
     );
 
+    const lastMessageDirection = input.inbound
+      ? WhatsAppMessageDirection.INBOUND
+      : WhatsAppMessageDirection.OUTBOUND;
+    const lastMessageStatus = input.inbound
+      ? null
+      : WhatsAppMessageStatus.SENT;
+
     const row = await this.prisma.whatsAppConversation.upsert({
       where: { phone: input.phone },
       create: {
@@ -192,6 +200,8 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
         name: input.name?.trim() || null,
         lastMessageAt: now,
         lastMessagePreview: input.preview.slice(0, 180),
+        lastMessageDirection,
+        lastMessageStatus,
         unreadCount: input.inbound ? 1 : 0,
         status: input.agentReply
           ? WhatsAppConversationStatus.PENDING
@@ -203,6 +213,8 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
       update: {
         lastMessageAt: now,
         lastMessagePreview: input.preview.slice(0, 180),
+        lastMessageDirection,
+        lastMessageStatus,
         ...(input.name?.trim() ? { name: input.name.trim() } : {}),
         ...(input.inbound
           ? {
@@ -244,10 +256,20 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
       where: { phone },
       data: {
         ...(patch.name !== undefined ? { name: patch.name } : {}),
-        ...(patch.status
-          ? { status: patch.status as WhatsAppConversationStatus }
+        ...(patch.status !== undefined
+          ? {
+              status: patch.status as WhatsAppConversationStatus,
+              ...(patch.status === WhatsAppConversationStatus.RESOLVED
+                ? { queuedAt: null }
+                : {}),
+              ...(existing.status === WhatsAppConversationStatus.RESOLVED &&
+              (patch.status === WhatsAppConversationStatus.OPEN ||
+                patch.status === WhatsAppConversationStatus.PENDING)
+                ? { queuedAt: null }
+                : {}),
+            }
           : {}),
-        ...(patch.priority
+        ...(patch.priority !== undefined
           ? { priority: patch.priority as WhatsAppConversationPriority }
           : {}),
         ...(patch.assignedUserId !== undefined
@@ -284,9 +306,34 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     whatsappMessageId: string,
     status: WhatsAppStatus,
   ): Promise<void> {
+    const message = await this.prisma.whatsAppMessage.findFirst({
+      where: { whatsappMessageId },
+      select: { id: true, conversationId: true, createdAt: true, direction: true },
+    });
+    if (!message) {
+      return;
+    }
     await this.prisma.whatsAppMessage.updateMany({
       where: { whatsappMessageId },
       data: { status: status as WhatsAppMessageStatus },
+    });
+    if (!message.conversationId) {
+      return;
+    }
+    const latest = await this.prisma.whatsAppMessage.findFirst({
+      where: { conversationId: message.conversationId, isPrivate: false },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (latest?.id !== message.id) {
+      return;
+    }
+    await this.prisma.whatsAppConversation.update({
+      where: { id: message.conversationId },
+      data: {
+        lastMessageStatus: status as WhatsAppMessageStatus,
+        lastMessageDirection: message.direction,
+      },
     });
   }
 
@@ -458,6 +505,8 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
       unreadCount: number;
       lastMessagePreview: string | null;
       lastMessageAt: Date;
+      lastMessageDirection?: WhatsAppMessageDirection | null;
+      lastMessageStatus?: WhatsAppMessageStatus | null;
       queuedAt?: Date | null;
       assignedAt?: Date | null;
       lastAgentReplyAt?: Date | null;
@@ -469,12 +518,13 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     const assignedAt = row.assignedAt ?? null;
     const lastAgentReplyAt = row.lastAgentReplyAt ?? null;
     const needsAgentReply = Boolean(
-      queuedAt && (!lastAgentReplyAt || lastAgentReplyAt < queuedAt),
+      row.status !== WhatsAppConversationStatus.RESOLVED &&
+        queuedAt &&
+        (!lastAgentReplyAt || lastAgentReplyAt < queuedAt),
     );
-    const waitFrom = assignedAt && row.assignedUser ? assignedAt : queuedAt;
     const waitingSeconds =
-      needsAgentReply && waitFrom
-        ? Math.max(0, Math.round((Date.now() - waitFrom.getTime()) / 1000))
+      needsAgentReply && queuedAt
+        ? Math.max(0, Math.round((Date.now() - queuedAt.getTime()) / 1000))
         : 0;
     return {
       id: row.id,
@@ -486,7 +536,12 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
       unreadCount: row.unreadCount,
       lastMessage: row.lastMessagePreview,
       lastMessageAt: row.lastMessageAt,
-      direction: null,
+      direction: row.lastMessageDirection
+        ? (row.lastMessageDirection as WhatsAppDirection)
+        : null,
+      lastMessageStatus: row.lastMessageStatus
+        ? (row.lastMessageStatus as WhatsAppStatus)
+        : null,
       assignedUser: row.assignedUser,
       queuedAt,
       assignedAt,

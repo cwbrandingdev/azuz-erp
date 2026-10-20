@@ -1,6 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { KanbanTaskPriority, NotificationType, RoleName } from '@prisma/client';
+import {
+  KanbanTaskPriority,
+  NotificationType,
+  RoleName,
+  UserCategory,
+} from '@prisma/client';
 import { TASK_CONTENT_TYPE_DEFINITIONS } from '../kanban/kanban-content-type';
 import { STATUS_LABELS } from '../kanban/kanban-status';
 import { MailService } from '../mail/mail.service';
@@ -413,6 +418,72 @@ export class NotificationsService {
       data: { isRead: true },
     });
     return { success: true };
+  }
+
+  async notifyWhatsAppInbound(input: {
+    companyId: string;
+    phone: string;
+    contactName: string | null;
+    preview: string;
+    assignedUserId: string | null;
+    agentUserIds: string[];
+  }) {
+    let recipientIds: string[] = [];
+    if (input.assignedUserId) {
+      recipientIds = [input.assignedUserId];
+    } else if (input.agentUserIds.length > 0) {
+      recipientIds = input.agentUserIds;
+    } else {
+      const crmUsers = await this.prisma.user.findMany({
+        where: {
+          companyId: input.companyId,
+          isActive: true,
+          category: UserCategory.MEMBER,
+          role: { name: RoleName.CRM },
+        },
+        select: { id: true },
+      });
+      recipientIds = crmUsers.map((user) => user.id);
+    }
+
+    const label = input.contactName?.trim() || input.phone;
+    const title = 'Nova mensagem no WhatsApp';
+    const message = `${label}: ${input.preview}`;
+
+    await this.createMany(recipientIds, NotificationType.SYSTEM, title, message, {
+      companyId: input.companyId,
+    });
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        id: { in: recipientIds },
+        isActive: true,
+        email: { not: '' },
+      },
+      select: { email: true },
+    });
+    const emails = [
+      ...new Set(users.map((user) => user.email?.trim()).filter(Boolean)),
+    ] as string[];
+    if (emails.length === 0) {
+      return;
+    }
+
+    const link = this.buildAppLink(
+      `/whatsapp?phone=${encodeURIComponent(input.phone)}`,
+    );
+    this.mail.sendInBackground({
+      to: emails,
+      subject: title,
+      text: `${message}\n\nAbrir conversa: ${link}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
+          <h2 style="margin: 0 0 12px;">${this.escapeHtml(title)}</h2>
+          <p style="margin: 0 0 16px;">${this.escapeHtml(message)}</p>
+          <p style="margin: 0;"><a href="${this.escapeHtml(link)}">Abrir no ERP</a></p>
+        </div>
+      `,
+    });
   }
 
   async createMany(

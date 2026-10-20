@@ -79,6 +79,7 @@ export interface WhatsAppConversation {
   lastMessage: string | null;
   lastMessageAt: string;
   direction: WhatsAppMessageDirection | null;
+  lastMessageStatus: WhatsAppMessageStatus | null;
   assignedUser: WhatsAppAssignedUser | null;
   queuedAt: string | null;
   assignedAt: string | null;

@@ -1743,6 +1743,8 @@ model WhatsAppConversation {
   unreadCount          Int                          @default(0) @map("unread_count")
   lastMessageAt        DateTime                     @default(now()) @map("last_message_at")
   lastMessagePreview   String?                      @map("last_message_preview")
+  lastMessageDirection WhatsAppMessageDirection?    @map("last_message_direction")
+  lastMessageStatus    WhatsAppMessageStatus?       @map("last_message_status")
   queuedAt             DateTime?                    @map("queued_at")
   assignedAt           DateTime?                    @map("assigned_at")
   lastAgentReplyAt     DateTime?                    @map("last_agent_reply_at")
