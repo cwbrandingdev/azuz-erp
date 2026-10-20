@@ -62,14 +62,17 @@ import type {
 } from "@/services/whatsapp.service";
 import { whatsappMediaSrc } from "@/services/whatsapp.service";
 
-const TABS: Array<{ id: WhatsAppInboxTab; label: string; countKey: keyof WhatsAppInboxCounts }> =
-  [
-    { id: "OPEN", label: "Abertas", countKey: "open" },
-    { id: "MINE", label: "Minhas", countKey: "mine" },
-    { id: "UNASSIGNED", label: "Não atribuídas", countKey: "unassigned" },
-    { id: "WAITING", label: "Aguardando cliente", countKey: "waiting" },
-    { id: "CLOSED", label: "Finalizadas", countKey: "closed" },
-  ];
+const TABS: Array<{
+  id: WhatsAppInboxTab;
+  label: string;
+  countKey: keyof WhatsAppInboxCounts;
+}> = [
+  { id: "OPEN", label: "Abertas", countKey: "open" },
+  { id: "MINE", label: "Minhas", countKey: "mine" },
+  { id: "UNASSIGNED", label: "Não atribuídas", countKey: "unassigned" },
+  { id: "WAITING", label: "Aguardando cliente", countKey: "waiting" },
+  { id: "CLOSED", label: "Finalizadas", countKey: "closed" },
+];
 
 const PRIORITY_LABEL: Record<WhatsAppInboxPriority, string> = {
   NONE: "Nenhuma",
@@ -310,7 +313,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     let cancelled = false;
     async function load() {
       try {
-        const history = await whatsappService.getMessages(selectedPhone as string);
+        const history = await whatsappService.getMessages(
+          selectedPhone as string,
+        );
         if (!cancelled) setMessages(history);
       } catch {
         if (!cancelled) toast.error("Não foi possível carregar as mensagens.");
@@ -344,9 +349,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const mentionMatches = useMemo(() => {
     if (mentionQuery == null) return [];
     const needle = mentionQuery.toLowerCase();
-    return (membersQuery.data ?? []).filter((member) =>
-      member.name.toLowerCase().includes(needle),
-    ).slice(0, 6);
+    return (membersQuery.data ?? [])
+      .filter((member) => member.name.toLowerCase().includes(needle))
+      .slice(0, 6);
   }, [mentionQuery, membersQuery.data]);
 
   function openChat(phone: string) {
@@ -417,7 +422,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
       <aside className="flex w-full max-w-[360px] shrink-0 flex-col border-r border-black/10 bg-[#f8f9fc]">
         <div className="flex items-center justify-between border-b border-black/5 bg-white px-4 py-3">
           <div>
-            <h1 className="text-base font-semibold text-slate-800">Conversas</h1>
+            <h1 className="text-base font-semibold text-slate-800">
+              Conversas
+            </h1>
             <p className="text-xs text-slate-500">Inbox compartilhada</p>
           </div>
           <div className="flex items-center gap-1">
@@ -557,7 +564,8 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   onClick={() => setSelectedPhone(conversation.phone)}
                   className={cn(
                     "flex w-full gap-3 border-b border-black/5 px-4 py-3 text-left hover:bg-white",
-                    active && "bg-white shadow-[inset_3px_0_0_var(--atria-primary)]",
+                    active &&
+                      "bg-white shadow-[inset_3px_0_0_var(--atria-primary)]",
                   )}
                 >
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
@@ -622,7 +630,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
             <header className="flex items-center justify-between gap-3 border-b border-black/5 bg-white px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-slate-800">
-                  {selected ? displayName(selected) : formatPhone(selectedPhone)}
+                  {selected
+                    ? displayName(selected)
+                    : formatPhone(selectedPhone)}
                 </p>
                 <p className="text-xs text-slate-500">
                   {formatPhone(selectedPhone)}
@@ -645,9 +655,12 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   <option value="RESOLVED">Finalizada</option>
                 </select>
                 <Button
+                  className="bg-red-700 text-[18px]"
                   type="button"
                   size="sm"
-                  variant={selected?.status === "RESOLVED" ? "outline" : "default"}
+                  variant={
+                    selected?.status === "RESOLVED" ? "outline" : "default"
+                  }
                   onClick={() =>
                     void updateConversation.mutateAsync({
                       phone: selectedPhone,
@@ -703,7 +716,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                         )}
                       >
                         {formatTime(message.createdAt)}
-                        {outbound ? <StatusTicks status={message.status} /> : null}
+                        {outbound ? (
+                          <StatusTicks status={message.status} />
+                        ) : null}
                       </span>
                     </div>
                   </div>
@@ -1004,7 +1019,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   onClick={() =>
                     void updateConversation.mutateAsync({
                       phone: selectedPhone,
-                      labels: (selected?.labels ?? []).filter((item) => item !== label),
+                      labels: (selected?.labels ?? []).filter(
+                        (item) => item !== label,
+                      ),
                     })
                   }
                 >
@@ -1061,12 +1078,13 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
           open={transferOpen}
           onOpenChange={setTransferOpen}
           phone={selectedPhone}
-          onTransferred={(note) =>
-            setMessages((current) => [...current, note])
-          }
+          onTransferred={(note) => setMessages((current) => [...current, note])}
         />
       ) : null}
-      <WhatsappRoutingSettings open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <WhatsappRoutingSettings
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
       <WhatsappCannedManager open={cannedOpen} onOpenChange={setCannedOpen} />
       <WhatsappTemplateDialog
         open={templateOpen}
@@ -1093,7 +1111,11 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
               onChange={(event) => setNewPhone(event.target.value)}
               placeholder="5511999999999"
             />
-            <Button type="button" onClick={() => openChat(newPhone)} disabled={!newPhone.trim()}>
+            <Button
+              type="button"
+              onClick={() => openChat(newPhone)}
+              disabled={!newPhone.trim()}
+            >
               Abrir conversa
             </Button>
           </div>
