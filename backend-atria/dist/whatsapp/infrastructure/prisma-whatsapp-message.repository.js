@@ -133,12 +133,12 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
         });
         return rows.map((row) => this.toConversation(row, filter.slaMinutes ?? 5));
     }
-    async getConversation(phone) {
+    async getConversation(phone, slaMinutes = 5) {
         const row = await this.prisma.whatsAppConversation.findUnique({
             where: { phone },
             include: { assignedUser: { select: assignedUserSelect } },
         });
-        return row ? this.toConversation(row) : null;
+        return row ? this.toConversation(row, slaMinutes) : null;
     }
     async upsertConversation(input) {
         const now = new Date();
@@ -148,6 +148,12 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
         const queuedAt = existing?.queuedAt ?? null;
         const lastAgentReplyAt = existing?.lastAgentReplyAt ?? null;
         const stillWaiting = Boolean(queuedAt && (!lastAgentReplyAt || lastAgentReplyAt < queuedAt));
+        const lastMessageDirection = input.inbound
+            ? client_1.WhatsAppMessageDirection.INBOUND
+            : client_1.WhatsAppMessageDirection.OUTBOUND;
+        const lastMessageStatus = input.inbound
+            ? null
+            : client_1.WhatsAppMessageStatus.SENT;
         const row = await this.prisma.whatsAppConversation.upsert({
             where: { phone: input.phone },
             create: {
@@ -155,6 +161,8 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
                 name: input.name?.trim() || null,
                 lastMessageAt: now,
                 lastMessagePreview: input.preview.slice(0, 180),
+                lastMessageDirection,
+                lastMessageStatus,
                 unreadCount: input.inbound ? 1 : 0,
                 status: input.agentReply
                     ? client_1.WhatsAppConversationStatus.PENDING
@@ -166,6 +174,8 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
             update: {
                 lastMessageAt: now,
                 lastMessagePreview: input.preview.slice(0, 180),
+                lastMessageDirection,
+                lastMessageStatus,
                 ...(input.name?.trim() ? { name: input.name.trim() } : {}),
                 ...(input.inbound
                     ? {
@@ -201,10 +211,20 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
             where: { phone },
             data: {
                 ...(patch.name !== undefined ? { name: patch.name } : {}),
-                ...(patch.status
-                    ? { status: patch.status }
+                ...(patch.status !== undefined
+                    ? {
+                        status: patch.status,
+                        ...(patch.status === client_1.WhatsAppConversationStatus.RESOLVED
+                            ? { queuedAt: null }
+                            : {}),
+                        ...(existing.status === client_1.WhatsAppConversationStatus.RESOLVED &&
+                            (patch.status === client_1.WhatsAppConversationStatus.OPEN ||
+                                patch.status === client_1.WhatsAppConversationStatus.PENDING)
+                            ? { queuedAt: null }
+                            : {}),
+                    }
                     : {}),
-                ...(patch.priority
+                ...(patch.priority !== undefined
                     ? { priority: patch.priority }
                     : {}),
                 ...(patch.assignedUserId !== undefined
@@ -236,9 +256,34 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
         });
     }
     async updateStatusByWhatsappMessageId(whatsappMessageId, status) {
+        const message = await this.prisma.whatsAppMessage.findFirst({
+            where: { whatsappMessageId },
+            select: { id: true, conversationId: true, createdAt: true, direction: true },
+        });
+        if (!message) {
+            return;
+        }
         await this.prisma.whatsAppMessage.updateMany({
             where: { whatsappMessageId },
             data: { status: status },
+        });
+        if (!message.conversationId) {
+            return;
+        }
+        const latest = await this.prisma.whatsAppMessage.findFirst({
+            where: { conversationId: message.conversationId, isPrivate: false },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true },
+        });
+        if (latest?.id !== message.id) {
+            return;
+        }
+        await this.prisma.whatsAppConversation.update({
+            where: { id: message.conversationId },
+            data: {
+                lastMessageStatus: status,
+                lastMessageDirection: message.direction,
+            },
         });
     }
     async listCannedResponses() {
@@ -347,10 +392,11 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
         const queuedAt = row.queuedAt ?? null;
         const assignedAt = row.assignedAt ?? null;
         const lastAgentReplyAt = row.lastAgentReplyAt ?? null;
-        const needsAgentReply = Boolean(queuedAt && (!lastAgentReplyAt || lastAgentReplyAt < queuedAt));
-        const waitFrom = assignedAt && row.assignedUser ? assignedAt : queuedAt;
-        const waitingSeconds = needsAgentReply && waitFrom
-            ? Math.max(0, Math.round((Date.now() - waitFrom.getTime()) / 1000))
+        const needsAgentReply = Boolean(row.status !== client_1.WhatsAppConversationStatus.RESOLVED &&
+            queuedAt &&
+            (!lastAgentReplyAt || lastAgentReplyAt < queuedAt));
+        const waitingSeconds = needsAgentReply && queuedAt
+            ? Math.max(0, Math.round((Date.now() - queuedAt.getTime()) / 1000))
             : 0;
         return {
             id: row.id,
@@ -362,7 +408,12 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
             unreadCount: row.unreadCount,
             lastMessage: row.lastMessagePreview,
             lastMessageAt: row.lastMessageAt,
-            direction: null,
+            direction: row.lastMessageDirection
+                ? row.lastMessageDirection
+                : null,
+            lastMessageStatus: row.lastMessageStatus
+                ? row.lastMessageStatus
+                : null,
             assignedUser: row.assignedUser,
             queuedAt,
             assignedAt,

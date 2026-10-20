@@ -4,6 +4,10 @@ import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { FinanceSubnav } from "@/components/financial/finance-subnav";
 import { useChartOfAccounts } from "@/hooks/use-finance";
+import {
+  compareChartAccounts,
+  isOfficialChartAccount,
+} from "@/lib/financial-utils";
 import type { ChartAccount } from "@/services/types";
 
 const DRE_LABELS: Record<string, string> = {
@@ -34,17 +38,12 @@ function accountLabel(account: ChartAccount) {
 }
 
 function sortAccounts(accounts: ChartAccount[]) {
-  return [...accounts].sort((left, right) =>
-    `${left.code ?? ""}${left.name}`.localeCompare(
-      `${right.code ?? ""}${right.name}`,
-      "pt-BR",
-    ),
-  );
+  return [...accounts].sort(compareChartAccounts);
 }
 
 export default function PlanoDeContasPage() {
   const accountsQuery = useChartOfAccounts();
-  const accounts = accountsQuery.data ?? [];
+  const accounts = (accountsQuery.data ?? []).filter(isOfficialChartAccount);
 
   useEffect(() => {
     if (accountsQuery.isError) {

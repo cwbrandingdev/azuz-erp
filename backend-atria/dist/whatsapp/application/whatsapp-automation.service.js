@@ -834,6 +834,7 @@ let WhatsAppAutomationService = WhatsAppAutomationService_1 = class WhatsAppAuto
             lastMessage: row.lastMessagePreview,
             lastMessageAt: row.lastMessageAt,
             direction: null,
+            lastMessageStatus: null,
             assignedUser: null,
             queuedAt: row.queuedAt,
             assignedAt: row.assignedAt,

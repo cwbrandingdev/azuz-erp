@@ -19,7 +19,12 @@ import { useChartOfAccounts } from "@/hooks/use-finance";
 import { useInvalidateFinance } from "@/hooks/use-query-invalidation";
 import { financeService, ApiError } from "@/services";
 import { toast } from "@/lib/toast";
-import { formatLocalDate, toLocalDateIso } from "@/lib/financial-utils";
+import {
+  compareChartAccounts,
+  formatLocalDate,
+  isOfficialChartAccount,
+  toLocalDateIso,
+} from "@/lib/financial-utils";
 import type {
   BankAccount,
   FinanceTransaction,
@@ -71,9 +76,14 @@ export function TransactionDialog({
   const [recurrenceMonths, setRecurrenceMonths] = useState("12");
 
   const previousTypeRef = useRef<"income" | "expense" | null>(null);
-  const categories = allCategories.filter(
-    (category) => !category.isGroup && category.type === type,
-  );
+  const categories = allCategories
+    .filter(
+      (category) =>
+        !category.isGroup &&
+        category.type === type &&
+        isOfficialChartAccount(category),
+    )
+    .sort(compareChartAccounts);
 
   useEffect(() => {
     if (!open) return;

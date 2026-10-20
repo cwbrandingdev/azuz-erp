@@ -11,7 +11,7 @@ export declare class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepo
     findByWhatsappMessageId(whatsappMessageId: string): Promise<WhatsAppMessageRecord | null>;
     findConversation(phone: string): Promise<WhatsAppMessageRecord[]>;
     listConversations(filter: ConversationListFilter): Promise<WhatsAppConversationSummary[]>;
-    getConversation(phone: string): Promise<WhatsAppConversationSummary | null>;
+    getConversation(phone: string, slaMinutes?: number): Promise<WhatsAppConversationSummary | null>;
     upsertConversation(input: {
         phone: string;
         name?: string | null;

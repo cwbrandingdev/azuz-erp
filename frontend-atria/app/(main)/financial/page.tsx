@@ -8,7 +8,6 @@ import { FinanceSheetView } from "@/components/financial/finance-sheet-view";
 import { FinanceSubnav } from "@/components/financial/finance-subnav";
 import { KpiCards } from "@/components/financial/kpi-cards";
 import { MonthSwitcher } from "@/components/financial/month-switcher";
-import { RecentTransactionsCard } from "@/components/financial/recent-transactions-card";
 import { TransactionDialog } from "@/components/financial/transaction-dialog";
 import { TransactionsImportDialog } from "@/components/financial/transactions-import-dialog";
 import { Button } from "@/components/ui/button";
@@ -205,14 +204,11 @@ export default function FinancialPage() {
         ) : null}
       </div>
 
-      <RecentTransactionsCard
-        transactions={overview?.recentTransactions ?? []}
-        href={lancamentosHref}
-        periodLabel={formatScopeLabel(scope)}
-        loading={loadingOverview}
+      <FinanceDashboard
+        key={scope.year}
+        scope={scope}
+        onScopeChange={setScope}
       />
-
-      <FinanceDashboard year={scope.year} />
     </div>
   );
 }

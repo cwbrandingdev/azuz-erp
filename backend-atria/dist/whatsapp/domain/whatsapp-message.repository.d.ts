@@ -6,7 +6,7 @@ export declare abstract class WhatsAppMessageRepository {
     abstract findByWhatsappMessageId(whatsappMessageId: string): Promise<WhatsAppMessageRecord | null>;
     abstract findConversation(phone: string): Promise<WhatsAppMessageRecord[]>;
     abstract listConversations(filter: ConversationListFilter): Promise<WhatsAppConversationSummary[]>;
-    abstract getConversation(phone: string): Promise<WhatsAppConversationSummary | null>;
+    abstract getConversation(phone: string, slaMinutes?: number): Promise<WhatsAppConversationSummary | null>;
     abstract upsertConversation(input: {
         phone: string;
         name?: string | null;

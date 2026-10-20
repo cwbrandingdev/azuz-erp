@@ -9,7 +9,6 @@ const ROUTE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
   creation: "Kanban",
   financial: "Financeiro",
-  "financeiro-antigo": "Financeiro antigo",
   lancamentos: "Lançamentos",
   "movimentos-pendentes": "Bater extrato",
   "fluxo-de-caixa": "Entradas e saídas",
