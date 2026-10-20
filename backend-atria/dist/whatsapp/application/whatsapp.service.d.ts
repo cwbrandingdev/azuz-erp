@@ -5,6 +5,7 @@ import { WhatsAppGraphGateway } from '../domain/whatsapp-graph.gateway';
 import { WhatsAppMessageRepository } from '../domain/whatsapp-message.repository';
 import { WhatsAppConfig } from '../infrastructure/whatsapp.config';
 import { WhatsAppMediaStore } from '../infrastructure/whatsapp-media.store';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { WhatsAppAutomationService } from './whatsapp-automation.service';
 import { WhatsAppRoutingService } from './whatsapp-routing.service';
 type MetaWebhookPayload = {
@@ -34,8 +35,9 @@ export declare class WhatsAppService {
     private readonly media;
     private readonly ai;
     private readonly automation;
+    private readonly notifications;
     private readonly logger;
-    constructor(messages: WhatsAppMessageRepository, graph: WhatsAppGraphGateway, config: WhatsAppConfig, routing: WhatsAppRoutingService, media: WhatsAppMediaStore, ai: AiService, automation: WhatsAppAutomationService);
+    constructor(messages: WhatsAppMessageRepository, graph: WhatsAppGraphGateway, config: WhatsAppConfig, routing: WhatsAppRoutingService, media: WhatsAppMediaStore, ai: AiService, automation: WhatsAppAutomationService, notifications: NotificationsService);
     verifyWebhook(mode: string, token: string, challenge: string): string;
     handleWebhook(payload: MetaWebhookPayload): Promise<void>;
     send(to: string, message: string, userId?: string, agentReply?: boolean): Promise<WhatsAppMessageRecord>;

@@ -124,8 +124,7 @@ let WhatsAppRoutingService = WhatsAppRoutingService_1 = class WhatsAppRoutingSer
                 (row.lastAgentReplyAt && row.lastAgentReplyAt >= row.queuedAt)) {
                 return false;
             }
-            const from = row.assignedUserId && row.assignedAt ? row.assignedAt : row.queuedAt;
-            return Date.now() - from.getTime() > slaMs;
+            return Date.now() - row.queuedAt.getTime() > slaMs;
         }).length;
         return { open, mine, unassigned, waiting, closed, slaBreached };
     }
@@ -215,6 +214,7 @@ let WhatsAppRoutingService = WhatsAppRoutingService_1 = class WhatsAppRoutingSer
                     lastMessage: row.lastMessagePreview,
                     lastMessageAt: row.lastMessageAt,
                     direction: null,
+                    lastMessageStatus: null,
                     assignedUser: row.assignedUserId
                         ? { id: row.assignedUserId, name: '', avatarUrl: null }
                         : null,

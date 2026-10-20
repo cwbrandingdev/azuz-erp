@@ -255,6 +255,60 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         });
         return { success: true };
     }
+    async notifyWhatsAppInbound(input) {
+        let recipientIds = [];
+        if (input.assignedUserId) {
+            recipientIds = [input.assignedUserId];
+        }
+        else if (input.agentUserIds.length > 0) {
+            recipientIds = input.agentUserIds;
+        }
+        else {
+            const crmUsers = await this.prisma.user.findMany({
+                where: {
+                    companyId: input.companyId,
+                    isActive: true,
+                    category: client_1.UserCategory.MEMBER,
+                    role: { name: client_1.RoleName.CRM },
+                },
+                select: { id: true },
+            });
+            recipientIds = crmUsers.map((user) => user.id);
+        }
+        const label = input.contactName?.trim() || input.phone;
+        const title = 'Nova mensagem no WhatsApp';
+        const message = `${label}: ${input.preview}`;
+        await this.createMany(recipientIds, client_1.NotificationType.SYSTEM, title, message, {
+            companyId: input.companyId,
+        });
+        const users = await this.prisma.user.findMany({
+            where: {
+                id: { in: recipientIds },
+                isActive: true,
+                email: { not: '' },
+            },
+            select: { email: true },
+        });
+        const emails = [
+            ...new Set(users.map((user) => user.email?.trim()).filter(Boolean)),
+        ];
+        if (emails.length === 0) {
+            return;
+        }
+        const link = this.buildAppLink(`/whatsapp?phone=${encodeURIComponent(input.phone)}`);
+        this.mail.sendInBackground({
+            to: emails,
+            subject: title,
+            text: `${message}\n\nAbrir conversa: ${link}`,
+            html: `
+        <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
+          <h2 style="margin: 0 0 12px;">${this.escapeHtml(title)}</h2>
+          <p style="margin: 0 0 16px;">${this.escapeHtml(message)}</p>
+          <p style="margin: 0;"><a href="${this.escapeHtml(link)}">Abrir no ERP</a></p>
+        </div>
+      `,
+        });
+    }
     async createMany(userIds, type, title, message, extra) {
         const uniqueIds = [...new Set(userIds)].filter(Boolean);
         if (uniqueIds.length === 0)

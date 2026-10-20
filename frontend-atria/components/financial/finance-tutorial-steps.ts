@@ -49,12 +49,6 @@ export const FINANCE_TUTORIAL_STEPS: Record<
         "Começa no mês de hoje. Troque o mês ou escolha Ano todo para ver o exercício completo.",
     },
     {
-      target: '[data-tour="finance-recent"]',
-      title: "Últimos lançamentos",
-      body:
-        "A prévia dos movimentos mais recentes. Use Ver todos para abrir o livro completo.",
-    },
-    {
       target: '[data-tour="finance-view-toggle"]',
       title: "Modo planilha",
       body:
@@ -68,9 +62,9 @@ export const FINANCE_TUTORIAL_STEPS: Record<
     },
     {
       target: '[data-tour="finance-period-filter"]',
-      title: "Filtro da análise",
+      title: "Período da análise",
       body:
-        "Ajuste o intervalo da análise e dos gráficos. Por padrão cobre o ano selecionado.",
+        "Use o mesmo seletor de mês ou ano todo da visão comercial para definir o intervalo da análise.",
     },
   ],
   lancamentos: [

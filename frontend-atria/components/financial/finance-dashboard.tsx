@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState, memo } from "react";
+import { useState, memo } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
   Check,
-  Filter,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -20,22 +19,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FinanceScopeSwitcher } from "@/components/financial/finance-scope-switcher";
 import { useManagementDashboard } from "@/hooks/use-finance";
-import { formatCurrency, MONTH_NAMES_SHORT } from "@/lib/financial-utils";
-
-function formatDisplayDate(value: string) {
-  const [year, month, day] = value.split("-");
-  return `${day}/${month}/${year}`;
-}
-
-function yearRange(year: number) {
-  return {
-    from: `${year}-01-01`,
-    to: `${year}-12-31`,
-  };
-}
+import {
+  formatCurrency,
+  getScopeBounds,
+  MONTH_NAMES_SHORT,
+  type FinanceScope,
+} from "@/lib/financial-utils";
 
 function amountClass(value: number) {
   if (value > 0) return "text-emerald-600";
@@ -59,27 +50,21 @@ const HORIZON_PILL: Record<number, string> = {
 const cardClass =
   "rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
 
-export function FinanceDashboard({ year }: { year: number }) {
-  const initial = yearRange(year);
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
-  const [applied, setApplied] = useState(initial);
-  const [chartYear, setChartYear] = useState(year);
+interface FinanceDashboardProps {
+  scope: FinanceScope;
+  onScopeChange: (scope: FinanceScope) => void;
+}
+
+export function FinanceDashboard({ scope, onScopeChange }: FinanceDashboardProps) {
+  const bounds = getScopeBounds(scope);
+  const applied = { from: bounds.startDate, to: bounds.endDate };
+  const [chartYear, setChartYear] = useState(scope.year);
   const dashboardQuery = useManagementDashboard({
     ...applied,
     chartYear,
   });
   const data = dashboardQuery.data ?? null;
-  const loading = dashboardQuery.isPending && !data;
   const years = [0, 1, 2, 3].map((offset) => new Date().getFullYear() - offset);
-
-  useEffect(() => {
-    const range = yearRange(year);
-    setFrom(range.from);
-    setTo(range.to);
-    setApplied(range);
-    setChartYear(year);
-  }, [year]);
 
   const overdueCount =
     (data?.overdue.incomeCount ?? 0) + (data?.overdue.expenseCount ?? 0);
@@ -250,50 +235,19 @@ export function FinanceDashboard({ year }: { year: number }) {
       </div>
 
       <section data-tour="finance-period-filter" className={`${cardClass} p-5`}>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-2 text-sm font-medium text-slate-500">
-            <Filter className="size-4" />
-            Filtro de período
-          </p>
-          <p className="text-sm text-slate-400">
-            {formatDisplayDate(applied.from)} – {formatDisplayDate(applied.to)}
-          </p>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-semibold text-slate-800">Análise</h2>
+            <p className="text-sm text-slate-400">
+              Receita, custos e lucro no período selecionado
+            </p>
+          </div>
+          <FinanceScopeSwitcher
+            scope={scope}
+            onChange={onScopeChange}
+            compact
+          />
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-[11px] font-semibold tracking-wide text-slate-400">
-            DATA INICIAL
-            <Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
-          </label>
-          <label className="flex flex-col gap-1 text-[11px] font-semibold tracking-wide text-slate-400">
-            DATA FINAL
-            <Input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
-          </label>
-          <Button
-            type="button"
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
-            onClick={() => setApplied({ from, to })}
-            disabled={loading}
-          >
-            Buscar
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              const range = yearRange(year);
-              setFrom(range.from);
-              setTo(range.to);
-              setApplied(range);
-            }}
-          >
-            Limpar
-          </Button>
-        </div>
-      </section>
-
-      <section className={`${cardClass} p-5`}>
-        <h2 className="font-semibold text-slate-800">Análise</h2>
-        <p className="text-sm text-slate-400">Receita, custos e lucro no período filtrado</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <tbody>

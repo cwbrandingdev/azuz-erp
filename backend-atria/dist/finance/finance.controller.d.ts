@@ -19,13 +19,13 @@ export declare class FinanceController {
     constructor(financeService: FinanceService, financeReportsService: FinanceReportsService, financeBanksService: FinanceBanksService, financeLegacyService: FinanceLegacyService);
     getChartOfAccounts(): Promise<{
         id: string;
+        type: import("@prisma/client").$Enums.TransactionType;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
         name: string;
-        code: string | null;
-        type: import("@prisma/client").$Enums.TransactionType;
         color: string;
+        code: string | null;
         parentId: string | null;
         dreGroup: import("@prisma/client").$Enums.DreGroup | null;
         cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
@@ -429,13 +429,13 @@ export declare class FinanceController {
     }>;
     getCategories(type?: TransactionType): Promise<{
         id: string;
+        type: import("@prisma/client").$Enums.TransactionType;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
         name: string;
-        code: string | null;
-        type: import("@prisma/client").$Enums.TransactionType;
         color: string;
+        code: string | null;
         parentId: string | null;
         dreGroup: import("@prisma/client").$Enums.DreGroup | null;
         cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
@@ -443,13 +443,13 @@ export declare class FinanceController {
     }[]>;
     createCategory(dto: CreateCategoryDto): Promise<{
         id: string;
+        type: import("@prisma/client").$Enums.TransactionType;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
         name: string;
-        code: string | null;
-        type: import("@prisma/client").$Enums.TransactionType;
         color: string;
+        code: string | null;
         parentId: string | null;
         dreGroup: import("@prisma/client").$Enums.DreGroup | null;
         cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;
@@ -457,13 +457,13 @@ export declare class FinanceController {
     }>;
     updateCategory(id: string, dto: UpdateCategoryDto): Promise<{
         id: string;
+        type: import("@prisma/client").$Enums.TransactionType;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
         name: string;
-        code: string | null;
-        type: import("@prisma/client").$Enums.TransactionType;
         color: string;
+        code: string | null;
         parentId: string | null;
         dreGroup: import("@prisma/client").$Enums.DreGroup | null;
         cashFlowBlock: import("@prisma/client").$Enums.CashFlowBlock;

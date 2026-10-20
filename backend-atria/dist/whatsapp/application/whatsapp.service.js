@@ -24,6 +24,7 @@ const whatsapp_message_repository_1 = require("../domain/whatsapp-message.reposi
 const whatsapp_phone_1 = require("../domain/whatsapp-phone");
 const whatsapp_config_1 = require("../infrastructure/whatsapp.config");
 const whatsapp_media_store_1 = require("../infrastructure/whatsapp-media.store");
+const notifications_service_1 = require("../../notifications/notifications.service");
 const whatsapp_automation_service_1 = require("./whatsapp-automation.service");
 const whatsapp_routing_service_1 = require("./whatsapp-routing.service");
 let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
@@ -34,8 +35,9 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
     media;
     ai;
     automation;
+    notifications;
     logger = new common_1.Logger(WhatsAppService_1.name);
-    constructor(messages, graph, config, routing, media, ai, automation) {
+    constructor(messages, graph, config, routing, media, ai, automation, notifications) {
         this.messages = messages;
         this.graph = graph;
         this.config = config;
@@ -43,6 +45,7 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
         this.media = media;
         this.ai = ai;
         this.automation = automation;
+        this.notifications = notifications;
     }
     verifyWebhook(mode, token, challenge) {
         if (mode === 'subscribe' && token === this.config.verifyToken) {
@@ -225,13 +228,14 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
         });
     }
     async getConversation(phone, companyId) {
-        const conversation = await this.messages.getConversation((0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone));
+        const resolvedCompanyId = companyId ?? '00000000-0000-4000-8000-000000000001';
+        const settings = await this.routing.getSettings(resolvedCompanyId);
+        const conversation = await this.messages.getConversation((0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone), settings.slaFirstResponseMinutes);
         if (!conversation)
             return null;
-        const settings = await this.routing.getSettings(companyId ?? '00000000-0000-4000-8000-000000000001');
         conversation.slaBreached =
             conversation.waitingSeconds > settings.slaFirstResponseMinutes * 60;
-        const [enriched] = await this.routing.attachLeads([conversation], companyId ?? '00000000-0000-4000-8000-000000000001');
+        const [enriched] = await this.routing.attachLeads([conversation], resolvedCompanyId);
         return enriched;
     }
     async updateConversation(phone, patch) {
@@ -376,6 +380,18 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
             conversation: withLead,
         })
             .catch((error) => this.logger.warn(`Automation inbound failed: ${error instanceof Error ? error.message : error}`));
+        const companyId = '00000000-0000-4000-8000-000000000001';
+        void this.routing
+            .getSettings(companyId)
+            .then((settings) => this.notifications.notifyWhatsAppInbound({
+            companyId,
+            phone: from,
+            contactName: withLead.name ?? contactName,
+            preview: parsed.body.slice(0, 200),
+            assignedUserId: withLead.assignedUser?.id ?? null,
+            agentUserIds: settings.agentUserIds,
+        }))
+            .catch((error) => this.logger.warn(`WhatsApp inbound notify failed: ${error instanceof Error ? error.message : error}`));
     }
     async transcribeLater(messageId, buffer, mimeType) {
         try {
@@ -429,6 +445,7 @@ exports.WhatsAppService = WhatsAppService = WhatsAppService_1 = __decorate([
         whatsapp_routing_service_1.WhatsAppRoutingService,
         whatsapp_media_store_1.WhatsAppMediaStore,
         ai_service_1.AiService,
-        whatsapp_automation_service_1.WhatsAppAutomationService])
+        whatsapp_automation_service_1.WhatsAppAutomationService,
+        notifications_service_1.NotificationsService])
 ], WhatsAppService);
 //# sourceMappingURL=whatsapp.service.js.map

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { inputClassName } from "@/components/ui/input-styles";
+import { compareChartAccounts } from "@/lib/financial-utils";
 import type { ChartAccount } from "@/services/types";
 
 function accountLabel(account: { code: string | null; name: string }) {
@@ -33,13 +34,12 @@ export function ChartAccountField({
     const query = search.trim().toLowerCase();
     return accounts
       .filter((account) => !account.isGroup && account.type === type)
+      .filter((account) => Boolean(account.code?.trim()))
       .filter((account) => {
         if (!query) return true;
         return `${account.code ?? ""} ${account.name}`.toLowerCase().includes(query);
       })
-      .sort((left, right) =>
-        `${left.code ?? left.name}`.localeCompare(`${right.code ?? right.name}`, "pt-BR"),
-      );
+      .sort(compareChartAccounts);
   }, [accounts, search, type]);
 
   return (

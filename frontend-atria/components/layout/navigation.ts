@@ -7,7 +7,6 @@ import {
   Users,
   FileSignature,
   FileText,
-  History,
   Settings,
   Wallet,
   BarChart2,
@@ -55,11 +54,6 @@ export const navSections: NavSection[] = [
     label: "GESTÃO",
     items: [
       { name: "Clientes", href: "/clients", icon: Users },
-      {
-        name: "Financeiro antigo",
-        href: "/financeiro-antigo",
-        icon: History,
-      },
       {
         name: "Financeiro",
         href: "/financial",

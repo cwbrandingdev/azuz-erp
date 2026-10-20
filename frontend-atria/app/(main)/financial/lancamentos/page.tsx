@@ -13,9 +13,11 @@ import { useChartOfAccounts } from "@/hooks/use-finance";
 import { useInvalidateFinance } from "@/hooks/use-query-invalidation";
 import {
   buildLancamentosHref,
+  compareChartAccounts,
   formatScopeLabel,
   getCurrentScope,
   getScopeBounds,
+  isOfficialChartAccount,
   type FinanceScope,
 } from "@/lib/financial-utils";
 import { financeService } from "@/services";
@@ -206,7 +208,8 @@ function LancamentosPageContent() {
   const categories = useMemo<FinanceCategory[]>(
     () =>
       (accountsQuery.data ?? [])
-        .filter((account) => !account.isGroup)
+        .filter((account) => !account.isGroup && isOfficialChartAccount(account))
+        .sort(compareChartAccounts)
         .map((account) => ({
           id: account.id,
           name:
@@ -231,12 +234,6 @@ function LancamentosPageContent() {
   );
 
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e211ce'},body:JSON.stringify({sessionId:'e211ce',runId:'btn-pre',hypothesisId:'H1',location:'lancamentos/page.tsx:createOpen',message:'createOpen state',data:{createOpen,createParam:searchParams.get('create'),href:typeof window!=='undefined'?window.location.href:''},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-  }, [createOpen, searchParams]);
-
-  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(filters.search);
       setPage(1);
@@ -246,9 +243,6 @@ function LancamentosPageContent() {
 
   useEffect(() => {
     if (searchParams.get("create") !== "1") return;
-    // #region agent log
-    fetch('http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e211ce'},body:JSON.stringify({sessionId:'e211ce',runId:'btn-pre',hypothesisId:'H1',location:'lancamentos/page.tsx:createQueryEffect',message:'create=1 effect running',data:{createParam:searchParams.get('create')},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     setCreateOpen(true);
     router.replace(
       buildLancamentosHref({

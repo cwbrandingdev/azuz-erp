@@ -71,6 +71,14 @@ export declare class NotificationsService {
     markAppUpdateNotificationsAsRead(userId: string): Promise<{
         success: boolean;
     }>;
+    notifyWhatsAppInbound(input: {
+        companyId: string;
+        phone: string;
+        contactName: string | null;
+        preview: string;
+        assignedUserId: string | null;
+        agentUserIds: string[];
+    }): Promise<void>;
     createMany(userIds: string[], type: NotificationType, title: string, message: string, extra?: {
         companyId?: string;
         taskId?: string;

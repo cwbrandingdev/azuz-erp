@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const company_constants_1 = require("../company/company.constants");
 const prisma_service_1 = require("../prisma/prisma.service");
+const finance_chart_sort_1 = require("./finance-chart-sort");
 const finance_service_1 = require("./finance.service");
 const MONTH_LABELS = [
     'Janeiro',
@@ -496,6 +497,8 @@ let FinanceReportsService = class FinanceReportsService {
         for (const account of accounts) {
             if (account.isGroup)
                 continue;
+            if (!account.code?.trim())
+                continue;
             if (categoryDreBucket(account) !== bucket)
                 continue;
             rows.set(account.id, this.emptyDreRow(account));
@@ -506,16 +509,24 @@ let FinanceReportsService = class FinanceReportsService {
                 continue;
             const signed = invertExpenseSign ? -Math.abs(part.amount) : part.amount;
             const key = tx.categoryId;
-            const row = rows.get(key) ?? this.emptyDreRow({
-                id: tx.categoryId,
-                code: tx.category?.code ?? null,
-                name: tx.category?.name ?? 'Sem categoria',
-            });
+            const categoryCode = tx.category?.code?.trim() ?? '';
+            let row = rows.get(key);
+            if (!row) {
+                if (!categoryCode)
+                    continue;
+                row = this.emptyDreRow({
+                    id: tx.categoryId,
+                    code: tx.category?.code ?? null,
+                    name: tx.category?.name ?? 'Sem categoria',
+                });
+            }
             row.months[tx.date.getMonth()] = money(row.months[tx.date.getMonth()] + signed);
             row.total = money(row.total + signed);
             rows.set(key, row);
         }
-        const list = [...rows.values()].sort((left, right) => (left.code ?? left.name).localeCompare(right.code ?? right.name, 'pt-BR'));
+        const list = [...rows.values()]
+            .filter((row) => row.total !== 0 || row.months.some((value) => value !== 0))
+            .sort(finance_chart_sort_1.compareChartAccounts);
         const totals = Array.from({ length: 12 }, (_, month) => money(list.reduce((sum, row) => sum + row.months[month], 0)));
         return {
             title,
