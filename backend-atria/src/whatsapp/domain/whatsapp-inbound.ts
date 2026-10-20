@@ -5,6 +5,11 @@ export type MetaInboundMessage = {
   from?: string;
   type?: string;
   text?: { body?: string };
+  interactive?: {
+    type?: string;
+    button_reply?: { id?: string; title?: string };
+    list_reply?: { id?: string; title?: string; description?: string };
+  };
   image?: MetaInboundMedia;
   video?: MetaInboundMedia;
   document?: MetaInboundMedia;
@@ -32,6 +37,8 @@ type MetaInboundMedia = {
 export type ParsedInboundMessage = {
   kind: WhatsAppMessageKind;
   body: string;
+  /** Option id from interactive button/list taps (for bot routing). */
+  menuSelectionId: string | null;
   mediaId: string | null;
   mediaMimeType: string | null;
   mediaFilename: string | null;
@@ -53,6 +60,19 @@ export function parseInboundMessage(
     const body = message.text?.body?.trim();
     if (!body) return null;
     return base({ kind: WhatsAppMessageKind.TEXT, body });
+  }
+
+  if (type === 'interactive') {
+    const button = message.interactive?.button_reply;
+    const list = message.interactive?.list_reply;
+    const selectionId = (button?.id ?? list?.id)?.trim();
+    const title = (button?.title ?? list?.title)?.trim();
+    if (!selectionId) return null;
+    return base({
+      kind: WhatsAppMessageKind.TEXT,
+      body: title ? `▸ ${title}` : selectionId,
+      menuSelectionId: selectionId,
+    });
   }
 
   if (type === 'location') {
@@ -131,6 +151,7 @@ function base(
     Pick<ParsedInboundMessage, 'kind' | 'body'>,
 ): ParsedInboundMessage {
   return {
+    menuSelectionId: null,
     mediaId: null,
     mediaMimeType: null,
     mediaFilename: null,

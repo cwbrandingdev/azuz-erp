@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { WhatsAppGraphGateway, type WhatsAppDownloadedMedia, type WhatsAppHsmTemplate, type WhatsAppSendResult } from '../domain/whatsapp-graph.gateway';
+import { WhatsAppGraphGateway, type WhatsAppDownloadedMedia, type WhatsAppHsmTemplate, type WhatsAppInteractiveOption, type WhatsAppSendResult } from '../domain/whatsapp-graph.gateway';
 import { WhatsAppMessageKind } from '../domain/whatsapp-message';
 import { WhatsAppConfig } from './whatsapp.config';
 export declare class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
@@ -9,6 +9,7 @@ export declare class MetaWhatsAppGraphClient extends WhatsAppGraphGateway {
     private wabaIdCache;
     constructor(http: HttpService, config: WhatsAppConfig);
     sendText(to: string, body: string): Promise<WhatsAppSendResult>;
+    sendInteractiveMenu(to: string, bodyText: string, options: WhatsAppInteractiveOption[]): Promise<WhatsAppSendResult>;
     sendMedia(to: string, kind: WhatsAppMessageKind, mediaId: string, options?: {
         caption?: string;
         filename?: string;

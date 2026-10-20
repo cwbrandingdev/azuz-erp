@@ -106,6 +106,32 @@ export class WhatsAppService {
     });
   }
 
+  async sendInteractiveMenu(
+    to: string,
+    bodyText: string,
+    options: Array<{ id: string; title: string }>,
+    userId?: string,
+    agentReply = true,
+  ): Promise<WhatsAppMessageRecord> {
+    const recipient = normalizeWhatsAppPhone(to);
+    const result = await this.graph.sendInteractiveMenu(
+      recipient,
+      bodyText,
+      options,
+    );
+    const preview =
+      options.length > 0
+        ? `${bodyText}\n${options.map((item) => `• ${item.title}`).join('\n')}`
+        : bodyText;
+    return this.persistOutbound({
+      to: result.to,
+      body: preview,
+      userId,
+      whatsappMessageId: result.whatsappMessageId,
+      agentReply,
+    });
+  }
+
   async sendMedia(
     to: string,
     file: Express.Multer.File,
@@ -501,10 +527,15 @@ export class WhatsAppService {
       void this.transcribeLater(created.id, downloaded.buffer, downloaded.mimeType);
     }
 
+    const automationBody =
+      parsed.menuSelectionId ??
+      parsed.transcription ??
+      parsed.body;
+
     void this.automation
       .handleInbound({
         phone: from,
-        body: parsed.transcription || parsed.body,
+        body: automationBody,
         conversation: withLead,
       })
       .catch((error) =>

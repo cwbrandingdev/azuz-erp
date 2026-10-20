@@ -78,6 +78,20 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
             agentReply,
         });
     }
+    async sendInteractiveMenu(to, bodyText, options, userId, agentReply = true) {
+        const recipient = (0, whatsapp_phone_1.normalizeWhatsAppPhone)(to);
+        const result = await this.graph.sendInteractiveMenu(recipient, bodyText, options);
+        const preview = options.length > 0
+            ? `${bodyText}\n${options.map((item) => `• ${item.title}`).join('\n')}`
+            : bodyText;
+        return this.persistOutbound({
+            to: result.to,
+            body: preview,
+            userId,
+            whatsappMessageId: result.whatsappMessageId,
+            agentReply,
+        });
+    }
     async sendMedia(to, file, caption, userId) {
         if (!file?.buffer && !file?.path) {
             throw new common_1.BadRequestException('Arquivo obrigatório');
@@ -352,10 +366,13 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
         if (parsed.isVoiceNote && !transcription && downloaded) {
             void this.transcribeLater(created.id, downloaded.buffer, downloaded.mimeType);
         }
+        const automationBody = parsed.menuSelectionId ??
+            parsed.transcription ??
+            parsed.body;
         void this.automation
             .handleInbound({
             phone: from,
-            body: parsed.transcription || parsed.body,
+            body: automationBody,
             conversation: withLead,
         })
             .catch((error) => this.logger.warn(`Automation inbound failed: ${error instanceof Error ? error.message : error}`));

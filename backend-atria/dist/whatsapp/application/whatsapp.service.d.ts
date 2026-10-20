@@ -39,6 +39,10 @@ export declare class WhatsAppService {
     verifyWebhook(mode: string, token: string, challenge: string): string;
     handleWebhook(payload: MetaWebhookPayload): Promise<void>;
     send(to: string, message: string, userId?: string, agentReply?: boolean): Promise<WhatsAppMessageRecord>;
+    sendInteractiveMenu(to: string, bodyText: string, options: Array<{
+        id: string;
+        title: string;
+    }>, userId?: string, agentReply?: boolean): Promise<WhatsAppMessageRecord>;
     sendMedia(to: string, file: Express.Multer.File, caption: string | undefined, userId?: string): Promise<WhatsAppMessageRecord>;
     sendLocation(to: string, latitude: number, longitude: number, name: string | undefined, address: string | undefined, userId?: string): Promise<WhatsAppMessageRecord>;
     sendTemplate(to: string, name: string, language: string, parameters: string[], userId?: string, agentReply?: boolean): Promise<WhatsAppMessageRecord>;
