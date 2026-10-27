@@ -77,6 +77,8 @@ export declare class InternalApprovalsController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -92,6 +94,8 @@ export declare class InternalApprovalsController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -107,6 +111,8 @@ export declare class InternalApprovalsController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -122,6 +128,8 @@ export declare class InternalApprovalsController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -147,6 +155,7 @@ export declare class InternalApprovalsController {
         id: string;
         fileName: string;
         fileUrl: string;
+        previewUrl: string | null;
         fileType: string;
         fileSize: number | null;
         caption: string | null;
@@ -190,6 +199,8 @@ export declare class InternalApprovalsController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -205,6 +216,8 @@ export declare class InternalApprovalsController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -220,6 +233,8 @@ export declare class InternalApprovalsController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -235,6 +250,8 @@ export declare class InternalApprovalsController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;

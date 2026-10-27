@@ -54,6 +54,7 @@ export declare class PortalService {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -69,6 +70,7 @@ export declare class PortalService {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -89,6 +91,7 @@ export declare class PortalService {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -148,6 +151,7 @@ export declare class PortalService {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -163,6 +167,7 @@ export declare class PortalService {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -183,6 +188,7 @@ export declare class PortalService {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -285,6 +291,7 @@ export declare class PortalService {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -300,6 +307,7 @@ export declare class PortalService {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -315,6 +323,7 @@ export declare class PortalService {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -480,6 +489,7 @@ export declare class PortalService {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -495,6 +505,7 @@ export declare class PortalService {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -511,6 +522,7 @@ export declare class PortalService {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;

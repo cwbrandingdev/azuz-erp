@@ -58,6 +58,7 @@ const users_module_1 = require("./users/users.module");
 const voice_module_1 = require("./voice/voice.module");
 const leadminer_module_1 = require("./leadminer/leadminer.module");
 const whatsapp_module_1 = require("./whatsapp/whatsapp.module");
+const media_module_1 = require("./common/media/media.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -77,6 +78,7 @@ exports.AppModule = AppModule = __decorate([
             schedule_1.ScheduleModule.forRoot(),
             prisma_module_1.PrismaModule,
             supabase_module_1.SupabaseModule,
+            media_module_1.MediaModule,
             health_module_1.HealthModule,
             agenda_module_1.AgendaModule,
             ai_module_1.AiModule,

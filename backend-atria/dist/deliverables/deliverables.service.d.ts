@@ -1,3 +1,4 @@
+import { ImagePreviewService } from '../common/media/image-preview.service';
 import { KanbanService } from '../kanban/kanban.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SupabaseStorageService } from '../supabase/supabase-storage.service';
@@ -7,8 +8,11 @@ import { RevisionDeliverableItemDto } from './dto/revision-item.dto';
 export declare class DeliverablesService {
     private readonly prisma;
     private readonly storage;
+    private readonly imagePreview;
     private readonly kanbanService;
-    constructor(prisma: PrismaService, storage: SupabaseStorageService, kanbanService: KanbanService);
+    private readonly logger;
+    private readonly previewJobs;
+    constructor(prisma: PrismaService, storage: SupabaseStorageService, imagePreview: ImagePreviewService, kanbanService: KanbanService);
     syncFromKanbanTask(taskId: string): Promise<{
         client: {
             id: string;
@@ -23,6 +27,7 @@ export declare class DeliverablesService {
             fileSize: number | null;
             deliverableId: string;
             mediaUrl: string;
+            previewUrl: string | null;
             mediaType: import("@prisma/client").$Enums.DeliverableMediaType;
             adjustmentNotes: string | null;
             storageBucket: string | null;
@@ -99,6 +104,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -114,6 +121,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -129,6 +138,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -144,6 +155,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -198,6 +211,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -213,6 +228,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -228,6 +245,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -243,6 +262,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -297,6 +318,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -312,6 +335,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -327,6 +352,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -342,6 +369,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -367,6 +396,7 @@ export declare class DeliverablesService {
         id: string;
         fileName: string;
         fileUrl: string;
+        previewUrl: string | null;
         fileType: string;
         fileSize: number | null;
         caption: string | null;
@@ -410,6 +440,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -425,6 +457,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -440,6 +474,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -455,6 +491,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -509,6 +547,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -524,6 +564,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -539,6 +581,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -554,6 +598,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -582,6 +628,8 @@ export declare class DeliverablesService {
         id: string;
         deliverableId: string;
         mediaUrl: string;
+        previewUrl: string | null;
+        displayUrl: string;
         mediaType: string;
         status: string;
         adjustmentNotes: string | null;
@@ -652,6 +700,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -667,6 +717,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -682,6 +734,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -697,6 +751,8 @@ export declare class DeliverablesService {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -731,5 +787,6 @@ export declare class DeliverablesService {
     private mapInternalReviewToApproval;
     private resolveRejectionReason;
     private guessFileName;
+    private ensureItemPreviews;
     private toItemResponse;
 }

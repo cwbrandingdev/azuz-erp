@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeliverablesModule = void 0;
 const common_1 = require("@nestjs/common");
+const media_module_1 = require("../common/media/media.module");
 const kanban_module_1 = require("../kanban/kanban.module");
 const deliverables_controller_1 = require("./deliverables.controller");
 const deliverables_service_1 = require("./deliverables.service");
@@ -16,7 +17,7 @@ let DeliverablesModule = class DeliverablesModule {
 exports.DeliverablesModule = DeliverablesModule;
 exports.DeliverablesModule = DeliverablesModule = __decorate([
     (0, common_1.Module)({
-        imports: [(0, common_1.forwardRef)(() => kanban_module_1.KanbanModule)],
+        imports: [media_module_1.MediaModule, (0, common_1.forwardRef)(() => kanban_module_1.KanbanModule)],
         controllers: [deliverables_controller_1.DeliverablesController],
         providers: [deliverables_service_1.DeliverablesService],
         exports: [deliverables_service_1.DeliverablesService],

@@ -11,12 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var DeliverablesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeliverablesService = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const fs_1 = require("fs");
 const path_1 = require("path");
+const image_preview_service_1 = require("../common/media/image-preview.service");
 const kanban_service_1 = require("../kanban/kanban.service");
 const internal_review_dto_1 = require("../kanban/dto/internal-review.dto");
 const rbac_1 = require("../auth/utils/rbac");
@@ -27,6 +29,7 @@ const itemSelect = {
     id: true,
     deliverableId: true,
     mediaUrl: true,
+    previewUrl: true,
     mediaType: true,
     status: true,
     adjustmentNotes: true,
@@ -39,13 +42,19 @@ const itemSelect = {
     createdAt: true,
     updatedAt: true,
 };
-let DeliverablesService = class DeliverablesService {
+const PREVIEW_BACKFILL_TIMEOUT_MS = 12_000;
+const PREVIEW_BACKFILL_CONCURRENCY = 2;
+let DeliverablesService = DeliverablesService_1 = class DeliverablesService {
     prisma;
     storage;
+    imagePreview;
     kanbanService;
-    constructor(prisma, storage, kanbanService) {
+    logger = new common_1.Logger(DeliverablesService_1.name);
+    previewJobs = new Set();
+    constructor(prisma, storage, imagePreview, kanbanService) {
         this.prisma = prisma;
         this.storage = storage;
+        this.imagePreview = imagePreview;
         this.kanbanService = kanbanService;
     }
     async syncFromKanbanTask(taskId) {
@@ -89,6 +98,7 @@ let DeliverablesService = class DeliverablesService {
             const location = this.resolveStorageLocation(asset.fileUrl);
             const data = {
                 mediaUrl: asset.fileUrl,
+                previewUrl: asset.previewUrl,
                 mediaType: this.resolveMediaType(asset.fileType),
                 fileName: asset.fileName,
                 fileSize: asset.fileSize,
@@ -417,7 +427,7 @@ let DeliverablesService = class DeliverablesService {
             })
             : null;
         const rejectionReason = await this.resolveRejectionReason(view.kanbanTaskId, view.contentPostId, task?.internalReviewNote ?? null);
-        const items = view.items;
+        const items = await this.ensureItemPreviews(view.items);
         const counts = {
             total: items.length,
             pending: items.filter((item) => item.status === client_1.DeliverableItemStatus.PENDING).length,
@@ -727,11 +737,73 @@ let DeliverablesService = class DeliverablesService {
             return 'download.bin';
         }
     }
+    async ensureItemPreviews(items) {
+        const pending = items.filter((item) => !item.previewUrl &&
+            item.mediaType === client_1.DeliverableMediaType.IMAGE &&
+            !this.previewJobs.has(item.id));
+        if (pending.length === 0)
+            return items;
+        for (const item of pending) {
+            this.previewJobs.add(item.id);
+        }
+        const generated = new Map();
+        let cursor = 0;
+        const worker = async () => {
+            while (cursor < pending.length) {
+                const item = pending[cursor];
+                cursor += 1;
+                try {
+                    const previewUrl = await this.imagePreview.persistPreviewFromStored({
+                        mediaUrl: item.mediaUrl,
+                        fileName: item.fileName,
+                    });
+                    if (!previewUrl)
+                        continue;
+                    await this.prisma.deliverableItem.update({
+                        where: { id: item.id },
+                        data: { previewUrl },
+                    });
+                    if (item.sourceAssetId) {
+                        await this.prisma.kanbanTaskAsset.updateMany({
+                            where: { id: item.sourceAssetId },
+                            data: { previewUrl },
+                        });
+                    }
+                    await this.prisma.contentAttachment.updateMany({
+                        where: { url: item.mediaUrl },
+                        data: { previewUrl },
+                    });
+                    generated.set(item.id, previewUrl);
+                }
+                catch (error) {
+                    this.logger.warn(`Failed to backfill image preview for ${item.id}: ${error instanceof Error ? error.message : String(error)}`);
+                }
+                finally {
+                    this.previewJobs.delete(item.id);
+                }
+            }
+        };
+        const jobs = Promise.all(Array.from({ length: Math.min(PREVIEW_BACKFILL_CONCURRENCY, pending.length) }, () => worker()));
+        await Promise.race([
+            jobs,
+            new Promise((resolve) => setTimeout(resolve, PREVIEW_BACKFILL_TIMEOUT_MS)),
+        ]);
+        void jobs.catch(() => undefined);
+        if (generated.size === 0)
+            return items;
+        return items.map((item) => {
+            const previewUrl = generated.get(item.id);
+            return previewUrl ? { ...item, previewUrl } : item;
+        });
+    }
     toItemResponse(item) {
+        const previewUrl = item.previewUrl ?? null;
         return {
             id: item.id,
             deliverableId: item.deliverableId,
             mediaUrl: item.mediaUrl,
+            previewUrl,
+            displayUrl: previewUrl || item.mediaUrl,
             mediaType: item.mediaType.toLowerCase(),
             status: item.status.toLowerCase(),
             adjustmentNotes: item.adjustmentNotes,
@@ -746,11 +818,12 @@ let DeliverablesService = class DeliverablesService {
     }
 };
 exports.DeliverablesService = DeliverablesService;
-exports.DeliverablesService = DeliverablesService = __decorate([
+exports.DeliverablesService = DeliverablesService = DeliverablesService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => kanban_service_1.KanbanService))),
+    __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => kanban_service_1.KanbanService))),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         supabase_storage_service_1.SupabaseStorageService,
+        image_preview_service_1.ImagePreviewService,
         kanban_service_1.KanbanService])
 ], DeliverablesService);
 //# sourceMappingURL=deliverables.service.js.map

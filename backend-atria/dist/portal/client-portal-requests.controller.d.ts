@@ -117,6 +117,7 @@ export declare class ClientPortalRequestsController {
                 id: string;
                 fileName: string;
                 fileUrl: string;
+                previewUrl: string | null;
                 fileType: string;
                 fileSize: number | null;
                 caption: string | null;

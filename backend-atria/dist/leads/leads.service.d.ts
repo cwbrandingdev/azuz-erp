@@ -587,9 +587,9 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
         user: {
-            id: string;
             name: string;
             email: string;
+            id: string;
             avatarUrl: string | null;
         };
     }[]>;
@@ -599,9 +599,9 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
         user: {
-            id: string;
             name: string;
             email: string;
+            id: string;
             avatarUrl: string | null;
         };
     }>;

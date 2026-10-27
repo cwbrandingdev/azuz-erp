@@ -2,6 +2,7 @@ import { ContentPlatform, ContentPostFormat, ContentPostStatus } from '@prisma/c
 export declare class AttachmentDto {
     name: string;
     url: string;
+    previewUrl?: string;
     mimeType?: string;
 }
 export declare class CreateContentPostDto {

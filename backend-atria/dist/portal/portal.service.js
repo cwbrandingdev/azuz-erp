@@ -784,6 +784,7 @@ let PortalService = class PortalService {
                 id: a.id,
                 name: a.name,
                 url: a.url,
+                previewUrl: a.previewUrl ?? null,
                 mimeType: a.mimeType,
             })),
         };

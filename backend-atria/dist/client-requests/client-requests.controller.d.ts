@@ -199,6 +199,7 @@ export declare class ClientRequestsController {
                 id: string;
                 fileName: string;
                 fileUrl: string;
+                previewUrl: string | null;
                 fileType: string;
                 fileSize: number | null;
                 caption: string | null;

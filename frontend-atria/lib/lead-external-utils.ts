@@ -90,6 +90,7 @@ export function buildAddToKanbanInput(
     phone: lead.phone ?? undefined,
     email: lead.email ?? undefined,
     website: lead.website ?? undefined,
+    instagram: lead.instagram ?? undefined,
     address: lead.address ?? undefined,
     city: lead.city ?? context?.city,
     neighborhood: lead.neighborhood ?? context?.neighborhood,

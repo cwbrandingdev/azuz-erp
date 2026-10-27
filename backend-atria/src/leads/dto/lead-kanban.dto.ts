@@ -34,6 +34,11 @@ export class AddLeadToKanbanDto {
   @IsOptional()
   @IsString()
   @MaxLength(512)
+  instagram?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
   address?: string;
 
   @IsOptional()

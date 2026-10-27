@@ -18,6 +18,7 @@ const client_1 = require("@prisma/client");
 const crypto_1 = require("crypto");
 const fs_1 = require("fs");
 const path_1 = require("path");
+const image_preview_service_1 = require("../common/media/image-preview.service");
 const deliverables_service_1 = require("../deliverables/deliverables.service");
 const supabase_storage_service_1 = require("../supabase/supabase-storage.service");
 const rbac_1 = require("../auth/utils/rbac");
@@ -64,12 +65,14 @@ let KanbanService = class KanbanService {
     notifications;
     slaService;
     storage;
+    imagePreview;
     deliverablesService;
-    constructor(prisma, notifications, slaService, storage, deliverablesService) {
+    constructor(prisma, notifications, slaService, storage, imagePreview, deliverablesService) {
         this.prisma = prisma;
         this.notifications = notifications;
         this.slaService = slaService;
         this.storage = storage;
+        this.imagePreview = imagePreview;
         this.deliverablesService = deliverablesService;
     }
     async getColumns() {
@@ -770,13 +773,14 @@ let KanbanService = class KanbanService {
         if (!allowed.includes(file.mimetype)) {
             throw new common_1.UnsupportedMediaTypeException('Unsupported file type');
         }
-        const fileUrl = await this.persistTaskAssetFile(task, file);
+        const stored = await this.persistTaskAssetFile(task, file);
         const trimmedCaption = caption?.trim() || null;
         const asset = await this.prisma.kanbanTaskAsset.create({
             data: {
                 taskId,
                 fileName: file.originalname,
-                fileUrl,
+                fileUrl: stored.fileUrl,
+                previewUrl: stored.previewUrl,
                 fileType: file.mimetype,
                 fileSize: file.size,
                 caption: trimmedCaption,
@@ -845,6 +849,7 @@ let KanbanService = class KanbanService {
             id: asset.id,
             fileName: asset.fileName,
             fileUrl: asset.fileUrl,
+            previewUrl: asset.previewUrl,
             fileType: asset.fileType,
             fileSize: asset.fileSize,
             caption: asset.caption,
@@ -1286,7 +1291,14 @@ let KanbanService = class KanbanService {
     }
     async persistTaskAssetFile(task, file) {
         if (!this.storage.isConfigured) {
-            return `/uploads/${file.filename}`;
+            const fileUrl = `/uploads/${file.filename}`;
+            const previewUrl = await this.imagePreview.persistPreviewFromBuffer({
+                body: (0, fs_1.readFileSync)(file.path),
+                mimeType: file.mimetype,
+                fileName: file.originalname,
+                originalPath: file.filename,
+            });
+            return { fileUrl, previewUrl };
         }
         const bucket = this.storage.getDeliverablesBucket();
         const extension = (0, path_1.extname)(file.originalname) || '';
@@ -1299,12 +1311,19 @@ let KanbanService = class KanbanService {
             body,
             contentType: file.mimetype,
         });
+        const previewUrl = await this.imagePreview.persistPreviewFromBuffer({
+            body,
+            mimeType: file.mimetype,
+            fileName: file.originalname,
+            originalPath: storagePath,
+            bucket,
+        });
         try {
             (0, fs_1.unlinkSync)(file.path);
         }
         catch {
         }
-        return fileUrl;
+        return { fileUrl, previewUrl };
     }
     async ensureTaskExists(id) {
         const task = await this.prisma.kanbanTask.findFirst({
@@ -1385,6 +1404,7 @@ let KanbanService = class KanbanService {
                 postId: contentPostId,
                 name: asset.caption?.trim() || asset.fileName,
                 url: asset.fileUrl,
+                previewUrl: asset.previewUrl,
                 mimeType: asset.fileType,
             })),
         });
@@ -1588,6 +1608,7 @@ let KanbanService = class KanbanService {
                 id: asset.id,
                 fileName: asset.fileName,
                 fileUrl: asset.fileUrl,
+                previewUrl: asset.previewUrl,
                 fileType: asset.fileType,
                 fileSize: asset.fileSize,
                 caption: asset.caption,
@@ -1651,11 +1672,12 @@ let KanbanService = class KanbanService {
 exports.KanbanService = KanbanService;
 exports.KanbanService = KanbanService = __decorate([
     (0, common_1.Injectable)(),
-    __param(4, (0, common_1.Inject)((0, common_1.forwardRef)(() => deliverables_service_1.DeliverablesService))),
+    __param(5, (0, common_1.Inject)((0, common_1.forwardRef)(() => deliverables_service_1.DeliverablesService))),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         notifications_service_1.NotificationsService,
         sla_service_1.SlaService,
         supabase_storage_service_1.SupabaseStorageService,
+        image_preview_service_1.ImagePreviewService,
         deliverables_service_1.DeliverablesService])
 ], KanbanService);
 //# sourceMappingURL=kanban.service.js.map

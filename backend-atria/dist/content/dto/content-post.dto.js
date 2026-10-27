@@ -18,6 +18,7 @@ const entity_id_1 = require("../../common/validation/entity-id");
 class AttachmentDto {
     name;
     url;
+    previewUrl;
     mimeType;
 }
 exports.AttachmentDto = AttachmentDto;
@@ -33,6 +34,12 @@ __decorate([
     (0, class_validator_2.MaxLength)(2000),
     __metadata("design:type", String)
 ], AttachmentDto.prototype, "url", void 0);
+__decorate([
+    (0, class_validator_2.IsString)(),
+    (0, class_validator_2.IsOptional)(),
+    (0, class_validator_2.MaxLength)(2000),
+    __metadata("design:type", String)
+], AttachmentDto.prototype, "previewUrl", void 0);
 __decorate([
     (0, class_validator_2.IsString)(),
     (0, class_validator_2.IsOptional)(),

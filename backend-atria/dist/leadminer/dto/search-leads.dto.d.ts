@@ -1,6 +1,6 @@
-export interface SearchLeadsDTO {
+export declare class SearchLeadsDto {
     category: string;
     city: string;
-    neighborhood: string;
+    neighborhood?: string;
     max_results: number;
 }

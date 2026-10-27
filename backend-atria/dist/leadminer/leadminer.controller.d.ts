@@ -1,10 +1,10 @@
 import { ImportLeadMinerLeadsDto } from './dto/import-leads.dto';
-import type { SearchLeadsDTO } from './dto/search-leads.dto';
+import { SearchLeadsDto } from './dto/search-leads.dto';
 import { LeadminerService } from './leadminer.service';
 export declare class LeadMinerController {
     private readonly leadMinerService;
     constructor(leadMinerService: LeadminerService);
-    searchLeads(dto: SearchLeadsDTO): Promise<import("./leadminer.service").LeadMinerJobStartResponse>;
+    searchLeads(dto: SearchLeadsDto): Promise<import("./leadminer.service").LeadMinerJobStartResponse>;
     getJobStatus(jobId: string): Promise<import("./leadminer.service").LeadMinerJobStatusResponse>;
     importLeads(dto: ImportLeadMinerLeadsDto): Promise<{
         id: string;

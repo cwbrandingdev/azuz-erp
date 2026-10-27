@@ -2523,6 +2523,7 @@ export interface AddLeadToKanbanInput {
   phone?: string;
   email?: string;
   website?: string;
+  instagram?: string;
   address?: string;
   city?: string;
   neighborhood?: string;
