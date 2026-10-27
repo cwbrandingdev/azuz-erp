@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.KanbanModule = void 0;
 const common_1 = require("@nestjs/common");
+const media_module_1 = require("../common/media/media.module");
 const deliverables_module_1 = require("../deliverables/deliverables.module");
 const notifications_module_1 = require("../notifications/notifications.module");
 const sla_module_1 = require("../sla/sla.module");
@@ -20,6 +21,7 @@ exports.KanbanModule = KanbanModule;
 exports.KanbanModule = KanbanModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            media_module_1.MediaModule,
             notifications_module_1.NotificationsModule,
             sla_module_1.SlaModule,
             (0, common_1.forwardRef)(() => deliverables_module_1.DeliverablesModule),

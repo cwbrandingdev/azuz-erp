@@ -536,6 +536,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                     phone: dto.phone,
                     email: dto.email,
                     website: dto.website,
+                    instagram: dto.instagram,
                     address: dto.address,
                     city: dto.city,
                     neighborhood: dto.neighborhood,

@@ -79,6 +79,17 @@ let SupabaseStorageService = class SupabaseStorageService {
         }
         return data.publicUrl;
     }
+    async downloadObject(bucket, path) {
+        if (!this.supabase.isConfigured || !path)
+            return null;
+        const { data, error } = await this.supabase.admin.storage
+            .from(bucket)
+            .download(path);
+        if (error || !data) {
+            return null;
+        }
+        return Buffer.from(await data.arrayBuffer());
+    }
     async removeObject(bucket, path) {
         if (!this.supabase.isConfigured || !path)
             return;

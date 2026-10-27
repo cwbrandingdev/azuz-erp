@@ -1,19 +1,13 @@
 import { apiRequest } from "./api";
 import type { Lead } from "./types";
 
-const LEADMINER_API_URL = (process.env.NEXT_PUBLIC_LEADMINER_API ?? "").replace(
-  /\/$/,
-  "",
-);
-
-const REQUEST_TIMEOUT_MS = 10_000;
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 60;
 
 export interface LeadMinerSearchInput {
   category: string;
   city: string;
-  neighborhood: string;
+  neighborhood?: string;
   max_results: number;
 }
 
@@ -48,73 +42,21 @@ export interface ImportLeadMinerLeadsInput {
   organizationId?: string;
 }
 
-async function leadMinerRequest<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(
-    () => controller.abort(),
-    REQUEST_TIMEOUT_MS,
-  );
-
-  try {
-    const response = await fetch(`${LEADMINER_API_URL}${path}`, {
-      ...init,
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        ...init.headers,
-      },
-    });
-
-    if (response.status === 404) {
-      throw new Error("Job ID not found");
-    }
-
-    const data = (await response.json().catch(() => null)) as
-      | T
-      | { message?: string; error?: string }
-      | null;
-
-    if (!response.ok) {
-      const message =
-        (data && typeof data === "object" && "message" in data
-          ? data.message
-          : null) ??
-        (data && typeof data === "object" && "error" in data
-          ? data.error
-          : null) ??
-        `Lead Miner request failed (${response.status})`;
-      throw new Error(
-        typeof message === "string" ? message : "Lead Miner request failed",
-      );
-    }
-
-    if (data == null) {
-      throw new Error("Lead Miner returned an empty response");
-    }
-
-    return data as T;
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
 export async function startLeadMinerSearch(
   data: LeadMinerSearchInput,
 ): Promise<LeadMinerJobStartResponse> {
-  return leadMinerRequest<LeadMinerJobStartResponse>("/leads/search", {
+  return apiRequest<LeadMinerJobStartResponse>("/leadminer/search", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: data,
   });
 }
 
 export async function getLeadMinerJob(
   jobId: string,
 ): Promise<LeadMinerJobStatusResponse> {
-  return leadMinerRequest<LeadMinerJobStatusResponse>(
-    `/leads/job/${encodeURIComponent(jobId)}`,
+  return apiRequest<LeadMinerJobStatusResponse>(
+    `/leadminer/job/${encodeURIComponent(jobId)}`,
+    { skipToast: true },
   );
 }
 

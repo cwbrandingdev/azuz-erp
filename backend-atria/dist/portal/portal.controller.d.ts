@@ -35,6 +35,7 @@ export declare class PortalController {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -50,6 +51,7 @@ export declare class PortalController {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -70,6 +72,7 @@ export declare class PortalController {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -227,6 +230,7 @@ export declare class PortalController {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -242,6 +246,7 @@ export declare class PortalController {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -257,6 +262,7 @@ export declare class PortalController {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;

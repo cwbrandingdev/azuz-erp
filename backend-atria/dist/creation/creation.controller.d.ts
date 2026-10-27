@@ -44,6 +44,7 @@ export declare class CreationController {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             } | null;
         }[];
@@ -381,6 +382,7 @@ export declare class CreationController {
                 id: string;
                 createdAt: Date;
                 name: string;
+                previewUrl: string | null;
                 postId: string;
                 mimeType: string | null;
             }[];
@@ -442,6 +444,7 @@ export declare class CreationController {
                 id: string;
                 fileName: string;
                 fileUrl: string;
+                previewUrl: string | null;
                 fileType: string;
                 fileSize: number | null;
                 caption: string | null;

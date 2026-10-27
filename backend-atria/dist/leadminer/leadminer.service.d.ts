@@ -6,7 +6,7 @@ import { LeadStagesService } from '../leads/lead-stages.service';
 import { CrmScopeService } from '../leads/crm-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ImportLeadMinerLeadsDto } from './dto/import-leads.dto';
-import { SearchLeadsDTO } from './dto/search-leads.dto';
+import { SearchLeadsDto } from './dto/search-leads.dto';
 export interface LeadMinerJobStartResponse {
     job_id: string;
     status: string;
@@ -33,9 +33,10 @@ export declare class LeadminerService {
     private readonly companySettings;
     private readonly leadStages;
     private readonly crmScope;
+    private readonly logger;
     constructor(configService: ConfigService, prisma: PrismaService, aiService: AiService, companySettings: CompanySettingsService, leadStages: LeadStagesService, crmScope: CrmScopeService);
     private getLeadMinerBaseUrl;
-    SearchLeads(payload: SearchLeadsDTO): Promise<LeadMinerJobStartResponse>;
+    SearchLeads(payload: SearchLeadsDto): Promise<LeadMinerJobStartResponse>;
     getJobStatus(jobId: string): Promise<LeadMinerJobStatusResponse>;
     importLeads(dto: ImportLeadMinerLeadsDto): Promise<{
         id: string;

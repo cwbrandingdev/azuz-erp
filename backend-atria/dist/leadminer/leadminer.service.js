@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var LeadminerService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LeadminerService = void 0;
 const common_1 = require("@nestjs/common");
@@ -20,13 +21,14 @@ const lead_kanban_constants_1 = require("../leads/lead-kanban.constants");
 const prisma_service_1 = require("../prisma/prisma.service");
 const lead_miner_client_1 = require("../leads/company-lookup/infrastructure/lead-miner.client");
 const DEFAULT_LEADMINER_API = 'https://lead-miner.fly.dev';
-let LeadminerService = class LeadminerService {
+let LeadminerService = LeadminerService_1 = class LeadminerService {
     configService;
     prisma;
     aiService;
     companySettings;
     leadStages;
     crmScope;
+    logger = new common_1.Logger(LeadminerService_1.name);
     constructor(configService, prisma, aiService, companySettings, leadStages, crmScope) {
         this.configService = configService;
         this.prisma = prisma;
@@ -54,13 +56,16 @@ let LeadminerService = class LeadminerService {
                 signal: controller.signal,
             });
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new common_1.BadGatewayException('Falha ao buscar leads no Google Maps. Tente novamente.');
             }
             return (await response.json());
         }
         catch (err) {
-            console.error(err);
-            throw err;
+            if (err instanceof common_1.BadGatewayException) {
+                throw err;
+            }
+            this.logger.warn(`Lead Miner search failed: ${String(err)}`);
+            throw new common_1.BadGatewayException('Não foi possível conectar ao Google Maps. Tente novamente.');
         }
         finally {
             clearTimeout(timeout);
@@ -79,16 +84,16 @@ let LeadminerService = class LeadminerService {
                 throw new common_1.NotFoundException('Job ID not found');
             }
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new common_1.BadGatewayException('Falha ao consultar a busca de leads no Google Maps.');
             }
             return (await response.json());
         }
         catch (err) {
-            if (err instanceof common_1.NotFoundException) {
+            if (err instanceof common_1.NotFoundException || err instanceof common_1.BadGatewayException) {
                 throw err;
             }
-            console.error(err);
-            throw err;
+            this.logger.warn(`Lead Miner job status failed: ${String(err)}`);
+            throw new common_1.BadGatewayException('Não foi possível consultar a busca de leads no Google Maps.');
         }
         finally {
             clearTimeout(timeout);
@@ -217,7 +222,7 @@ let LeadminerService = class LeadminerService {
     }
 };
 exports.LeadminerService = LeadminerService;
-exports.LeadminerService = LeadminerService = __decorate([
+exports.LeadminerService = LeadminerService = LeadminerService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [config_1.ConfigService,
         prisma_service_1.PrismaService,

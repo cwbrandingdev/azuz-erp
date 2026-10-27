@@ -1,20 +1,20 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { CLIENT_DIRECTORY_ROLES } from '../auth/constants/roles';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { AnyPermissions } from '../auth/decorators/any-permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { getRequiredCrmPermissions } from '../auth/utils/rbac';
 import { ImportLeadMinerLeadsDto } from './dto/import-leads.dto';
-import type { SearchLeadsDTO } from './dto/search-leads.dto';
+import { SearchLeadsDto } from './dto/search-leads.dto';
 import { LeadminerService } from './leadminer.service';
 
 @Controller('leadminer')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(...CLIENT_DIRECTORY_ROLES)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AnyPermissions(...getRequiredCrmPermissions())
 export class LeadMinerController {
   constructor(private readonly leadMinerService: LeadminerService) {}
 
   @Post('search')
-  async searchLeads(@Body() dto: SearchLeadsDTO) {
+  async searchLeads(@Body() dto: SearchLeadsDto) {
     return await this.leadMinerService.SearchLeads(dto);
   }
 

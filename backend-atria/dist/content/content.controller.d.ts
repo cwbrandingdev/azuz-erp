@@ -51,6 +51,7 @@ export declare class ContentController {
                 id: string;
                 createdAt: Date;
                 name: string;
+                previewUrl: string | null;
                 postId: string;
                 mimeType: string | null;
             }[];
@@ -108,6 +109,7 @@ export declare class ContentController {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -227,6 +229,7 @@ export declare class ContentController {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -267,6 +270,7 @@ export declare class ContentController {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -307,6 +311,7 @@ export declare class ContentController {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -362,6 +367,7 @@ export declare class ContentController {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -402,6 +408,7 @@ export declare class ContentController {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -442,6 +449,7 @@ export declare class ContentController {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];

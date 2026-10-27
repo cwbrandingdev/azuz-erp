@@ -14,11 +14,12 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LeadMinerController = void 0;
 const common_1 = require("@nestjs/common");
-const roles_1 = require("../auth/constants/roles");
-const roles_decorator_1 = require("../auth/decorators/roles.decorator");
+const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
-const roles_guard_1 = require("../auth/guards/roles.guard");
+const permissions_guard_1 = require("../auth/guards/permissions.guard");
+const rbac_1 = require("../auth/utils/rbac");
 const import_leads_dto_1 = require("./dto/import-leads.dto");
+const search_leads_dto_1 = require("./dto/search-leads.dto");
 const leadminer_service_1 = require("./leadminer.service");
 let LeadMinerController = class LeadMinerController {
     leadMinerService;
@@ -40,7 +41,7 @@ __decorate([
     (0, common_1.Post)('search'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [search_leads_dto_1.SearchLeadsDto]),
     __metadata("design:returntype", Promise)
 ], LeadMinerController.prototype, "searchLeads", null);
 __decorate([
@@ -59,8 +60,8 @@ __decorate([
 ], LeadMinerController.prototype, "importLeads", null);
 exports.LeadMinerController = LeadMinerController = __decorate([
     (0, common_1.Controller)('leadminer'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(...roles_1.CLIENT_DIRECTORY_ROLES),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
+    (0, any_permissions_decorator_1.AnyPermissions)(...(0, rbac_1.getRequiredCrmPermissions)()),
     __metadata("design:paramtypes", [leadminer_service_1.LeadminerService])
 ], LeadMinerController);
 //# sourceMappingURL=leadminer.controller.js.map

@@ -20,6 +20,7 @@ class AddLeadToKanbanDto {
     phone;
     email;
     website;
+    instagram;
     address;
     city;
     neighborhood;
@@ -64,6 +65,12 @@ __decorate([
     (0, class_validator_1.MaxLength)(512),
     __metadata("design:type", String)
 ], AddLeadToKanbanDto.prototype, "website", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(512),
+    __metadata("design:type", String)
+], AddLeadToKanbanDto.prototype, "instagram", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

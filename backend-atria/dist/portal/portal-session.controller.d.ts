@@ -55,6 +55,7 @@ export declare class PortalSessionController {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -70,6 +71,7 @@ export declare class PortalSessionController {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -90,6 +92,7 @@ export declare class PortalSessionController {
                 id: string;
                 name: string;
                 url: string;
+                previewUrl: string | null;
                 mimeType: string | null;
             }[] | undefined;
         }[];
@@ -271,6 +274,7 @@ export declare class PortalSessionController {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -286,6 +290,7 @@ export declare class PortalSessionController {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -301,6 +306,7 @@ export declare class PortalSessionController {
             id: string;
             name: string;
             url: string;
+            previewUrl: string | null;
             mimeType: string | null;
         }[] | undefined;
     }>;
@@ -567,6 +573,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -582,6 +590,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -597,6 +607,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -612,6 +624,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -666,6 +680,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -681,6 +697,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -696,6 +714,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -711,6 +731,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -765,6 +787,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -780,6 +804,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -795,6 +821,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -810,6 +838,8 @@ export declare class PortalSessionController {
                 id: string;
                 deliverableId: string;
                 mediaUrl: string;
+                previewUrl: string | null;
+                displayUrl: string;
                 mediaType: string;
                 status: string;
                 adjustmentNotes: string | null;
@@ -835,6 +865,8 @@ export declare class PortalSessionController {
         id: string;
         deliverableId: string;
         mediaUrl: string;
+        previewUrl: string | null;
+        displayUrl: string;
         mediaType: string;
         status: string;
         adjustmentNotes: string | null;
@@ -850,6 +882,8 @@ export declare class PortalSessionController {
         id: string;
         deliverableId: string;
         mediaUrl: string;
+        previewUrl: string | null;
+        displayUrl: string;
         mediaType: string;
         status: string;
         adjustmentNotes: string | null;

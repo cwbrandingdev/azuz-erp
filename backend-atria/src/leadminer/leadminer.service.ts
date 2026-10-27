@@ -1,6 +1,7 @@
 import {
+  BadGatewayException,
   Injectable,
-  InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -16,7 +17,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { parseLeadMinerWebsiteAndInstagram } from '../leads/company-lookup/infrastructure/lead-miner.client';
 import { ImportLeadMinerLeadsDto } from './dto/import-leads.dto';
-import { SearchLeadsDTO } from './dto/search-leads.dto';
+import { SearchLeadsDto } from './dto/search-leads.dto';
 
 const DEFAULT_LEADMINER_API = 'https://lead-miner.fly.dev';
 
@@ -44,6 +45,8 @@ export interface LeadMinerJobStatusResponse {
 
 @Injectable()
 export class LeadminerService {
+  private readonly logger = new Logger(LeadminerService.name);
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
@@ -61,7 +64,7 @@ export class LeadminerService {
   }
 
   async SearchLeads(
-    payload: SearchLeadsDTO,
+    payload: SearchLeadsDto,
   ): Promise<LeadMinerJobStartResponse> {
     const url = `${this.getLeadMinerBaseUrl()}/leads/search`;
     const controller = new AbortController();
@@ -78,13 +81,20 @@ export class LeadminerService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new BadGatewayException(
+          'Falha ao buscar leads no Google Maps. Tente novamente.',
+        );
       }
 
       return (await response.json()) as LeadMinerJobStartResponse;
     } catch (err) {
-      console.error(err);
-      throw err;
+      if (err instanceof BadGatewayException) {
+        throw err;
+      }
+      this.logger.warn(`Lead Miner search failed: ${String(err)}`);
+      throw new BadGatewayException(
+        'Não foi possível conectar ao Google Maps. Tente novamente.',
+      );
     } finally {
       clearTimeout(timeout);
     }
@@ -106,16 +116,20 @@ export class LeadminerService {
       }
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new BadGatewayException(
+          'Falha ao consultar a busca de leads no Google Maps.',
+        );
       }
 
       return (await response.json()) as LeadMinerJobStatusResponse;
     } catch (err) {
-      if (err instanceof NotFoundException) {
+      if (err instanceof NotFoundException || err instanceof BadGatewayException) {
         throw err;
       }
-      console.error(err);
-      throw err;
+      this.logger.warn(`Lead Miner job status failed: ${String(err)}`);
+      throw new BadGatewayException(
+        'Não foi possível consultar a busca de leads no Google Maps.',
+      );
     } finally {
       clearTimeout(timeout);
     }

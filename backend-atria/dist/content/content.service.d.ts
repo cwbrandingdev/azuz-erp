@@ -61,6 +61,7 @@ export declare class ContentService {
                 id: string;
                 createdAt: Date;
                 name: string;
+                previewUrl: string | null;
                 postId: string;
                 mimeType: string | null;
             }[];
@@ -118,6 +119,7 @@ export declare class ContentService {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -158,6 +160,7 @@ export declare class ContentService {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -213,6 +216,7 @@ export declare class ContentService {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -253,6 +257,7 @@ export declare class ContentService {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -293,6 +298,7 @@ export declare class ContentService {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -412,6 +418,7 @@ export declare class ContentService {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];
@@ -452,6 +459,7 @@ export declare class ContentService {
             id: string;
             createdAt: Date;
             name: string;
+            previewUrl: string | null;
             postId: string;
             mimeType: string | null;
         }[];

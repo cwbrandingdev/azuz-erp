@@ -1,4 +1,5 @@
 import { KanbanTaskContentType, KanbanTaskPriority, KanbanTaskStatus, InternalReviewStatus, ProductionPhase, Prisma } from '@prisma/client';
+import { ImagePreviewService } from '../common/media/image-preview.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
 import { SupabaseStorageService } from '../supabase/supabase-storage.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -36,8 +37,9 @@ export declare class KanbanService {
     private readonly notifications;
     private readonly slaService;
     private readonly storage;
+    private readonly imagePreview;
     private readonly deliverablesService;
-    constructor(prisma: PrismaService, notifications: NotificationsService, slaService: SlaService, storage: SupabaseStorageService, deliverablesService: DeliverablesService);
+    constructor(prisma: PrismaService, notifications: NotificationsService, slaService: SlaService, storage: SupabaseStorageService, imagePreview: ImagePreviewService, deliverablesService: DeliverablesService);
     getColumns(): Promise<{
         id: string;
         title: string;
@@ -115,6 +117,7 @@ export declare class KanbanService {
             id: string;
             fileName: string;
             fileUrl: string;
+            previewUrl: string | null;
             fileType: string;
             fileSize: number | null;
             caption: string | null;
@@ -186,6 +189,7 @@ export declare class KanbanService {
             id: string;
             fileName: string;
             fileUrl: string;
+            previewUrl: string | null;
             fileType: string;
             fileSize: number | null;
             caption: string | null;
@@ -261,6 +265,7 @@ export declare class KanbanService {
             id: string;
             fileName: string;
             fileUrl: string;
+            previewUrl: string | null;
             fileType: string;
             fileSize: number | null;
             caption: string | null;
@@ -355,6 +360,7 @@ export declare class KanbanService {
             id: string;
             fileName: string;
             fileUrl: string;
+            previewUrl: string | null;
             fileType: string;
             fileSize: number | null;
             caption: string | null;
@@ -426,6 +432,7 @@ export declare class KanbanService {
             id: string;
             fileName: string;
             fileUrl: string;
+            previewUrl: string | null;
             fileType: string;
             fileSize: number | null;
             caption: string | null;
@@ -497,6 +504,7 @@ export declare class KanbanService {
             id: string;
             fileName: string;
             fileUrl: string;
+            previewUrl: string | null;
             fileType: string;
             fileSize: number | null;
             caption: string | null;
@@ -568,6 +576,7 @@ export declare class KanbanService {
             id: string;
             fileName: string;
             fileUrl: string;
+            previewUrl: string | null;
             fileType: string;
             fileSize: number | null;
             caption: string | null;
@@ -639,6 +648,7 @@ export declare class KanbanService {
             id: string;
             fileName: string;
             fileUrl: string;
+            previewUrl: string | null;
             fileType: string;
             fileSize: number | null;
             caption: string | null;
@@ -674,6 +684,7 @@ export declare class KanbanService {
         id: string;
         fileName: string;
         fileUrl: string;
+        previewUrl: string | null;
         fileType: string;
         fileSize: number | null;
         caption: string | null;

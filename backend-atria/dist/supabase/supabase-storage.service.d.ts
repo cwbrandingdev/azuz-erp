@@ -14,6 +14,7 @@ export declare class SupabaseStorageService {
         contentType: string;
         upsert?: boolean;
     }): Promise<string>;
+    downloadObject(bucket: string, path: string): Promise<Buffer | null>;
     removeObject(bucket: string, path: string): Promise<void>;
     extractObjectPathFromPublicUrl(publicUrl: string, bucket: string): string | null;
     extractStorageLocation(mediaUrl: string): {
