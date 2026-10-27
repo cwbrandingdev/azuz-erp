@@ -69,7 +69,9 @@ exports.AppModule = AppModule = __decorate([
                 validate: env_validation_1.validateEnv,
             }),
             throttler_1.ThrottlerModule.forRoot({
-                skipIf: () => Boolean(process.env.JEST_WORKER_ID),
+                skipIf: () => Boolean(process.env.JEST_WORKER_ID) ||
+                    (process.env.K6_LOAD_TEST === '1' &&
+                        process.env.NODE_ENV !== 'production'),
                 throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
             }),
             schedule_1.ScheduleModule.forRoot(),

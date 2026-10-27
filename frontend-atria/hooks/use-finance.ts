@@ -51,3 +51,19 @@ export function useChartOfAccounts(options?: { enabled?: boolean }) {
     staleTime: 5 * 60_000,
   });
 }
+
+export function useDueTodayAlerts(options?: {
+  enabled?: boolean;
+  refetchInterval?: number | false;
+}) {
+  const companyId = useCompanyId();
+  const enabled = options?.enabled ?? true;
+
+  return useQuery({
+    queryKey: financeKeys.dueToday(companyId ?? ""),
+    queryFn: () => financeService.getDueTodayAlerts(),
+    enabled: Boolean(companyId) && enabled,
+    staleTime: 60_000,
+    refetchInterval: options?.refetchInterval ?? false,
+  });
+}

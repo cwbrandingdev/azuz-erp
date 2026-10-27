@@ -39,6 +39,7 @@ export function FinanceSubnav() {
           <Link
             key={link.href}
             href={link.href}
+            prefetch={false}
             className={cn(
               "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
               active

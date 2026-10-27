@@ -201,7 +201,7 @@ export function ContentReviewPanel({
               <Button
                 variant="ghost"
                 size="icon"
-                render={<Link href="/creation" />}
+                render={<Link href="/kanban" prefetch={false} />}
                 className="mt-1 shrink-0 text-[var(--atria-primary)]"
                 aria-label="Voltar"
               >

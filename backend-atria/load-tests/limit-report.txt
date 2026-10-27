@@ -1,0 +1,32 @@
+=== Inbox API capacity (local, zero cloud) ===
+Generated: 2026-10-22 (automated ramp)
+
+Environment:
+  Docker Postgres on localhost, Nest on :3001, Supabase disabled
+  Workload: inbox-stress.js (me + inbox counts + conversations, ~0.15s pause)
+  SLO: error rate ≤ 2%, p95 latency ≤ 3000ms, checks ≥ 98%
+
+Throughput ceiling (observed):
+  ~310 HTTP requests/s — flat from ~100 VUs upward (CPU/DB bound on this machine)
+
+Ramp results (35–40s per step):
+  OK   15 VUs   p95    45ms   0% errors   ~203 req/s
+  OK  100 VUs   p95   401ms   0% errors   ~308 req/s
+  OK  300 VUs   p95  1207ms   0% errors   ~324 req/s
+  OK  500 VUs   p95  2231ms   0% errors   ~310 req/s
+  OK  700 VUs   p95  2855ms   0% errors   ~316 req/s  ← last level within SLO
+  FAIL 800 VUs   p95  3563ms   0% errors   ~312 req/s  ← latency SLO broken (no HTTP errors yet)
+
+Estimated limit (this test):
+  ~700 concurrent “active” inbox users with aggressive pacing (~0.15s between rounds)
+  Degradation begins around 750–800 VUs (p95 crosses 3s)
+
+Realistic inbox usage (1–3s think time between actions, ~3 API calls per round):
+  Server caps near ~310 req/s ⇒ about 100–200 concurrent users browsing the inbox
+  (310 ÷ 3 requests ≈ 103 rounds/s; at ~2s think time ≈ 200 concurrent users)
+
+Caveats:
+  • Laptop CPU/RAM ≠ Fly.io 1 GB shared CPU in GRU.
+  • Empty conversation list — opening threads/messages adds load.
+  • Production uses Supabase network latency and connection pooling.
+  • Re-run: npm run loadtest:find-limit (or start stack + k6 ramp manually).

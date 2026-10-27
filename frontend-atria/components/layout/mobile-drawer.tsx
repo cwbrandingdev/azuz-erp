@@ -30,7 +30,9 @@ export function MobileDrawer({ open, onOpenChange }: MobileDrawerProps) {
         </SheetHeader>
 
         <div className="sidebar-scroll flex-1 overflow-y-auto px-2 py-4">
-          <SidebarNav onNavigate={() => onOpenChange(false)} />
+          {open ? (
+            <SidebarNav onNavigate={() => onOpenChange(false)} />
+          ) : null}
         </div>
 
         <SidebarUserProfile

@@ -60,6 +60,7 @@ export function ContentMetaWidget({ data }: ContentMetaWidgetProps) {
           </div>
           <Link
             href="/insights"
+            prefetch={false}
             className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[var(--atria-primary)] hover:underline"
           >
             Ver insights <ArrowRight className="size-3" />
@@ -113,7 +114,8 @@ export function ContentMetaWidget({ data }: ContentMetaWidgetProps) {
         )}
 
         <Link
-          href="/creation"
+          href="/kanban"
+          prefetch={false}
           className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--atria-primary)] hover:underline"
         >
           Gerenciar conteúdo <ArrowRight className="size-3" />

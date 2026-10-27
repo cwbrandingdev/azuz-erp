@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, Wallet } from "lucide-react";
@@ -16,14 +16,14 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { useNotifications } from "@/contexts/notifications-context";
 import { useMarkNotificationAsRead } from "@/hooks/use-mark-notification-as-read";
+import { useDueTodayAlerts } from "@/hooks/use-finance";
 import { formatCurrency } from "@/lib/financial-utils";
 import { isMasterOrAdmin } from "@/lib/permissions";
 import { getNotificationHref } from "@/lib/notification-utils";
-import { financeService } from "@/services";
-import type { AppNotification, FinanceDueTodayAlerts } from "@/services/types";
+import type { AppNotification } from "@/services/types";
 import { cn } from "@/lib/utils";
 
-const FINANCE_POLL_MS = 30_000;
+const FINANCE_POLL_MS = 60_000;
 
 interface NotificationCenterProps {
   tone?: "light" | "dark";
@@ -36,27 +36,12 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
   const { notifications, unreadCount, markAsRead, markAllAsRead, refresh } =
     useNotifications();
   const markNotificationAsRead = useMarkNotificationAsRead();
-  const [financeAlerts, setFinanceAlerts] =
-    useState<FinanceDueTodayAlerts | null>(null);
   const [open, setOpen] = useState(false);
-
-  const loadFinance = useCallback(async () => {
-    try {
-      setFinanceAlerts(await financeService.getDueTodayAlerts());
-    } catch {
-      setFinanceAlerts(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!showFinanceAlerts) {
-      setFinanceAlerts(null);
-      return;
-    }
-    void loadFinance();
-    const interval = window.setInterval(() => void loadFinance(), FINANCE_POLL_MS);
-    return () => window.clearInterval(interval);
-  }, [loadFinance, showFinanceAlerts]);
+  const { data: financeAlerts = null, refetch: refetchFinanceAlerts } =
+    useDueTodayAlerts({
+      enabled: showFinanceAlerts,
+      refetchInterval: showFinanceAlerts ? FINANCE_POLL_MS : false,
+    });
 
   const financeDueCount = showFinanceAlerts
     ? (financeAlerts?.totals.dueTodayCount ?? 0) +
@@ -80,7 +65,7 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
         setOpen(next);
         if (next) {
           void refresh();
-          if (showFinanceAlerts) void loadFinance();
+          if (showFinanceAlerts) void refetchFinanceAlerts();
         }
       }}
     >
@@ -165,7 +150,7 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
                 variant="ghost"
                 size="sm"
                 className="mt-2 w-full"
-                render={<Link href="/financial" />}
+                render={<Link href="/financial" prefetch={false} />}
                 onClick={() => setOpen(false)}
               >
                 Abrir financeiro

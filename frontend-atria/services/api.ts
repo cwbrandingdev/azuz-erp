@@ -158,12 +158,69 @@ export async function apiRequest<T>(
       data,
     );
 
+    // #region agent log
+    if (endpoint.includes("proposals")) {
+      fetch(
+        "http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "36aa7b",
+          },
+          body: JSON.stringify({
+            sessionId: "36aa7b",
+            hypothesisId: "A-B",
+            location: "services/api.ts:apiRequest:error",
+            message: "proposals API error response",
+            data: {
+              endpoint,
+              status: response.status,
+              skipAuth: Boolean(skipAuth),
+              apiBase: API_BASE_URL,
+              errorMessage: error.message,
+            },
+            timestamp: Date.now(),
+          }),
+        },
+      ).catch(() => {});
+    }
+    // #endregion
+
     if (!skipToast && shouldShowApiErrorToast(response.status, endpoint, error.message)) {
       showApiError(error, endpoint);
     }
 
     throw error;
   }
+
+  // #region agent log
+  if (endpoint.includes("proposals")) {
+    fetch(
+      "http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "36aa7b",
+        },
+        body: JSON.stringify({
+          sessionId: "36aa7b",
+          hypothesisId: "A-B",
+          location: "services/api.ts:apiRequest:ok",
+          message: "proposals API success",
+          data: {
+            endpoint,
+            status: response.status,
+            skipAuth: Boolean(skipAuth),
+            apiBase: API_BASE_URL,
+          },
+          timestamp: Date.now(),
+        }),
+      },
+    ).catch(() => {});
+  }
+  // #endregion
 
   return data as T;
 }

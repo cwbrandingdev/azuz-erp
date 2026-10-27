@@ -61,6 +61,31 @@ export function PublicProposalPageClient({
         }
       } catch (err) {
         if (!active) return;
+        // #region agent log
+        fetch(
+          "http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Debug-Session-Id": "36aa7b",
+            },
+            body: JSON.stringify({
+              sessionId: "36aa7b",
+              hypothesisId: "D-E",
+              location: "public-proposal-page-client.tsx:load",
+              message: "public proposal load failed",
+              data: {
+                slugLength: slug.length,
+                isApiError: err instanceof ApiError,
+                status: err instanceof ApiError ? err.status : null,
+                errName: err instanceof Error ? err.name : "unknown",
+              },
+              timestamp: Date.now(),
+            }),
+          },
+        ).catch(() => {});
+        // #endregion
         if (err instanceof ApiError && err.status === 404) {
           setError("not_found");
         } else {
