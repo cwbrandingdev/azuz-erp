@@ -96,6 +96,8 @@ export const financeKeys = {
     ["finance", companyId, "management", from, to, chartYear] as const,
   chartOfAccounts: (companyId: string) =>
     ["finance", companyId, "chart-of-accounts"] as const,
+  dueToday: (companyId: string) =>
+    ["finance", companyId, "due-today"] as const,
   root: ["finance"] as const,
 };
 

@@ -42,6 +42,7 @@ export function DashboardFocus({ data }: DashboardFocusProps) {
           </div>
           <Link
             href="/calendar"
+            prefetch={false}
             className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--atria-primary)]/60 transition-colors hover:text-[var(--atria-primary)]"
           >
             Ver agenda
@@ -101,6 +102,7 @@ export function DashboardFocus({ data }: DashboardFocusProps) {
           </div>
           <Link
             href="/kanban"
+            prefetch={false}
             className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--atria-primary)]/60 transition-colors hover:text-[var(--atria-primary)]"
           >
             Abrir kanban

@@ -30,7 +30,10 @@
     "copy:client-logins": "node scripts/copy-client-logins-from-public.mjs",
     "deploy:fly": "fly deploy --local-only",
     "deploy:fly:remote": "FLY_DEPOT=false fly deploy --depot=false",
-    "test:client-portal-live": "node scripts/test-client-portal-live.mjs"
+    "test:client-portal-live": "node scripts/test-client-portal-live.mjs",
+    "loadtest:health": "k6 run load-tests/smoke-health.js",
+    "loadtest:inbox": "k6 run load-tests/inbox-browse.js",
+    "loadtest:find-limit": "node load-tests/find-limit.mjs"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

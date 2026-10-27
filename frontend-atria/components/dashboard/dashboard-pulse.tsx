@@ -57,7 +57,7 @@ export function DashboardPulse({ data }: DashboardPulseProps) {
       label: "Posts agendados",
       value: String(scheduledPosts),
       hint: "na fila de conteúdo",
-      href: "/creation",
+      href: "/kanban",
       icon: CheckCircle2,
       tone: "text-violet-800 bg-violet-500/15",
     },
@@ -81,6 +81,7 @@ export function DashboardPulse({ data }: DashboardPulseProps) {
             <Link
               key={card.label}
               href={card.href}
+              prefetch={false}
               className={cn(
                 "rounded-2xl border border-[var(--atria-primary)]/8 bg-card p-4",
                 "shadow-sm shadow-[var(--atria-primary)]/5 transition-all duration-200",

@@ -12,7 +12,7 @@ import {
 import { notificationsService } from "@/services";
 import type { AppNotification } from "@/services/types";
 
-const POLL_INTERVAL_MS = 15_000;
+const POLL_INTERVAL_MS = 60_000;
 
 interface NotificationsContextValue {
   notifications: AppNotification[];
@@ -69,7 +69,11 @@ export function NotificationsProvider({
 
   useEffect(() => {
     void refresh();
-    const interval = window.setInterval(() => void refresh(), POLL_INTERVAL_MS);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void refresh();
+      }
+    }, POLL_INTERVAL_MS);
 
     function onVisibility() {
       if (document.visibilityState === "visible") {
@@ -77,12 +81,10 @@ export function NotificationsProvider({
       }
     }
 
-    window.addEventListener("focus", onVisibility);
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       window.clearInterval(interval);
-      window.removeEventListener("focus", onVisibility);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [refresh]);

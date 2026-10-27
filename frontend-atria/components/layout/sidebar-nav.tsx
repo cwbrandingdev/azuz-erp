@@ -144,6 +144,7 @@ export function SidebarNav({
                       render={
                         <Link
                           href={item.href}
+                          prefetch={false}
                           onClick={onNavigate}
                           onMouseEnter={() => prefetchNav(item.href)}
                           className={cn(itemClass, "relative")}
@@ -197,6 +198,7 @@ export function SidebarNav({
                             <Link
                               key={child.href}
                               href={child.href}
+                              prefetch={false}
                               onClick={onNavigate}
                               onMouseEnter={() => prefetchNav(child.href)}
                               className={cn(
@@ -220,6 +222,7 @@ export function SidebarNav({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   onClick={onNavigate}
                   onMouseEnter={() => prefetchNav(item.href)}
                   className={itemClass}

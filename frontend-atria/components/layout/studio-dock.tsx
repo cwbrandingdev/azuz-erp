@@ -381,6 +381,7 @@ export function StudioDock() {
                 {showName ? <DockName name={item.name} lift={size} /> : null}
                 <Link
                   href={item.href}
+                  prefetch={false}
                   aria-label={item.name}
                   className="block rounded-[13px] outline-none focus-visible:ring-2 focus-visible:ring-white/80"
                   onClick={() => bounce(entry.key)}

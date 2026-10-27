@@ -57,6 +57,7 @@ export function PendingRequestsHighlight({
         </div>
         <Link
           href="/clients"
+          prefetch={false}
           className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--atria-primary)]/70 transition-colors hover:text-[var(--atria-primary)]"
         >
           Ver clientes
