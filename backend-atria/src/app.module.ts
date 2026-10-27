@@ -44,6 +44,7 @@ import { SettingsModule } from './settings/settings.module';
 import { SlaModule } from './sla/sla.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
 import { SupabaseModule } from './supabase/supabase.module';
+import { TimeClockModule } from './time-clock/time-clock.module';
 import { UserGroupsModule } from './user-groups/user-groups.module';
 import { UsersModule } from './users/users.module';
 import { VoiceModule } from './voice/voice.module';
@@ -101,6 +102,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
     ReportsModule,
     SettingsModule,
     SuggestionsModule,
+    TimeClockModule,
     UserGroupsModule,
     UsersModule,
     VoiceModule,

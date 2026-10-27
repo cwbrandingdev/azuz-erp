@@ -1,6 +1,7 @@
 import {
   canPerformInternalApproval,
   hasAnyPermission,
+  isClientFacingRole,
   isMasterOrAdmin,
   Permission,
   type PermissionKey,
@@ -85,6 +86,10 @@ export function canAccessRoute(
 
   if (routeKey === "/clients") {
     return canAccessClientDirectory(role);
+  }
+
+  if (routeKey === "/time-clock") {
+    return !isClientFacingRole(role);
   }
 
   const required = ROUTE_PERMISSIONS[routeKey];

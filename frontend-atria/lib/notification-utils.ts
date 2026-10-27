@@ -29,6 +29,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   app_update: "Atualização",
   whatsapp_mention: "WhatsApp",
   whatsapp_transfer: "WhatsApp",
+  time_clock_reminder: "Ponto",
 };
 
 const DUE_DATE_TYPES = new Set<string>(["due_date_warning"]);
@@ -58,6 +59,8 @@ export function getNotificationHref(notification: AppNotification): string {
       return "/content/management";
     case "app_update":
       return "/app-updates";
+    case "time_clock_reminder":
+      return "/time-clock";
     case "whatsapp_mention":
     case "whatsapp_transfer": {
       const phone = notification.message.match(/\d{10,}/)?.[0];

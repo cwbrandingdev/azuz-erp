@@ -68,6 +68,7 @@ model Company {
   whatsappBotSessions        WhatsAppBotSession[]
   whatsappBroadcasts         WhatsAppBroadcast[]
   whatsappTriggers           WhatsAppTrigger[]
+  timeClockEntries           TimeClockEntry[]
 }
 
 model Role {
@@ -140,6 +141,9 @@ model User {
   whatsappAssignedConversations WhatsAppConversation[]
   whatsappMessagesSent          WhatsAppMessage[]
   whatsappCrmEvents             WhatsAppCrmEvent[]
+  timeClockEntries              TimeClockEntry[]        @relation("TimeClockEntryUser")
+  timeClockEntriesCreated       TimeClockEntry[]        @relation("TimeClockEntryCreatedBy")
+  timeClockEntriesUpdated       TimeClockEntry[]        @relation("TimeClockEntryUpdatedBy")
 
   @@unique([companyId, email])
   @@index([clientId])
@@ -1434,6 +1438,7 @@ enum NotificationType {
   APP_UPDATE
   WHATSAPP_MENTION
   WHATSAPP_TRANSFER
+  TIME_CLOCK_REMINDER
 }
 
 enum TransactionType {
@@ -2056,4 +2061,37 @@ model AppUpdate {
   @@index([createdById])
   @@index([isPublished])
   @@map("app_updates")
+}
+
+enum TimeClockEntryType {
+  IN
+  BREAK_START
+  BREAK_END
+  OUT
+
+  @@map("TimeClockPunchType")
+}
+
+model TimeClockEntry {
+  id          String             @id @default(uuid())
+  companyId   String             @map("company_id")
+  userId      String             @map("user_id")
+  type        TimeClockEntryType
+  punchedAt   DateTime           @default(now()) @map("punched_at")
+  ipAddress   String?            @map("ip_address")
+  userAgent   String?            @map("user_agent")
+  isManual    Boolean            @default(false) @map("is_manual")
+  note        String?
+  createdById String?            @map("created_by_id")
+  updatedById String?            @map("updated_by_id")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  company     Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User               @relation("TimeClockEntryUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy   User?              @relation("TimeClockEntryCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy   User?              @relation("TimeClockEntryUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([companyId, punchedAt])
+  @@index([userId, punchedAt])
+  @@map("time_clock_punches")
 }

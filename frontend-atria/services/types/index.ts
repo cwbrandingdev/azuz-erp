@@ -2181,7 +2181,8 @@ export type NotificationType =
   | "system"
   | "app_update"
   | "whatsapp_mention"
-  | "whatsapp_transfer";
+  | "whatsapp_transfer"
+  | "time_clock_reminder";
 
 export interface AppNotification {
   id: string;
@@ -2816,6 +2817,22 @@ export type {
   CreateSuggestionInput,
   UpdateSuggestionStatusInput,
 } from "./suggestions";
+
+export type {
+  TimeClockEntryType,
+  TimeClockStatus,
+  TimeClockActor,
+  TimeClockEntry,
+  TimeClockDay,
+  TimeClockRange,
+  TimeClockRangeQuery,
+  MyTimeClock,
+  TeamTimeClockMember,
+  TeamTimeClock,
+  TeamTimeClockQuery,
+  CreateManualTimeClockEntryInput,
+  UpdateTimeClockEntryInput,
+} from "./time-clock";
 
 export type {
   AppUpdate,

@@ -66,6 +66,13 @@ export function canManageClientDirectory(
   );
 }
 
+// "manager" is not an AppRole, so the raw role name is compared instead.
+const TIME_CLOCK_MANAGER_ROLES = new Set(["master", "admin", "manager"]);
+
+export function canManageTimeClock(role: string | null | undefined): boolean {
+  return TIME_CLOCK_MANAGER_ROLES.has(normalizeRole(role));
+}
+
 export function getHomePathForRole(
   role: string | null | undefined,
   hasCrmEnabled?: boolean | null,
