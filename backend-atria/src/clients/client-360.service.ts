@@ -255,7 +255,8 @@ export class Client360Service {
         copy: post.copy.slice(0, 200),
         referenceUrl: post.referenceUrl,
         attachmentCount: post.attachments.length,
-        previewUrl: post.attachments[0]?.url ?? null,
+        previewUrl:
+          post.attachments[0]?.previewUrl ?? post.attachments[0]?.url ?? null,
         previewMimeType: post.attachments[0]?.mimeType ?? null,
         author: post.user,
         assignee: post.assignee,

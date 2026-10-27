@@ -49,6 +49,7 @@ import { UsersModule } from './users/users.module';
 import { VoiceModule } from './voice/voice.module';
 import { LeadMinerModule } from './leadminer/leadminer.module';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
+import { MediaModule } from './common/media/media.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
     ScheduleModule.forRoot(),
     PrismaModule,
     SupabaseModule,
+    MediaModule,
     HealthModule,
     AgendaModule,
     AiModule,

@@ -60,7 +60,7 @@ const postSelect = {
   },
   assignee: { select: { id: true, name: true, avatarUrl: true } },
   attachments: {
-    select: { id: true, name: true, url: true, mimeType: true },
+    select: { id: true, name: true, url: true, previewUrl: true, mimeType: true },
     orderBy: { createdAt: 'asc' as const },
     take: 1,
   },
@@ -1049,6 +1049,7 @@ export class CreationService {
               id: post.attachments[0].id,
               name: post.attachments[0].name,
               url: post.attachments[0].url,
+              previewUrl: post.attachments[0].previewUrl,
               mimeType: post.attachments[0].mimeType,
             }
           : null,

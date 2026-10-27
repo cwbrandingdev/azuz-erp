@@ -184,6 +184,7 @@ export async function uploadTaskAsset(
     id: string;
     fileName: string;
     fileUrl: string;
+    previewUrl?: string | null;
     fileType: string;
     fileSize: number | null;
     caption?: string | null;

@@ -61,7 +61,14 @@ export function ApprovalsQueue({ items }: ApprovalsQueueProps) {
               {item.previewAttachment ? (
                 <div className="size-14 shrink-0 overflow-hidden rounded-lg">
                   <MediaPreview
-                    url={resolveMediaUrl(item.previewAttachment.url) ?? item.previewAttachment.url}
+                    url={
+                      resolveMediaUrl(
+                        item.previewAttachment.previewUrl ||
+                          item.previewAttachment.url,
+                      ) ??
+                      item.previewAttachment.previewUrl ??
+                      item.previewAttachment.url
+                    }
                     mimeType={item.previewAttachment.mimeType}
                     name={item.previewAttachment.name}
                     className="size-14 object-cover"

@@ -99,6 +99,8 @@ export function PortalApprovalDetailPanel({
               id: `attachment-${index}`,
               deliverableId: post.id,
               mediaUrl: attachment.url,
+              previewUrl: attachment.previewUrl ?? null,
+              displayUrl: attachment.previewUrl || attachment.url,
               mediaType: attachment.mimeType?.startsWith("video/")
                 ? "video"
                 : "image",

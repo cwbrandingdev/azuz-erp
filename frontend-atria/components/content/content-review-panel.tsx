@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ClientName } from "@/components/ui/client-name";
 import { MediaPreview } from "@/components/ui/media-preview";
-import { resolveMediaUrl } from "@/lib/media-url";
+import { resolveDisplayMediaUrl, resolveMediaUrl } from "@/lib/media-url";
 import {
   getPreviewMediaKind,
   mimeTypeForPreviewKind,
@@ -89,15 +89,19 @@ export function ContentReviewPanel({
   const attachmentLightboxItems = useMemo<LightboxMediaItem[]>(
     () =>
       post.attachments.map((attachment, index) => {
-        const url = resolveMediaUrl(attachment.url) ?? attachment.url;
+        const originalUrl = resolveMediaUrl(attachment.url) ?? attachment.url;
+        const url =
+          resolveDisplayMediaUrl(attachment.previewUrl, attachment.url) ??
+          originalUrl;
         const kind = getPreviewMediaKind(
-          url,
+          originalUrl,
           attachment.mimeType,
           attachment.name,
         );
         return {
           id: `${attachment.url}-${index}`,
           url,
+          originalUrl,
           mediaType: toLightboxMediaType(kind),
           mimeType: attachment.mimeType ?? mimeTypeForPreviewKind(kind),
           fileName: attachment.name,
@@ -183,7 +187,10 @@ export function ContentReviewPanel({
     }
 
     attachmentLightboxItems.forEach((item) => {
-      triggerBrowserDownload(item.url, item.fileName ?? "download");
+      triggerBrowserDownload(
+        item.originalUrl ?? item.url,
+        item.fileName ?? "download",
+      );
     });
   }
 
@@ -434,7 +441,10 @@ export function ContentReviewPanel({
           onClose={() => setLightboxOpen(false)}
           onIndexChange={setLightboxIndex}
           onDownload={(item) => {
-            triggerBrowserDownload(item.url, item.fileName ?? "download");
+            triggerBrowserDownload(
+              item.originalUrl ?? item.url,
+              item.fileName ?? "download",
+            );
           }}
         />
       )}

@@ -9,6 +9,7 @@ interface MediaPreviewProps {
   mimeType?: string | null;
   name?: string;
   className?: string;
+  eager?: boolean;
 }
 
 export function MediaPreview({
@@ -16,6 +17,7 @@ export function MediaPreview({
   mimeType,
   name,
   className,
+  eager = false,
 }: MediaPreviewProps) {
   const kind = getPreviewMediaKind(url, mimeType, name);
 
@@ -37,6 +39,8 @@ export function MediaPreview({
       <img
         src={url}
         alt={name ?? "Preview"}
+        loading={eager ? "eager" : "lazy"}
+        decoding="async"
         className={cn("max-h-48 w-full rounded-lg object-cover", className)}
       />
     );

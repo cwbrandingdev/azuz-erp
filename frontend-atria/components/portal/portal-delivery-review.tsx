@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { MediaPreview } from "@/components/ui/media-preview";
 import { useCarouselKeyboard } from "@/hooks/use-carousel-keyboard";
+import { preferredDisplayUrl } from "@/lib/media-url";
 import { toast } from "@/lib/toast";
 import {
   getPreviewMediaKind,
@@ -101,6 +102,8 @@ export function PortalDeliveryReview({
               id: `attachment-${index}`,
               deliverableId: post.id,
               mediaUrl: attachment.url,
+              previewUrl: attachment.previewUrl ?? null,
+              displayUrl: attachment.previewUrl || attachment.url,
               mediaType: toLightboxMediaType(
                 getPreviewMediaKind(
                   attachment.url,
@@ -138,7 +141,8 @@ export function PortalDeliveryReview({
     () =>
       items.map((item) => ({
         id: item.id,
-        url: item.mediaUrl,
+        url: preferredDisplayUrl(item),
+        originalUrl: item.mediaUrl,
         mediaType: item.mediaType,
         fileName: item.fileName,
         status: item.status,
@@ -276,7 +280,7 @@ export function PortalDeliveryReview({
               <div className="relative flex h-full w-full items-center justify-center px-12 py-3 sm:px-16">
                 {currentItem.mediaType === "video" ? (
                   <MediaPreview
-                    url={actions.resolveAssetUrl(currentItem.mediaUrl)}
+                    url={actions.resolveAssetUrl(preferredDisplayUrl(currentItem))}
                     mimeType="video/mp4"
                     name={currentItem.fileName ?? undefined}
                     className="h-full w-full max-h-none rounded-xl object-contain"
@@ -289,7 +293,7 @@ export function PortalDeliveryReview({
                     aria-label={`Abrir ${currentItem.fileName ?? "mídia"} em tela cheia`}
                   >
                     <MediaPreview
-                      url={actions.resolveAssetUrl(currentItem.mediaUrl)}
+                      url={actions.resolveAssetUrl(preferredDisplayUrl(currentItem))}
                       mimeType={
                         mimeTypeForPreviewKind(
                           getPreviewMediaKind(
@@ -303,6 +307,7 @@ export function PortalDeliveryReview({
                       }
                       name={currentItem.fileName ?? undefined}
                       className="h-full w-full max-h-none rounded-xl object-contain"
+                      eager
                     />
                   </button>
                 )}
@@ -405,7 +410,7 @@ export function PortalDeliveryReview({
                       aria-current={index === activeIndex}
                     >
                       <MediaPreview
-                        url={actions.resolveAssetUrl(item.mediaUrl)}
+                        url={actions.resolveAssetUrl(preferredDisplayUrl(item))}
                         mimeType={
                           mimeTypeForPreviewKind(
                             getPreviewMediaKind(
@@ -439,7 +444,7 @@ export function PortalDeliveryReview({
         onIndexChange={setActiveIndex}
         onApprove={handleApproveItem}
         onDownload={(item) => {
-          const url = actions.resolveAssetUrl(item.url);
+          const url = actions.resolveAssetUrl(item.originalUrl ?? item.url);
           window.open(url, "_blank", "noopener,noreferrer");
         }}
         approving={approvingItem}

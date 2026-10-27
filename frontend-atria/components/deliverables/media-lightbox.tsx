@@ -25,6 +25,7 @@ import type { DeliverableItemStatus } from "@/services/types";
 export interface LightboxMediaItem {
   id: string;
   url: string;
+  originalUrl?: string | null;
   mediaType: "image" | "video" | "other";
   fileName?: string | null;
   mimeType?: string | null;
@@ -264,6 +265,7 @@ export function MediaLightbox({
                   <img
                     src={previewUrl}
                     alt={item.fileName ?? "Mídia"}
+                    decoding="async"
                     style={{ transform: `scale(${zoom})` }}
                     className="max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-150"
                   />
