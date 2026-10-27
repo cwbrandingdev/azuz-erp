@@ -15,6 +15,7 @@ import {
   MessageSquarePlus,
   Megaphone,
   MessageCircle,
+  Clock,
 } from "lucide-react";
 
 export interface NavChild {
@@ -75,6 +76,11 @@ export const navSections: NavSection[] = [
   {
     label: "SISTEMA",
     items: [
+      {
+        name: "Ponto",
+        href: "/time-clock",
+        icon: Clock,
+      },
       {
         name: "Sugestões",
         href: "/suggestions",

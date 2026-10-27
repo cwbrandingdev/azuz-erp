@@ -21,6 +21,7 @@ const ROUTE_LABELS: Record<string, string> = {
   kanban: "Kanban",
   "internal-approvals": "Aprovação Interna",
   suggestions: "Sugestões",
+  "time-clock": "Ponto",
   "app-updates": "Atualizações",
   calendar: "Calendário",
   clients: "Clientes",

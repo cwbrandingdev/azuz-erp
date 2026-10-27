@@ -55,6 +55,18 @@ export const suggestionKeys = {
   root: ["suggestions"] as const,
 };
 
+export const timeClockKeys = {
+  mine: (companyId: string, from: string | null, to: string | null) =>
+    ["time-clock", companyId, "mine", from, to] as const,
+  team: (
+    companyId: string,
+    from: string | null,
+    to: string | null,
+    userId: string | null,
+  ) => ["time-clock", companyId, "team", from, to, userId] as const,
+  root: ["time-clock"] as const,
+};
+
 export const appUpdateKeys = {
   access: (companyId: string) => ["app-updates", companyId, "access"] as const,
   list: (companyId: string) => ["app-updates", companyId, "list"] as const,
