@@ -27,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { MediaPreview } from "@/components/ui/media-preview";
 import { useCarouselKeyboard } from "@/hooks/use-carousel-keyboard";
-import { resolveMediaUrl } from "@/lib/media-url";
+import { preferredDisplayUrl, resolveMediaUrl } from "@/lib/media-url";
 import { isPdfSource } from "@/lib/pdf-utils";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -86,7 +86,8 @@ function withSortOrder(list: DeliverableItem[]) {
 function toLightboxItem(item: DeliverableItem): LightboxMediaItem {
   return {
     id: item.id,
-    url: item.mediaUrl,
+    url: preferredDisplayUrl(item),
+    originalUrl: item.mediaUrl,
     mediaType: item.mediaType,
     fileName: item.fileName,
     mimeType: isPdfSource(item.mediaUrl, null, item.fileName)
@@ -507,9 +508,9 @@ export function DeliverableMediaGrid({
             >
               {(() => {
                 const previewUrl =
-                  resolveMediaUrlProp?.(activeItem.mediaUrl) ??
-                  resolveMediaUrl(activeItem.mediaUrl) ??
-                  activeItem.mediaUrl;
+                  resolveMediaUrlProp?.(preferredDisplayUrl(activeItem)) ??
+                  resolveMediaUrl(preferredDisplayUrl(activeItem)) ??
+                  preferredDisplayUrl(activeItem);
 
                 if (activeItem.mediaType === "video") {
                   return (
@@ -546,6 +547,7 @@ export function DeliverableMediaGrid({
                     }
                     name={activeItem.fileName ?? undefined}
                     className="max-h-[min(50vh,420px)] w-full max-w-3xl rounded-xl object-contain"
+                    eager
                   />
                 );
               })()}
@@ -582,9 +584,9 @@ export function DeliverableMediaGrid({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {sortedItems.map((item, index) => {
           const previewUrl =
-            resolveMediaUrlProp?.(item.mediaUrl) ??
-            resolveMediaUrl(item.mediaUrl) ??
-            item.mediaUrl;
+            resolveMediaUrlProp?.(preferredDisplayUrl(item)) ??
+            resolveMediaUrl(preferredDisplayUrl(item)) ??
+            preferredDisplayUrl(item);
           const isDownloading = downloadingId === item.id;
           const canSelectForBulkDelete =
             bulkDeleteEnabled && Boolean(item.sourceAssetId);

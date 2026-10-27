@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { MediaModule } from '../common/media/media.module';
 import { DeliverablesModule } from '../deliverables/deliverables.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SlaModule } from '../sla/sla.module';
@@ -8,6 +9,7 @@ import { TasksController } from './tasks.controller';
 
 @Module({
   imports: [
+    MediaModule,
     NotificationsModule,
     SlaModule,
     forwardRef(() => DeliverablesModule),

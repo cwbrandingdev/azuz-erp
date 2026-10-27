@@ -11,7 +11,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { resolveMediaUrl } from "@/lib/media-url";
+import { itemDisplayUrl } from "@/lib/media-url";
 import { isPdfSource } from "@/lib/pdf-utils";
 import type { DeliverableItem } from "@/services/types";
 
@@ -48,9 +48,7 @@ export function MediaRevisionDrawer({
     await onSubmit(item.id, trimmed);
   }
 
-  const previewUrl = item
-    ? (resolveMediaUrl(item.mediaUrl) ?? item.mediaUrl)
-    : "";
+  const previewUrl = item ? itemDisplayUrl(item) : "";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

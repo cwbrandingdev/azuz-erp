@@ -331,6 +331,7 @@ export interface KanbanTaskAsset {
   id: string;
   fileName: string;
   fileUrl: string;
+  previewUrl?: string | null;
   fileType: string;
   fileSize: number | null;
   caption?: string | null;
@@ -781,6 +782,7 @@ export interface ContentAttachment {
   id: string;
   name: string;
   url: string;
+  previewUrl?: string | null;
   mimeType: string | null;
 }
 
@@ -2003,6 +2005,7 @@ export interface ReportContentPost {
     id: string;
     name: string;
     url: string;
+    previewUrl?: string | null;
     mimeType: string | null;
   }>;
 }
@@ -2706,6 +2709,8 @@ export interface DeliverableItem {
   id: string;
   deliverableId: string;
   mediaUrl: string;
+  previewUrl?: string | null;
+  displayUrl?: string | null;
   mediaType: DeliverableMediaType;
   status: DeliverableItemStatus;
   adjustmentNotes?: string | null;

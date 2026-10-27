@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
   forwardRef,
@@ -17,6 +18,7 @@ import {
 } from '@prisma/client';
 import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
+import { ImagePreviewService } from '../common/media/image-preview.service';
 import { KanbanService } from '../kanban/kanban.service';
 import { InternalReviewAction } from '../kanban/dto/internal-review.dto';
 import { assertCanPerformInternalApproval } from '../auth/utils/rbac';
@@ -33,6 +35,7 @@ const itemSelect = {
   id: true,
   deliverableId: true,
   mediaUrl: true,
+  previewUrl: true,
   mediaType: true,
   status: true,
   adjustmentNotes: true,
@@ -46,11 +49,18 @@ const itemSelect = {
   updatedAt: true,
 } satisfies Prisma.DeliverableItemSelect;
 
+const PREVIEW_BACKFILL_TIMEOUT_MS = 12_000;
+const PREVIEW_BACKFILL_CONCURRENCY = 2;
+
 @Injectable()
 export class DeliverablesService {
+  private readonly logger = new Logger(DeliverablesService.name);
+  private readonly previewJobs = new Set<string>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: SupabaseStorageService,
+    private readonly imagePreview: ImagePreviewService,
     @Inject(forwardRef(() => KanbanService))
     private readonly kanbanService: KanbanService,
   ) {}
@@ -109,6 +119,7 @@ export class DeliverablesService {
       const location = this.resolveStorageLocation(asset.fileUrl);
       const data = {
         mediaUrl: asset.fileUrl,
+        previewUrl: asset.previewUrl,
         mediaType: this.resolveMediaType(asset.fileType),
         fileName: asset.fileName,
         fileSize: asset.fileSize,
@@ -570,7 +581,7 @@ export class DeliverablesService {
       task?.internalReviewNote ?? null,
     );
 
-    const items = view.items;
+    const items = await this.ensureItemPreviews(view.items);
     const counts = {
       total: items.length,
       pending: items.filter(
@@ -965,10 +976,95 @@ export class DeliverablesService {
     }
   }
 
+  private async ensureItemPreviews<
+    T extends {
+      id: string;
+      mediaUrl: string;
+      previewUrl: string | null;
+      mediaType: DeliverableMediaType;
+      fileName: string | null;
+      sourceAssetId?: string | null;
+    },
+  >(items: T[]): Promise<T[]> {
+    const pending = items.filter(
+      (item) =>
+        !item.previewUrl &&
+        item.mediaType === DeliverableMediaType.IMAGE &&
+        !this.previewJobs.has(item.id),
+    );
+    if (pending.length === 0) return items;
+
+    for (const item of pending) {
+      this.previewJobs.add(item.id);
+    }
+
+    const generated = new Map<string, string>();
+    let cursor = 0;
+
+    const worker = async () => {
+      while (cursor < pending.length) {
+        const item = pending[cursor];
+        cursor += 1;
+        try {
+          const previewUrl = await this.imagePreview.persistPreviewFromStored({
+            mediaUrl: item.mediaUrl,
+            fileName: item.fileName,
+          });
+          if (!previewUrl) continue;
+
+          await this.prisma.deliverableItem.update({
+            where: { id: item.id },
+            data: { previewUrl },
+          });
+          if (item.sourceAssetId) {
+            await this.prisma.kanbanTaskAsset.updateMany({
+              where: { id: item.sourceAssetId },
+              data: { previewUrl },
+            });
+          }
+          await this.prisma.contentAttachment.updateMany({
+            where: { url: item.mediaUrl },
+            data: { previewUrl },
+          });
+          generated.set(item.id, previewUrl);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to backfill image preview for ${item.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        } finally {
+          this.previewJobs.delete(item.id);
+        }
+      }
+    };
+
+    const jobs = Promise.all(
+      Array.from(
+        { length: Math.min(PREVIEW_BACKFILL_CONCURRENCY, pending.length) },
+        () => worker(),
+      ),
+    );
+
+    await Promise.race([
+      jobs,
+      new Promise((resolve) => setTimeout(resolve, PREVIEW_BACKFILL_TIMEOUT_MS)),
+    ]);
+    void jobs.catch(() => undefined);
+
+    if (generated.size === 0) return items;
+
+    return items.map((item) => {
+      const previewUrl = generated.get(item.id);
+      return previewUrl ? { ...item, previewUrl } : item;
+    });
+  }
+
   private toItemResponse(item: {
     id: string;
     deliverableId: string;
     mediaUrl: string;
+    previewUrl?: string | null;
     mediaType: DeliverableMediaType;
     status: DeliverableItemStatus;
     adjustmentNotes: string | null;
@@ -979,10 +1075,13 @@ export class DeliverablesService {
     createdAt: Date;
     updatedAt: Date;
   }) {
+    const previewUrl = item.previewUrl ?? null;
     return {
       id: item.id,
       deliverableId: item.deliverableId,
       mediaUrl: item.mediaUrl,
+      previewUrl,
+      displayUrl: previewUrl || item.mediaUrl,
       mediaType: item.mediaType.toLowerCase(),
       status: item.status.toLowerCase(),
       adjustmentNotes: item.adjustmentNotes,

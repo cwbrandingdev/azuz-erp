@@ -384,6 +384,7 @@ model KanbanTaskAsset {
   taskId       String
   fileName     String
   fileUrl      String
+  previewUrl   String?
   fileType     String
   fileSize     Int?
   uploadedById String
@@ -745,13 +746,14 @@ model PostFeedback {
 }
 
 model ContentAttachment {
-  id        String      @id @default(uuid())
-  postId    String
-  name      String
-  url       String
-  mimeType  String?
-  createdAt DateTime    @default(now())
-  post      ContentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id         String      @id @default(uuid())
+  postId     String
+  name       String
+  url        String
+  previewUrl String?
+  mimeType   String?
+  createdAt  DateTime    @default(now())
+  post       ContentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
 }
@@ -1381,6 +1383,7 @@ model DeliverableItem {
   id              String                @id @default(uuid())
   deliverableId   String
   mediaUrl        String
+  previewUrl      String?
   mediaType       DeliverableMediaType  @default(OTHER)
   status          DeliverableItemStatus @default(PENDING)
   adjustmentNotes String?

@@ -30,6 +30,11 @@ export class AttachmentDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(2000)
+  previewUrl?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(100)
   mimeType?: string;
 }

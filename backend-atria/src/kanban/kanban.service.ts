@@ -25,6 +25,7 @@ import {
 import { randomUUID } from 'crypto';
 import { readFileSync, unlinkSync } from 'fs';
 import { extname } from 'path';
+import { ImagePreviewService } from '../common/media/image-preview.service';
 import { DeliverablesService } from '../deliverables/deliverables.service';
 import { SupabaseStorageService } from '../supabase/supabase-storage.service';
 import {
@@ -140,6 +141,7 @@ export class KanbanService {
     private readonly notifications: NotificationsService,
     private readonly slaService: SlaService,
     private readonly storage: SupabaseStorageService,
+    private readonly imagePreview: ImagePreviewService,
     @Inject(forwardRef(() => DeliverablesService))
     private readonly deliverablesService: DeliverablesService,
   ) {}
@@ -1117,14 +1119,15 @@ export class KanbanService {
       throw new UnsupportedMediaTypeException('Unsupported file type');
     }
 
-    const fileUrl = await this.persistTaskAssetFile(task, file);
+    const stored = await this.persistTaskAssetFile(task, file);
     const trimmedCaption = caption?.trim() || null;
 
     const asset = await this.prisma.kanbanTaskAsset.create({
       data: {
         taskId,
         fileName: file.originalname,
-        fileUrl,
+        fileUrl: stored.fileUrl,
+        previewUrl: stored.previewUrl,
         fileType: file.mimetype,
         fileSize: file.size,
         caption: trimmedCaption,
@@ -1212,6 +1215,7 @@ export class KanbanService {
       id: asset.id,
       fileName: asset.fileName,
       fileUrl: asset.fileUrl,
+      previewUrl: asset.previewUrl,
       fileType: asset.fileType,
       fileSize: asset.fileSize,
       caption: asset.caption,
@@ -1777,9 +1781,16 @@ export class KanbanService {
   private async persistTaskAssetFile(
     task: { id: string; clientId: string | null; companyId: string },
     file: Express.Multer.File,
-  ): Promise<string> {
+  ): Promise<{ fileUrl: string; previewUrl: string | null }> {
     if (!this.storage.isConfigured) {
-      return `/uploads/${file.filename}`;
+      const fileUrl = `/uploads/${file.filename}`;
+      const previewUrl = await this.imagePreview.persistPreviewFromBuffer({
+        body: readFileSync(file.path),
+        mimeType: file.mimetype,
+        fileName: file.originalname,
+        originalPath: file.filename,
+      });
+      return { fileUrl, previewUrl };
     }
 
     const bucket = this.storage.getDeliverablesBucket();
@@ -1795,13 +1806,21 @@ export class KanbanService {
       contentType: file.mimetype,
     });
 
+    const previewUrl = await this.imagePreview.persistPreviewFromBuffer({
+      body,
+      mimeType: file.mimetype,
+      fileName: file.originalname,
+      originalPath: storagePath,
+      bucket,
+    });
+
     try {
       unlinkSync(file.path);
     } catch {
       // ignore temp file cleanup errors
     }
 
-    return fileUrl;
+    return { fileUrl, previewUrl };
   }
 
   private async ensureTaskExists(id: string): Promise<TaskWithRelations> {
@@ -1904,6 +1923,7 @@ export class KanbanService {
         postId: contentPostId,
         name: asset.caption?.trim() || asset.fileName,
         url: asset.fileUrl,
+        previewUrl: asset.previewUrl,
         mimeType: asset.fileType,
       })),
     });
@@ -2169,6 +2189,7 @@ export class KanbanService {
         id: asset.id,
         fileName: asset.fileName,
         fileUrl: asset.fileUrl,
+        previewUrl: asset.previewUrl,
         fileType: asset.fileType,
         fileSize: asset.fileSize,
         caption: asset.caption,

@@ -18,7 +18,7 @@ import {
   CONTENT_STATUS_LABELS,
   formatContentDate,
 } from "@/lib/content-utils";
-import { resolveMediaUrl } from "@/lib/media-url";
+import { resolveDisplayMediaUrl } from "@/lib/media-url";
 import { toast } from "@/lib/toast";
 import { clientsService, contentService } from "@/services";
 import type {
@@ -209,8 +209,10 @@ export function ContentManagementDashboard() {
                     <div className="size-16 shrink-0 overflow-hidden rounded-xl">
                       <MediaPreview
                         url={
-                          resolveMediaUrl(post.attachments[0].url) ??
-                          post.attachments[0].url
+                          resolveDisplayMediaUrl(
+                            post.attachments[0].previewUrl,
+                            post.attachments[0].url,
+                          ) ?? post.attachments[0].url
                         }
                         mimeType={post.attachments[0].mimeType}
                         name={post.attachments[0].name}

@@ -949,6 +949,7 @@ export class PortalService {
         id: string;
         name: string;
         url: string;
+        previewUrl?: string | null;
         mimeType: string | null;
       }>;
     },
@@ -965,6 +966,7 @@ export class PortalService {
         id: a.id,
         name: a.name,
         url: a.url,
+        previewUrl: a.previewUrl ?? null,
         mimeType: a.mimeType,
       })),
     };

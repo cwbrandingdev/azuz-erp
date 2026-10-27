@@ -16,6 +16,7 @@ interface PortalPostAttachment {
   id: string;
   name: string;
   url: string;
+  previewUrl?: string | null;
   mimeType: string | null;
 }
 
@@ -31,12 +32,18 @@ function toLightboxItem(
   attachment: PortalPostAttachment,
   resolveAssetUrl: (url: string) => string,
 ): LightboxMediaItem {
-  const url = resolveAssetUrl(attachment.url);
-  const kind = getPreviewMediaKind(url, attachment.mimeType, attachment.name);
+  const originalUrl = resolveAssetUrl(attachment.url);
+  const url = resolveAssetUrl(attachment.previewUrl || attachment.url);
+  const kind = getPreviewMediaKind(
+    originalUrl,
+    attachment.mimeType,
+    attachment.name,
+  );
 
   return {
     id: attachment.id,
     url,
+    originalUrl,
     mediaType: toLightboxMediaType(kind),
     mimeType: attachment.mimeType ?? mimeTypeForPreviewKind(kind),
     fileName: attachment.name,
@@ -94,7 +101,7 @@ export function PortalClickablePostMedia({
     );
   }
 
-  const previewUrl = resolveAssetUrl(current.url);
+  const previewUrl = resolveAssetUrl(current.previewUrl || current.url);
   const isVideo = current.mimeType?.startsWith("video/");
   const hasMultiple = items.length > 1;
 
@@ -179,7 +186,11 @@ export function PortalClickablePostMedia({
         onClose={() => setLightboxOpen(false)}
         onIndexChange={setSlideIndex}
         onDownload={(item) => {
-          window.open(item.url, "_blank", "noopener,noreferrer");
+          window.open(
+            item.originalUrl ?? item.url,
+            "_blank",
+            "noopener,noreferrer",
+          );
         }}
       />
     </>
