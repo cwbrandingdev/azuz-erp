@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { leadsService } from "@/services";
 import {
   enrichLeadSearchSessionMaps,
   getLeadSearchSessionLeads,
@@ -10,12 +11,20 @@ import {
 } from "@/services/company-search.service";
 
 const SESSIONS_KEY = ["lead-search-sessions"] as const;
+export const PROSPECTING_LEADS_KEY = ["prospecting-leads"] as const;
+
+const LEAD_SEARCH_QUERY_OPTIONS = {
+  staleTime: 30 * 60_000,
+  gcTime: 24 * 60 * 60_000,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
 
 export function useLeadSearchSessions() {
   return useQuery({
     queryKey: SESSIONS_KEY,
     queryFn: listLeadSearchSessions,
-    staleTime: 30_000,
+    ...LEAD_SEARCH_QUERY_OPTIONS,
   });
 }
 
@@ -24,7 +33,16 @@ export function useLeadSearchSessionLeads(sessionId: string | null) {
     queryKey: ["lead-search-session", sessionId],
     queryFn: () => getLeadSearchSessionLeads(sessionId!),
     enabled: Boolean(sessionId),
-    staleTime: 30_000,
+    ...LEAD_SEARCH_QUERY_OPTIONS,
+  });
+}
+
+export function useProspectingLeads(enabled = true) {
+  return useQuery({
+    queryKey: PROSPECTING_LEADS_KEY,
+    queryFn: () => leadsService.listProspectingLeads(),
+    enabled,
+    ...LEAD_SEARCH_QUERY_OPTIONS,
   });
 }
 

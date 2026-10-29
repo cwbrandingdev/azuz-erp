@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CompanySearchPanel } from "@/components/leads/company-search-panel";
 import { LeadsSearchPanel } from "@/components/leads/leads-search-panel";
 import {
   LeadsProspectingTabs,
   type LeadsProspectingMode,
 } from "@/components/leads/leads-prospecting-tabs";
+import {
+  readPersistedProspectingMode,
+  writePersistedProspectingMode,
+} from "@/lib/lead-prospecting-persistence";
 
 const PAGE_COPY: Record<
   LeadsProspectingMode,
@@ -25,8 +29,14 @@ const PAGE_COPY: Record<
 };
 
 export default function LeadsPage() {
-  const [mode, setMode] = useState<LeadsProspectingMode>("b2b");
+  const [mode, setMode] = useState<LeadsProspectingMode>(
+    () => readPersistedProspectingMode() ?? "b2b",
+  );
   const copy = PAGE_COPY[mode];
+
+  useEffect(() => {
+    writePersistedProspectingMode(mode);
+  }, [mode]);
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
@@ -43,7 +53,12 @@ export default function LeadsPage() {
         <LeadsProspectingTabs activeMode={mode} onChange={setMode} />
       </div>
 
-      {mode === "b2b" ? <CompanySearchPanel /> : <LeadsSearchPanel />}
+      <div className={mode === "b2b" ? "contents" : "hidden"}>
+        <CompanySearchPanel />
+      </div>
+      <div className={mode === "maps" ? "contents" : "hidden"}>
+        <LeadsSearchPanel />
+      </div>
     </div>
   );
 }

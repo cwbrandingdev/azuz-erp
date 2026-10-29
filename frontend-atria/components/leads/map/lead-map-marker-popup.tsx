@@ -2,6 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getLeadCnpjLabel } from "@/lib/lead-cnpj";
 import {
   formatInstagramHandle,
   formatLeadPhone,
@@ -24,6 +25,7 @@ export function LeadMapMarkerPopup({
 }: LeadMapMarkerPopupProps) {
   const names = getLeadCompanyNames(lead);
   const cnae = getLeadCnaeLabel(lead);
+  const cnpj = getLeadCnpjLabel(lead);
   const phone = formatLeadPhone(lead.phone);
   const instagram = formatInstagramHandle(lead.instagram);
   const canAdd = Boolean(onAddToLeads) && !lead.kanbanTracked;
@@ -42,6 +44,12 @@ export function LeadMapMarkerPopup({
       </div>
 
       <dl className="space-y-1.5 text-xs text-[var(--atria-primary)]/80">
+        {cnpj ? (
+          <div>
+            <dt className="font-medium text-[var(--atria-primary)]/50">CNPJ</dt>
+            <dd>{cnpj}</dd>
+          </div>
+        ) : null}
         <div>
           <dt className="font-medium text-[var(--atria-primary)]/50">CNAE</dt>
           <dd>{cnae ?? "Não informado"}</dd>

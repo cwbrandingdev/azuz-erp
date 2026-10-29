@@ -28,6 +28,7 @@ export declare class LeadSearchSessionService {
             searchSessionId: string | null;
             organizationId: string | null;
             name: string;
+            cnpj: string | null;
             contactName: string | null;
             phone: string | null;
             email: string | null;
@@ -62,6 +63,7 @@ export declare class LeadSearchSessionService {
             searchSessionId: string;
             organizationId: null;
             name: string;
+            cnpj: string | null;
             contactName: null;
             phone: string | null;
             email: string | null;
@@ -118,6 +120,7 @@ export declare class LeadSearchSessionService {
             searchSessionId: string | null;
             organizationId: string | null;
             name: string;
+            cnpj: string | null;
             contactName: string | null;
             phone: string | null;
             email: string | null;
@@ -152,6 +155,7 @@ export declare class LeadSearchSessionService {
             searchSessionId: string;
             organizationId: null;
             name: string;
+            cnpj: string | null;
             contactName: null;
             phone: string | null;
             email: string | null;

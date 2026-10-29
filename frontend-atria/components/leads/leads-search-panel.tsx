@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  PROSPECTING_LEADS_KEY,
+  useProspectingLeads,
+} from "@/hooks/use-company-search";
+import {
+  readPersistedMapsProspectingState,
+  writePersistedMapsProspectingState,
+} from "@/lib/lead-prospecting-persistence";
 import { Kanban, Loader2, MapPin } from "lucide-react";
 import { AddToKanbanOrganizationDialog } from "@/components/leads/add-to-kanban-organization-dialog";
 import { LeadsMapView } from "@/components/leads/leads-map-view";
@@ -113,22 +122,32 @@ function isCrmRole(role: string | null | undefined) {
 export function LeadsSearchPanel() {
   const { user } = useAuth();
   const { organizations } = useSdrAssignedOrganizations(Boolean(user));
-  const [formValues, setFormValues] =
-    useState<MapsSearchFormValues>(DEFAULT_FORM_VALUES);
+  const persistedMapsState = readPersistedMapsProspectingState();
+  const queryClient = useQueryClient();
+  const prospectingLeadsQuery = useProspectingLeads();
+
+  const [formValues, setFormValues] = useState<MapsSearchFormValues>(
+    () => persistedMapsState?.formValues ?? DEFAULT_FORM_VALUES,
+  );
   const [filterQuery, setFilterQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState(ALL_CATEGORIES);
   const [filterNeighborhood, setFilterNeighborhood] =
     useState(ALL_NEIGHBORHOODS);
   const [loading, setLoading] = useState(false);
   const [bulkAddingKanban, setBulkAddingKanban] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [qualifyingId, setQualifyingId] = useState<string | null>(null);
   const [addingKanbanId, setAddingKanbanId] = useState<string | null>(null);
-  const [savedLeads, setSavedLeads] = useState<Lead[]>([]);
-  const [externalPreviewLeads, setExternalPreviewLeads] = useState<Lead[]>([]);
+  const savedLeads = prospectingLeadsQuery.data ?? [];
+  const [externalPreviewLeads, setExternalPreviewLeads] = useState<Lead[]>(
+    () => persistedMapsState?.externalPreviewLeads ?? [],
+  );
   const [searchContext, setSearchContext] =
-    useState<ExternalLeadSearchContext | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
+    useState<ExternalLeadSearchContext | null>(
+      () => persistedMapsState?.searchContext ?? null,
+    );
+  const [hasSearched, setHasSearched] = useState(
+    () => persistedMapsState?.hasSearched ?? false,
+  );
   const [jobStatus, setJobStatus] = useState<string | null>(null);
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
   const [pendingKanbanLeads, setPendingKanbanLeads] = useState<Lead[]>([]);
@@ -143,21 +162,21 @@ export function LeadsSearchPanel() {
     [savedLeads, externalPreviewLeads],
   );
 
-  const loadSavedLeads = useCallback(async () => {
-    setInitialLoading(true);
-    try {
-      const data = await leadsService.listProspectingLeads();
-      setSavedLeads(data);
-    } catch {
-      setSavedLeads([]);
-    } finally {
-      setInitialLoading(false);
-    }
-  }, []);
+  const initialLoading =
+    prospectingLeadsQuery.isLoading && !prospectingLeadsQuery.data;
 
   useEffect(() => {
-    void loadSavedLeads();
-  }, [loadSavedLeads]);
+    writePersistedMapsProspectingState({
+      formValues,
+      hasSearched,
+      searchContext,
+      externalPreviewLeads,
+    });
+  }, [externalPreviewLeads, formValues, hasSearched, searchContext]);
+
+  async function refreshSavedLeads() {
+    await queryClient.invalidateQueries({ queryKey: PROSPECTING_LEADS_KEY });
+  }
 
   const categoryOptions = useMemo(
     () => collectDistinctValues(leads, "category"),
@@ -233,7 +252,7 @@ export function LeadsSearchPanel() {
 
       if (job.status === "failed") {
         toast.error(job.error ?? "Falha ao buscar leads.");
-        await loadSavedLeads();
+        await refreshSavedLeads();
         return;
       }
 
@@ -253,7 +272,7 @@ export function LeadsSearchPanel() {
             })
           : [];
 
-      await loadSavedLeads();
+      await refreshSavedLeads();
       setExternalPreviewLeads([]);
 
       if (imported.length > 0) {
@@ -272,7 +291,7 @@ export function LeadsSearchPanel() {
         );
       }
       try {
-        await loadSavedLeads();
+        await refreshSavedLeads();
       } catch {
         /* toast handled by api */
       }
@@ -313,10 +332,9 @@ export function LeadsSearchPanel() {
             skipToast: true,
           });
           added += 1;
-          setSavedLeads((current) => {
-            const withoutExternal = current.filter(
-              (item) => item.id !== lead.id,
-            );
+          queryClient.setQueryData<Lead[]>(PROSPECTING_LEADS_KEY, (current) => {
+            const list = current ?? [];
+            const withoutExternal = list.filter((item) => item.id !== lead.id);
             const exists = withoutExternal.some(
               (item) => item.id === updated.id,
             );
@@ -390,8 +408,10 @@ export function LeadsSearchPanel() {
     setQualifyingId(lead.id);
     try {
       const updated = await leadsService.qualifyLead(lead.id);
-      setSavedLeads((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
+      queryClient.setQueryData<Lead[]>(PROSPECTING_LEADS_KEY, (current) =>
+        (current ?? []).map((item) =>
+          item.id === updated.id ? updated : item,
+        ),
       );
       toast.success(
         updated.status === "VENDA_FINALIZADA"

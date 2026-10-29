@@ -14,7 +14,10 @@ import {
   ProspectCompanyCatalogService,
 } from './prospect-company-catalog.service';
 import type { B2bLeadSearchDto } from '../dto/b2b-lead-search.dto';
-import { materializeRegistrySnapshotFromRawData } from '../../qualification/registry-signals.util';
+import {
+  extractCnpjFromLead,
+  materializeRegistrySnapshotFromRawData,
+} from '../../qualification/registry-signals.util';
 
 export const CATALOG_PREVIEW_ID_PREFIX = 'external:cnpj:';
 
@@ -243,6 +246,7 @@ export class LeadSearchSessionService {
       searchSessionId: sessionId,
       organizationId: null,
       name: candidate.name,
+      cnpj: candidate.cnpj ?? null,
       contactName: null,
       phone: candidate.phone ?? null,
       email: candidate.email ?? null,
@@ -307,6 +311,7 @@ export class LeadSearchSessionService {
       searchSessionId: lead.searchSessionId,
       organizationId: lead.organizationId,
       name: lead.name,
+      cnpj: lead.cnpj ?? extractCnpjFromLead(lead),
       contactName: lead.contactName,
       phone: lead.phone,
       email: lead.email,

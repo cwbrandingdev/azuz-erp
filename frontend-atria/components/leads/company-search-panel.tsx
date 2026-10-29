@@ -24,11 +24,19 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import {
+  PROSPECTING_LEADS_KEY,
   useCompanySearchMutation,
   useEnrichSessionMapsMutation,
   useLeadSearchSessionLeads,
   useLeadSearchSessions,
+  useProspectingLeads,
 } from "@/hooks/use-company-search";
+import { getAppQueryClient } from "@/lib/query-client";
+import {
+  readPersistedB2bProspectingState,
+  writePersistedB2bProspectingState,
+} from "@/lib/lead-prospecting-persistence";
+import type { B2bLeadSearchResponse } from "@/services/company-search.service";
 import { useSdrAssignedOrganizations } from "@/hooks/use-sdr-assigned-organizations";
 import { buildAddToKanbanInput } from "@/lib/lead-external-utils";
 import { formatSearchSessionLabel } from "@/lib/lead-search-session";
@@ -117,12 +125,25 @@ function matchesQuery(lead: Lead, query: string) {
   return haystack.includes(normalized);
 }
 
+function readInitialActiveLeads(sessionId: string | null): Lead[] {
+  if (!sessionId) return [];
+  const cached = getAppQueryClient()?.getQueryData<B2bLeadSearchResponse>([
+    "lead-search-session",
+    sessionId,
+  ]);
+  return cached?.leads ?? [];
+}
+
 export function CompanySearchPanel() {
   const { user } = useAuth();
   const { organizations } = useSdrAssignedOrganizations(Boolean(user));
 
-  const [formValues, setFormValues] =
-    useState<CompanySearchFormValues>(DEFAULT_FORM_VALUES);
+  const persistedB2bState = readPersistedB2bProspectingState();
+  const initialSessionId = persistedB2bState?.selectedSessionId ?? null;
+
+  const [formValues, setFormValues] = useState<CompanySearchFormValues>(
+    () => persistedB2bState?.formValues ?? DEFAULT_FORM_VALUES,
+  );
   const [sessionFilterQuery, setSessionFilterQuery] = useState("");
   const [sessionFilterCategory, setSessionFilterCategory] =
     useState(ALL_CATEGORIES);
@@ -131,14 +152,16 @@ export function CompanySearchPanel() {
   const [globalCategoryFilter, setGlobalCategoryFilter] = useState("");
   const [globalNeighborhoodFilter, setGlobalNeighborhoodFilter] = useState("");
   const [globalFilterQuery, setGlobalFilterQuery] = useState("");
-  const [allProspectedLeads, setAllProspectedLeads] = useState<Lead[]>([]);
-  const [loadingAllLeads, setLoadingAllLeads] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    null,
+    () => initialSessionId,
   );
-  const [hasAutoSelectedSession, setHasAutoSelectedSession] = useState(false);
+  const [hasAutoSelectedSession, setHasAutoSelectedSession] = useState(
+    () => Boolean(initialSessionId),
+  );
   const queryClient = useQueryClient();
-  const [activeLeads, setActiveLeads] = useState<Lead[]>([]);
+  const [activeLeads, setActiveLeads] = useState<Lead[]>(() =>
+    readInitialActiveLeads(initialSessionId),
+  );
   const [qualifyingId, setQualifyingId] = useState<string | null>(null);
   const [addingKanbanId, setAddingKanbanId] = useState<string | null>(null);
   const [bulkAddingKanban, setBulkAddingKanban] = useState(false);
@@ -159,29 +182,27 @@ export function CompanySearchPanel() {
 
   const sessionsQuery = useLeadSearchSessions();
   const sessionLeadsQuery = useLeadSearchSessionLeads(selectedSessionId);
+  const prospectingLeadsQuery = useProspectingLeads();
   const searchMutation = useCompanySearchMutation();
   const enrichMapsMutation = useEnrichSessionMapsMutation();
 
   const sessions = sessionsQuery.data ?? [];
-  const loadingSessions = sessionsQuery.isLoading;
-  const loadingSessionLeads = sessionLeadsQuery.isFetching;
+  const allProspectedLeads = prospectingLeadsQuery.data ?? [];
+  const loadingSessions = sessionsQuery.isLoading && !sessionsQuery.data;
+  const loadingSessionLeads =
+    Boolean(selectedSessionId) &&
+    sessionLeadsQuery.isLoading &&
+    !sessionLeadsQuery.data;
+  const loadingAllLeads =
+    prospectingLeadsQuery.isLoading && !prospectingLeadsQuery.data;
   const searching = searchMutation.isPending;
 
-  const loadAllProspectedLeads = useCallback(async () => {
-    setLoadingAllLeads(true);
-    try {
-      const data = await leadsService.listProspectingLeads();
-      setAllProspectedLeads(data);
-    } catch {
-      setAllProspectedLeads([]);
-    } finally {
-      setLoadingAllLeads(false);
-    }
-  }, []);
-
   useEffect(() => {
-    void loadAllProspectedLeads();
-  }, [loadAllProspectedLeads]);
+    writePersistedB2bProspectingState({
+      selectedSessionId,
+      formValues,
+    });
+  }, [formValues, selectedSessionId]);
 
   const canShowMap = Boolean(formValues.city.trim() && formValues.uf.trim());
 
@@ -369,7 +390,7 @@ export function CompanySearchPanel() {
         setActiveLeads(data.leads);
         setSelectedSessionId(data.session.id);
         setHasAutoSelectedSession(true);
-        void loadAllProspectedLeads();
+        void queryClient.invalidateQueries({ queryKey: PROSPECTING_LEADS_KEY });
 
         if (data.leads.length > 0) {
           toast.success(
@@ -386,7 +407,7 @@ export function CompanySearchPanel() {
           "Não foi possível buscar empresas agora. Tente novamente em instantes.",
         );
       });
-  }, [formValues, loadAllProspectedLeads, searchMutation]);
+  }, [formValues, queryClient, searchMutation]);
 
   function shouldOpenOrganizationModal() {
     return isCrmRole(user?.role) || organizations.length > 1;
@@ -408,11 +429,25 @@ export function CompanySearchPanel() {
     setActiveLeads((current) =>
       current.map((item) => (matches(item) ? updated : item)),
     );
-    setAllProspectedLeads((current) => {
-      if (current.some(matches)) {
-        return current.map((item) => (matches(item) ? updated : item));
-      }
-      return current;
+
+    if (selectedSessionId) {
+      queryClient.setQueryData<B2bLeadSearchResponse>(
+        ["lead-search-session", selectedSessionId],
+        (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            leads: current.leads.map((item) =>
+              matches(item) ? updated : item,
+            ),
+          };
+        },
+      );
+    }
+
+    queryClient.setQueryData<Lead[]>(PROSPECTING_LEADS_KEY, (current) => {
+      if (!current?.some(matches)) return current;
+      return current.map((item) => (matches(item) ? updated : item));
     });
   }
 
@@ -547,7 +582,8 @@ export function CompanySearchPanel() {
       const data = await enrichMapsMutation.mutateAsync(selectedSessionId);
       setActiveLeads(data.leads);
       setMapsEnrichedSessionId(selectedSessionId);
-      setAllProspectedLeads((current) => {
+      queryClient.setQueryData<Lead[]>(PROSPECTING_LEADS_KEY, (current) => {
+        if (!current) return current;
         const byId = new Map(data.leads.map((lead) => [lead.id, lead]));
         return current.map((lead) => byId.get(lead.id) ?? lead);
       });
