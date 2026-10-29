@@ -90,6 +90,7 @@ export declare class LeadsService {
             searchSessionId: string | null;
             organizationId: string | null;
             name: string;
+            cnpj: string | null;
             contactName: string | null;
             phone: string | null;
             email: string | null;
@@ -124,6 +125,7 @@ export declare class LeadsService {
             searchSessionId: string;
             organizationId: null;
             name: string;
+            cnpj: string | null;
             contactName: null;
             phone: string | null;
             email: string | null;
@@ -587,9 +589,9 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
         user: {
+            id: string;
             name: string;
             email: string;
-            id: string;
             avatarUrl: string | null;
         };
     }[]>;
@@ -599,9 +601,9 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
         user: {
+            id: string;
             name: string;
             email: string;
-            id: string;
             avatarUrl: string | null;
         };
     }>;

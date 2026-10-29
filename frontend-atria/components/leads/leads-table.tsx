@@ -36,7 +36,9 @@ import {
 } from "@/lib/leads-kanban-utils";
 import { isDialablePhone, toWhatsAppUrl } from "@/lib/lead-phone";
 import { toast } from "@/lib/toast";
+import { LeadCategoryText } from "@/components/leads/lead-category-text";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
+import { getLeadCnpjLabel } from "@/lib/lead-cnpj";
 import {
   formatInstagramHandle,
   formatLeadRating,
@@ -407,10 +409,20 @@ export function LeadsTable({
                         {lead.name}
                       </span>
                     </p>
-                  {lead.category && (
-                    <p className="mt-0.5 text-xs text-[var(--atria-primary)]/50">
-                      {lead.category}
-                    </p>
+                  {(lead.category || getLeadCnpjLabel(lead)) && (
+                    <div className="mt-0.5 min-w-0 space-y-0.5">
+                      {getLeadCnpjLabel(lead) ? (
+                        <p className="truncate text-xs text-[var(--atria-primary)]/50">
+                          CNPJ {getLeadCnpjLabel(lead)}
+                        </p>
+                      ) : null}
+                      {lead.category ? (
+                        <LeadCategoryText
+                          lead={lead}
+                          primaryClassName="text-xs text-[var(--atria-primary)]/50"
+                        />
+                      ) : null}
+                    </div>
                   )}
                   {formatLeadRating(lead.rating, lead.reviewsCount) && (
                     <p className="mt-0.5 text-xs text-[var(--atria-primary)]/50">
@@ -573,7 +585,7 @@ export function LeadsTable({
                 <TableHead className="w-[180px] max-w-[180px] text-[var(--atria-primary)]/60">
                   Local
                 </TableHead>
-                <TableHead className="hidden text-[var(--atria-primary)]/60 lg:table-cell">
+                <TableHead className="hidden w-[180px] max-w-[180px] text-[var(--atria-primary)]/60 lg:table-cell">
                   Categoria
                 </TableHead>
                 <TableHead className="hidden text-[var(--atria-primary)]/60 md:table-cell">
@@ -623,6 +635,11 @@ export function LeadsTable({
                             {lead.name}
                           </span>
                         </div>
+                        {getLeadCnpjLabel(lead) ? (
+                          <p className="mt-0.5 truncate text-xs text-[var(--atria-primary)]/50">
+                            CNPJ {getLeadCnpjLabel(lead)}
+                          </p>
+                        ) : null}
                         {lead.website && (
                           <a
                             href={
@@ -682,10 +699,8 @@ export function LeadsTable({
                     <TableCell className="w-[180px] max-w-[180px] text-[var(--atria-primary)]/70">
                       <LeadLocationText lead={lead} className="w-full" />
                     </TableCell>
-                    <TableCell className="hidden max-w-[140px] text-[var(--atria-primary)]/70 lg:table-cell">
-                      <span className="block min-w-0 truncate">
-                        {lead.category ?? "—"}
-                      </span>
+                    <TableCell className="hidden w-[180px] max-w-[180px] text-[var(--atria-primary)]/70 lg:table-cell">
+                      <LeadCategoryText lead={lead} className="w-full" />
                     </TableCell>
                     <TableCell className="hidden text-[var(--atria-primary)]/70 md:table-cell">
                       {formatLeadRating(lead.rating, lead.reviewsCount) ?? "—"}
