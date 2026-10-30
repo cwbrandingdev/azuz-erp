@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   getEventTaskStatus,
-  isBeforeToday,
   shiftEventScheduleToDay,
   withEventSchedule,
   type ShiftedEventSchedule,
@@ -41,10 +40,6 @@ export function useCalendarEventMove({
   const moveEvent = useCallback(
     async (event: CalendarEvent, targetDay: Date) => {
       if (!canDragEvent(event)) return;
-      if (isBeforeToday(targetDay)) {
-        toast.error("Não é possível mover para um dia que já passou.");
-        return;
-      }
 
       const schedule = shiftEventScheduleToDay(event, targetDay);
       if (!schedule) return;
