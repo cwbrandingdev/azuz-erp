@@ -10,12 +10,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 var InstagramApifyEnricher_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.InstagramApifyEnricher = void 0;
+exports.InstagramApifyEnricher = exports.INSTAGRAM_STATS_VERSION = exports.INSTAGRAM_CACHE_MS = void 0;
+exports.readFreshInstagramQualification = readFreshInstagramQualification;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const APIFY_TIMEOUT_MS = 120_000;
 const DEFAULT_ACTOR = 'apify~instagram-scraper';
 const POSTS_FETCH_LIMIT = 15;
+const RECENT_POSTS_LIMIT = 9;
+exports.INSTAGRAM_CACHE_MS = 72 * 60 * 60 * 1000;
+exports.INSTAGRAM_STATS_VERSION = 3;
 let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnricher {
     configService;
     logger = new common_1.Logger(InstagramApifyEnricher_1.name);
@@ -43,25 +47,37 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
                     resultsLimit: 1,
                 }),
             ]);
-            const posts = this.mapRecentNonPinnedPosts(postRows);
+            const detailPosts = this.indexNestedPosts(detailRows);
+            const posts = this.mapRecentNonPinnedPosts(postRows, detailPosts);
             const lastPostAt = posts[0]?.timestamp ?? null;
             const daysSinceLastPost = this.daysSince(lastPostAt);
-            const recentTwo = posts.slice(0, 2);
+            const recent = posts.slice(0, RECENT_POSTS_LIMIT);
+            const scored = recent.slice(0, 2);
             const profile = this.mapProfileDetails(detailRows, username);
+            const reelViews = recent
+                .filter((post) => post.mediaType === 'reel' || post.mediaType === 'video')
+                .map((post) => post.views);
             return {
                 username,
                 profileUrl,
+                fullName: profile.fullName,
+                profilePicUrl: profile.profilePicUrl,
                 biography: profile.biography,
                 followersCount: profile.followersCount,
                 followsCount: profile.followsCount,
+                postsCount: profile.postsCount,
+                highlightCount: profile.highlightCount,
+                verified: profile.verified,
                 isBusinessAccount: profile.isBusinessAccount,
                 businessCategoryName: profile.businessCategoryName,
                 externalUrl: profile.externalUrl,
-                recentPosts: recentTwo,
+                recentPosts: recent,
                 lastPostAt,
                 daysSinceLastPost,
-                averageLikesRecent: this.averageMetric(recentTwo.map((post) => post.likes)),
-                averageViewsRecent: this.averageMetric(recentTwo.map((post) => post.views)),
+                averageLikesRecent: this.averageMetric(scored.map((post) => post.likes)),
+                averageViewsRecent: this.averageMetric(scored.map((post) => post.views)),
+                averageReelViews: this.averageMetric(reelViews),
+                statsVersion: exports.INSTAGRAM_STATS_VERSION,
                 fetchedAt: new Date().toISOString(),
                 provider: 'apify',
             };
@@ -135,8 +151,13 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
         if (!row) {
             return {
                 biography: null,
+                fullName: null,
+                profilePicUrl: null,
                 followersCount: null,
                 followsCount: null,
+                postsCount: null,
+                highlightCount: null,
+                verified: null,
                 isBusinessAccount: null,
                 businessCategoryName: null,
                 externalUrl: null,
@@ -154,8 +175,17 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
             : null;
         return {
             biography,
-            followersCount: this.readNumber(row.followersCount, row.followers),
-            followsCount: this.readNumber(row.followsCount, row.follows),
+            fullName: this.readText(row.fullName),
+            profilePicUrl: this.readHttpUrl(row.profilePicUrlHD, row.profilePicUrl),
+            followersCount: this.readCount(row.followersCount, row.followers),
+            followsCount: this.readCount(row.followsCount, row.follows),
+            postsCount: this.readCount(row.postsCount, row.posts, row.mediaCount),
+            highlightCount: this.readCount(row.highlightReelCount),
+            verified: typeof row.verified === 'boolean'
+                ? row.verified
+                : typeof row.isVerified === 'boolean'
+                    ? row.isVerified
+                    : null,
             isBusinessAccount: typeof row.isBusinessAccount === 'boolean'
                 ? row.isBusinessAccount
                 : null,
@@ -163,20 +193,85 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
             externalUrl,
         };
     }
-    mapRecentNonPinnedPosts(rows) {
+    indexNestedPosts(rows) {
+        const indexed = new Map();
+        for (const row of rows) {
+            for (const list of [row.latestPosts, row.latestIgtvVideos]) {
+                if (!Array.isArray(list))
+                    continue;
+                for (const item of list) {
+                    if (!item || typeof item !== 'object' || Array.isArray(item))
+                        continue;
+                    const post = item;
+                    const key = this.postKey(post);
+                    if (key && !indexed.has(key)) {
+                        indexed.set(key, post);
+                    }
+                }
+            }
+        }
+        return indexed;
+    }
+    mapRecentNonPinnedPosts(rows, detailPosts) {
         return rows
-            .map((row) => ({
-            likes: this.readLikes(row),
-            views: this.readViews(row),
-            timestamp: this.readTimestamp(row),
-            isPinned: Boolean(row.isPinned ?? row.pinned),
-        }))
+            .map((row) => {
+            const extra = detailPosts.get(this.postKey(row) ?? '');
+            return {
+                likes: this.readLikes(row) ?? (extra ? this.readLikes(extra) : null),
+                comments: this.readCount(row.commentsCount, row.comments, row.commentCount) ??
+                    (extra
+                        ? this.readCount(extra.commentsCount, extra.comments, extra.commentCount)
+                        : null),
+                views: this.readViews(row) ?? (extra ? this.readViews(extra) : null),
+                timestamp: this.readTimestamp(row) ?? (extra ? this.readTimestamp(extra) : null),
+                isPinned: Boolean(row.isPinned ?? row.pinned ?? extra?.isPinned ?? extra?.pinned),
+                mediaType: this.readMediaType(row, extra),
+                displayUrl: this.readPostImage(row) ?? (extra ? this.readPostImage(extra) : null),
+                caption: this.readCaption(row) ?? (extra ? this.readCaption(extra) : null),
+                permalink: this.readPermalink(row) ?? (extra ? this.readPermalink(extra) : null),
+            };
+        })
             .filter((post) => !post.isPinned)
             .sort((a, b) => {
             const aTime = a.timestamp ? Date.parse(a.timestamp) : 0;
             const bTime = b.timestamp ? Date.parse(b.timestamp) : 0;
             return bTime - aTime;
         });
+    }
+    postKey(row) {
+        const shortCode = this.readText(row.shortCode) ?? this.readText(row.shortcode);
+        if (shortCode)
+            return shortCode.toLowerCase();
+        const url = this.readPermalink(row);
+        const match = url?.match(/\/(?:p|reel|tv)\/([^/?#]+)/i);
+        return match?.[1]?.toLowerCase() ?? null;
+    }
+    readMediaType(row, extra) {
+        const product = String(row.productType ?? extra?.productType ?? '').toLowerCase();
+        const type = String(row.type ?? row.__typename ?? extra?.type ?? extra?.__typename ?? '').toLowerCase();
+        if (product === 'clips' || type.includes('reel'))
+            return 'reel';
+        if (product === 'igtv' || type.includes('igtv'))
+            return 'video';
+        if (type.includes('sidecar') || type.includes('carousel'))
+            return 'carousel';
+        if (type.includes('video'))
+            return 'reel';
+        return 'image';
+    }
+    readCount(...candidates) {
+        for (const value of candidates) {
+            if (typeof value === 'number' && Number.isFinite(value)) {
+                return value;
+            }
+            if (value && typeof value === 'object' && 'count' in value) {
+                const count = value.count;
+                if (typeof count === 'number' && Number.isFinite(count)) {
+                    return count;
+                }
+            }
+        }
+        return null;
     }
     readNumber(...candidates) {
         for (const value of candidates) {
@@ -190,14 +285,89 @@ let InstagramApifyEnricher = InstagramApifyEnricher_1 = class InstagramApifyEnri
         return this.readNumber(row.likesCount, row.likes, row.likeCount);
     }
     readViews(row) {
-        return this.readNumber(row.videoViewCount, row.viewCount, row.viewsCount, row.videoPlayCount, row.playCount, row.plays);
+        return this.readNumber(row.igPlayCount, row.videoPlayCount, row.playCount, row.plays, row.videoViewCount, row.viewCount, row.viewsCount);
     }
-    readTimestamp(row) {
-        const value = row.timestamp ?? row.takenAt;
-        if (typeof value === 'string' && value.trim()) {
-            return value;
+    readPostImage(row) {
+        const direct = this.readHttpUrl(row.displayUrl, row.thumbnailUrl, row.imageUrl);
+        if (direct)
+            return direct;
+        const images = row.images;
+        if (!Array.isArray(images))
+            return null;
+        for (const image of images) {
+            const url = this.readHttpUrl(image);
+            if (url)
+                return url;
+            if (image && typeof image === 'object') {
+                const record = image;
+                const nested = this.readHttpUrl(record.url, record.displayUrl);
+                if (nested)
+                    return nested;
+            }
         }
         return null;
+    }
+    readCaption(row) {
+        const caption = this.readText(row.caption);
+        if (!caption)
+            return null;
+        return caption.length > 500 ? `${caption.slice(0, 497)}...` : caption;
+    }
+    readPermalink(row) {
+        return this.readHttpUrl(row.url, row.permalink);
+    }
+    readText(value) {
+        if (typeof value !== 'string')
+            return null;
+        const trimmed = value.trim();
+        return trimmed || null;
+    }
+    readHttpUrl(...candidates) {
+        for (const value of candidates) {
+            if (typeof value !== 'string')
+                continue;
+            const trimmed = value.trim();
+            if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                return trimmed;
+            }
+        }
+        return null;
+    }
+    readTimestamp(row) {
+        const candidates = [
+            row.timestamp,
+            row.takenAt,
+            row.takenAtTimestamp,
+            row.taken_at,
+            row.taken_at_timestamp,
+            row.date,
+            row.createdAt,
+        ];
+        for (const value of candidates) {
+            const iso = this.toIsoTimestamp(value);
+            if (iso)
+                return iso;
+        }
+        return null;
+    }
+    toIsoTimestamp(value) {
+        if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+            const milliseconds = value < 1_000_000_000_000 ? value * 1000 : value;
+            const date = new Date(milliseconds);
+            return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+        }
+        if (typeof value !== 'string')
+            return null;
+        const trimmed = value.trim();
+        if (!trimmed)
+            return null;
+        if (/^\d+$/.test(trimmed)) {
+            return this.toIsoTimestamp(Number(trimmed));
+        }
+        const parsed = Date.parse(trimmed);
+        if (!Number.isFinite(parsed))
+            return null;
+        return new Date(parsed).toISOString();
     }
     daysSince(iso) {
         if (!iso)
@@ -219,4 +389,41 @@ exports.InstagramApifyEnricher = InstagramApifyEnricher = InstagramApifyEnricher
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [config_1.ConfigService])
 ], InstagramApifyEnricher);
+function readFreshInstagramQualification(rawData) {
+    if (!rawData || typeof rawData !== 'object' || Array.isArray(rawData)) {
+        return null;
+    }
+    const snapshot = rawData.instagramQualification;
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+        return null;
+    }
+    const fetchedAt = snapshot.fetchedAt;
+    if (!fetchedAt || Date.parse(fetchedAt) < Date.now() - exports.INSTAGRAM_CACHE_MS) {
+        return null;
+    }
+    const data = snapshot;
+    if (data.statsVersion !== 2 && data.statsVersion !== exports.INSTAGRAM_STATS_VERSION) {
+        return null;
+    }
+    if (!('biography' in data) || !('followersCount' in data)) {
+        return null;
+    }
+    const posts = data.recentPosts;
+    if (!Array.isArray(posts)) {
+        return data;
+    }
+    if (posts.some((post) => !post || !('views' in post))) {
+        return null;
+    }
+    if (posts.length > 0 &&
+        posts.some((post) => !post || !('displayUrl' in post))) {
+        return null;
+    }
+    const hasPostDate = Boolean(data.lastPostAt) ||
+        posts.some((post) => Boolean(post?.timestamp));
+    if (posts.length > 0 && !hasPostDate && data.statsVersion < exports.INSTAGRAM_STATS_VERSION) {
+        return null;
+    }
+    return data;
+}
 //# sourceMappingURL=instagram-apify.enricher.js.map

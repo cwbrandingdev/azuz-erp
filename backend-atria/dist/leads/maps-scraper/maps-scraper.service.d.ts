@@ -15,7 +15,20 @@ export declare class MapsScraperService {
         legalName?: string | null;
         city: string;
         neighborhood?: string | null;
+    }, options?: {
+        maxImages?: number;
     }): Promise<MappedPlace | null>;
+    lookupCompanyPlaceResult(input: {
+        name: string;
+        legalName?: string | null;
+        city: string;
+        neighborhood?: string | null;
+    }, options?: {
+        maxImages?: number;
+    }): Promise<{
+        place: MappedPlace | null;
+        failed: boolean;
+    }>;
     fetchPlacesForCatalogEnrichment(dto: FetchMapsLeadsDto, maxResults: number): Promise<MappedPlace[]>;
     private resolveScraperCredentials;
     private fetchFromOutscraper;

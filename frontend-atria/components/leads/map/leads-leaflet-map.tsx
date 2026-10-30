@@ -81,7 +81,8 @@ export function LeadsLeafletMap({
       </MapContainer>
       {geocodedLeads.length === 0 && !geocoding && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-white/95 to-transparent px-4 pb-4 pt-8 text-center text-xs text-[var(--atria-primary)]/60">
-          Nenhum lead com coordenadas nesta pesquisa. O mapa está centralizado em{" "}
+          Nenhum lead com coordenadas nesta pesquisa. O mapa está centralizado
+          em{" "}
           {[searchLocation.address, searchLocation.city, searchLocation.uf]
             .filter(Boolean)
             .join(", ")}

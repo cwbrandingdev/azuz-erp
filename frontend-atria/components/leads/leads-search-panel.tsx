@@ -12,8 +12,10 @@ import {
 } from "@/lib/lead-prospecting-persistence";
 import { Kanban, Loader2, MapPin } from "lucide-react";
 import { AddToKanbanOrganizationDialog } from "@/components/leads/add-to-kanban-organization-dialog";
+import { LeadDossierDialog } from "@/components/leads/lead-dossier-dialog";
 import { LeadsMapView } from "@/components/leads/leads-map-view";
 import { LeadsTable } from "@/components/leads/leads-table";
+import { SearchSessionFilter } from "@/components/leads/search-session-filter";
 import {
   MapsSearchForm,
   type MapsSearchFormValues,
@@ -35,18 +37,25 @@ import {
   buildAddToKanbanInput,
   isExternalLeadId,
   leadMinerLeadToPreviewLead,
-  mergeExternalPreviewLeads,
   type ExternalLeadSearchContext,
 } from "@/lib/lead-external-utils";
+import {
+  leadsForMapsSearch,
+  useMapsSearchHistory,
+  type MapsSearchRecord,
+} from "@/lib/maps-search-history";
 import { normalizeAppRole } from "@/lib/permissions";
+import { isLeadDossierReady } from "@/lib/lead-qualification-utils";
 import { toast } from "@/lib/toast";
 import { ApiError } from "@/services/api";
 import { leadsService } from "@/services";
+import type { LeadSearchSessionSummary } from "@/services/company-search.service";
 import type { Lead } from "@/services/types";
 import {
   importLeadMinerLeads,
   pollLeadMinerJob,
   startLeadMinerSearch,
+  type LeadMinerLead,
 } from "@/services/leadminer.service";
 
 const DEFAULT_FORM_VALUES: MapsSearchFormValues = {
@@ -58,6 +67,8 @@ const DEFAULT_FORM_VALUES: MapsSearchFormValues = {
 
 const ALL_CATEGORIES = "Todas as categorias";
 const ALL_NEIGHBORHOODS = "Todos os bairros";
+const ORDER_SEARCH = "ordem-da-busca";
+const ORDER_MOST_REVIEWS = "mais-avaliacoes";
 
 function normalizeFilterText(value: string) {
   return value
@@ -133,9 +144,11 @@ export function LeadsSearchPanel() {
   const [filterCategory, setFilterCategory] = useState(ALL_CATEGORIES);
   const [filterNeighborhood, setFilterNeighborhood] =
     useState(ALL_NEIGHBORHOODS);
+  const [resultOrder, setResultOrder] = useState(ORDER_SEARCH);
   const [loading, setLoading] = useState(false);
   const [bulkAddingKanban, setBulkAddingKanban] = useState(false);
   const [qualifyingId, setQualifyingId] = useState<string | null>(null);
+  const [dossierLead, setDossierLead] = useState<Lead | null>(null);
   const [addingKanbanId, setAddingKanbanId] = useState<string | null>(null);
   const savedLeads = prospectingLeadsQuery.data ?? [];
   const [externalPreviewLeads, setExternalPreviewLeads] = useState<Lead[]>(
@@ -148,22 +161,106 @@ export function LeadsSearchPanel() {
   const [hasSearched, setHasSearched] = useState(
     () => persistedMapsState?.hasSearched ?? false,
   );
+  const [selectedSearchId, setSelectedSearchId] = useState<string | null>(
+    () => persistedMapsState?.selectedSearchId ?? null,
+  );
+  const [activeSearchEmpty, setActiveSearchEmpty] = useState(false);
   const [jobStatus, setJobStatus] = useState<string | null>(null);
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
   const [pendingKanbanLeads, setPendingKanbanLeads] = useState<Lead[]>([]);
   const [confirmingKanban, setConfirmingKanban] = useState(false);
 
-  const leads = useMemo(
+  const savedMapsLeads = useMemo(
+    () => savedLeads.filter(isMapsLead),
+    [savedLeads],
+  );
+  const { records, rememberSearch } = useMapsSearchHistory(savedMapsLeads);
+  const orderedRecords = useMemo(
     () =>
-      mergeExternalPreviewLeads(
-        savedLeads.filter(isMapsLead),
-        externalPreviewLeads,
+      [...records].sort((left, right) =>
+        right.createdAt.localeCompare(left.createdAt),
       ),
-    [savedLeads, externalPreviewLeads],
+    [records],
+  );
+  const selectedRecord =
+    orderedRecords.find((record) => record.id === selectedSearchId) ??
+    (!loading &&
+    externalPreviewLeads.length === 0 &&
+    !activeSearchEmpty
+      ? orderedRecords[0]
+      : undefined);
+  const historyLeads = useMemo(
+    () => leadsForMapsSearch(selectedRecord, savedMapsLeads),
+    [selectedRecord, savedMapsLeads],
+  );
+  const leads = loading
+    ? []
+    : externalPreviewLeads.length > 0 || activeSearchEmpty
+      ? externalPreviewLeads
+      : historyLeads;
+
+  const sessionOptions = useMemo<LeadSearchSessionSummary[]>(
+    () =>
+      orderedRecords.map((record) => ({
+        id: record.id,
+        tenantId: "",
+        queryType: "MAPS",
+        queryValue: record.category,
+        city: record.city,
+        uf: record.uf,
+        address:
+          record.neighborhood && record.neighborhood !== record.city
+            ? record.neighborhood
+            : null,
+        createdAt: record.createdAt,
+        leadsCount: record.leadIds.length,
+      })),
+    [orderedRecords],
   );
 
   const initialLoading =
     prospectingLeadsQuery.isLoading && !prospectingLeadsQuery.data;
+
+  useEffect(() => {
+    if (
+      loading ||
+      activeSearchEmpty ||
+      externalPreviewLeads.length > 0 ||
+      orderedRecords.length === 0
+    ) {
+      return;
+    }
+    if (
+      selectedSearchId &&
+      orderedRecords.some((record) => record.id === selectedSearchId)
+    ) {
+      return;
+    }
+    const next = orderedRecords[0];
+    setSelectedSearchId(next.id);
+    setHasSearched(true);
+    setSearchContext({
+      city: next.city,
+      neighborhood: next.neighborhood || next.city,
+      category: next.category,
+    });
+    setFormValues((current) => ({
+      ...current,
+      category: next.category,
+      city: next.city,
+      neighborhood:
+        next.neighborhood && next.neighborhood !== next.city
+          ? next.neighborhood
+          : "",
+      uf: next.uf || current.uf,
+    }));
+  }, [
+    loading,
+    activeSearchEmpty,
+    externalPreviewLeads.length,
+    orderedRecords,
+    selectedSearchId,
+  ]);
 
   useEffect(() => {
     writePersistedMapsProspectingState({
@@ -171,8 +268,15 @@ export function LeadsSearchPanel() {
       hasSearched,
       searchContext,
       externalPreviewLeads,
+      selectedSearchId,
     });
-  }, [externalPreviewLeads, formValues, hasSearched, searchContext]);
+  }, [
+    externalPreviewLeads,
+    formValues,
+    hasSearched,
+    searchContext,
+    selectedSearchId,
+  ]);
 
   async function refreshSavedLeads() {
     await queryClient.invalidateQueries({ queryKey: PROSPECTING_LEADS_KEY });
@@ -188,7 +292,7 @@ export function LeadsSearchPanel() {
   );
 
   const results = useMemo(() => {
-    return leads.filter((lead) => {
+    const filtered = leads.filter((lead) => {
       if (
         filterCategory !== ALL_CATEGORIES &&
         !matchesLeadField(lead, filterCategory, "category")
@@ -203,7 +307,17 @@ export function LeadsSearchPanel() {
       }
       return matchesQuery(lead, filterQuery);
     });
-  }, [leads, filterQuery, filterCategory, filterNeighborhood]);
+
+    if (resultOrder !== ORDER_MOST_REVIEWS) {
+      return filtered;
+    }
+
+    return [...filtered].sort((left, right) => {
+      const byReviews = (right.reviewsCount ?? -1) - (left.reviewsCount ?? -1);
+      if (byReviews !== 0) return byReviews;
+      return (right.rating ?? -1) - (left.rating ?? -1);
+    });
+  }, [leads, filterQuery, filterCategory, filterNeighborhood, resultOrder]);
 
   const pendingKanbanCount = useMemo(
     () => results.filter((lead) => !lead.kanbanTracked).length,
@@ -230,6 +344,8 @@ export function LeadsSearchPanel() {
     };
 
     setHasSearched(true);
+    setActiveSearchEmpty(false);
+    setSelectedSearchId(null);
     setLoading(true);
     setJobStatus("pending");
     setSearchContext(context);
@@ -261,26 +377,20 @@ export function LeadsSearchPanel() {
           leadMinerLeadToPreviewLead(item, context, index),
         ) ?? [];
       setExternalPreviewLeads(previewLeads);
+      setActiveSearchEmpty(previewLeads.length === 0);
+      setLoading(false);
+      setJobStatus(null);
 
-      const imported =
-        job.data && job.data.length > 0
-          ? await importLeadMinerLeads({
-              city,
-              neighborhood: neighborhood || city,
-              category,
-              leads: job.data,
-            })
-          : [];
-
-      await refreshSavedLeads();
-      setExternalPreviewLeads([]);
-
-      if (imported.length > 0) {
+      if (previewLeads.length > 0) {
         toast.success(
-          `${imported.length} lead(s) encontrados para ${category}.`,
+          `${previewLeads.length} lead(s) encontrados para ${category}.`,
         );
       } else {
         toast.info(`Nenhum lead encontrado para ${category}.`);
+      }
+
+      if (job.data && job.data.length > 0) {
+        void saveSearchLeads(job.data, context, formValues.uf.trim());
       }
     } catch (error) {
       if (!(error instanceof ApiError)) {
@@ -402,24 +512,153 @@ export function LeadsSearchPanel() {
     }
   }
 
+  function rememberSavedLead(lead: Lead) {
+    queryClient.setQueryData<Lead[]>(PROSPECTING_LEADS_KEY, (current) => {
+      const list = current ?? [];
+      const exists = list.some((item) => item.id === lead.id);
+      if (exists) {
+        return list.map((item) => (item.id === lead.id ? lead : item));
+      }
+      return [lead, ...list];
+    });
+  }
+
+  async function saveSearchLeads(
+    items: LeadMinerLead[],
+    context: ExternalLeadSearchContext,
+    uf: string,
+  ) {
+    try {
+      const saved = await importLeadMinerLeads({
+        city: context.city,
+        neighborhood: context.neighborhood || context.city,
+        category: context.category,
+        leads: items,
+      });
+      const record: MapsSearchRecord = {
+        id: crypto.randomUUID(),
+        category: context.category,
+        city: context.city,
+        neighborhood: context.neighborhood || context.city,
+        uf,
+        createdAt: new Date().toISOString(),
+        leadIds: saved.map((lead) => lead.id),
+      };
+      rememberSearch(record);
+      setSelectedSearchId(record.id);
+      setActiveSearchEmpty(false);
+      await refreshSavedLeads();
+      setExternalPreviewLeads([]);
+    } catch {
+      /* the list stays available from the search preview */
+    }
+  }
+
+  function selectMapsSearch(sessionId: string | null) {
+    const nextId = sessionId ?? orderedRecords[0]?.id ?? null;
+    const record = orderedRecords.find((item) => item.id === nextId);
+    setActiveSearchEmpty(false);
+    setExternalPreviewLeads([]);
+    setSelectedSearchId(nextId);
+    setFilterQuery("");
+    setFilterCategory(ALL_CATEGORIES);
+    setFilterNeighborhood(ALL_NEIGHBORHOODS);
+    if (!record) return;
+    setHasSearched(true);
+    setSearchContext({
+      city: record.city,
+      neighborhood: record.neighborhood || record.city,
+      category: record.category,
+    });
+    setFormValues((current) => ({
+      ...current,
+      category: record.category,
+      city: record.city,
+      neighborhood:
+        record.neighborhood && record.neighborhood !== record.city
+          ? record.neighborhood
+          : "",
+      uf: record.uf || current.uf,
+    }));
+  }
+
+  async function savePreviewLead(
+    lead: Lead,
+    context: ExternalLeadSearchContext,
+  ): Promise<Lead> {
+    const raw =
+      lead.rawData &&
+      typeof lead.rawData === "object" &&
+      !Array.isArray(lead.rawData)
+        ? (lead.rawData as LeadMinerLead)
+        : null;
+    const phone = raw?.phone?.trim() || lead.phone?.trim() || "";
+    if (!phone) {
+      throw new Error("Este lead não tem telefone para ser salvo.");
+    }
+
+    const [saved] = await importLeadMinerLeads({
+      city: lead.city ?? context.city,
+      neighborhood: lead.neighborhood ?? context.neighborhood,
+      category: lead.category ?? context.category,
+      leads: [
+        {
+          title: raw?.title ?? lead.name,
+          phone,
+          address: raw?.address ?? lead.address ?? undefined,
+          website: raw?.website ?? lead.website,
+          instagram: raw?.instagram ?? lead.instagram,
+          rating: raw?.rating ?? lead.rating ?? undefined,
+          reviews: raw?.reviews ?? lead.reviewsCount ?? undefined,
+          category: raw?.category ?? lead.category ?? undefined,
+        },
+      ],
+    });
+
+    if (!saved) {
+      throw new Error("Não foi possível salvar o lead.");
+    }
+    return saved;
+  }
+
   async function handleQualify(lead: Lead) {
-    if (isExternalLeadId(lead.id)) return;
+    const context = searchContext ?? {
+      city: lead.city ?? formValues.city,
+      neighborhood:
+        lead.neighborhood ??
+        (formValues.neighborhood || lead.city || formValues.city),
+      category: lead.category ?? formValues.category,
+    };
+
+    setDossierLead(lead);
+    if (!isExternalLeadId(lead.id) && isLeadDossierReady(lead)) return;
 
     setQualifyingId(lead.id);
     try {
-      const updated = await leadsService.qualifyLead(lead.id);
-      queryClient.setQueryData<Lead[]>(PROSPECTING_LEADS_KEY, (current) =>
-        (current ?? []).map((item) =>
-          item.id === updated.id ? updated : item,
-        ),
-      );
-      toast.success(
-        updated.status === "VENDA_FINALIZADA"
-          ? `${updated.name} qualificado (score ${updated.aiScore}).`
-          : `${updated.name} sem interesse (score ${updated.aiScore}).`,
-      );
-    } catch {
-      /* toast handled by api */
+      let current = lead;
+      if (isExternalLeadId(lead.id)) {
+        current = await savePreviewLead(lead, context);
+        setExternalPreviewLeads((items) =>
+          items.map((item) => (item.id === lead.id ? current : item)),
+        );
+        rememberSavedLead(current);
+        setDossierLead(current);
+        setQualifyingId(current.id);
+      }
+
+      if (isLeadDossierReady(current)) return;
+
+      const updated = await leadsService.loadLeadDossier(current.id);
+      rememberSavedLead(updated);
+      setDossierLead(updated);
+    } catch (error) {
+      if (!(error instanceof ApiError)) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível qualificar o lead.",
+        );
+      }
     } finally {
       setQualifyingId(null);
     }
@@ -427,6 +666,15 @@ export function LeadsSearchPanel() {
 
   return (
     <div className="flex flex-col gap-6">
+      <LeadDossierDialog
+        lead={dossierLead}
+        open={dossierLead != null}
+        loading={dossierLead != null && qualifyingId === dossierLead.id}
+        onOpenChange={(open) => {
+          if (!open) setDossierLead(null);
+        }}
+      />
+
       <AddToKanbanOrganizationDialog
         open={kanbanModalOpen}
         onOpenChange={(open) => {
@@ -490,12 +738,26 @@ export function LeadsSearchPanel() {
         <CardHeader className="space-y-3 pb-2">
           <CardTitle className="text-base">Filtrar resultados</CardTitle>
           <p className="text-sm text-[var(--atria-primary)]/50">
-            Refine as empresas encontradas no Google Maps por nome, categoria ou
-            bairro.
+            A lista e o mapa mostram só a busca selecionada. Escolha uma pesquisa
+            anterior para reabri-la.
           </p>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 lg:grid-cols-2">
+            <div className="lg:col-span-2">
+              <SearchSessionFilter
+                sessions={sessionOptions}
+                selectedSessionId={
+                  externalPreviewLeads.length > 0
+                    ? null
+                    : (selectedRecord?.id ?? null)
+                }
+                loading={initialLoading}
+                inputId="maps-search-session-filter"
+                description="Escolha qual busca do Google Maps deseja ver."
+                onChange={selectMapsSearch}
+              />
+            </div>
             <Field className="lg:col-span-2">
               <FieldLabel htmlFor="maps-lead-filter">Texto livre</FieldLabel>
               <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
@@ -507,6 +769,28 @@ export function LeadsSearchPanel() {
                 onChange={(event) => setFilterQuery(event.target.value)}
                 placeholder="Nome, telefone, endereço..."
               />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="maps-order-filter">Ordenar</FieldLabel>
+              <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
+                Mais avaliações coloca no topo quem tem mais avaliações no Google.
+              </p>
+              <Select
+                value={resultOrder}
+                onValueChange={(value) => {
+                  if (value) setResultOrder(value);
+                }}
+              >
+                <SelectTrigger id="maps-order-filter">
+                  <SelectValue placeholder="Ordem da busca" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ORDER_SEARCH}>Ordem da busca</SelectItem>
+                  <SelectItem value={ORDER_MOST_REVIEWS}>
+                    Mais avaliações
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             {categoryOptions.length > 0 && (
               <Field>
@@ -608,7 +892,8 @@ export function LeadsSearchPanel() {
             leads={results}
             qualifyingId={qualifyingId}
             addingKanbanId={addingKanbanId}
-            onQualify={handleQualify}
+            dossierReview
+            onQualify={(lead) => void handleQualify(lead)}
             onAddToKanban={(lead) => {
               if (lead.kanbanTracked) return;
               requestAddToKanban([lead]);
@@ -617,14 +902,17 @@ export function LeadsSearchPanel() {
           />
         )}
 
-        {!loadingResults && hasSearched && results.length === 0 && (
+        {!loadingResults &&
+          hasSearched &&
+          (activeSearchEmpty || externalPreviewLeads.length > 0) &&
+          results.length === 0 && (
           <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
-            Nenhuma empresa encontrada para esta busca. Tente outra categoria
-            ou cidade.
+            Nenhuma empresa encontrada para esta busca. Tente outra categoria ou
+            cidade.
           </div>
         )}
 
-        {!loadingResults && !hasSearched && results.length === 0 && (
+        {!loadingResults && !hasSearched && orderedRecords.length === 0 && results.length === 0 && (
           <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
             Faça uma busca no formulário acima para ver as empresas aqui.
           </div>

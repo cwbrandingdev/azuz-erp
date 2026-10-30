@@ -13,6 +13,7 @@ import { FetchMapsLeadsDto } from './dto/fetch-maps-leads.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadStagesService } from './lead-stages.service';
+import { LeadDossierService } from './qualification/lead-dossier.service';
 import { LeadQualificationService } from './qualification/lead-qualification.service';
 import { MapsScraperService } from './maps-scraper/maps-scraper.service';
 import { WhatsAppAutomationService } from '../whatsapp/application/whatsapp-automation.service';
@@ -27,12 +28,13 @@ export declare class LeadsService {
     private readonly crmScope;
     private readonly leadNotifications;
     private readonly leadQualification;
+    private readonly leadDossier;
     private readonly mapsScraper;
     private readonly leadSearchSessions;
     private readonly whatsAppCrm;
     private readonly whatsAppAutomation;
     private readonly logger;
-    constructor(configService: ConfigService, prisma: PrismaService, aiService: AiService, companySettings: CompanySettingsService, leadStages: LeadStagesService, crmScope: CrmScopeService, leadNotifications: LeadNotificationService, leadQualification: LeadQualificationService, mapsScraper: MapsScraperService, leadSearchSessions: LeadSearchSessionService, whatsAppCrm: WhatsAppCrmService, whatsAppAutomation: WhatsAppAutomationService);
+    constructor(configService: ConfigService, prisma: PrismaService, aiService: AiService, companySettings: CompanySettingsService, leadStages: LeadStagesService, crmScope: CrmScopeService, leadNotifications: LeadNotificationService, leadQualification: LeadQualificationService, leadDossier: LeadDossierService, mapsScraper: MapsScraperService, leadSearchSessions: LeadSearchSessionService, whatsAppCrm: WhatsAppCrmService, whatsAppAutomation: WhatsAppAutomationService);
     preQualify(user: AuthenticatedUser, id: string): Promise<{
         id: string;
         companyId: string;
@@ -583,14 +585,53 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
     }>;
+    dossier(user: AuthenticatedUser, id: string): Promise<{
+        id: string;
+        companyId: string;
+        tenantId: string;
+        searchSessionId: string | null;
+        organizationId: string | null;
+        name: string;
+        contactName: string | null;
+        phone: string | null;
+        email: string | null;
+        website: string | null;
+        instagram: string | null;
+        address: string | null;
+        city: string | null;
+        neighborhood: string | null;
+        category: string | null;
+        placeId: string | null;
+        rating: number | null;
+        reviewsCount: number | null;
+        latitude: number | null;
+        longitude: number | null;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        stageId: string | null;
+        statusLabel: string;
+        statusColor: string;
+        crmStatus: import("@prisma/client").$Enums.CrmLeadStatus;
+        isMinimized: boolean;
+        kanbanTracked: boolean;
+        kanbanOrder: number;
+        orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
+        aiScore: number | null;
+        aiNotes: string | null;
+        source: string;
+        rawData: Prisma.JsonValue;
+        createdAt: string;
+        updatedAt: string;
+    }>;
     getComments(user: AuthenticatedUser, leadId: string): Promise<{
         id: string;
         content: string;
         createdAt: string;
         updatedAt: string;
         user: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -601,8 +642,8 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
         user: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };

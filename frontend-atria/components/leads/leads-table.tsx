@@ -39,13 +39,11 @@ import { toast } from "@/lib/toast";
 import { LeadCategoryText } from "@/components/leads/lead-category-text";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
 import { getLeadCnpjLabel } from "@/lib/lead-cnpj";
-import {
-  formatInstagramHandle,
-  formatLeadRating,
-} from "@/lib/lead-map-utils";
+import { formatInstagramHandle, formatLeadRating } from "@/lib/lead-map-utils";
 import {
   commercialFitBadgeVariant,
   commercialFitLabel,
+  isLeadDossierReady,
   isRegistryQualified,
   readCommercialFit,
 } from "@/lib/lead-qualification-utils";
@@ -76,8 +74,23 @@ interface LeadsTableProps {
   qualifyingId?: string | null;
   addingKanbanId?: string | null;
   organizationLabel?: string;
+  dossierReview?: boolean;
   onQualify: (lead: Lead) => void;
   onAddToKanban: (lead: Lead) => void;
+}
+
+function qualifyActionLabel(
+  lead: Lead,
+  dossierReview: boolean,
+  compact: boolean,
+) {
+  if (dossierReview) {
+    return isLeadDossierReady(lead) ? "Ver" : "Qualificar";
+  }
+  if (lead.aiScore == null) return "Qualificar";
+  return compact
+    ? `Ver (${lead.aiScore})`
+    : `Ver qualificação (${lead.aiScore})`;
 }
 
 const LEADS_PAGE_SIZE = 25;
@@ -137,6 +150,7 @@ export function LeadsTable({
   qualifyingId,
   addingKanbanId,
   organizationLabel = "a empresa atual",
+  dossierReview = false,
   onQualify,
   onAddToKanban,
 }: LeadsTableProps) {
@@ -156,13 +170,15 @@ export function LeadsTable({
     if (!qualificationDialogLeadId) {
       return null;
     }
-    return (
-      leads.find((item) => item.id === qualificationDialogLeadId) ?? null
-    );
+    return leads.find((item) => item.id === qualificationDialogLeadId) ?? null;
   }, [leads, qualificationDialogLeadId]);
 
   function handleQualifyClick(lead: Lead) {
     if (qualifyingId === lead.id) {
+      return;
+    }
+    if (dossierReview) {
+      onQualify(lead);
       return;
     }
     if (lead.aiScore != null) {
@@ -409,26 +425,26 @@ export function LeadsTable({
                         {lead.name}
                       </span>
                     </p>
-                  {(lead.category || getLeadCnpjLabel(lead)) && (
-                    <div className="mt-0.5 min-w-0 space-y-0.5">
-                      {getLeadCnpjLabel(lead) ? (
-                        <p className="truncate text-xs text-[var(--atria-primary)]/50">
-                          CNPJ {getLeadCnpjLabel(lead)}
-                        </p>
-                      ) : null}
-                      {lead.category ? (
-                        <LeadCategoryText
-                          lead={lead}
-                          primaryClassName="text-xs text-[var(--atria-primary)]/50"
-                        />
-                      ) : null}
-                    </div>
-                  )}
-                  {formatLeadRating(lead.rating, lead.reviewsCount) && (
-                    <p className="mt-0.5 text-xs text-[var(--atria-primary)]/50">
-                      {formatLeadRating(lead.rating, lead.reviewsCount)}
-                    </p>
-                  )}
+                    {(lead.category || getLeadCnpjLabel(lead)) && (
+                      <div className="mt-0.5 min-w-0 space-y-0.5">
+                        {getLeadCnpjLabel(lead) ? (
+                          <p className="truncate text-xs text-[var(--atria-primary)]/50">
+                            CNPJ {getLeadCnpjLabel(lead)}
+                          </p>
+                        ) : null}
+                        {lead.category ? (
+                          <LeadCategoryText
+                            lead={lead}
+                            primaryClassName="text-xs text-[var(--atria-primary)]/50"
+                          />
+                        ) : null}
+                      </div>
+                    )}
+                    {formatLeadRating(lead.rating, lead.reviewsCount) && (
+                      <p className="mt-0.5 text-xs text-[var(--atria-primary)]/50">
+                        {formatLeadRating(lead.rating, lead.reviewsCount)}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Badge variant={STATUS_VARIANTS[lead.status]}>
@@ -505,9 +521,7 @@ export function LeadsTable({
                   ) : (
                     <Sparkles className="size-4" />
                   )}
-                  {lead.aiScore != null
-                    ? `Ver qualificação (${lead.aiScore})`
-                    : "Qualificar"}
+                  {qualifyActionLabel(lead, dossierReview, false)}
                 </Button>
                 <Button
                   type="button"
@@ -722,7 +736,9 @@ export function LeadsTable({
                             if (!label) return null;
                             return (
                               <Badge
-                                variant={commercialFitBadgeVariant(fit?.verdict)}
+                                variant={commercialFitBadgeVariant(
+                                  fit?.verdict,
+                                )}
                                 className="w-fit text-[10px]"
                               >
                                 {label}
@@ -757,9 +773,7 @@ export function LeadsTable({
                             <Sparkles className="size-4" />
                           )}
                           <span className="hidden sm:inline">
-                            {lead.aiScore != null
-                              ? `Ver (${lead.aiScore})`
-                              : "Qualificar"}
+                            {qualifyActionLabel(lead, dossierReview, true)}
                           </span>
                         </Button>
                         <Button
@@ -864,24 +878,26 @@ export function LeadsTable({
         </div>
       )}
 
-      <LeadQualificationDialog
-        lead={qualificationDialogLead}
-        open={qualificationDialogLeadId != null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setQualificationDialogLeadId(null);
+      {dossierReview ? null : (
+        <LeadQualificationDialog
+          lead={qualificationDialogLead}
+          open={qualificationDialogLeadId != null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setQualificationDialogLeadId(null);
+            }
+          }}
+          requalifying={
+            qualificationDialogLead != null &&
+            qualifyingId === qualificationDialogLead.id
           }
-        }}
-        requalifying={
-          qualificationDialogLead != null &&
-          qualifyingId === qualificationDialogLead.id
-        }
-        onRequalify={
-          qualificationDialogLead
-            ? () => onQualify(qualificationDialogLead)
-            : undefined
-        }
-      />
+          onRequalify={
+            qualificationDialogLead
+              ? () => onQualify(qualificationDialogLead)
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }

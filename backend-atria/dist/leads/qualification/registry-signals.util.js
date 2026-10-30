@@ -1,15 +1,62 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.formatCompanySize = formatCompanySize;
+exports.readCompanySizeLabel = readCompanySizeLabel;
 exports.extractCnpjFromRawData = extractCnpjFromRawData;
 exports.extractCnpjFromLead = extractCnpjFromLead;
 exports.parseShareCapital = parseShareCapital;
 exports.readShareCapitalFromRawData = readShareCapitalFromRawData;
 exports.readLegalNameFromRawData = readLegalNameFromRawData;
+exports.readRegistryLookupCache = readRegistryLookupCache;
 exports.readCachedRegistrySnapshot = readCachedRegistrySnapshot;
 exports.readShareCapitalFromLead = readShareCapitalFromLead;
 exports.leadHasIdentifiableCnpj = leadHasIdentifiableCnpj;
 exports.mergeRegistrySnapshotIntoRawData = mergeRegistrySnapshotIntoRawData;
 exports.materializeRegistrySnapshotFromRawData = materializeRegistrySnapshotFromRawData;
+const PORTE_BY_CODE = {
+    '00': 'Não informado',
+    '01': 'Microempresa',
+    '03': 'Empresa de pequeno porte',
+    '05': 'Demais',
+};
+function formatCompanySize(value) {
+    if (!value?.trim())
+        return null;
+    const raw = value.trim();
+    const digits = raw.replace(/\D/g, '');
+    if (digits &&
+        (digits === raw || raw.length <= 2) &&
+        PORTE_BY_CODE[digits.padStart(2, '0')]) {
+        return PORTE_BY_CODE[digits.padStart(2, '0')];
+    }
+    const upper = raw.toUpperCase();
+    if (upper === 'ME' || upper.includes('MICRO'))
+        return 'Microempresa';
+    if (upper === 'EPP' || upper.includes('PEQUENO PORTE')) {
+        return 'Empresa de pequeno porte';
+    }
+    if (upper.includes('DEMAIS'))
+        return 'Demais';
+    return raw;
+}
+function readCompanySizeLabel(raw) {
+    if (!raw)
+        return null;
+    const labeled = raw.porte ?? raw.descricao_porte ?? raw.descricao_porte_empresa;
+    if (typeof labeled === 'string' &&
+        labeled.trim() &&
+        !/^\d+$/.test(labeled.trim())) {
+        return formatCompanySize(labeled);
+    }
+    const code = raw.codigo_porte ?? raw.companySize ?? labeled;
+    if (typeof code === 'number' && Number.isFinite(code)) {
+        return formatCompanySize(String(Math.trunc(code)).padStart(2, '0'));
+    }
+    if (typeof code === 'string' && code.trim()) {
+        return formatCompanySize(code);
+    }
+    return null;
+}
 const REGISTRY_CACHE_MS = 30 * 24 * 60 * 60 * 1000;
 function normalizeCnpjDigits(value) {
     if (value == null)
@@ -137,6 +184,30 @@ function readLegalNameFromRawData(rawData) {
             return value.trim();
     }
     return null;
+}
+const REGISTRY_MISS_CACHE_MS = 7 * 24 * 60 * 60 * 1000;
+const REGISTRY_UNAVAILABLE_CACHE_MS = 15 * 60 * 1000;
+function readRegistryLookupCache(rawData) {
+    if (!rawData || typeof rawData !== 'object' || Array.isArray(rawData)) {
+        return null;
+    }
+    const lookup = rawData.registryLookup;
+    if (!lookup || typeof lookup !== 'object' || Array.isArray(lookup)) {
+        return null;
+    }
+    const data = lookup;
+    if (data.status !== 'not_found' && data.status !== 'unavailable') {
+        return null;
+    }
+    const fetchedAt = Date.parse(data.fetchedAt);
+    if (!Number.isFinite(fetchedAt))
+        return null;
+    const maxAge = data.status === 'not_found'
+        ? REGISTRY_MISS_CACHE_MS
+        : REGISTRY_UNAVAILABLE_CACHE_MS;
+    if (Date.now() - fetchedAt >= maxAge)
+        return null;
+    return data;
 }
 function readCachedRegistrySnapshot(rawData) {
     if (!rawData || typeof rawData !== 'object' || Array.isArray(rawData)) {

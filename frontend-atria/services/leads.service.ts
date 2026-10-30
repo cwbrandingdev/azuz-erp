@@ -124,6 +124,13 @@ export async function updateLeadStatus(
   });
 }
 
+export async function loadLeadDossier(id: string): Promise<Lead> {
+  return apiRequest<Lead>(`/leads/${encodeURIComponent(id)}/dossier`, {
+    method: "POST",
+    timeoutMs: 320_000,
+  });
+}
+
 export async function qualifyLead(id: string): Promise<Lead> {
   return apiRequest<Lead>(`/leads/${encodeURIComponent(id)}/qualify`, {
     method: "POST",

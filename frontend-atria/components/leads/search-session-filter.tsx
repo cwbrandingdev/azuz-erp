@@ -17,6 +17,7 @@ interface SearchSessionFilterProps {
   selectedSessionId: string | null;
   loading?: boolean;
   description?: string;
+  inputId?: string;
   onChange: (sessionId: string | null) => void;
 }
 
@@ -25,6 +26,7 @@ export function SearchSessionFilter({
   selectedSessionId,
   loading,
   description,
+  inputId = "search-session-filter",
   onChange,
 }: SearchSessionFilterProps) {
   const value = selectedSessionId ?? "all";
@@ -48,7 +50,7 @@ export function SearchSessionFilter({
 
   return (
     <Field>
-      <FieldLabel htmlFor="search-session-filter">
+      <FieldLabel htmlFor={inputId}>
         <span className="inline-flex items-center gap-2">
           <History className="size-4 text-[var(--atria-primary)]/60" />
           Buscas recentes
@@ -68,7 +70,7 @@ export function SearchSessionFilter({
         disabled={loading}
       >
         <SelectTrigger
-          id="search-session-filter"
+          id={inputId}
           className="h-11 w-full text-sm font-medium"
         >
           {triggerDisplayText ? (

@@ -155,8 +155,8 @@ export function CompanySearchPanel() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     () => initialSessionId,
   );
-  const [hasAutoSelectedSession, setHasAutoSelectedSession] = useState(
-    () => Boolean(initialSessionId),
+  const [hasAutoSelectedSession, setHasAutoSelectedSession] = useState(() =>
+    Boolean(initialSessionId),
   );
   const queryClient = useQueryClient();
   const [activeLeads, setActiveLeads] = useState<Lead[]>(() =>
@@ -286,8 +286,8 @@ export function CompanySearchPanel() {
 
   const isGlobalFilterActive = Boolean(
     globalCategoryFilter.trim() ||
-      globalNeighborhoodFilter.trim() ||
-      globalFilterQuery.trim(),
+    globalNeighborhoodFilter.trim() ||
+    globalFilterQuery.trim(),
   );
 
   const globalFilteredLeads = useMemo(() => {
@@ -720,8 +720,8 @@ export function CompanySearchPanel() {
                   Busca selecionada
                 </p>
                 <p className="mt-1 text-xs text-[var(--atria-primary)]/50">
-                  Filtra somente os leads da pesquisa escolhida em
-                  &quot;Buscas recentes&quot;.
+                  Filtra somente os leads da pesquisa escolhida em &quot;Buscas
+                  recentes&quot;.
                 </p>
               </div>
               {!isGlobalFilterActive ? (
@@ -853,9 +853,8 @@ export function CompanySearchPanel() {
                   Histórico completo
                 </p>
                 <p className="mt-1 text-xs text-[var(--atria-primary)]/50">
-                  Pesquisa em todas as empresas já salvas das buscas
-                  anteriores. Limpe os campos abaixo para voltar à busca
-                  selecionada.
+                  Pesquisa em todas as empresas já salvas das buscas anteriores.
+                  Limpe os campos abaixo para voltar à busca selecionada.
                 </p>
               </div>
               {isGlobalFilterActive ? (
@@ -1036,9 +1035,8 @@ export function CompanySearchPanel() {
 
         {batchProgress && (
           <p className="text-sm text-[var(--atria-primary)]/60">
-            Qualificando{" "}
-            {Math.min(batchProgress.done + 1, batchProgress.total)} de{" "}
-            {batchProgress.total}
+            Qualificando {Math.min(batchProgress.done + 1, batchProgress.total)}{" "}
+            de {batchProgress.total}
             {batchProgress.name ? ` — ${batchProgress.name}` : ""}
           </p>
         )}
@@ -1094,8 +1092,8 @@ export function CompanySearchPanel() {
           hasSearchContext &&
           displayLeads.length === 0 && (
             <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
-              Nenhuma empresa encontrada para esta busca. Tente outro CNAE
-              ou cidade.
+              Nenhuma empresa encontrada para esta busca. Tente outro CNAE ou
+              cidade.
             </div>
           )}
 

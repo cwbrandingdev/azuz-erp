@@ -14,6 +14,7 @@ export interface MappedPlace {
     reviewsCount?: number;
     latitude?: number;
     longitude?: number;
+    imageUrl?: string;
     source: string;
     rawData: Prisma.InputJsonValue;
 }

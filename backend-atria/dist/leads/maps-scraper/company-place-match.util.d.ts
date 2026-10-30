@@ -1,4 +1,5 @@
 import type { MappedPlace } from './maps-scraper.types';
+export declare const COMPANY_NAME_MATCH_THRESHOLD = 0.6;
 export declare function normalizeCompanyName(value: string): string;
 export declare function companyNameTokens(value: string): string[];
 export declare function scoreCompanyNameMatch(left: string, right: string): number;

@@ -21,6 +21,9 @@ interface ApifyPlace {
   totalScore?: number;
   reviewsCount?: number;
   location?: { lat?: number; lng?: number };
+  imageUrl?: string;
+  imageUrls?: unknown;
+  images?: unknown;
   contacts?: Array<Record<string, unknown>>;
   instagrams?: string[];
   phones?: string[];
@@ -106,6 +109,36 @@ function normalizeInstagramUrl(value: unknown): string | undefined {
   return `https://www.instagram.com/${handle.replace(/^\/+/, "")}/`;
 }
 
+function extractApifyImageUrl(place: ApifyPlace): string | undefined {
+  const direct = httpUrl(place.imageUrl);
+  if (direct) return direct;
+
+  for (const entry of asList(place.imageUrls).concat(asList(place.images))) {
+    if (typeof entry === 'string') {
+      const url = httpUrl(entry);
+      if (url) return url;
+      continue;
+    }
+    if (!entry || typeof entry !== 'object') continue;
+    const record = entry as Record<string, unknown>;
+    const url = httpUrl(record.imageUrl ?? record.url);
+    if (url) return url;
+  }
+
+  return undefined;
+}
+
+function asList(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function httpUrl(value: unknown): string | undefined {
+  const raw = asOptionalString(value);
+  if (!raw) return undefined;
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+  return undefined;
+}
+
 function extractApifyWebsite(place: ApifyPlace): string | undefined {
   const website = asOptionalString(
     place.website ?? place.url ?? place.domain ?? place.menu,
@@ -154,6 +187,7 @@ export function mapApifyPlaces(
         typeof place.location?.lat === 'number' ? place.location.lat : undefined,
       longitude:
         typeof place.location?.lng === 'number' ? place.location.lng : undefined,
+      imageUrl: extractApifyImageUrl(place),
       source: 'apify',
       rawData: place as Prisma.InputJsonValue,
     });
@@ -168,6 +202,7 @@ export function buildApifyActorInput(
   options?: {
     searchString?: string;
     locationQuery?: string;
+    maxImages?: number;
   },
 ) {
   const category = dto.category.trim();
@@ -192,5 +227,8 @@ export function buildApifyActorInput(
       tiktoks: false,
       twitters: false,
     },
+    ...(typeof options?.maxImages === 'number'
+      ? { maxImages: options.maxImages }
+      : {}),
   };
 }

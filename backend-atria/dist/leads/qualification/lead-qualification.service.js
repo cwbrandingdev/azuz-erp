@@ -18,7 +18,6 @@ const maps_scraper_service_1 = require("../maps-scraper/maps-scraper.service");
 const maps_contact_merge_util_1 = require("../maps-scraper/maps-contact-merge.util");
 const registry_signals_util_1 = require("./registry-signals.util");
 const QUALIFIED_THRESHOLD = 60;
-const INSTAGRAM_CACHE_MS = 72 * 60 * 60 * 1000;
 const OPERATIONAL_WEIGHT = 0.4;
 const COMMERCIAL_WEIGHT = 0.6;
 let LeadQualificationService = class LeadQualificationService {
@@ -441,28 +440,7 @@ let LeadQualificationService = class LeadQualificationService {
         });
     }
     readCachedInstagram(lead) {
-        const raw = lead.rawData;
-        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-            return null;
-        }
-        const snapshot = raw.instagramQualification;
-        if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
-            return null;
-        }
-        const fetchedAt = snapshot.fetchedAt;
-        if (!fetchedAt || Date.parse(fetchedAt) < Date.now() - INSTAGRAM_CACHE_MS) {
-            return null;
-        }
-        const data = snapshot;
-        if (!('biography' in data) || !('followersCount' in data)) {
-            return null;
-        }
-        const posts = data.recentPosts;
-        if (Array.isArray(posts) &&
-            posts.some((post) => !post || !('views' in post))) {
-            return null;
-        }
-        return data;
+        return (0, instagram_apify_enricher_1.readFreshInstagramQualification)(lead.rawData);
     }
 };
 exports.LeadQualificationService = LeadQualificationService;

@@ -3,6 +3,7 @@ import { CompanyLookupModule } from '../company-lookup/company-lookup.module';
 import { MapsScraperModule } from '../maps-scraper/maps-scraper.module';
 import { CommercialFitService } from './commercial-fit.service';
 import { InstagramApifyEnricher } from './instagram-apify.enricher';
+import { LeadDossierService } from './lead-dossier.service';
 import { LeadQualificationService } from './lead-qualification.service';
 
 @Module({
@@ -11,7 +12,8 @@ import { LeadQualificationService } from './lead-qualification.service';
     InstagramApifyEnricher,
     CommercialFitService,
     LeadQualificationService,
+    LeadDossierService,
   ],
-  exports: [LeadQualificationService],
+  exports: [LeadQualificationService, LeadDossierService],
 })
 export class LeadQualificationModule {}

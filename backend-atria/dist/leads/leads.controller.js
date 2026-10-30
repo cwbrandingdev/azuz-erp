@@ -83,6 +83,9 @@ let LeadsController = class LeadsController {
     qualify(user, id) {
         return this.leadsService.qualify(user, id);
     }
+    dossier(user, id) {
+        return this.leadsService.dossier(user, id);
+    }
     preQualify(user, id) {
         return this.leadsService.preQualify(user, id);
     }
@@ -205,6 +208,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], LeadsController.prototype, "qualify", null);
+__decorate([
+    (0, common_1.Post)(':id/dossier'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "dossier", null);
 __decorate([
     (0, common_1.Post)(':id/pre-qualify'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
