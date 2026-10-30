@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import {
   canEditAllKanban,
+  canEditCalendarEvent,
   canEditKanbanTask,
   canEditOwnKanbanOnly,
   canPerformInternalApproval,
@@ -40,6 +41,11 @@ export function usePermissions() {
         createdBy?: { id: string } | null;
         assignees?: Array<{ id: string }>;
       }) => canEditKanbanTask(role, user?.id ?? null, task, explicitPermissions),
+      canEditCalendarEvent: (event: {
+        createdBy?: { id: string } | null;
+        assignee?: { id: string } | null;
+      }) =>
+        canEditCalendarEvent(role, user?.id ?? null, event, explicitPermissions),
       canDeactivateUsers: () =>
         hasPermission(role, "users:deactivate", explicitPermissions),
       canManageUsers: () =>

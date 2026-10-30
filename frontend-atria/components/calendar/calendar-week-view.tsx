@@ -8,6 +8,8 @@ import {
   isSameDay,
 } from "@/lib/calendar-utils";
 import { cn } from "@/lib/utils";
+import { CalendarDayDropZone } from "./calendar-day-drop-zone";
+import { CalendarDraggableEvent } from "./calendar-draggable-event";
 import { CalendarEventStatusMenu } from "./calendar-event-status-menu";
 
 interface CalendarWeekViewProps {
@@ -16,6 +18,7 @@ interface CalendarWeekViewProps {
   loading: boolean;
   onOpenDetails: (event: CalendarEvent) => void;
   onSelectDate: (date: Date) => void;
+  canDragEvent: (event: CalendarEvent) => boolean;
 }
 
 export function CalendarWeekView({
@@ -24,6 +27,7 @@ export function CalendarWeekView({
   loading,
   onOpenDetails,
   onSelectDate,
+  canDragEvent,
 }: CalendarWeekViewProps) {
   const weekDays = getWeekDays(anchorDate);
 
@@ -69,24 +73,33 @@ export function CalendarWeekView({
                   </p>
                 </button>
 
-                <div className="calendar-day-scroll flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
+                <CalendarDayDropZone
+                  day={day}
+                  className="calendar-day-scroll flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2"
+                >
                   {dayEvents.length === 0 ? (
                     <p className="px-1 py-4 text-center text-xs text-[var(--atria-primary)]/35">
                       Sem compromissos
                     </p>
                   ) : (
-                    dayEvents.map((evt) => (
-                      <CalendarEventStatusMenu
+                    dayEvents.map((evt, index) => (
+                      <CalendarDraggableEvent
                         key={evt.id}
-                        event={evt}
-                        onOpenDetails={onOpenDetails}
-                        compact={false}
-                        className="w-full rounded-lg p-2"
-                        detail={formatEventScheduleDetail(evt, "compact")}
-                      />
+                        eventId={evt.id}
+                        index={index}
+                        canDrag={canDragEvent(evt)}
+                      >
+                        <CalendarEventStatusMenu
+                          event={evt}
+                          onOpenDetails={onOpenDetails}
+                          compact={false}
+                          className="w-full rounded-lg p-2"
+                          detail={formatEventScheduleDetail(evt, "compact")}
+                        />
+                      </CalendarDraggableEvent>
                     ))
                   )}
-                </div>
+                </CalendarDayDropZone>
               </div>
             );
           })}
