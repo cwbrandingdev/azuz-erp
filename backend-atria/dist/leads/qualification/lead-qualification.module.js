@@ -12,6 +12,7 @@ const company_lookup_module_1 = require("../company-lookup/company-lookup.module
 const maps_scraper_module_1 = require("../maps-scraper/maps-scraper.module");
 const commercial_fit_service_1 = require("./commercial-fit.service");
 const instagram_apify_enricher_1 = require("./instagram-apify.enricher");
+const lead_dossier_service_1 = require("./lead-dossier.service");
 const lead_qualification_service_1 = require("./lead-qualification.service");
 let LeadQualificationModule = class LeadQualificationModule {
 };
@@ -23,8 +24,9 @@ exports.LeadQualificationModule = LeadQualificationModule = __decorate([
             instagram_apify_enricher_1.InstagramApifyEnricher,
             commercial_fit_service_1.CommercialFitService,
             lead_qualification_service_1.LeadQualificationService,
+            lead_dossier_service_1.LeadDossierService,
         ],
-        exports: [lead_qualification_service_1.LeadQualificationService],
+        exports: [lead_qualification_service_1.LeadQualificationService, lead_dossier_service_1.LeadDossierService],
     })
 ], LeadQualificationModule);
 //# sourceMappingURL=lead-qualification.module.js.map

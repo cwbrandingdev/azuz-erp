@@ -15,6 +15,12 @@ export class CompanyLookupService {
   ) {}
 
   async lookup(cnpj: string): Promise<CompanyLookupRecord | null> {
+    const record = await this.lookupRegistry(cnpj);
+    if (!record) return null;
+    return this.withGeocoding(record);
+  }
+
+  async lookupRegistry(cnpj: string): Promise<CompanyLookupRecord | null> {
     const normalized = cnpj.replace(/\D/g, '');
     if (normalized.length !== 14) {
       return null;
@@ -23,7 +29,7 @@ export class CompanyLookupService {
     try {
       const fromBrasilApi = await this.brasilApiCnpjClient.lookup(normalized);
       if (fromBrasilApi) {
-        return this.withGeocoding(fromBrasilApi);
+        return fromBrasilApi;
       }
     } catch (error) {
       this.logger.warn(`BrasilAPI lookup failed for ${normalized}: ${String(error)}`);
@@ -32,7 +38,7 @@ export class CompanyLookupService {
     try {
       const fromMinhaReceita = await this.minhaReceitaClient.lookup(normalized);
       if (fromMinhaReceita) {
-        return this.withGeocoding(fromMinhaReceita);
+        return fromMinhaReceita;
       }
     } catch (error) {
       this.logger.warn(`Minha Receita lookup failed for ${normalized}: ${String(error)}`);

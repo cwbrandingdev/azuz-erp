@@ -7,7 +7,7 @@ const API_BASE_URL = resolveApiBaseUrl();
 const COMPANY_SEARCH_TIMEOUT_MS = 120_000;
 const MAPS_ENRICH_TIMEOUT_MS = 210_000;
 
-export type LeadSearchQueryType = "NICHO" | "CNAE";
+export type LeadSearchQueryType = "NICHO" | "CNAE" | "MAPS";
 
 export interface B2bLeadSearchInput {
   queryType: LeadSearchQueryType;
@@ -30,6 +30,7 @@ export interface LeadSearchSessionSummary {
   queryValue: string;
   city: string;
   uf: string;
+  address?: string | null;
   createdAt: string;
   leadsCount: number;
 }

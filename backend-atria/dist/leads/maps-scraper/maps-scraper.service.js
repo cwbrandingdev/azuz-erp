@@ -43,13 +43,17 @@ let MapsScraperService = MapsScraperService_1 = class MapsScraperService {
         }
         return this.findLocalMappedPlaces(dto);
     }
-    async lookupCompanyPlace(input) {
+    async lookupCompanyPlace(input, options) {
+        const result = await this.lookupCompanyPlaceResult(input, options);
+        return result.place;
+    }
+    async lookupCompanyPlaceResult(input, options) {
         const credentials = await this.resolveScraperCredentials();
         const token = credentials.apifyApiToken;
         const name = input.name.trim();
         const city = input.city.trim();
         if (!token || !name || !city) {
-            return null;
+            return { place: null, failed: true };
         }
         const neighborhood = input.neighborhood?.trim() || city;
         const dto = {
@@ -62,12 +66,16 @@ let MapsScraperService = MapsScraperService_1 = class MapsScraperService {
                 maxResults: 3,
                 searchString: `${name}, ${city}`,
                 locationQuery: `${city}, Brasil`,
+                maxImages: options?.maxImages,
             });
-            return (0, company_place_match_util_1.pickBestPlaceForCompany)(places, [name, input.legalName]);
+            return {
+                place: (0, company_place_match_util_1.pickBestPlaceForCompany)(places, [name, input.legalName]),
+                failed: false,
+            };
         }
         catch (error) {
             this.logger.warn(`Maps company lookup failed: ${String(error)}`);
-            return null;
+            return { place: null, failed: true };
         }
     }
     async fetchPlacesForCatalogEnrichment(dto, maxResults) {
@@ -145,6 +153,7 @@ let MapsScraperService = MapsScraperService_1 = class MapsScraperService {
         const payload = (0, apify_place_mapper_1.buildApifyActorInput)(dto, options?.maxResults ?? this.resolveApifyMaxResults(), {
             searchString: options?.searchString,
             locationQuery: options?.locationQuery,
+            maxImages: options?.maxImages,
         });
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), APIFY_TIMEOUT_MS);

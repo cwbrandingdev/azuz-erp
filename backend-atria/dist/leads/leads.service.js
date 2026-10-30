@@ -25,6 +25,7 @@ const apify_place_mapper_1 = require("./maps-scraper/apify-place.mapper");
 const lead_stages_service_1 = require("./lead-stages.service");
 const lead_kanban_constants_1 = require("./lead-kanban.constants");
 const lead_pipeline_zones_1 = require("./lead-pipeline-zones");
+const lead_dossier_service_1 = require("./qualification/lead-dossier.service");
 const lead_qualification_service_1 = require("./qualification/lead-qualification.service");
 const maps_scraper_service_1 = require("./maps-scraper/maps-scraper.service");
 const maps_contact_merge_util_1 = require("./maps-scraper/maps-contact-merge.util");
@@ -50,12 +51,13 @@ let LeadsService = LeadsService_1 = class LeadsService {
     crmScope;
     leadNotifications;
     leadQualification;
+    leadDossier;
     mapsScraper;
     leadSearchSessions;
     whatsAppCrm;
     whatsAppAutomation;
     logger = new common_1.Logger(LeadsService_1.name);
-    constructor(configService, prisma, aiService, companySettings, leadStages, crmScope, leadNotifications, leadQualification, mapsScraper, leadSearchSessions, whatsAppCrm, whatsAppAutomation) {
+    constructor(configService, prisma, aiService, companySettings, leadStages, crmScope, leadNotifications, leadQualification, leadDossier, mapsScraper, leadSearchSessions, whatsAppCrm, whatsAppAutomation) {
         this.configService = configService;
         this.prisma = prisma;
         this.aiService = aiService;
@@ -64,6 +66,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
         this.crmScope = crmScope;
         this.leadNotifications = leadNotifications;
         this.leadQualification = leadQualification;
+        this.leadDossier = leadDossier;
         this.mapsScraper = mapsScraper;
         this.leadSearchSessions = leadSearchSessions;
         this.whatsAppCrm = whatsAppCrm;
@@ -695,6 +698,23 @@ let LeadsService = LeadsService_1 = class LeadsService {
         });
         return this.toLeadResponse(updated);
     }
+    async dossier(user, id) {
+        const lead = await this.resolveLeadForUser(user, id);
+        const apifyToken = await this.resolveApifyToken();
+        const result = await this.leadDossier.collect(lead, apifyToken);
+        const updated = await this.prisma.lead.update({
+            where: { id: lead.id },
+            data: {
+                rawData: result.rawData,
+                ...(result.cnpj ? { cnpj: result.cnpj } : {}),
+                ...(result.latitude != null ? { latitude: result.latitude } : {}),
+                ...(result.longitude != null ? { longitude: result.longitude } : {}),
+                ...(result.instagram ? { instagram: result.instagram } : {}),
+                ...(result.website ? { website: result.website } : {}),
+            },
+        });
+        return this.toLeadResponse(updated);
+    }
     async getComments(user, leadId) {
         await this.findLeadForUser(user, leadId);
         const comments = await this.prisma.leadComment.findMany({
@@ -1264,6 +1284,7 @@ exports.LeadsService = LeadsService = LeadsService_1 = __decorate([
         crm_scope_service_1.CrmScopeService,
         lead_notification_service_1.LeadNotificationService,
         lead_qualification_service_1.LeadQualificationService,
+        lead_dossier_service_1.LeadDossierService,
         maps_scraper_service_1.MapsScraperService,
         lead_search_session_service_1.LeadSearchSessionService,
         whatsapp_crm_service_1.WhatsAppCrmService,

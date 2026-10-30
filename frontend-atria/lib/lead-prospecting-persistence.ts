@@ -18,6 +18,7 @@ export interface PersistedMapsProspectingState {
   hasSearched: boolean;
   searchContext: ExternalLeadSearchContext | null;
   externalPreviewLeads: Lead[];
+  selectedSearchId?: string | null;
 }
 
 function readJson<T>(key: string): T | null {

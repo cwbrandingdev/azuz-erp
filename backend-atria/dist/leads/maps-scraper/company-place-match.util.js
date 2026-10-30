@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.COMPANY_NAME_MATCH_THRESHOLD = void 0;
 exports.normalizeCompanyName = normalizeCompanyName;
 exports.companyNameTokens = companyNameTokens;
 exports.scoreCompanyNameMatch = scoreCompanyNameMatch;
@@ -28,7 +29,7 @@ const STOPWORDS = new Set([
     'comercio',
     'comercial',
 ]);
-const MATCH_THRESHOLD = 0.6;
+exports.COMPANY_NAME_MATCH_THRESHOLD = 0.6;
 function normalizeCompanyName(value) {
     return value
         .normalize('NFD')
@@ -83,7 +84,7 @@ function pickBestPlaceForCompany(places, names) {
             best = place;
         }
     }
-    if (!best || bestScore < MATCH_THRESHOLD) {
+    if (!best || bestScore < exports.COMPANY_NAME_MATCH_THRESHOLD) {
         return null;
     }
     return best;
@@ -94,7 +95,7 @@ function matchPlacesToCompanies(companies, places, extraNames) {
         const names = [company.name, ...extraNames(company)];
         for (const place of places) {
             const score = bestNameScore(place.name, names);
-            if (score >= MATCH_THRESHOLD) {
+            if (score >= exports.COMPANY_NAME_MATCH_THRESHOLD) {
                 pairs.push({ company, place, score });
             }
         }

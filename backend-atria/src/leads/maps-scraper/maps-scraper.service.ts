@@ -68,18 +68,34 @@ export class MapsScraperService {
     return this.findLocalMappedPlaces(dto);
   }
 
-  async lookupCompanyPlace(input: {
-    name: string;
-    legalName?: string | null;
-    city: string;
-    neighborhood?: string | null;
-  }): Promise<MappedPlace | null> {
+  async lookupCompanyPlace(
+    input: {
+      name: string;
+      legalName?: string | null;
+      city: string;
+      neighborhood?: string | null;
+    },
+    options?: { maxImages?: number },
+  ): Promise<MappedPlace | null> {
+    const result = await this.lookupCompanyPlaceResult(input, options);
+    return result.place;
+  }
+
+  async lookupCompanyPlaceResult(
+    input: {
+      name: string;
+      legalName?: string | null;
+      city: string;
+      neighborhood?: string | null;
+    },
+    options?: { maxImages?: number },
+  ): Promise<{ place: MappedPlace | null; failed: boolean }> {
     const credentials = await this.resolveScraperCredentials();
     const token = credentials.apifyApiToken;
     const name = input.name.trim();
     const city = input.city.trim();
     if (!token || !name || !city) {
-      return null;
+      return { place: null, failed: true };
     }
 
     const neighborhood = input.neighborhood?.trim() || city;
@@ -94,11 +110,15 @@ export class MapsScraperService {
         maxResults: 3,
         searchString: `${name}, ${city}`,
         locationQuery: `${city}, Brasil`,
+        maxImages: options?.maxImages,
       });
-      return pickBestPlaceForCompany(places, [name, input.legalName]);
+      return {
+        place: pickBestPlaceForCompany(places, [name, input.legalName]),
+        failed: false,
+      };
     } catch (error) {
       this.logger.warn(`Maps company lookup failed: ${String(error)}`);
-      return null;
+      return { place: null, failed: true };
     }
   }
 
@@ -205,6 +225,7 @@ export class MapsScraperService {
       maxResults?: number;
       searchString?: string;
       locationQuery?: string;
+      maxImages?: number;
     },
   ): Promise<MappedPlace[]> {
     const actorId =
@@ -216,6 +237,7 @@ export class MapsScraperService {
       {
         searchString: options?.searchString,
         locationQuery: options?.locationQuery,
+        maxImages: options?.maxImages,
       },
     );
 

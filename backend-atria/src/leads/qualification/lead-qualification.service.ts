@@ -8,6 +8,7 @@ import {
 import { CompanyLookupService } from '../company-lookup/application/company-lookup.service';
 import {
   InstagramApifyEnricher,
+  readFreshInstagramQualification,
   type InstagramProfileQualificationData,
 } from './instagram-apify.enricher';
 import { MapsScraperService } from '../maps-scraper/maps-scraper.service';
@@ -44,7 +45,6 @@ export interface LeadQualificationResult {
 }
 
 const QUALIFIED_THRESHOLD = 60;
-const INSTAGRAM_CACHE_MS = 72 * 60 * 60 * 1000;
 const OPERATIONAL_WEIGHT = 0.4;
 const COMMERCIAL_WEIGHT = 0.6;
 
@@ -607,34 +607,6 @@ export class LeadQualificationService {
   private readCachedInstagram(
     lead: Lead,
   ): InstagramProfileQualificationData | null {
-    const raw = lead.rawData;
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-      return null;
-    }
-
-    const snapshot = (raw as Record<string, unknown>).instagramQualification;
-    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
-      return null;
-    }
-
-    const fetchedAt = (snapshot as { fetchedAt?: string }).fetchedAt;
-    if (!fetchedAt || Date.parse(fetchedAt) < Date.now() - INSTAGRAM_CACHE_MS) {
-      return null;
-    }
-
-    const data = snapshot as InstagramProfileQualificationData;
-    if (!('biography' in data) || !('followersCount' in data)) {
-      return null;
-    }
-
-    const posts = data.recentPosts;
-    if (
-      Array.isArray(posts) &&
-      posts.some((post) => !post || !('views' in post))
-    ) {
-      return null;
-    }
-
-    return data;
+    return readFreshInstagramQualification(lead.rawData);
   }
 }

@@ -9,6 +9,7 @@ export declare class CompanyLookupService {
     private readonly logger;
     constructor(brasilApiCnpjClient: BrasilApiCnpjClient, minhaReceitaClient: MinhaReceitaClient, nominatimClient: NominatimClient);
     lookup(cnpj: string): Promise<CompanyLookupRecord | null>;
+    lookupRegistry(cnpj: string): Promise<CompanyLookupRecord | null>;
     withGeocoding(record: CompanyLookupRecord): Promise<CompanyLookupRecord>;
     private buildAddress;
 }

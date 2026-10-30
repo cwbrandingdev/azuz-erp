@@ -26,6 +26,12 @@ let CompanyLookupService = CompanyLookupService_1 = class CompanyLookupService {
         this.nominatimClient = nominatimClient;
     }
     async lookup(cnpj) {
+        const record = await this.lookupRegistry(cnpj);
+        if (!record)
+            return null;
+        return this.withGeocoding(record);
+    }
+    async lookupRegistry(cnpj) {
         const normalized = cnpj.replace(/\D/g, '');
         if (normalized.length !== 14) {
             return null;
@@ -33,7 +39,7 @@ let CompanyLookupService = CompanyLookupService_1 = class CompanyLookupService {
         try {
             const fromBrasilApi = await this.brasilApiCnpjClient.lookup(normalized);
             if (fromBrasilApi) {
-                return this.withGeocoding(fromBrasilApi);
+                return fromBrasilApi;
             }
         }
         catch (error) {
@@ -42,7 +48,7 @@ let CompanyLookupService = CompanyLookupService_1 = class CompanyLookupService {
         try {
             const fromMinhaReceita = await this.minhaReceitaClient.lookup(normalized);
             if (fromMinhaReceita) {
-                return this.withGeocoding(fromMinhaReceita);
+                return fromMinhaReceita;
             }
         }
         catch (error) {

@@ -24,7 +24,7 @@ const STOPWORDS = new Set([
   'comercial',
 ]);
 
-const MATCH_THRESHOLD = 0.6;
+export const COMPANY_NAME_MATCH_THRESHOLD = 0.6;
 
 export function normalizeCompanyName(value: string): string {
   return value
@@ -94,7 +94,7 @@ export function pickBestPlaceForCompany(
     }
   }
 
-  if (!best || bestScore < MATCH_THRESHOLD) {
+  if (!best || bestScore < COMPANY_NAME_MATCH_THRESHOLD) {
     return null;
   }
 
@@ -112,7 +112,7 @@ export function matchPlacesToCompanies<T extends { id: string; name: string }>(
     const names = [company.name, ...extraNames(company)];
     for (const place of places) {
       const score = bestNameScore(place.name, names);
-      if (score >= MATCH_THRESHOLD) {
+      if (score >= COMPANY_NAME_MATCH_THRESHOLD) {
         pairs.push({ company, place, score });
       }
     }

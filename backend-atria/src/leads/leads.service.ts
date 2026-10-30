@@ -38,6 +38,7 @@ import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadStagesService } from './lead-stages.service';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, ORCAMENTO_STAGE_KEY } from './lead-kanban.constants';
 import { assertLeadStatusMoveAllowed } from './lead-pipeline-zones';
+import { LeadDossierService } from './qualification/lead-dossier.service';
 import { LeadQualificationService } from './qualification/lead-qualification.service';
 import { MapsScraperService } from './maps-scraper/maps-scraper.service';
 import {
@@ -119,6 +120,7 @@ export class LeadsService {
     private readonly crmScope: CrmScopeService,
     private readonly leadNotifications: LeadNotificationService,
     private readonly leadQualification: LeadQualificationService,
+    private readonly leadDossier: LeadDossierService,
     private readonly mapsScraper: MapsScraperService,
     private readonly leadSearchSessions: LeadSearchSessionService,
     private readonly whatsAppCrm: WhatsAppCrmService,
@@ -942,6 +944,26 @@ export class LeadsService {
         aiScore: result.score,
         aiNotes: result.notes,
         kanbanTracked: true,
+      },
+    });
+
+    return this.toLeadResponse(updated);
+  }
+
+  async dossier(user: AuthenticatedUser, id: string) {
+    const lead = await this.resolveLeadForUser(user, id);
+    const apifyToken = await this.resolveApifyToken();
+    const result = await this.leadDossier.collect(lead, apifyToken);
+
+    const updated = await this.prisma.lead.update({
+      where: { id: lead.id },
+      data: {
+        rawData: result.rawData,
+        ...(result.cnpj ? { cnpj: result.cnpj } : {}),
+        ...(result.latitude != null ? { latitude: result.latitude } : {}),
+        ...(result.longitude != null ? { longitude: result.longitude } : {}),
+        ...(result.instagram ? { instagram: result.instagram } : {}),
+        ...(result.website ? { website: result.website } : {}),
       },
     });
 

@@ -4,7 +4,9 @@ export declare function mapApifyPlaces(body: unknown, dto: FetchMapsLeadsDto): M
 export declare function buildApifyActorInput(dto: FetchMapsLeadsDto, maxResults: number, options?: {
     searchString?: string;
     locationQuery?: string;
+    maxImages?: number;
 }): {
+    maxImages?: number | undefined;
     searchStringsArray: string[];
     locationQuery: string;
     language: string;

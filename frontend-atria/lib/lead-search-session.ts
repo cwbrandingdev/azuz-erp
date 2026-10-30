@@ -4,14 +4,19 @@ import type { LeadSearchSessionSummary } from "@/services/company-search.service
 export function formatSearchSessionLabel(
   session: LeadSearchSessionSummary,
 ): string {
-  const typeLabel = "CNAE";
+  const typeLabel = session.queryType === "MAPS" ? "Maps" : "CNAE";
   const date = new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   }).format(new Date(session.createdAt));
 
-  return `Pesquisa ${typeLabel} ${session.queryValue} - ${session.city}/${session.uf} - ${date}`;
+  const place =
+    session.queryType === "MAPS"
+      ? [session.city, session.address].filter(Boolean).join(", ")
+      : `${session.city}/${session.uf}`;
+
+  return `Pesquisa ${typeLabel} ${session.queryValue} - ${place} - ${date}`;
 }
 
 export function filterLeadsByAddressContext(
