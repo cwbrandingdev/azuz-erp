@@ -149,6 +149,48 @@ export function canEditKanbanTask(
   return createdById === userId || assigneeIds.includes(userId);
 }
 
+export function canEditAllCalendar(
+  role: string | null | undefined,
+  explicitPermissions?: string[] | null,
+): boolean {
+  return hasAnyPermission(
+    role,
+    [Permission.SYSTEM_ALL, Permission.CALENDAR_ALL_EDIT],
+    explicitPermissions,
+  );
+}
+
+export function canEditOwnCalendarOnly(
+  role: string | null | undefined,
+  explicitPermissions?: string[] | null,
+): boolean {
+  return (
+    hasPermission(role, Permission.CALENDAR_OWN_EDIT, explicitPermissions) &&
+    !canEditAllCalendar(role, explicitPermissions)
+  );
+}
+
+// O evento não traz os membros do grupo atribuído, então quem só edita os
+// próprios eventos é liberado aqui apenas como criador ou responsável; o
+// backend continua sendo a validação final.
+export function canEditCalendarEvent(
+  role: string | null | undefined,
+  userId: string | null | undefined,
+  event: {
+    createdBy?: { id: string } | null;
+    assignee?: { id: string } | null;
+  },
+  explicitPermissions?: string[] | null,
+): boolean {
+  if (canEditAllCalendar(role, explicitPermissions)) {
+    return true;
+  }
+  if (!userId || !canEditOwnCalendarOnly(role, explicitPermissions)) {
+    return false;
+  }
+  return event.createdBy?.id === userId || event.assignee?.id === userId;
+}
+
 export function canAccessCrm(
   role: string | null | undefined,
   explicitPermissions?: string[] | null,

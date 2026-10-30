@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
 import {
   AlertCircle,
   Calendar as CalendarIcon,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { calendarService, clientsService } from "@/services";
 import type { CalendarEvent, Client, TeamMember } from "@/services/types";
+import { useCalendarEventMove } from "@/hooks/use-calendar-event-move";
 import { useCalendarEvents } from "@/hooks/use-calendar-events";
 import { useTasks } from "@/hooks/use-tasks";
 import {
@@ -24,6 +26,7 @@ import { CreateEventDialog } from "./create-event-dialog";
 import { CalendarEventStatusMenu } from "./calendar-event-status-menu";
 import { EventDetailDialog } from "./event-detail-dialog";
 import { CalendarDayView } from "./calendar-day-view";
+import { parseDayDroppableId } from "./calendar-day-drop-zone";
 import { CalendarMonthView } from "./calendar-month-view";
 import { CalendarStatusLegend } from "./calendar-status-legend";
 import { CalendarWeekView } from "./calendar-week-view";
@@ -130,9 +133,19 @@ export function TeamCalendar() {
       document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
+  const refreshSyncedViews = useCallback(async () => {
+    await invalidateTasksCache(queryClient);
+    await refetchEvents();
+  }, [queryClient, refetchEvents]);
+
+  const { canDragEvent, moveEvent, applyPendingMoves } = useCalendarEventMove({
+    tasks,
+    onMoved: refreshSyncedViews,
+  });
+
   const events = useMemo(
-    () => mergeCalendarEventsWithTasks(fetchedEvents, tasks),
-    [fetchedEvents, tasks],
+    () => applyPendingMoves(mergeCalendarEventsWithTasks(fetchedEvents, tasks)),
+    [fetchedEvents, tasks, applyPendingMoves],
   );
 
   useEffect(() => {
@@ -216,10 +229,15 @@ export function TeamCalendar() {
     return map;
   }, [filteredEvents]);
 
-  const refreshSyncedViews = useCallback(async () => {
-    await invalidateTasksCache(queryClient);
-    await refetchEvents();
-  }, [queryClient, refetchEvents]);
+  function handleDragEnd(result: DropResult) {
+    if (!result.destination) return;
+    const targetDay = parseDayDroppableId(result.destination.droppableId);
+    const movingEvent = filteredEvents.find(
+      (evt) => evt.id === result.draggableId,
+    );
+    if (!targetDay || !movingEvent) return;
+    void moveEvent(movingEvent, targetDay);
+  }
 
   const openEventDetail = useCallback((event: CalendarEvent) => {
     setSelectedEvent(event);
@@ -425,29 +443,33 @@ export function TeamCalendar() {
 
         <CalendarStatusLegend className="mb-4 shrink-0" />
 
-        {view === "month" && (
-          <CalendarMonthView
-            currentDate={currentDate}
-            selectedDate={selectedDate}
-            eventsByDay={eventsByDay}
-            loading={loading}
-            onSelectDate={setSelectedDate}
-            onOpenDetails={openEventDetail}
-          />
-        )}
+        <DragDropContext onDragEnd={handleDragEnd}>
+          {view === "month" && (
+            <CalendarMonthView
+              currentDate={currentDate}
+              selectedDate={selectedDate}
+              eventsByDay={eventsByDay}
+              loading={loading}
+              onSelectDate={setSelectedDate}
+              onOpenDetails={openEventDetail}
+              canDragEvent={canDragEvent}
+            />
+          )}
 
-        {view === "week" && (
-          <CalendarWeekView
-            anchorDate={currentDate}
-            eventsByDay={eventsByDay}
-            loading={loading}
-            onOpenDetails={openEventDetail}
-            onSelectDate={(date) => {
-              setSelectedDate(date);
-              setView("day");
-            }}
-          />
-        )}
+          {view === "week" && (
+            <CalendarWeekView
+              anchorDate={currentDate}
+              eventsByDay={eventsByDay}
+              loading={loading}
+              onOpenDetails={openEventDetail}
+              onSelectDate={(date) => {
+                setSelectedDate(date);
+                setView("day");
+              }}
+              canDragEvent={canDragEvent}
+            />
+          )}
+        </DragDropContext>
 
         {view === "day" && (
           <CalendarDayView

@@ -225,6 +225,65 @@ export function endOfDay(date: Date) {
   return next;
 }
 
+export function isBeforeToday(date: Date) {
+  return startOfDay(date).getTime() < startOfDay(new Date()).getTime();
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Conta dias de calendário via UTC para não errar em virada de horário de verão.
+function getCalendarDayOffset(from: Date, to: Date) {
+  const fromUtc = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+  const toUtc = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.round((toUtc - fromUtc) / MS_PER_DAY);
+}
+
+function addCalendarDays(value: string, days: number) {
+  const next = new Date(value);
+  next.setDate(next.getDate() + days);
+  return next.toISOString();
+}
+
+export type ShiftedEventSchedule = {
+  publicationAt: string;
+  deliveryAt: string;
+};
+
+// Leva a publicação para o dia de destino mantendo o horário, e a entrega anda
+// o mesmo número de dias para preservar o intervalo entre as duas.
+export function shiftEventScheduleToDay(
+  event: CalendarEventScheduleSource,
+  targetDay: Date,
+): ShiftedEventSchedule | null {
+  const publicationAt = getEventPublicationAt(event);
+  const dayOffset = getCalendarDayOffset(new Date(publicationAt), targetDay);
+  if (dayOffset === 0) return null;
+
+  return {
+    publicationAt: addCalendarDays(publicationAt, dayOffset),
+    deliveryAt: addCalendarDays(getEventDeliveryAt(event), dayOffset),
+  };
+}
+
+export function withEventSchedule(
+  event: CalendarEvent,
+  schedule: ShiftedEventSchedule,
+): CalendarEvent {
+  return {
+    ...event,
+    publicationDate: schedule.publicationAt,
+    startAt: schedule.publicationAt,
+    endAt: schedule.deliveryAt,
+    task: event.task
+      ? {
+          ...event.task,
+          publicationDate: schedule.publicationAt,
+          deliveryDate: schedule.deliveryAt,
+        }
+      : event.task,
+  };
+}
+
 export function getMondayWeekStart(date: Date) {
   const next = startOfDay(date);
   const day = next.getDay();

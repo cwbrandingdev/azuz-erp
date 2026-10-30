@@ -7,6 +7,8 @@ import {
   isSameDay,
 } from "@/lib/calendar-utils";
 import { cn } from "@/lib/utils";
+import { CalendarDayDropZone } from "./calendar-day-drop-zone";
+import { CalendarDraggableEvent } from "./calendar-draggable-event";
 import { CalendarEventChip } from "./calendar-event-chip";
 
 interface CalendarMonthViewProps {
@@ -16,6 +18,7 @@ interface CalendarMonthViewProps {
   loading: boolean;
   onSelectDate: (date: Date) => void;
   onOpenDetails: (event: CalendarEvent) => void;
+  canDragEvent: (event: CalendarEvent) => boolean;
 }
 
 export function CalendarMonthView({
@@ -25,6 +28,7 @@ export function CalendarMonthView({
   loading,
   onSelectDate,
   onOpenDetails,
+  canDragEvent,
 }: CalendarMonthViewProps) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -89,20 +93,27 @@ export function CalendarMonthView({
                   {day.getDate()}
                 </button>
 
-                <div
+                <CalendarDayDropZone
+                  day={day}
                   className={cn(
                     "calendar-day-scroll mt-1 flex min-h-0 max-h-[7.5rem] flex-1 flex-col gap-0.5 overflow-y-auto",
                     dayEvents.length > 3 && "pr-0.5",
                   )}
                 >
-                  {dayEvents.map((evt) => (
-                    <CalendarEventChip
+                  {dayEvents.map((evt, index) => (
+                    <CalendarDraggableEvent
                       key={evt.id}
-                      event={evt}
-                      onOpenDetails={onOpenDetails}
-                    />
+                      eventId={evt.id}
+                      index={index}
+                      canDrag={canDragEvent(evt)}
+                    >
+                      <CalendarEventChip
+                        event={evt}
+                        onOpenDetails={onOpenDetails}
+                      />
+                    </CalendarDraggableEvent>
                   ))}
-                </div>
+                </CalendarDayDropZone>
               </div>
             );
           })}
