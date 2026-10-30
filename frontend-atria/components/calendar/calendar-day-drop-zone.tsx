@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import { Droppable } from "@hello-pangea/dnd";
-import { isBeforeToday } from "@/lib/calendar-utils";
 import { cn } from "@/lib/utils";
 
 const DAY_DROPPABLE_PREFIX = "calendar-day:";
@@ -29,10 +28,7 @@ export function CalendarDayDropZone({
   children,
 }: CalendarDayDropZoneProps) {
   return (
-    <Droppable
-      droppableId={toDayDroppableId(day)}
-      isDropDisabled={isBeforeToday(day)}
-    >
+    <Droppable droppableId={toDayDroppableId(day)}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}

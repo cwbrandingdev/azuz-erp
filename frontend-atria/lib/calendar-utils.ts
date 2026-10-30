@@ -225,10 +225,6 @@ export function endOfDay(date: Date) {
   return next;
 }
 
-export function isBeforeToday(date: Date) {
-  return startOfDay(date).getTime() < startOfDay(new Date()).getTime();
-}
-
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // Conta dias de calendário via UTC para não errar em virada de horário de verão.
