@@ -401,10 +401,11 @@ function readFreshInstagramQualification(rawData) {
     if (!fetchedAt || Date.parse(fetchedAt) < Date.now() - exports.INSTAGRAM_CACHE_MS) {
         return null;
     }
-    const data = snapshot;
-    if (data.statsVersion !== 2 && data.statsVersion !== exports.INSTAGRAM_STATS_VERSION) {
+    const statsVersion = snapshot.statsVersion;
+    if (statsVersion !== 2 && statsVersion !== exports.INSTAGRAM_STATS_VERSION) {
         return null;
     }
+    const data = snapshot;
     if (!('biography' in data) || !('followersCount' in data)) {
         return null;
     }

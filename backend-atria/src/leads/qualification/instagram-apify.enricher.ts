@@ -548,10 +548,12 @@ export function readFreshInstagramQualification(
     return null;
   }
 
-  const data = snapshot as InstagramProfileQualificationData;
-  if (data.statsVersion !== 2 && data.statsVersion !== INSTAGRAM_STATS_VERSION) {
+  const statsVersion = (snapshot as { statsVersion?: unknown }).statsVersion;
+  if (statsVersion !== 2 && statsVersion !== INSTAGRAM_STATS_VERSION) {
     return null;
   }
+
+  const data = snapshot as InstagramProfileQualificationData;
   if (!('biography' in data) || !('followersCount' in data)) {
     return null;
   }

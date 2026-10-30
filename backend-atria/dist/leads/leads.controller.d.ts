@@ -452,8 +452,8 @@ export declare class LeadsController {
         createdAt: string;
         updatedAt: string;
         user: {
-            name: string;
             id: string;
+            name: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -464,8 +464,8 @@ export declare class LeadsController {
         createdAt: string;
         updatedAt: string;
         user: {
-            name: string;
             id: string;
+            name: string;
             email: string;
             avatarUrl: string | null;
         };
