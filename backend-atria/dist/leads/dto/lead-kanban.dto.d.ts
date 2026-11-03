@@ -14,6 +14,7 @@ export declare class AddLeadToKanbanDto {
     source?: string;
     organizationId?: string | null;
     stageId?: string;
+    ownerUserId?: string;
 }
 export declare class UpdateLeadStatusDto {
     status?: string;

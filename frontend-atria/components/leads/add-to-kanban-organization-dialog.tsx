@@ -10,9 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LeadOwnerSelect } from "@/components/leads/lead-owner-select";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import type { Organization } from "@/services/types";
+import type { CrmUserOption, Organization } from "@/services/types";
 
 interface AddToKanbanOrganizationDialogProps {
   open: boolean;
@@ -21,7 +22,9 @@ interface AddToKanbanOrganizationDialogProps {
   defaultOrganizationId?: string;
   leadCount?: number;
   loading?: boolean;
-  onConfirm: (organizationId: string) => void | Promise<void>;
+  owners?: CrmUserOption[];
+  requireOwner?: boolean;
+  onConfirm: (organizationId: string, ownerUserId?: string) => void | Promise<void>;
 }
 
 export function AddToKanbanOrganizationDialog({
@@ -31,9 +34,12 @@ export function AddToKanbanOrganizationDialog({
   defaultOrganizationId = "",
   leadCount = 1,
   loading = false,
+  owners = [],
+  requireOwner = false,
   onConfirm,
 }: AddToKanbanOrganizationDialogProps) {
   const [organizationId, setOrganizationId] = useState(defaultOrganizationId);
+  const [ownerUserId, setOwnerUserId] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -41,6 +47,7 @@ export function AddToKanbanOrganizationDialog({
       defaultOrganizationId ||
         (organizations.length === 1 ? organizations[0]?.id ?? "" : ""),
     );
+    setOwnerUserId("");
   }, [defaultOrganizationId, open, organizations]);
 
   const title =
@@ -75,6 +82,16 @@ export function AddToKanbanOrganizationDialog({
           />
         </Field>
 
+        {requireOwner && (
+          <LeadOwnerSelect
+            id="kanban-target-owner"
+            value={ownerUserId}
+            onChange={setOwnerUserId}
+            owners={owners}
+            required
+          />
+        )}
+
         <DialogFooter>
           <Button
             type="button"
@@ -86,9 +103,13 @@ export function AddToKanbanOrganizationDialog({
           </Button>
           <Button
             type="button"
-            disabled={!organizationId || loading}
+            disabled={
+              !organizationId || loading || (requireOwner && !ownerUserId)
+            }
             className="bg-[var(--atria-primary)] text-white"
-            onClick={() => void onConfirm(organizationId)}
+            onClick={() =>
+              void onConfirm(organizationId, ownerUserId || undefined)
+            }
           >
             {loading ? (
               <Loader2 className="size-4 animate-spin" />

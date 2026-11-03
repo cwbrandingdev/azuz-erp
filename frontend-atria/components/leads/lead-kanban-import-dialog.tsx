@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, FileSpreadsheet, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { LeadOwnerSelect } from "@/components/leads/lead-owner-select";
 import {
   LeadOrganizationSelect,
   resolveOrganizationIdForPayload,
@@ -21,14 +22,20 @@ import {
 } from "@/lib/leads-import";
 import { toast } from "@/lib/toast";
 import { leadsService } from "@/services";
-import type { AddLeadToKanbanInput } from "@/services/types";
+import type { AddLeadToKanbanInput, CrmUserOption } from "@/services/types";
 
 interface LeadKanbanImportDialogProps {
   onSuccess: () => void;
+  owners?: CrmUserOption[];
+  defaultOwnerUserId?: string;
+  requireOwner?: boolean;
 }
 
 export function LeadKanbanImportDialog({
   onSuccess,
+  owners = [],
+  defaultOwnerUserId,
+  requireOwner = false,
 }: LeadKanbanImportDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -37,6 +44,11 @@ export function LeadKanbanImportDialog({
   const [previewCount, setPreviewCount] = useState(0);
   const [leads, setLeads] = useState<AddLeadToKanbanInput[]>([]);
   const [organizationValue, setOrganizationValue] = useState("");
+  const [ownerUserId, setOwnerUserId] = useState(defaultOwnerUserId ?? "");
+
+  useEffect(() => {
+    if (open) setOwnerUserId(defaultOwnerUserId ?? "");
+  }, [defaultOwnerUserId, open]);
 
   function handleFile(file: File) {
     const reader = new FileReader();
@@ -72,6 +84,11 @@ export function LeadKanbanImportDialog({
       return;
     }
 
+    if (requireOwner && !ownerUserId) {
+      toast.error("Selecione o responsável pelo lead.");
+      return;
+    }
+
     setLoading(true);
     let added = 0;
     let failed = 0;
@@ -82,6 +99,7 @@ export function LeadKanbanImportDialog({
           await leadsService.addToKanban({
             ...lead,
             organizationId,
+            ...(ownerUserId ? { ownerUserId } : {}),
           });
           added += 1;
         } catch {
@@ -145,6 +163,15 @@ export function LeadKanbanImportDialog({
           onChange={setOrganizationValue}
           id="kanban-import-organization"
         />
+        {requireOwner && (
+          <LeadOwnerSelect
+            id="kanban-import-owner"
+            value={ownerUserId}
+            onChange={setOwnerUserId}
+            owners={owners}
+            required
+          />
+        )}
         <p className="text-sm text-[var(--atria-primary)]/55">
           Compatível com exportações LeadMiner (Empresa, Telefone, Website,
           Endereço, Cidade, Categoria, Link Maps) e planilhas simples com
@@ -191,7 +218,11 @@ export function LeadKanbanImportDialog({
           </p>
         )}
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+          >
             Cancelar
           </Button>
           <Button

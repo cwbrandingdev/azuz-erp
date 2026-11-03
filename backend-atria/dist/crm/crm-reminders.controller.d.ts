@@ -1,10 +1,11 @@
 import { type AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { LeadsService } from '../leads/leads.service';
+import { ProspectingLeadsQueryDto } from './dto/prospecting-leads-query.dto';
 import { UpdateCrmReminderDto } from './dto/update-crm-reminder.dto';
 export declare class CrmRemindersController {
     private readonly leadsService;
     constructor(leadsService: LeadsService);
-    findBoard(user: AuthenticatedUser): Promise<{
+    findBoard(user: AuthenticatedUser, query: ProspectingLeadsQueryDto): Promise<{
         columns: ({
             tasks: {
                 id: string;
@@ -68,7 +69,7 @@ export declare class CrmRemindersController {
         })[];
         total: number;
     }>;
-    updateStatus(id: string, dto: UpdateCrmReminderDto): Promise<{
+    updateStatus(user: AuthenticatedUser, id: string, dto: UpdateCrmReminderDto): Promise<{
         id: string;
         companyId: string;
         leadId: string;

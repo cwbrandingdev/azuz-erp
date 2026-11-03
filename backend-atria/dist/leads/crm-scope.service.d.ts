@@ -25,11 +25,21 @@ export declare class CrmScopeService {
     }, scope: UserCrmScopeSnapshot): boolean;
     assertLeadAccess(user: AuthenticatedUser, lead: {
         organizationId: string | null;
+        ownerUserId?: string | null;
+        kanbanTracked?: boolean;
     }): Promise<void>;
     assertOrganizationAllowsLeadCreation(organizationId: string | null | undefined): Promise<void>;
     assertUserCanManageOrganization(user: AuthenticatedUser, organizationId: string): Promise<void>;
     buildProspectingLeadOrganizationFilter(user: AuthenticatedUser, organizationId?: string): Promise<Prisma.LeadWhereInput>;
     buildKanbanLeadOrganizationFilter(user: AuthenticatedUser, organizationId?: string): Promise<Prisma.LeadWhereInput>;
+    buildKanbanOwnerFilter(user: AuthenticatedUser, ownerUserId?: string): Prisma.LeadWhereInput;
+    buildOwnedOrSharedLeadFilter(user: AuthenticatedUser, organizationFilter: Prisma.LeadWhereInput): Prisma.LeadWhereInput;
+    resolveOwnerFilter(user: AuthenticatedUser, requestedOwnerUserId?: string | null): Promise<string | undefined>;
+    resolveLeadOwnerUserId(user: AuthenticatedUser, requestedOwnerUserId?: string | null): Promise<string | null>;
+    listActiveCrmUsers(): Promise<{
+        id: string;
+        name: string;
+    }[]>;
     replaceUserScopes(userId: string, crmScopeClientIds: string[], crmIncludeInternal: boolean): Promise<void>;
     clearUserScopes(userId: string): Promise<void>;
     replaceOrganizationSdrAssignments(organizationId: string, sdrUserIds: string[]): Promise<void>;

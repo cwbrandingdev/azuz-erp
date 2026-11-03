@@ -45,6 +45,7 @@ interface LeadKanbanCardProps {
   onOpenDetails: (lead: Lead) => void;
   onRemove?: (leadId: string) => void;
   showOrcamento?: boolean;
+  showOwner?: boolean;
   onOrcamentoChange?: (leadId: string, orcamento: number | null) => void;
 }
 
@@ -61,6 +62,7 @@ export function LeadKanbanCard({
   onOpenDetails,
   onRemove,
   showOrcamento = false,
+  showOwner = false,
   onOrcamentoChange,
 }: LeadKanbanCardProps) {
   const confirm = useConfirm();
@@ -135,10 +137,7 @@ export function LeadKanbanCard({
 
       <div className="flex items-start gap-2">
         {columnLocked ? (
-          <span
-            className="mt-0.5 text-[var(--atria-primary)]/25"
-            aria-hidden
-          >
+          <span className="mt-0.5 text-[var(--atria-primary)]/25" aria-hidden>
             <Lock className="size-4" />
           </span>
         ) : (
@@ -162,6 +161,11 @@ export function LeadKanbanCard({
           {lead.contactName?.trim() && (
             <p className="mt-0.5 truncate text-xs text-[var(--atria-primary)]/60">
               Fala com: {lead.contactName.trim()}
+            </p>
+          )}
+          {showOwner && lead.ownerName?.trim() && (
+            <p className="mt-0.5 truncate text-xs text-[var(--atria-primary)]/60">
+              Responsável: {lead.ownerName.trim()}
             </p>
           )}
           {(lead.category ||

@@ -20,17 +20,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LeadOwnerSelect } from "@/components/leads/lead-owner-select";
 import {
   LeadOrganizationSelect,
   resolveOrganizationIdForPayload,
 } from "@/components/leads/lead-organization-select";
 import { toast } from "@/lib/toast";
 import { leadsService } from "@/services";
-import type { LeadKanbanColumn, LeadStage } from "@/services/types";
+import type {
+  CrmUserOption,
+  LeadKanbanColumn,
+  LeadStage,
+} from "@/services/types";
 
 interface LeadKanbanFormDialogProps {
   onSuccess: () => void;
   columns?: LeadKanbanColumn[];
+  owners?: CrmUserOption[];
+  defaultOwnerUserId?: string;
+  requireOwner?: boolean;
 }
 
 const EMPTY_FORM = {
@@ -49,11 +57,15 @@ const EMPTY_FORM = {
 export function LeadKanbanFormDialog({
   onSuccess,
   columns = [],
+  owners = [],
+  defaultOwnerUserId,
+  requireOwner = false,
 }: LeadKanbanFormDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [organizationValue, setOrganizationValue] = useState("");
+  const [ownerUserId, setOwnerUserId] = useState(defaultOwnerUserId ?? "");
   const [stages, setStages] = useState<LeadStage[]>([]);
   const [stageId, setStageId] = useState("");
 
@@ -87,6 +99,7 @@ export function LeadKanbanFormDialog({
   function resetForm() {
     setForm(EMPTY_FORM);
     setOrganizationValue("");
+    setOwnerUserId(defaultOwnerUserId ?? "");
     setStages([]);
     setStageId(fallbackColumns[0]?.id ?? "");
   }
@@ -144,6 +157,11 @@ export function LeadKanbanFormDialog({
       return;
     }
 
+    if (requireOwner && !ownerUserId) {
+      toast.error("Selecione o responsável pelo lead.");
+      return;
+    }
+
     setLoading(true);
     try {
       await leadsService.addToKanban({
@@ -159,6 +177,7 @@ export function LeadKanbanFormDialog({
         source: form.source.trim() || "manual",
         organizationId,
         stageId: stageId || undefined,
+        ...(ownerUserId ? { ownerUserId } : {}),
       });
 
       toast.success(`${name} adicionado ao kanban.`);
@@ -177,6 +196,7 @@ export function LeadKanbanFormDialog({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
+        if (next) setOwnerUserId(defaultOwnerUserId ?? "");
         if (!next) resetForm();
       }}
     >
@@ -197,13 +217,25 @@ export function LeadKanbanFormDialog({
             Adicionar lead manualmente
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col gap-4">
+        <form
+          onSubmit={(event) => void handleSubmit(event)}
+          className="flex flex-col gap-4"
+        >
           <FieldGroup>
             <LeadOrganizationSelect
               value={organizationValue}
               onChange={setOrganizationValue}
               id="kanban-lead-organization"
             />
+            {requireOwner && (
+              <LeadOwnerSelect
+                id="kanban-lead-owner"
+                value={ownerUserId}
+                onChange={setOwnerUserId}
+                owners={owners}
+                required
+              />
+            )}
             <Field>
               <FieldLabel htmlFor="kanban-lead-column">Coluna *</FieldLabel>
               <Select
@@ -299,7 +331,9 @@ export function LeadKanbanFormDialog({
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
-                <FieldLabel htmlFor="kanban-lead-category">Categoria</FieldLabel>
+                <FieldLabel htmlFor="kanban-lead-category">
+                  Categoria
+                </FieldLabel>
                 <Input
                   id="kanban-lead-category"
                   value={form.category}
@@ -321,7 +355,9 @@ export function LeadKanbanFormDialog({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
-                <FieldLabel htmlFor="kanban-lead-neighborhood">Bairro</FieldLabel>
+                <FieldLabel htmlFor="kanban-lead-neighborhood">
+                  Bairro
+                </FieldLabel>
                 <Input
                   id="kanban-lead-neighborhood"
                   value={form.neighborhood}

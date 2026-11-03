@@ -7,6 +7,7 @@ import type {
   CrmReminderTask,
   CrmReminderTaskStatus,
   FetchMapsLeadsInput,
+  CrmUserOption,
   Lead,
   LeadComment,
   LeadKanbanBoard,
@@ -74,12 +75,20 @@ export async function listProspectingLeads(
   return apiRequest<Lead[]>(`/crm/leads/prospecting-leads${query}`);
 }
 
+export async function listCrmUsers(): Promise<CrmUserOption[]> {
+  return apiRequest<CrmUserOption[]>("/crm/leads/owners");
+}
+
 export async function getKanbanBoard(
   organizationId?: string,
+  ownerUserId?: string,
 ): Promise<LeadKanbanBoard> {
   const params = new URLSearchParams();
   if (organizationId) {
     params.set("organizationId", organizationId);
+  }
+  if (ownerUserId) {
+    params.set("ownerUserId", ownerUserId);
   }
   const query = params.toString() ? `?${params.toString()}` : "";
   return apiRequest<LeadKanbanBoard>(`/crm/leads/kanban${query}`);
@@ -210,7 +219,9 @@ export async function reorderLeadStages(
   });
 }
 
-export async function deleteLeadStage(id: string): Promise<{ success: boolean }> {
+export async function deleteLeadStage(
+  id: string,
+): Promise<{ success: boolean }> {
   return apiRequest<{ success: boolean }>(`/crm/stages/${id}`, {
     method: "DELETE",
   });
@@ -234,8 +245,15 @@ export async function updateCrmBoardSettings(data: {
   });
 }
 
-export async function getReminderBoard(): Promise<CrmReminderBoard> {
-  return apiRequest<CrmReminderBoard>("/crm/reminders");
+export async function getReminderBoard(
+  ownerUserId?: string,
+): Promise<CrmReminderBoard> {
+  const params = new URLSearchParams();
+  if (ownerUserId) {
+    params.set("ownerUserId", ownerUserId);
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return apiRequest<CrmReminderBoard>(`/crm/reminders${query}`);
 }
 
 export async function updateReminderStatus(

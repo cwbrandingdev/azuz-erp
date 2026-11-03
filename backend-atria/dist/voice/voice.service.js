@@ -182,7 +182,9 @@ let VoiceService = class VoiceService {
         const body = this.readWebhookBody(req);
         const callSid = body.CallSid;
         const parentSid = body.ParentCallSid;
-        const callStatus = (body.CallStatus || body.DialCallStatus || '').toLowerCase();
+        const callStatus = (body.CallStatus ||
+            body.DialCallStatus ||
+            '').toLowerCase();
         const durationRaw = body.CallDuration || body.DialCallDuration;
         if (!callSid && !parentSid)
             return;
@@ -196,7 +198,9 @@ let VoiceService = class VoiceService {
         });
         if (!call)
             return;
-        const durationSeconds = durationRaw ? Number.parseInt(durationRaw, 10) : null;
+        const durationSeconds = durationRaw
+            ? Number.parseInt(durationRaw, 10)
+            : null;
         const twilioOutcome = this.outcomeFromTwilioStatus(callStatus);
         const shouldLockOutcome = voice_constants_1.LOCKED_AGENT_OUTCOMES.has(call.outcome);
         await this.prisma.leadCall.update({
@@ -206,8 +210,12 @@ let VoiceService = class VoiceService {
                 durationSeconds: Number.isFinite(durationSeconds) && durationSeconds !== null
                     ? durationSeconds
                     : call.durationSeconds,
-                endedAt: this.isTerminalStatus(callStatus) ? (call.endedAt ?? new Date()) : call.endedAt,
-                outcome: shouldLockOutcome ? call.outcome : twilioOutcome ?? call.outcome,
+                endedAt: this.isTerminalStatus(callStatus)
+                    ? (call.endedAt ?? new Date())
+                    : call.endedAt,
+                outcome: shouldLockOutcome
+                    ? call.outcome
+                    : (twilioOutcome ?? call.outcome),
             },
         });
     }
@@ -232,11 +240,15 @@ let VoiceService = class VoiceService {
         const accountSid = this.config.get('TWILIO_ACCOUNT_SID')?.trim();
         const authToken = this.config.get('TWILIO_AUTH_TOKEN')?.trim();
         const apiKeySid = this.config.get('TWILIO_API_KEY_SID')?.trim();
-        const apiKeySecret = this.config.get('TWILIO_API_KEY_SECRET')?.trim();
+        const apiKeySecret = this.config
+            .get('TWILIO_API_KEY_SECRET')
+            ?.trim();
         const twimlAppSid = this.config.get('TWILIO_TWIML_APP_SID')?.trim();
         const callerId = (0, phone_util_1.toE164)(this.config.get('TWILIO_CALLER_ID')?.trim() ?? '');
-        const webhookBaseUrl = this.config.get('TWILIO_WEBHOOK_BASE_URL')?.trim().replace(/\/$/, '') ||
-            null;
+        const webhookBaseUrl = this.config
+            .get('TWILIO_WEBHOOK_BASE_URL')
+            ?.trim()
+            .replace(/\/$/, '') || null;
         if (!accountSid ||
             !authToken ||
             !apiKeySid ||

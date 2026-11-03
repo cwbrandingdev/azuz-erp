@@ -26,6 +26,7 @@ class CreateCrmLeadDto {
     source;
     organizationId;
     stageId;
+    ownerUserId;
 }
 exports.CreateCrmLeadDto = CreateCrmLeadDto;
 __decorate([
@@ -102,4 +103,8 @@ __decorate([
     (0, entity_id_1.IsEntityId)({ optional: true }),
     __metadata("design:type", String)
 ], CreateCrmLeadDto.prototype, "stageId", void 0);
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], CreateCrmLeadDto.prototype, "ownerUserId", void 0);
 //# sourceMappingURL=create-crm-lead.dto.js.map

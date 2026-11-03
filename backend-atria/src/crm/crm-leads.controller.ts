@@ -42,12 +42,21 @@ export class CrmLeadsController {
     return this.leadsService.findProspectingLeads(user, query.organizationId);
   }
 
+  @Get('owners')
+  listOwners(@CurrentUser() user: AuthenticatedUser) {
+    return this.leadsService.listLeadOwners(user);
+  }
+
   @Get('kanban')
   getKanbanBoard(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ProspectingLeadsQueryDto,
   ) {
-    return this.leadsService.findKanbanBoard(user, query.organizationId);
+    return this.leadsService.findKanbanBoard(
+      user,
+      query.organizationId,
+      query.ownerUserId,
+    );
   }
 
   @Post()

@@ -36,7 +36,11 @@ import { FetchMapsLeadsDto } from './dto/fetch-maps-leads.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadStagesService } from './lead-stages.service';
-import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, ORCAMENTO_STAGE_KEY } from './lead-kanban.constants';
+import {
+  LEAD_STATUS_COLORS,
+  LEAD_STATUS_LABELS,
+  ORCAMENTO_STAGE_KEY,
+} from './lead-kanban.constants';
 import { assertLeadStatusMoveAllowed } from './lead-pipeline-zones';
 import { LeadDossierService } from './qualification/lead-dossier.service';
 import { LeadQualificationService } from './qualification/lead-qualification.service';
@@ -67,6 +71,10 @@ const OUTSCRAPER_LIMIT = 25;
 const APIFY_TIMEOUT_MS = 180_000;
 const APIFY_DEFAULT_MAX_RESULTS = 25;
 const APIFY_MAX_RESULTS_LIMIT = 120;
+
+const leadOwnerInclude = {
+  owner: { select: { id: true, name: true } },
+} satisfies Prisma.LeadInclude;
 
 interface OutscraperPlace {
   name?: string;
@@ -371,11 +379,15 @@ export class LeadsService {
     user?: AuthenticatedUser,
   ): Promise<ReturnType<LeadsService['toLeadResponse']>[]> {
     const orgFilter = user
-      ? await this.crmScope.buildLeadOrganizationFilter(user)
+      ? this.crmScope.buildOwnedOrSharedLeadFilter(
+          user,
+          await this.crmScope.buildLeadOrganizationFilter(user),
+        )
       : {};
 
     const leads = await this.prisma.lead.findMany({
       where: { deletedAt: null, ...orgFilter },
+      include: leadOwnerInclude,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -387,11 +399,15 @@ export class LeadsService {
   ): Promise<ReturnType<LeadsService['toCrmLeadResponse']>[]> {
     const where: Prisma.LeadWhereInput = {
       deletedAt: null,
-      ...(await this.crmScope.buildLeadOrganizationFilter(user)),
+      ...this.crmScope.buildOwnedOrSharedLeadFilter(
+        user,
+        await this.crmScope.buildLeadOrganizationFilter(user),
+      ),
     };
 
     const leads = await this.prisma.lead.findMany({
       where,
+      include: leadOwnerInclude,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -404,14 +420,18 @@ export class LeadsService {
   ): Promise<ReturnType<LeadsService['toCrmLeadResponse']>[]> {
     const where: Prisma.LeadWhereInput = {
       deletedAt: null,
-      ...(await this.crmScope.buildProspectingLeadOrganizationFilter(
+      ...this.crmScope.buildOwnedOrSharedLeadFilter(
         user,
-        organizationId,
-      )),
+        await this.crmScope.buildProspectingLeadOrganizationFilter(
+          user,
+          organizationId,
+        ),
+      ),
     };
 
     const leads = await this.prisma.lead.findMany({
       where,
+      include: leadOwnerInclude,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -429,14 +449,26 @@ export class LeadsService {
     const updated = await this.prisma.lead.update({
       where: { id: lead.id },
       data: { isMinimized: nextMinimized },
+      include: leadOwnerInclude,
     });
 
     return this.toCrmLeadResponse(updated);
   }
 
+  async listLeadOwners(user: AuthenticatedUser) {
+    if (!this.crmScope.canAccessAllOrganizations(user.role)) {
+      throw new ForbiddenException(
+        'Apenas Master ou Admin podem listar responsáveis.',
+      );
+    }
+
+    return this.crmScope.listActiveCrmUsers();
+  }
+
   async findKanbanBoard(
     user: AuthenticatedUser,
     organizationId?: string,
+    ownerUserId?: string,
   ) {
     const stageOrganizationId = this.resolveKanbanOrganizationId(
       user,
@@ -447,10 +479,28 @@ export class LeadsService {
       user,
       organizationId,
     );
+    const resolvedOwnerId = await this.crmScope.resolveOwnerFilter(
+      user,
+      ownerUserId,
+    );
+    const ownerFilter = this.crmScope.buildKanbanOwnerFilter(
+      user,
+      resolvedOwnerId,
+    );
+    const scopeFilters = [orgFilter, ownerFilter].filter(
+      (filter) => Object.keys(filter).length > 0,
+    );
 
     const leads = await this.prisma.lead.findMany({
-      where: { kanbanTracked: true, deletedAt: null, ...orgFilter },
-      include: { stage: { select: { id: true, key: true, name: true } } },
+      where: {
+        kanbanTracked: true,
+        deletedAt: null,
+        ...(scopeFilters.length > 0 ? { AND: scopeFilters } : {}),
+      },
+      include: {
+        stage: { select: { id: true, key: true, name: true } },
+        ...leadOwnerInclude,
+      },
       orderBy: [
         { status: 'asc' },
         { kanbanOrder: 'asc' },
@@ -489,10 +539,7 @@ export class LeadsService {
     };
   }
 
-  async getBoardSettings(
-    user: AuthenticatedUser,
-    organizationId?: string,
-  ) {
+  async getBoardSettings(user: AuthenticatedUser, organizationId?: string) {
     const scopedOrganizationId = this.resolveKanbanOrganizationId(
       user,
       organizationId,
@@ -557,6 +604,10 @@ export class LeadsService {
       organizationId,
     });
     const status = this.leadStages.statusFromStage(stage);
+    const ownerUserId = await this.crmScope.resolveLeadOwnerUserId(
+      user,
+      dto.ownerUserId,
+    );
 
     const lead = await this.prisma.lead.create({
       data: {
@@ -577,7 +628,9 @@ export class LeadsService {
         crmStatus: this.deriveCrmStatusFromPipeline(status),
         kanbanTracked: true,
         kanbanOrder: await this.nextKanbanOrderAtTop(status),
+        ...(ownerUserId ? { ownerUserId } : {}),
       },
+      include: leadOwnerInclude,
     });
 
     await this.createFollowUpReminder(lead);
@@ -585,7 +638,11 @@ export class LeadsService {
     return this.toCrmLeadResponse(lead);
   }
 
-  async updateForCrm(user: AuthenticatedUser, id: string, dto: UpdateCrmLeadDto) {
+  async updateForCrm(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdateCrmLeadDto,
+  ) {
     const lead = await this.findLeadForUser(user, id);
 
     const name = dto.name?.trim();
@@ -599,6 +656,11 @@ export class LeadsService {
       const trimmed = value.trim();
       return trimmed.length > 0 ? trimmed : null;
     };
+
+    const ownerUserId =
+      dto.ownerUserId !== undefined
+        ? await this.crmScope.resolveLeadOwnerUserId(user, dto.ownerUserId)
+        : undefined;
 
     const updated = await this.prisma.lead.update({
       where: { id: lead.id },
@@ -633,20 +695,41 @@ export class LeadsService {
         ...(dto.jobTitle !== undefined
           ? { jobTitle: emptyToNull(dto.jobTitle) }
           : {}),
+        ...(ownerUserId !== undefined && ownerUserId
+          ? { ownerUserId }
+          : {}),
       },
+      include: leadOwnerInclude,
     });
 
     return this.toLeadResponse(updated);
   }
 
-  async findReminderBoard(user: AuthenticatedUser) {
-    const orgFilter = await this.crmScope.buildLeadOrganizationFilter(user);
+  async findReminderBoard(user: AuthenticatedUser, ownerUserId?: string) {
+    const roleName = normalizeRoleName(user.role);
+    const resolvedOwnerId = await this.crmScope.resolveOwnerFilter(
+      user,
+      ownerUserId,
+    );
+    const leadFilter =
+      roleName === RoleName.CRM
+        ? { ownerUserId: user.userId }
+        : this.crmScope.buildKanbanOwnerFilter(
+            user,
+            resolvedOwnerId,
+          );
+
+    const orgFilter =
+      roleName === RoleName.CRM
+        ? {}
+        : await this.crmScope.buildLeadOrganizationFilter(user);
 
     const tasks = await this.prisma.crmReminderTask.findMany({
       where: {
         lead: {
           deletedAt: null,
           ...orgFilter,
+          ...leadFilter,
         },
       },
       include: {
@@ -674,14 +757,20 @@ export class LeadsService {
     };
   }
 
-  async updateReminderStatus(id: string, status: CrmReminderTaskStatus) {
+  async updateReminderStatus(
+    user: AuthenticatedUser,
+    id: string,
+    status: CrmReminderTaskStatus,
+  ) {
     const existing = await this.prisma.crmReminderTask.findFirst({
       where: { id },
-      select: { id: true },
+      include: { lead: true },
     });
-    if (!existing) {
+    if (!existing || existing.lead.deletedAt) {
       throw new NotFoundException('Lembrete não encontrado.');
     }
+
+    await this.crmScope.assertLeadAccess(user, existing.lead);
 
     const updated = await this.prisma.crmReminderTask.update({
       where: { id },
@@ -705,9 +794,13 @@ export class LeadsService {
     if (dto.leadId) {
       lead = await this.findLeadForUser(user, dto.leadId);
     } else if (dto.placeId) {
-      const orgFilter = await this.crmScope.buildLeadOrganizationFilter(user);
+      const orgFilter = this.crmScope.buildOwnedOrSharedLeadFilter(
+        user,
+        await this.crmScope.buildLeadOrganizationFilter(user),
+      );
       lead = await this.prisma.lead.findFirst({
         where: { placeId: dto.placeId, deletedAt: null, ...orgFilter },
+        include: leadOwnerInclude,
       });
     }
 
@@ -729,6 +822,10 @@ export class LeadsService {
         stageId: dto.stageId,
       });
       const status = this.leadStages.statusFromStage(stage);
+      const ownerUserId = await this.crmScope.resolveLeadOwnerUserId(
+        user,
+        dto.ownerUserId,
+      );
 
       lead = await this.prisma.lead.create({
         data: {
@@ -749,7 +846,9 @@ export class LeadsService {
           stageId: stage.id,
           kanbanTracked: true,
           kanbanOrder: await this.nextKanbanOrderAtTop(status),
+          ...(ownerUserId ? { ownerUserId } : {}),
         },
+        include: leadOwnerInclude,
       });
 
       await this.createFollowUpReminder(lead);
@@ -773,6 +872,11 @@ export class LeadsService {
       await this.crmScope.assertUserCanManageOrganization(user, organizationId);
     }
 
+    const ownerUserId = await this.crmScope.resolveLeadOwnerUserId(
+      user,
+      dto.ownerUserId,
+    );
+
     const updated = await this.prisma.lead.update({
       where: { id: lead.id },
       data: {
@@ -783,10 +887,12 @@ export class LeadsService {
           this.leadStages.statusFromStage(stage),
         ),
         ...(organizationId ? { organizationId } : {}),
+        ...(ownerUserId ? { ownerUserId } : {}),
         ...(dto.contactName !== undefined
           ? { contactName: dto.contactName.trim() || null }
           : {}),
       },
+      include: leadOwnerInclude,
     });
 
     return this.toLeadResponse(updated);
@@ -863,6 +969,7 @@ export class LeadsService {
         kanbanTracked: true,
         kanbanOrder: targetOrder,
       },
+      include: leadOwnerInclude,
     });
 
     if (stage.id !== lead.stageId) {
@@ -945,6 +1052,7 @@ export class LeadsService {
         aiNotes: result.notes,
         kanbanTracked: true,
       },
+      include: leadOwnerInclude,
     });
 
     return this.toLeadResponse(updated);
@@ -965,6 +1073,7 @@ export class LeadsService {
         ...(result.instagram ? { instagram: result.instagram } : {}),
         ...(result.website ? { website: result.website } : {}),
       },
+      include: leadOwnerInclude,
     });
 
     return this.toLeadResponse(updated);
@@ -1082,10 +1191,7 @@ export class LeadsService {
     });
   }
 
-  private async nextKanbanOrderAtTop(
-    status: LeadStatus,
-    excludeId?: string,
-  ) {
+  private async nextKanbanOrderAtTop(status: LeadStatus, excludeId?: string) {
     const minOrder = await this.prisma.lead.aggregate({
       where: {
         kanbanTracked: true,
@@ -1098,9 +1204,13 @@ export class LeadsService {
   }
 
   private async findLeadForUser(user: AuthenticatedUser, id: string) {
-    const orgFilter = await this.crmScope.buildLeadOrganizationFilter(user);
+    const orgFilter = this.crmScope.buildOwnedOrSharedLeadFilter(
+      user,
+      await this.crmScope.buildLeadOrganizationFilter(user),
+    );
     const lead = await this.prisma.lead.findFirst({
       where: { id, deletedAt: null, ...orgFilter },
+      include: leadOwnerInclude,
     });
     if (!lead) {
       throw new NotFoundException('Lead não encontrado.');
@@ -1266,7 +1376,9 @@ export class LeadsService {
     };
   }
 
-  private deriveCrmStatusFromPipeline(pipelineStatus: LeadStatus): CrmLeadStatus {
+  private deriveCrmStatusFromPipeline(
+    pipelineStatus: LeadStatus,
+  ): CrmLeadStatus {
     if (pipelineStatus === LeadStatus.NAO_TEM_INTERESSE) {
       return CrmLeadStatus.NO_INTEREST;
     }
@@ -1384,13 +1496,17 @@ export class LeadsService {
     };
   }
 
-  private toLeadResponse(lead: Lead) {
+  private toLeadResponse(
+    lead: Lead & { owner?: { id: string; name: string } | null },
+  ) {
     return {
       id: lead.id,
       companyId: lead.companyId,
       tenantId: lead.companyId,
       searchSessionId: lead.searchSessionId,
       organizationId: lead.organizationId,
+      ownerUserId: lead.ownerUserId,
+      ownerName: lead.owner?.name ?? null,
       name: lead.name,
       contactName: lead.contactName,
       phone: lead.phone,

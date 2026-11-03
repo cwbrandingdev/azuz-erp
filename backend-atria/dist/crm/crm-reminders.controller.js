@@ -20,33 +20,36 @@ const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const permissions_guard_1 = require("../auth/guards/permissions.guard");
 const rbac_1 = require("../auth/utils/rbac");
 const leads_service_1 = require("../leads/leads.service");
+const prospecting_leads_query_dto_1 = require("./dto/prospecting-leads-query.dto");
 const update_crm_reminder_dto_1 = require("./dto/update-crm-reminder.dto");
 let CrmRemindersController = class CrmRemindersController {
     leadsService;
     constructor(leadsService) {
         this.leadsService = leadsService;
     }
-    findBoard(user) {
-        return this.leadsService.findReminderBoard(user);
+    findBoard(user, query) {
+        return this.leadsService.findReminderBoard(user, query.ownerUserId);
     }
-    updateStatus(id, dto) {
-        return this.leadsService.updateReminderStatus(id, dto.status);
+    updateStatus(user, id, dto) {
+        return this.leadsService.updateReminderStatus(user, id, dto.status);
     }
 };
 exports.CrmRemindersController = CrmRemindersController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, prospecting_leads_query_dto_1.ProspectingLeadsQueryDto]),
     __metadata("design:returntype", void 0)
 ], CrmRemindersController.prototype, "findBoard", null);
 __decorate([
     (0, common_1.Patch)(':id'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_crm_reminder_dto_1.UpdateCrmReminderDto]),
+    __metadata("design:paramtypes", [Object, String, update_crm_reminder_dto_1.UpdateCrmReminderDto]),
     __metadata("design:returntype", void 0)
 ], CrmRemindersController.prototype, "updateStatus", null);
 exports.CrmRemindersController = CrmRemindersController = __decorate([

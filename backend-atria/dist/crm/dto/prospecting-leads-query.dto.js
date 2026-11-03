@@ -13,10 +13,15 @@ exports.ProspectingLeadsQueryDto = void 0;
 const entity_id_1 = require("../../common/validation/entity-id");
 class ProspectingLeadsQueryDto {
     organizationId;
+    ownerUserId;
 }
 exports.ProspectingLeadsQueryDto = ProspectingLeadsQueryDto;
 __decorate([
     (0, entity_id_1.IsEntityId)({ optional: true }),
     __metadata("design:type", String)
 ], ProspectingLeadsQueryDto.prototype, "organizationId", void 0);
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], ProspectingLeadsQueryDto.prototype, "ownerUserId", void 0);
 //# sourceMappingURL=prospecting-leads-query.dto.js.map

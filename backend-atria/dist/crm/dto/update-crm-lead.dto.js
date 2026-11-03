@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateCrmLeadDto = void 0;
+const entity_id_1 = require("../../common/validation/entity-id");
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 class UpdateCrmLeadDto {
@@ -27,6 +28,7 @@ class UpdateCrmLeadDto {
     orcamento;
     cnpj;
     jobTitle;
+    ownerUserId;
 }
 exports.UpdateCrmLeadDto = UpdateCrmLeadDto;
 __decorate([
@@ -115,4 +117,8 @@ __decorate([
     (0, class_validator_1.MaxLength)(120),
     __metadata("design:type", Object)
 ], UpdateCrmLeadDto.prototype, "jobTitle", void 0);
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], UpdateCrmLeadDto.prototype, "ownerUserId", void 0);
 //# sourceMappingURL=update-crm-lead.dto.js.map

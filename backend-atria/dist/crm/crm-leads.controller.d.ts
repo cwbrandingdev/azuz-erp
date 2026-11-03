@@ -18,6 +18,8 @@ export declare class CrmLeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -60,6 +62,8 @@ export declare class CrmLeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -92,6 +96,10 @@ export declare class CrmLeadsController {
         createdAt: string;
         updatedAt: string;
     }[]>;
+    listOwners(user: AuthenticatedUser): Promise<{
+        id: string;
+        name: string;
+    }[]>;
     getKanbanBoard(user: AuthenticatedUser, query: ProspectingLeadsQueryDto): Promise<{
         columns: {
             id: string;
@@ -106,6 +114,8 @@ export declare class CrmLeadsController {
                 tenantId: string;
                 searchSessionId: string | null;
                 organizationId: string | null;
+                ownerUserId: string | null;
+                ownerName: string | null;
                 name: string;
                 contactName: string | null;
                 phone: string | null;
@@ -154,6 +164,8 @@ export declare class CrmLeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -192,6 +204,8 @@ export declare class CrmLeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -235,6 +249,8 @@ export declare class CrmLeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -273,6 +289,8 @@ export declare class CrmLeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;

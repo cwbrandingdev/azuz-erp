@@ -260,13 +260,12 @@ export interface CreateCalendarEventInput {
   referenceUrl?: string;
 }
 
-export interface UpdateCalendarEventInput
-  extends Partial<
-    Omit<
-      CreateCalendarEventInput,
-      "assigneeId" | "assignedGroupId" | "clientId" | "referenceUrl"
-    >
-  > {
+export interface UpdateCalendarEventInput extends Partial<
+  Omit<
+    CreateCalendarEventInput,
+    "assigneeId" | "assignedGroupId" | "clientId" | "referenceUrl"
+  >
+> {
   assigneeId?: string | null;
   assignedGroupId?: string | null;
   clientId?: string | null;
@@ -274,18 +273,9 @@ export interface UpdateCalendarEventInput
   status?: KanbanTaskStatus;
 }
 
-export type KanbanPriority =
-  | "critical"
-  | "high"
-  | "medium"
-  | "low"
-  | "planned";
+export type KanbanPriority = "critical" | "high" | "medium" | "low" | "planned";
 
-export type KanbanColumnType =
-  | "to_do"
-  | "in_progress"
-  | "done"
-  | "custom";
+export type KanbanColumnType = "to_do" | "in_progress" | "done" | "custom";
 
 export type KanbanTaskStatus =
   | "ok"
@@ -581,7 +571,12 @@ export interface ManagementDashboard {
     expenseCount: number;
     expenseAmount: number;
   };
-  projection: { days: number; income: number; expense: number; balance: number }[];
+  projection: {
+    days: number;
+    income: number;
+    expense: number;
+    balance: number;
+  }[];
   breakEven: number;
   aboveEquilibrium: boolean;
   profitability: number;
@@ -591,7 +586,13 @@ export interface ManagementDashboard {
     percent: number;
     emphasize?: boolean;
   }[];
-  monthly: { month: string; label: string; income: number; expense: number; result: number }[];
+  monthly: {
+    month: string;
+    label: string;
+    income: number;
+    expense: number;
+    result: number;
+  }[];
 }
 
 export interface CashFlowEntry {
@@ -818,7 +819,10 @@ export interface Client {
   address: string | null;
   notes: string | null;
   avatarUrl: string | null;
-  clientGroup: Pick<ClientGroup, "id" | "name" | "description" | "color"> | null;
+  clientGroup: Pick<
+    ClientGroup,
+    "id" | "name" | "description" | "color"
+  > | null;
   postCount: number;
   requestCount: number;
   pendingRequestCount: number;
@@ -2213,8 +2217,7 @@ export interface CreateArtTypePricingInput {
   description?: string;
 }
 
-export interface UpdateArtTypePricingInput
-  extends Partial<CreateArtTypePricingInput> {}
+export interface UpdateArtTypePricingInput extends Partial<CreateArtTypePricingInput> {}
 
 export interface CalendarEntry {
   id: string;
@@ -2247,8 +2250,7 @@ export interface CreateCalendarEntryInput {
   storyQuantity?: number;
 }
 
-export interface UpdateCalendarEntryInput
-  extends Partial<CreateCalendarEntryInput> {}
+export interface UpdateCalendarEntryInput extends Partial<CreateCalendarEntryInput> {}
 
 export interface AgendaConfirmation {
   id: string;
@@ -2294,8 +2296,7 @@ export interface CreateAgendaEventInput {
   status?: string;
 }
 
-export interface UpdateAgendaEventInput
-  extends Partial<CreateAgendaEventInput> {}
+export interface UpdateAgendaEventInput extends Partial<CreateAgendaEventInput> {}
 
 export type PortalRequestContentType =
   | "rede_social"
@@ -2305,10 +2306,7 @@ export type PortalRequestContentType =
   | "ensaio_fotografico"
   | "outro";
 
-export type PortalRequestStatus =
-  | "pending"
-  | "converted_to_task"
-  | "rejected";
+export type PortalRequestStatus = "pending" | "converted_to_task" | "rejected";
 
 export interface PortalRequestComment {
   id: string;
@@ -2335,12 +2333,14 @@ export interface PortalClientRequest {
   description: string | null;
   contentType: PortalRequestContentType;
   referenceLinks: string[];
-  attachments: Array<{
-    name?: string;
-    url: string;
-    mimeType?: string;
-    fileSize?: number;
-  }> | unknown;
+  attachments:
+    | Array<{
+        name?: string;
+        url: string;
+        mimeType?: string;
+        fileSize?: number;
+      }>
+    | unknown;
   status: PortalRequestStatus;
   relatedTaskId: string | null;
   comments: PortalRequestComment[];
@@ -2366,12 +2366,14 @@ export interface ClientRequest {
   description: string | null;
   contentType?: PortalRequestContentType;
   referenceLinks?: string[];
-  attachments: Array<{
-    name?: string;
-    url: string;
-    mimeType?: string;
-    fileSize?: number;
-  }> | unknown;
+  attachments:
+    | Array<{
+        name?: string;
+        url: string;
+        mimeType?: string;
+        fileSize?: number;
+      }>
+    | unknown;
   status: PortalRequestStatus | string;
   rejectionReason?: string | null;
   relatedTaskId: string | null;
@@ -2402,8 +2404,7 @@ export interface CreateClientRequestInput {
   relatedTaskId?: string;
 }
 
-export interface UpdateClientRequestInput
-  extends Partial<CreateClientRequestInput> {}
+export interface UpdateClientRequestInput extends Partial<CreateClientRequestInput> {}
 
 export interface ClientReportFile {
   id: string;
@@ -2427,8 +2428,7 @@ export interface CreateClientReportFileInput {
   status?: string;
 }
 
-export interface UpdateClientReportFileInput
-  extends Partial<CreateClientReportFileInput> {}
+export interface UpdateClientReportFileInput extends Partial<CreateClientReportFileInput> {}
 
 export type LeadStatus =
   | "PRE_VENDA"
@@ -2448,6 +2448,8 @@ export interface Lead {
   tenantId?: string;
   searchSessionId?: string | null;
   organizationId?: string | null;
+  ownerUserId?: string | null;
+  ownerName?: string | null;
   name: string;
   contactName?: string | null;
   phone: string | null;
@@ -2514,6 +2516,12 @@ export interface UpdateCrmLeadInput {
   orcamento?: number | null;
   cnpj?: string | null;
   jobTitle?: string | null;
+  ownerUserId?: string;
+}
+
+export interface CrmUserOption {
+  id: string;
+  name: string;
 }
 
 export interface AddLeadToKanbanInput {
@@ -2532,6 +2540,7 @@ export interface AddLeadToKanbanInput {
   source?: string;
   organizationId?: string | null;
   stageId?: string;
+  ownerUserId?: string;
 }
 
 export interface UpdateLeadStatusInput {
@@ -2831,4 +2840,3 @@ export type {
   CreateAppUpdateInput,
   UpdateAppUpdateInput,
 } from "./app-updates";
-
