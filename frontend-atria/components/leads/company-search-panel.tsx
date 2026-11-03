@@ -37,10 +37,11 @@ import {
   writePersistedB2bProspectingState,
 } from "@/lib/lead-prospecting-persistence";
 import type { B2bLeadSearchResponse } from "@/services/company-search.service";
+import { useCrmUsers } from "@/hooks/use-crm-users";
 import { useSdrAssignedOrganizations } from "@/hooks/use-sdr-assigned-organizations";
 import { buildAddToKanbanInput } from "@/lib/lead-external-utils";
 import { formatSearchSessionLabel } from "@/lib/lead-search-session";
-import { normalizeAppRole } from "@/lib/permissions";
+import { isMasterOrAdmin, normalizeAppRole } from "@/lib/permissions";
 import { readCommercialFit } from "@/lib/lead-qualification-utils";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -136,6 +137,8 @@ function readInitialActiveLeads(sessionId: string | null): Lead[] {
 
 export function CompanySearchPanel() {
   const { user } = useAuth();
+  const canAssignOwner = isMasterOrAdmin(user?.role);
+  const { users: crmUsers } = useCrmUsers(canAssignOwner);
   const { organizations } = useSdrAssignedOrganizations(Boolean(user));
 
   const persistedB2bState = readPersistedB2bProspectingState();
@@ -410,7 +413,7 @@ export function CompanySearchPanel() {
   }, [formValues, queryClient, searchMutation]);
 
   function shouldOpenOrganizationModal() {
-    return isCrmRole(user?.role) || organizations.length > 1;
+    return isCrmRole(user?.role) || canAssignOwner || organizations.length > 1;
   }
 
   function getDefaultOrganizationId() {
@@ -451,7 +454,11 @@ export function CompanySearchPanel() {
     });
   }
 
-  async function addLeadsToKanban(leadsToAdd: Lead[], organizationId: string) {
+  async function addLeadsToKanban(
+    leadsToAdd: Lead[],
+    organizationId: string,
+    ownerUserId?: string,
+  ) {
     if (leadsToAdd.length === 1) {
       setAddingKanbanId(leadsToAdd[0].id);
     } else {
@@ -464,7 +471,10 @@ export function CompanySearchPanel() {
       for (const lead of leadsToAdd) {
         try {
           const updated = await leadsService.addToKanban(
-            buildAddToKanbanInput(lead, undefined, organizationId),
+            {
+              ...buildAddToKanbanInput(lead, undefined, organizationId),
+              ...(ownerUserId ? { ownerUserId } : {}),
+            },
             { skipToast: true },
           );
           added += 1;
@@ -506,12 +516,15 @@ export function CompanySearchPanel() {
     void addLeadsToKanban(leadsToAdd, organizationId);
   }
 
-  async function handleConfirmKanbanOrganization(organizationId: string) {
+  async function handleConfirmKanbanOrganization(
+    organizationId: string,
+    ownerUserId?: string,
+  ) {
     if (pendingKanbanLeads.length === 0) return;
 
     setConfirmingKanban(true);
     try {
-      await addLeadsToKanban(pendingKanbanLeads, organizationId);
+      await addLeadsToKanban(pendingKanbanLeads, organizationId, ownerUserId);
       setKanbanModalOpen(false);
       setPendingKanbanLeads([]);
     } finally {
@@ -629,6 +642,8 @@ export function CompanySearchPanel() {
         defaultOrganizationId={getDefaultOrganizationId()}
         leadCount={pendingKanbanLeads.length}
         loading={confirmingKanban}
+        owners={crmUsers}
+        requireOwner={canAssignOwner}
         onConfirm={handleConfirmKanbanOrganization}
       />
 

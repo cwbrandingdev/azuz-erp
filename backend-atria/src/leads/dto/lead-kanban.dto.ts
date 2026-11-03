@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { IsEntityId } from '../../common/validation/entity-id';
 
 export class AddLeadToKanbanDto {
@@ -71,6 +78,9 @@ export class AddLeadToKanbanDto {
 
   @IsEntityId({ optional: true })
   stageId?: string;
+
+  @IsEntityId({ optional: true })
+  ownerUserId?: string;
 }
 
 export class UpdateLeadStatusDto {

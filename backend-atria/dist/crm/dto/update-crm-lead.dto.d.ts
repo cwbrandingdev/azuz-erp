@@ -13,4 +13,5 @@ export declare class UpdateCrmLeadDto {
     orcamento?: number | null;
     cnpj?: string | null;
     jobTitle?: string | null;
+    ownerUserId?: string;
 }

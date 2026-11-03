@@ -36,8 +36,11 @@ let CrmLeadsController = class CrmLeadsController {
     findProspectingLeads(user, query) {
         return this.leadsService.findProspectingLeads(user, query.organizationId);
     }
+    listOwners(user) {
+        return this.leadsService.listLeadOwners(user);
+    }
     getKanbanBoard(user, query) {
-        return this.leadsService.findKanbanBoard(user, query.organizationId);
+        return this.leadsService.findKanbanBoard(user, query.organizationId, query.ownerUserId);
     }
     create(user, dto) {
         return this.leadsService.createForCrm(user, dto);
@@ -68,6 +71,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, prospecting_leads_query_dto_1.ProspectingLeadsQueryDto]),
     __metadata("design:returntype", void 0)
 ], CrmLeadsController.prototype, "findProspectingLeads", null);
+__decorate([
+    (0, common_1.Get)('owners'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], CrmLeadsController.prototype, "listOwners", null);
 __decorate([
     (0, common_1.Get)('kanban'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { useOptionalDialer } from "@/contexts/dialer-context";
+import { useCrmUsers } from "@/hooks/use-crm-users";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useSdrAssignedOrganizations } from "@/hooks/use-sdr-assigned-organizations";
 import {
@@ -110,8 +111,11 @@ export function LeadsKanbanBoard({
   const isCrmUser = normalizeAppRole(user?.role) === "crm";
   const showClientFilter =
     !portalClientView && (isCrmUser || isMasterOrAdmin());
+  const showPersonFilter = !portalClientView && isMasterOrAdmin();
   const { organizations, loading: organizationsLoading } =
     useSdrAssignedOrganizations(showClientFilter);
+  const { users: crmUsers, loading: crmUsersLoading } =
+    useCrmUsers(showPersonFilter);
 
   const [columns, setColumns] = useState<LeadKanbanColumn[]>(emptyColumns);
   const [reminderBoard, setReminderBoard] =
@@ -129,6 +133,7 @@ export function LeadsKanbanBoard({
   const [clientFilter, setClientFilter] = useState(
     initialOrganizationId?.trim() || "all",
   );
+  const [personFilter, setPersonFilter] = useState("all");
   const [crmDisabled, setCrmDisabled] = useState(false);
   const [newSdrLeadCount, setNewSdrLeadCount] = useState(0);
   const [sdrBannerDismissed, setSdrBannerDismissed] = useState(false);
@@ -249,9 +254,11 @@ export function LeadsKanbanBoard({
     setLoading(true);
     try {
       const organizationId = clientFilter === "all" ? undefined : clientFilter;
+      const ownerUserId =
+        showPersonFilter && personFilter !== "all" ? personFilter : undefined;
       const board = portalClientView
         ? await clientPortalService.getCrmKanbanBoard()
-        : await leadsService.getKanbanBoard(organizationId);
+        : await leadsService.getKanbanBoard(organizationId, ownerUserId);
       setColumns(board.columns.length > 0 ? board.columns : emptyColumns());
       setTotal(board.total);
       setCrmMoveZone(portalClientView ? "all" : (board.crmMoveZone ?? "all"));
@@ -278,17 +285,19 @@ export function LeadsKanbanBoard({
     } finally {
       setLoading(false);
     }
-  }, [clientFilter, crmDisabled, portalClientView, user?.id]);
+  }, [clientFilter, crmDisabled, personFilter, portalClientView, showPersonFilter, user?.id]);
 
   const loadReminders = useCallback(async () => {
     if (portalClientView) return;
     try {
-      const board = await leadsService.getReminderBoard();
+      const ownerUserId =
+        showPersonFilter && personFilter !== "all" ? personFilter : undefined;
+      const board = await leadsService.getReminderBoard(ownerUserId);
       setReminderBoard(board.columns.length > 0 ? board : emptyReminderBoard());
     } catch {
       setReminderBoard(emptyReminderBoard());
     }
-  }, [portalClientView]);
+  }, [personFilter, portalClientView, showPersonFilter]);
 
   useEffect(() => {
     void loadBoard();
@@ -596,10 +605,22 @@ export function LeadsKanbanBoard({
                     Discar {dialableVisible.length} visíveis
                   </NativeTelButton>
                 )}
-                <LeadKanbanImportDialog onSuccess={() => void loadBoard()} />
+                <LeadKanbanImportDialog
+                  onSuccess={() => void loadBoard()}
+                  owners={crmUsers}
+                  defaultOwnerUserId={
+                    personFilter === "all" ? undefined : personFilter
+                  }
+                  requireOwner={showPersonFilter}
+                />
                 <LeadKanbanFormDialog
                   columns={filteredColumns}
                   onSuccess={() => void loadBoard()}
+                  owners={crmUsers}
+                  defaultOwnerUserId={
+                    personFilter === "all" ? undefined : personFilter
+                  }
+                  requireOwner={showPersonFilter}
                 />
               </>
             )}
@@ -664,45 +685,81 @@ export function LeadsKanbanBoard({
         />
       )}
 
-      {showClientFilter && organizations.length > 0 && (
+      {(showClientFilter && organizations.length > 0) || showPersonFilter ? (
         <Card className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white shadow-sm">
           <CardContent className="pt-6">
-            <Field>
-              <FieldLabel htmlFor="kanban-client-filter">
-                Filtrar por Cliente
-              </FieldLabel>
-              <Select
-                value={clientFilter}
-                onValueChange={(value) => {
-                  if (value) {
-                    setCrmDisabled(false);
-                    setClientFilter(value);
-                  }
-                }}
-                disabled={organizationsLoading}
-              >
-                <SelectTrigger
-                  id="kanban-client-filter"
-                  className="h-11 w-full max-w-md text-sm font-medium"
-                >
-                  {expectedClientFilterLabel ? (
-                    <span className="line-clamp-1 min-w-0 flex-1 truncate text-left">
-                      {expectedClientFilterLabel}
-                    </span>
-                  ) : (
-                    <SelectValue placeholder={allClientsLabel} />
-                  )}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{allClientsLabel}</SelectItem>
-                  {organizations.map((organization) => (
-                    <SelectItem key={organization.id} value={organization.id}>
-                      {organization.companyName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+            <div className="grid gap-4 md:grid-cols-2">
+              {showClientFilter && organizations.length > 0 && (
+                <Field>
+                  <FieldLabel htmlFor="kanban-client-filter">
+                    Filtrar por Cliente
+                  </FieldLabel>
+                  <Select
+                    value={clientFilter}
+                    onValueChange={(value) => {
+                      if (value) {
+                        setCrmDisabled(false);
+                        setClientFilter(value);
+                      }
+                    }}
+                    disabled={organizationsLoading}
+                  >
+                    <SelectTrigger
+                      id="kanban-client-filter"
+                      className="h-11 w-full text-sm font-medium"
+                    >
+                      {expectedClientFilterLabel ? (
+                        <span className="line-clamp-1 min-w-0 flex-1 truncate text-left">
+                          {expectedClientFilterLabel}
+                        </span>
+                      ) : (
+                        <SelectValue placeholder={allClientsLabel} />
+                      )}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{allClientsLabel}</SelectItem>
+                      {organizations.map((organization) => (
+                        <SelectItem
+                          key={organization.id}
+                          value={organization.id}
+                        >
+                          {organization.companyName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
+              {showPersonFilter && (
+                <Field>
+                  <FieldLabel htmlFor="kanban-person-filter">
+                    Filtrar por pessoa
+                  </FieldLabel>
+                  <Select
+                    value={personFilter}
+                    onValueChange={(value) => {
+                      if (value) setPersonFilter(value);
+                    }}
+                    disabled={crmUsersLoading}
+                  >
+                    <SelectTrigger
+                      id="kanban-person-filter"
+                      className="h-11 w-full text-sm font-medium"
+                    >
+                      <SelectValue placeholder="Todas as pessoas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as pessoas</SelectItem>
+                      {crmUsers.map((crmUser) => (
+                        <SelectItem key={crmUser.id} value={crmUser.id}>
+                          {crmUser.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
+            </div>
             {isMasterOrAdmin() && (
               <p className="mt-2 text-xs text-[var(--atria-primary)]/45">
                 {clientFilter === "all"
@@ -715,7 +772,7 @@ export function LeadsKanbanBoard({
             )}
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {view === "reminders" && !portalClientView ? (
         <CrmReminderKanban
@@ -905,6 +962,9 @@ export function LeadsKanbanBoard({
                                       currentColumn={column}
                                       crmMoveZone={crmMoveZone}
                                       portalClientView={portalClientView}
+                                      showOwner={
+                                        showPersonFilter && personFilter === "all"
+                                      }
                                       dragHandleProps={
                                         dragProvided.dragHandleProps as React.HTMLAttributes<HTMLButtonElement>
                                       }

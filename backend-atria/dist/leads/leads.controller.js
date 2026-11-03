@@ -42,7 +42,7 @@ let LeadsController = class LeadsController {
         return this.leadsService.findAll(user);
     }
     getKanbanBoard(user, query) {
-        return this.leadsService.findKanbanBoard(user, query.organizationId);
+        return this.leadsService.findKanbanBoard(user, query.organizationId, query.ownerUserId);
     }
     searchCnae(query) {
         return this.cnaeResolverService.search(query.q ?? '');

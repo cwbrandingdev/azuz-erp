@@ -94,8 +94,7 @@ let CrmScopeService = class CrmScopeService {
         if (scope.includeInternal && lead.organizationId === null) {
             return true;
         }
-        if (lead.organizationId &&
-            scope.clientIds.includes(lead.organizationId)) {
+        if (lead.organizationId && scope.clientIds.includes(lead.organizationId)) {
             return true;
         }
         return false;
@@ -115,6 +114,12 @@ let CrmScopeService = class CrmScopeService {
             return;
         }
         if (roleName === client_1.RoleName.CRM) {
+            if (lead.ownerUserId === user.userId) {
+                return;
+            }
+            if (lead.kanbanTracked) {
+                throw new common_1.ForbiddenException('Lead fora do escopo CRM do usuário.');
+            }
             if (lead.organizationId === null) {
                 return;
             }
@@ -203,23 +208,11 @@ let CrmScopeService = class CrmScopeService {
     async buildKanbanLeadOrganizationFilter(user, organizationId) {
         const roleName = (0, permissions_1.normalizeRoleName)(user.role);
         if (roleName === client_1.RoleName.CRM) {
-            const assignedOrgIds = await this.getSdrAssignedOrganizationIds(user.userId);
-            if (assignedOrgIds.length === 0) {
-                throw new common_1.ForbiddenException('Usuário CRM sem organizações atribuídas.');
-            }
             if (organizationId) {
-                if (!assignedOrgIds.includes(organizationId)) {
-                    throw new common_1.ForbiddenException('Organização fora do escopo SDR do usuário.');
-                }
+                await this.assertOrganizationAllowsLeadCreation(organizationId);
                 return this.activeOrganizationLeadFilter(organizationId);
             }
-            return {
-                organizationId: { in: assignedOrgIds },
-                organization: {
-                    isActive: true,
-                    hasCrmEnabled: true,
-                },
-            };
+            return {};
         }
         if (this.canAccessAllOrganizations(user.role)) {
             if (organizationId) {
@@ -229,6 +222,62 @@ let CrmScopeService = class CrmScopeService {
             return this.activeOrganizationLeadFilter();
         }
         return this.buildProspectingLeadOrganizationFilter(user, organizationId);
+    }
+    buildKanbanOwnerFilter(user, ownerUserId) {
+        if ((0, permissions_1.normalizeRoleName)(user.role) === client_1.RoleName.CRM) {
+            return { ownerUserId: user.userId };
+        }
+        if (ownerUserId) {
+            return { ownerUserId };
+        }
+        return {};
+    }
+    buildOwnedOrSharedLeadFilter(user, organizationFilter) {
+        if ((0, permissions_1.normalizeRoleName)(user.role) !== client_1.RoleName.CRM) {
+            return organizationFilter;
+        }
+        return {
+            OR: [
+                { ownerUserId: user.userId },
+                this.mergeLeadFilters(organizationFilter, { kanbanTracked: false }),
+            ],
+        };
+    }
+    async resolveOwnerFilter(user, requestedOwnerUserId) {
+        if (!this.canAccessAllOrganizations(user.role)) {
+            return undefined;
+        }
+        const ownerUserId = requestedOwnerUserId?.trim();
+        if (!ownerUserId) {
+            return undefined;
+        }
+        await this.assertSdrUsers([ownerUserId]);
+        return ownerUserId;
+    }
+    async resolveLeadOwnerUserId(user, requestedOwnerUserId) {
+        const roleName = (0, permissions_1.normalizeRoleName)(user.role);
+        if (roleName === client_1.RoleName.CRM) {
+            return user.userId;
+        }
+        if (!this.canAccessAllOrganizations(user.role)) {
+            if (requestedOwnerUserId?.trim()) {
+                throw new common_1.ForbiddenException('Apenas Master ou Admin podem definir o responsável.');
+            }
+            return null;
+        }
+        const ownerUserId = requestedOwnerUserId?.trim();
+        if (!ownerUserId) {
+            throw new common_1.BadRequestException('Selecione o responsável pelo lead.');
+        }
+        await this.assertSdrUsers([ownerUserId]);
+        return ownerUserId;
+    }
+    async listActiveCrmUsers() {
+        return this.prisma.user.findMany({
+            where: { isActive: true, role: { name: client_1.RoleName.CRM } },
+            select: { id: true, name: true },
+            orderBy: { name: 'asc' },
+        });
     }
     async replaceUserScopes(userId, crmScopeClientIds, crmIncludeInternal) {
         const clientIds = this.uniqueIds(crmScopeClientIds);

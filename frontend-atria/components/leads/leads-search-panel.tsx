@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
+import { useCrmUsers } from "@/hooks/use-crm-users";
 import { useSdrAssignedOrganizations } from "@/hooks/use-sdr-assigned-organizations";
 import {
   buildAddToKanbanInput,
@@ -44,7 +45,7 @@ import {
   useMapsSearchHistory,
   type MapsSearchRecord,
 } from "@/lib/maps-search-history";
-import { normalizeAppRole } from "@/lib/permissions";
+import { isMasterOrAdmin, normalizeAppRole } from "@/lib/permissions";
 import { isLeadDossierReady } from "@/lib/lead-qualification-utils";
 import { toast } from "@/lib/toast";
 import { ApiError } from "@/services/api";
@@ -132,6 +133,8 @@ function isCrmRole(role: string | null | undefined) {
 
 export function LeadsSearchPanel() {
   const { user } = useAuth();
+  const canAssignOwner = isMasterOrAdmin(user?.role);
+  const { users: crmUsers } = useCrmUsers(canAssignOwner);
   const { organizations } = useSdrAssignedOrganizations(Boolean(user));
   const persistedMapsState = readPersistedMapsProspectingState();
   const queryClient = useQueryClient();
@@ -412,7 +415,7 @@ export function LeadsSearchPanel() {
   }
 
   function shouldOpenOrganizationModal() {
-    if (isCrmRole(user?.role)) return true;
+    if (isCrmRole(user?.role) || canAssignOwner) return true;
     return organizations.length !== 1;
   }
 
@@ -421,7 +424,11 @@ export function LeadsSearchPanel() {
     return "";
   }
 
-  async function addLeadsToKanban(leadsToAdd: Lead[], organizationId: string) {
+  async function addLeadsToKanban(
+    leadsToAdd: Lead[],
+    organizationId: string,
+    ownerUserId?: string,
+  ) {
     if (leadsToAdd.length === 1) {
       setAddingKanbanId(leadsToAdd[0].id);
     } else {
@@ -433,11 +440,14 @@ export function LeadsSearchPanel() {
     try {
       for (const lead of leadsToAdd) {
         try {
-          const payload = buildAddToKanbanInput(
-            lead,
-            searchContext ?? undefined,
-            organizationId,
-          );
+          const payload = {
+            ...buildAddToKanbanInput(
+              lead,
+              searchContext ?? undefined,
+              organizationId,
+            ),
+            ...(ownerUserId ? { ownerUserId } : {}),
+          };
           const updated = await leadsService.addToKanban(payload, {
             skipToast: true,
           });
@@ -499,12 +509,15 @@ export function LeadsSearchPanel() {
     void addLeadsToKanban(leadsToAdd, organizationId);
   }
 
-  async function handleConfirmKanbanOrganization(organizationId: string) {
+  async function handleConfirmKanbanOrganization(
+    organizationId: string,
+    ownerUserId?: string,
+  ) {
     if (pendingKanbanLeads.length === 0) return;
 
     setConfirmingKanban(true);
     try {
-      await addLeadsToKanban(pendingKanbanLeads, organizationId);
+      await addLeadsToKanban(pendingKanbanLeads, organizationId, ownerUserId);
       setKanbanModalOpen(false);
       setPendingKanbanLeads([]);
     } finally {
@@ -685,6 +698,8 @@ export function LeadsSearchPanel() {
         defaultOrganizationId={getDefaultOrganizationId()}
         leadCount={pendingKanbanLeads.length}
         loading={confirmingKanban}
+        owners={crmUsers}
+        requireOwner={canAssignOwner}
         onConfirm={handleConfirmKanbanOrganization}
       />
 

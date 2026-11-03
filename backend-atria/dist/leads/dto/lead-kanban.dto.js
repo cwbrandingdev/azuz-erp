@@ -29,6 +29,7 @@ class AddLeadToKanbanDto {
     source;
     organizationId;
     stageId;
+    ownerUserId;
 }
 exports.AddLeadToKanbanDto = AddLeadToKanbanDto;
 __decorate([
@@ -115,6 +116,10 @@ __decorate([
     (0, entity_id_1.IsEntityId)({ optional: true }),
     __metadata("design:type", String)
 ], AddLeadToKanbanDto.prototype, "stageId", void 0);
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], AddLeadToKanbanDto.prototype, "ownerUserId", void 0);
 class UpdateLeadStatusDto {
     status;
     stageId;

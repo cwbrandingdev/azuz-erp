@@ -12,4 +12,5 @@ export declare class CreateCrmLeadDto {
     source?: string;
     organizationId: string;
     stageId?: string;
+    ownerUserId?: string;
 }

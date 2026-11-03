@@ -41,6 +41,8 @@ export declare class LeadsService {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -174,6 +176,8 @@ export declare class LeadsService {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -206,7 +210,11 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
     }>;
-    findKanbanBoard(user: AuthenticatedUser, organizationId?: string): Promise<{
+    listLeadOwners(user: AuthenticatedUser): Promise<{
+        id: string;
+        name: string;
+    }[]>;
+    findKanbanBoard(user: AuthenticatedUser, organizationId?: string, ownerUserId?: string): Promise<{
         columns: {
             id: string;
             stageId: string;
@@ -220,6 +228,8 @@ export declare class LeadsService {
                 tenantId: string;
                 searchSessionId: string | null;
                 organizationId: string | null;
+                ownerUserId: string | null;
+                ownerName: string | null;
                 name: string;
                 contactName: string | null;
                 phone: string | null;
@@ -274,6 +284,8 @@ export declare class LeadsService {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -312,6 +324,8 @@ export declare class LeadsService {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -345,7 +359,7 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
     }>;
-    findReminderBoard(user: AuthenticatedUser): Promise<{
+    findReminderBoard(user: AuthenticatedUser, ownerUserId?: string): Promise<{
         columns: ({
             tasks: {
                 id: string;
@@ -409,7 +423,7 @@ export declare class LeadsService {
         })[];
         total: number;
     }>;
-    updateReminderStatus(id: string, status: CrmReminderTaskStatus): Promise<{
+    updateReminderStatus(user: AuthenticatedUser, id: string, status: CrmReminderTaskStatus): Promise<{
         id: string;
         companyId: string;
         leadId: string;
@@ -432,6 +446,8 @@ export declare class LeadsService {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -474,6 +490,8 @@ export declare class LeadsService {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -513,6 +531,8 @@ export declare class LeadsService {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -552,6 +572,8 @@ export declare class LeadsService {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -591,6 +613,8 @@ export declare class LeadsService {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -630,8 +654,8 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
         user: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -642,8 +666,8 @@ export declare class LeadsService {
         createdAt: string;
         updatedAt: string;
         user: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };

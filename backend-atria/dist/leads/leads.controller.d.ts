@@ -20,6 +20,8 @@ export declare class LeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -67,6 +69,8 @@ export declare class LeadsController {
                 tenantId: string;
                 searchSessionId: string | null;
                 organizationId: string | null;
+                ownerUserId: string | null;
+                ownerName: string | null;
                 name: string;
                 contactName: string | null;
                 phone: string | null;
@@ -371,6 +375,8 @@ export declare class LeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -410,6 +416,8 @@ export declare class LeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -452,8 +460,8 @@ export declare class LeadsController {
         createdAt: string;
         updatedAt: string;
         user: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -464,8 +472,8 @@ export declare class LeadsController {
         createdAt: string;
         updatedAt: string;
         user: {
-            id: string;
             name: string;
+            id: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -476,6 +484,8 @@ export declare class LeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -515,6 +525,8 @@ export declare class LeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -554,6 +566,8 @@ export declare class LeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;
@@ -593,6 +607,8 @@ export declare class LeadsController {
         tenantId: string;
         searchSessionId: string | null;
         organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
         name: string;
         contactName: string | null;
         phone: string | null;

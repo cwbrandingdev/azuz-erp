@@ -131,6 +131,7 @@ model User {
   createdInvitations           InvitationToken[]       @relation("InvitationCreatedBy")
   leadComments                 LeadComment[]
   deletedLeads                 Lead[]                  @relation("LeadDeletedBy")
+  ownedLeads                   Lead[]                  @relation("LeadOwner")
   notifications                Notification[]
   assignedTasks                Task[]                  @relation("TaskDesigner")
   crmScopes                    UserCrmScope[]
@@ -1269,6 +1270,7 @@ model Lead {
   jobTitle       String?           @map("job_title")
   deletedAt      DateTime?         @map("deleted_at")
   deletedById    String?           @map("deleted_by")
+  ownerUserId    String?           @map("owner_user_id")
   crmStatus      CrmLeadStatus     @default(ACTIVE) @map("crm_status")
   isMinimized    Boolean           @default(false) @map("is_minimized")
   organizationId String?           @map("organization_id")
@@ -1280,6 +1282,7 @@ model Lead {
   whatsappCrmEvents     WhatsAppCrmEvent[]
   company               Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deletedBy      User?             @relation("LeadDeletedBy", fields: [deletedById], references: [id])
+  owner          User?             @relation("LeadOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   organization   Client?           @relation(fields: [organizationId], references: [id])
   stage          LeadStage?        @relation(fields: [stageId], references: [id], onDelete: SetNull)
   searchSession  LeadSearchSession? @relation(fields: [searchSessionId], references: [id], onDelete: SetNull)
@@ -1293,6 +1296,7 @@ model Lead {
   @@index([kanbanTracked, status, kanbanOrder])
   @@index([city])
   @@index([deletedAt])
+  @@index([ownerUserId])
   @@map("leads")
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LeadOwnerSelect } from "@/components/leads/lead-owner-select";
 import { Loader2, MessageCircle, Phone, Save, Send } from "lucide-react";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,6 +21,9 @@ import {
   getLeadStatusLabel,
 } from "@/lib/leads-kanban-utils";
 import { resolveMediaUrl } from "@/lib/media-url";
+import { useAuth } from "@/contexts/auth-context";
+import { useCrmUsers } from "@/hooks/use-crm-users";
+import { isMasterOrAdmin } from "@/lib/permissions";
 import { toast } from "@/lib/toast";
 import { clientPortalService, leadsService, voiceService } from "@/services";
 import type { Lead, LeadCall, LeadComment } from "@/services/types";
@@ -66,6 +70,7 @@ const EMPTY_EDIT = {
   neighborhood: "",
   address: "",
   source: "",
+  ownerUserId: "",
 };
 
 function formFromLead(lead: Lead) {
@@ -80,7 +85,9 @@ function formFromLead(lead: Lead) {
     city: lead.city ?? "",
     neighborhood: lead.neighborhood ?? "",
     address: lead.address ?? "",
-    source: lead.source && lead.source.toLowerCase() !== "manual" ? lead.source : "",
+    source:
+      lead.source && lead.source.toLowerCase() !== "manual" ? lead.source : "",
+    ownerUserId: lead.ownerUserId ?? "",
   };
 }
 
@@ -91,6 +98,11 @@ export function LeadDetailDialog({
   portalClientView = false,
   onUpdated,
 }: LeadDetailDialogProps) {
+  const { user } = useAuth();
+  const canAssignOwner = !portalClientView && isMasterOrAdmin(user?.role);
+  const { users: crmUsers, loading: crmUsersLoading } = useCrmUsers(
+    open && canAssignOwner,
+  );
   const [comments, setComments] = useState<LeadComment[]>([]);
   const [calls, setCalls] = useState<LeadCall[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -205,6 +217,11 @@ export function LeadDetailDialog({
       return;
     }
 
+    if (canAssignOwner && !form.ownerUserId) {
+      toast.error("Selecione o responsável pelo lead.");
+      return;
+    }
+
     setSaving(true);
     try {
       const updated = await leadsService.updateLead(lead.id, {
@@ -219,6 +236,7 @@ export function LeadDetailDialog({
         neighborhood: form.neighborhood.trim(),
         address: form.address.trim(),
         source: form.source.trim(),
+        ...(canAssignOwner ? { ownerUserId: form.ownerUserId } : {}),
       });
       onUpdated?.(updated);
       toast.success("Lead atualizado.");
@@ -252,9 +270,7 @@ export function LeadDetailDialog({
                 {form.category || lead.category}
               </Badge>
             )}
-            {form.source && (
-              <Badge variant="outline">{form.source}</Badge>
-            )}
+            {form.source && <Badge variant="outline">{form.source}</Badge>}
           </div>
         </DialogHeader>
 
@@ -281,8 +297,20 @@ export function LeadDetailDialog({
                 <h3 className="text-sm font-semibold text-[var(--atria-primary)]">
                   Dados do lead
                 </h3>
-                <LeadCallButton lead={{ ...lead, ...form, phone: form.phone || lead.phone }} />
+                <LeadCallButton
+                  lead={{ ...lead, ...form, phone: form.phone || lead.phone }}
+                />
               </div>
+              {canAssignOwner && (
+                <LeadOwnerSelect
+                  id="lead-edit-owner"
+                  value={form.ownerUserId}
+                  onChange={(ownerUserId) => updateField("ownerUserId", ownerUserId)}
+                  owners={crmUsers}
+                  loading={crmUsersLoading}
+                  required
+                />
+              )}
               <Field>
                 <FieldLabel htmlFor="lead-edit-name">Empresa / Nome</FieldLabel>
                 <Input
@@ -310,7 +338,9 @@ export function LeadDetailDialog({
                   <Input
                     id="lead-edit-phone"
                     value={form.phone}
-                    onChange={(event) => updateField("phone", event.target.value)}
+                    onChange={(event) =>
+                      updateField("phone", event.target.value)
+                    }
                   />
                 </Field>
                 <Field>
@@ -319,7 +349,9 @@ export function LeadDetailDialog({
                     id="lead-edit-email"
                     type="email"
                     value={form.email}
-                    onChange={(event) => updateField("email", event.target.value)}
+                    onChange={(event) =>
+                      updateField("email", event.target.value)
+                    }
                   />
                 </Field>
               </div>
@@ -335,7 +367,9 @@ export function LeadDetailDialog({
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="lead-edit-instagram">Instagram</FieldLabel>
+                  <FieldLabel htmlFor="lead-edit-instagram">
+                    Instagram
+                  </FieldLabel>
                   <Input
                     id="lead-edit-instagram"
                     value={form.instagram}
@@ -347,7 +381,9 @@ export function LeadDetailDialog({
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field>
-                  <FieldLabel htmlFor="lead-edit-category">Categoria</FieldLabel>
+                  <FieldLabel htmlFor="lead-edit-category">
+                    Categoria
+                  </FieldLabel>
                   <Input
                     id="lead-edit-category"
                     value={form.category}
@@ -374,11 +410,15 @@ export function LeadDetailDialog({
                   <Input
                     id="lead-edit-city"
                     value={form.city}
-                    onChange={(event) => updateField("city", event.target.value)}
+                    onChange={(event) =>
+                      updateField("city", event.target.value)
+                    }
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="lead-edit-neighborhood">Bairro</FieldLabel>
+                  <FieldLabel htmlFor="lead-edit-neighborhood">
+                    Bairro
+                  </FieldLabel>
                   <Input
                     id="lead-edit-neighborhood"
                     value={form.neighborhood}
@@ -512,7 +552,10 @@ export function LeadDetailDialog({
               </div>
             )}
 
-            <form onSubmit={(event) => void handleSubmit(event)} className="space-y-2">
+            <form
+              onSubmit={(event) => void handleSubmit(event)}
+              className="space-y-2"
+            >
               <Field>
                 <FieldLabel htmlFor="lead-comment" className="sr-only">
                   Novo comentário

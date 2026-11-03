@@ -1,3 +1,4 @@
+import { IsEntityId } from '../../common/validation/entity-id';
 import { Type } from 'class-transformer';
 import {
   IsNumber,
@@ -80,4 +81,7 @@ export class UpdateCrmLeadDto {
   @IsString()
   @MaxLength(120)
   jobTitle?: string | null;
+
+  @IsEntityId({ optional: true })
+  ownerUserId?: string;
 }

@@ -62,4 +62,7 @@ export class CreateCrmLeadDto {
 
   @IsEntityId({ optional: true })
   stageId?: string;
+
+  @IsEntityId({ optional: true })
+  ownerUserId?: string;
 }
