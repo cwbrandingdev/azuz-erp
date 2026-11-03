@@ -15,6 +15,7 @@ import {
   MessageSquarePlus,
   Megaphone,
   MessageCircle,
+  UserCheckIcon,
 } from "lucide-react";
 
 export interface NavChild {
@@ -46,7 +47,11 @@ export const navSections: NavSection[] = [
     label: "PRODUÇÃO",
     items: [
       { name: "Kanban", href: "/kanban", icon: Kanban },
-      { name: "Aprovação Interna", href: "/internal-approvals", icon: ClipboardCheck },
+      {
+        name: "Aprovação Interna",
+        href: "/internal-approvals",
+        icon: ClipboardCheck,
+      },
       { name: "Calendário", href: "/calendar", icon: Calendar },
     ],
   },
@@ -61,7 +66,7 @@ export const navSections: NavSection[] = [
       },
       { name: "Contratos", href: "/contracts", icon: FileSignature },
       { name: "Propostas", href: "/proposals", icon: FileText },
-      { name: "WhatsApp", href: "/whatsapp", icon: MessageCircle },
+      { name: "Central de Leads", href: "/leads-central", icon: UserCheckIcon },
     ],
   },
   {
@@ -69,6 +74,7 @@ export const navSections: NavSection[] = [
     items: [
       { name: "Prospecção de Leads", href: "/leads", icon: Layers },
       { name: "Leads Kanban", href: "/leads/kanban", icon: KanbanSquareIcon },
+      { name: "WhatsApp", href: "/whatsapp", icon: MessageCircle },
     ],
   },
 
