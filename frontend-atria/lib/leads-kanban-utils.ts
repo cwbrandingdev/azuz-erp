@@ -48,6 +48,18 @@ export function leadColumnKey(
   return column.stageId ?? column.id ?? column.status;
 }
 
+export function isScheduledMeetingColumn(
+  column: Pick<LeadKanbanColumn, "status" | "title">,
+): boolean {
+  if (column.status === "REUNIAO_AGENDADA") return true;
+  const title = column.title
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+  return title === "reuniao agendada";
+}
+
 export function isOrcamentoColumn(
   column: Pick<LeadKanbanColumn, "status" | "title">,
 ): boolean {

@@ -9,6 +9,7 @@ import { CrmScopeService } from './crm-scope.service';
 import { LeadNotificationService } from './lead-notification.service';
 import { LeadsController } from './leads.controller';
 import { LeadStagesService } from './lead-stages.service';
+import { GoogleMeetService } from './google-meet.service';
 import { LeadsService } from './leads.service';
 
 @Module({
@@ -23,6 +24,7 @@ import { LeadsService } from './leads.service';
   controllers: [LeadsController],
   providers: [
     LeadsService,
+    GoogleMeetService,
     LeadStagesService,
     CrmScopeService,
     LeadNotificationService,

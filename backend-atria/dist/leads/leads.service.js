@@ -19,6 +19,7 @@ const ai_service_1 = require("../ai/ai.service");
 const company_settings_service_1 = require("../company-settings/company-settings.service");
 const prisma_service_1 = require("../prisma/prisma.service");
 const business_days_1 = require("./business-days");
+const google_meet_service_1 = require("./google-meet.service");
 const crm_scope_service_1 = require("./crm-scope.service");
 const lead_notification_service_1 = require("./lead-notification.service");
 const apify_place_mapper_1 = require("./maps-scraper/apify-place.mapper");
@@ -45,6 +46,33 @@ const APIFY_MAX_RESULTS_LIMIT = 120;
 const leadOwnerInclude = {
     owner: { select: { id: true, name: true } },
 };
+const latestMeetingInclude = {
+    meetings: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: {
+            id: true,
+            title: true,
+            guestName: true,
+            startAt: true,
+            endAt: true,
+            meetUrl: true,
+        },
+    },
+};
+const MEETING_DURATION_MS = 60 * 60 * 1000;
+function saoPauloDayRange(now = new Date()) {
+    const day = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(now);
+    return {
+        start: new Date(`${day}T00:00:00.000-03:00`),
+        end: new Date(`${day}T23:59:59.999-03:00`),
+    };
+}
 let LeadsService = LeadsService_1 = class LeadsService {
     configService;
     prisma;
@@ -59,8 +87,9 @@ let LeadsService = LeadsService_1 = class LeadsService {
     leadSearchSessions;
     whatsAppCrm;
     whatsAppAutomation;
+    googleMeet;
     logger = new common_1.Logger(LeadsService_1.name);
-    constructor(configService, prisma, aiService, companySettings, leadStages, crmScope, leadNotifications, leadQualification, leadDossier, mapsScraper, leadSearchSessions, whatsAppCrm, whatsAppAutomation) {
+    constructor(configService, prisma, aiService, companySettings, leadStages, crmScope, leadNotifications, leadQualification, leadDossier, mapsScraper, leadSearchSessions, whatsAppCrm, whatsAppAutomation, googleMeet) {
         this.configService = configService;
         this.prisma = prisma;
         this.aiService = aiService;
@@ -74,6 +103,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
         this.leadSearchSessions = leadSearchSessions;
         this.whatsAppCrm = whatsAppCrm;
         this.whatsAppAutomation = whatsAppAutomation;
+        this.googleMeet = googleMeet;
     }
     async preQualify(user, id) {
         const lead = await this.resolveLeadForUser(user, id);
@@ -330,6 +360,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
             include: {
                 stage: { select: { id: true, key: true, name: true } },
                 ...leadOwnerInclude,
+                ...latestMeetingInclude,
             },
             orderBy: [
                 { status: 'asc' },
@@ -808,6 +839,84 @@ let LeadsService = LeadsService_1 = class LeadsService {
             user: comment.user,
         };
     }
+    async createMeeting(user, leadId, dto) {
+        const lead = await this.findLeadForUser(user, leadId);
+        const startAt = new Date(dto.startAt);
+        if (Number.isNaN(startAt.getTime())) {
+            throw new common_1.BadRequestException('Data da reunião inválida.');
+        }
+        const endAt = new Date(startAt.getTime() + MEETING_DURATION_MS);
+        const title = dto.title.trim();
+        const guestName = dto.guestName.trim();
+        if (!title || !guestName) {
+            throw new common_1.BadRequestException('Informe o nome da reunião e o participante.');
+        }
+        const description = `Reunião com ${guestName}\nLead: ${lead.name}`;
+        const googleConnected = this.googleMeet.isConfigured();
+        const meetUrl = googleConnected
+            ? await this.googleMeet.createMeeting({
+                title,
+                description,
+                guestName,
+                guestEmail: lead.email ?? undefined,
+                startAt,
+                endAt,
+            })
+            : null;
+        const meeting = await this.prisma.leadMeeting.create({
+            data: {
+                companyId: lead.companyId,
+                leadId: lead.id,
+                title,
+                guestName,
+                startAt,
+                endAt,
+                meetUrl,
+                createdById: user.userId,
+            },
+        });
+        return {
+            lead: this.toLeadResponse({ ...lead, meetings: [meeting] }),
+            googleConnected,
+        };
+    }
+    async listTodayMeetings(user) {
+        const orgFilter = await this.crmScope.buildKanbanLeadOrganizationFilter(user);
+        const ownerFilter = this.crmScope.buildKanbanOwnerFilter(user);
+        const scopeFilters = [orgFilter, ownerFilter].filter((filter) => Object.keys(filter).length > 0);
+        const { start, end } = saoPauloDayRange();
+        const meetings = await this.prisma.leadMeeting.findMany({
+            where: {
+                startAt: { gte: start, lte: end },
+                lead: {
+                    deletedAt: null,
+                    ...(scopeFilters.length > 0 ? { AND: scopeFilters } : {}),
+                },
+            },
+            select: {
+                id: true,
+                title: true,
+                guestName: true,
+                startAt: true,
+                endAt: true,
+                meetUrl: true,
+                lead: { select: { id: true, name: true } },
+            },
+            orderBy: { startAt: 'asc' },
+        });
+        return {
+            meetings: meetings.map((meeting) => ({
+                id: meeting.id,
+                title: meeting.title,
+                guestName: meeting.guestName,
+                startAt: meeting.startAt.toISOString(),
+                endAt: meeting.endAt.toISOString(),
+                meetUrl: meeting.meetUrl,
+                leadId: meeting.lead.id,
+                leadName: meeting.lead.name,
+            })),
+        };
+    }
     async resolveLeadForUser(user, id) {
         if ((0, lead_search_session_service_1.isCatalogPreviewId)(id)) {
             return this.materializeCatalogLead(user, id.slice(lead_search_session_service_1.CATALOG_PREVIEW_ID_PREFIX.length));
@@ -1079,6 +1188,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
         };
     }
     toLeadResponse(lead) {
+        const meeting = lead.meetings?.[0];
         return {
             id: lead.id,
             companyId: lead.companyId,
@@ -1117,6 +1227,16 @@ let LeadsService = LeadsService_1 = class LeadsService {
             aiNotes: lead.aiNotes,
             source: lead.source,
             rawData: lead.rawData,
+            meeting: meeting
+                ? {
+                    id: meeting.id,
+                    title: meeting.title,
+                    guestName: meeting.guestName,
+                    startAt: meeting.startAt.toISOString(),
+                    endAt: meeting.endAt.toISOString(),
+                    meetUrl: meeting.meetUrl,
+                }
+                : null,
             createdAt: lead.createdAt.toISOString(),
             updatedAt: lead.updatedAt.toISOString(),
         };
@@ -1343,6 +1463,7 @@ exports.LeadsService = LeadsService = LeadsService_1 = __decorate([
         maps_scraper_service_1.MapsScraperService,
         lead_search_session_service_1.LeadSearchSessionService,
         whatsapp_crm_service_1.WhatsAppCrmService,
-        whatsapp_automation_service_1.WhatsAppAutomationService])
+        whatsapp_automation_service_1.WhatsAppAutomationService,
+        google_meet_service_1.GoogleMeetService])
 ], LeadsService);
 //# sourceMappingURL=leads.service.js.map

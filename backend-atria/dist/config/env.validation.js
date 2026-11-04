@@ -58,6 +58,10 @@ const envSchema = zod_1.z
     WHATSAPP_ACCESS_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
     WHATSAPP_WABA_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
     WHATSAPP_BUSINESS_ACCOUNT_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    GOOGLE_CLIENT_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    GOOGLE_CLIENT_SECRET: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    GOOGLE_REFRESH_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    GOOGLE_CALENDAR_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
 })
     .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);

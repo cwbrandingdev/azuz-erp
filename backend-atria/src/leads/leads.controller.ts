@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { getRequiredCrmPermissions } from '../auth/utils/rbac';
 import { FetchMapsLeadsDto } from './dto/fetch-maps-leads.dto';
 import { CreateLeadCommentDto } from './dto/lead-comment.dto';
+import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { ProspectingLeadsQueryDto } from '../crm/dto/prospecting-leads-query.dto';
 import { CnaeResolverService } from './company-lookup/application/cnae-resolver.service';
@@ -41,6 +42,11 @@ export class LeadsController {
   @Get()
   findAll(@CurrentUser() user: AuthenticatedUser) {
     return this.leadsService.findAll(user);
+  }
+
+  @Get('meetings/today')
+  listTodayMeetings(@CurrentUser() user: AuthenticatedUser) {
+    return this.leadsService.listTodayMeetings(user);
   }
 
   @Get('kanban')
@@ -121,6 +127,15 @@ export class LeadsController {
     @Param('id') id: string,
   ) {
     return this.leadsService.getComments(user, id);
+  }
+
+  @Post(':id/meeting')
+  createMeeting(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: CreateLeadMeetingDto,
+  ) {
+    return this.leadsService.createMeeting(user, id, dto);
   }
 
   @Post(':id/comments')

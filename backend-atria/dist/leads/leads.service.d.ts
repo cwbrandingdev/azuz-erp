@@ -4,6 +4,8 @@ import { AiService } from '../ai/ai.service';
 import { CompanySettingsService } from '../company-settings/company-settings.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
+import { GoogleMeetService } from './google-meet.service';
 import { CrmScopeService } from './crm-scope.service';
 import { LeadNotificationService } from './lead-notification.service';
 import { CreateCrmLeadDto } from '../crm/dto/create-crm-lead.dto';
@@ -33,8 +35,9 @@ export declare class LeadsService {
     private readonly leadSearchSessions;
     private readonly whatsAppCrm;
     private readonly whatsAppAutomation;
+    private readonly googleMeet;
     private readonly logger;
-    constructor(configService: ConfigService, prisma: PrismaService, aiService: AiService, companySettings: CompanySettingsService, leadStages: LeadStagesService, crmScope: CrmScopeService, leadNotifications: LeadNotificationService, leadQualification: LeadQualificationService, leadDossier: LeadDossierService, mapsScraper: MapsScraperService, leadSearchSessions: LeadSearchSessionService, whatsAppCrm: WhatsAppCrmService, whatsAppAutomation: WhatsAppAutomationService);
+    constructor(configService: ConfigService, prisma: PrismaService, aiService: AiService, companySettings: CompanySettingsService, leadStages: LeadStagesService, crmScope: CrmScopeService, leadNotifications: LeadNotificationService, leadQualification: LeadQualificationService, leadDossier: LeadDossierService, mapsScraper: MapsScraperService, leadSearchSessions: LeadSearchSessionService, whatsAppCrm: WhatsAppCrmService, whatsAppAutomation: WhatsAppAutomationService, googleMeet: GoogleMeetService);
     preQualify(user: AuthenticatedUser, id: string): Promise<{
         id: string;
         companyId: string;
@@ -73,6 +76,14 @@ export declare class LeadsService {
         aiNotes: string | null;
         source: string;
         rawData: Prisma.JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -207,6 +218,14 @@ export declare class LeadsService {
         aiNotes: string | null;
         source: string;
         rawData: Prisma.JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -260,6 +279,14 @@ export declare class LeadsService {
                 aiNotes: string | null;
                 source: string;
                 rawData: Prisma.JsonValue;
+                meeting: {
+                    id: string;
+                    title: string;
+                    guestName: string;
+                    startAt: string;
+                    endAt: string;
+                    meetUrl: string | null;
+                } | null;
                 createdAt: string;
                 updatedAt: string;
             }[];
@@ -315,6 +342,14 @@ export declare class LeadsService {
         aiNotes: string | null;
         source: string;
         rawData: Prisma.JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -356,6 +391,14 @@ export declare class LeadsService {
         aiNotes: string | null;
         source: string;
         rawData: Prisma.JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -478,6 +521,14 @@ export declare class LeadsService {
         aiNotes: string | null;
         source: string;
         rawData: Prisma.JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -522,6 +573,14 @@ export declare class LeadsService {
         aiNotes: string | null;
         source: string;
         rawData: Prisma.JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -563,6 +622,14 @@ export declare class LeadsService {
         aiNotes: string | null;
         source: string;
         rawData: Prisma.JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -604,6 +671,14 @@ export declare class LeadsService {
         aiNotes: string | null;
         source: string;
         rawData: Prisma.JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -645,6 +720,14 @@ export declare class LeadsService {
         aiNotes: string | null;
         source: string;
         rawData: Prisma.JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -655,8 +738,8 @@ export declare class LeadsService {
         updatedAt: string;
         user: {
             id: string;
-            name: string;
             email: string;
+            name: string;
             avatarUrl: string | null;
         };
     }[]>;
@@ -667,10 +750,74 @@ export declare class LeadsService {
         updatedAt: string;
         user: {
             id: string;
-            name: string;
             email: string;
+            name: string;
             avatarUrl: string | null;
         };
+    }>;
+    createMeeting(user: AuthenticatedUser, leadId: string, dto: CreateLeadMeetingDto): Promise<{
+        lead: {
+            id: string;
+            companyId: string;
+            tenantId: string;
+            searchSessionId: string | null;
+            organizationId: string | null;
+            ownerUserId: string | null;
+            ownerName: string | null;
+            name: string;
+            contactName: string | null;
+            phone: string | null;
+            email: string | null;
+            website: string | null;
+            instagram: string | null;
+            address: string | null;
+            city: string | null;
+            neighborhood: string | null;
+            category: string | null;
+            placeId: string | null;
+            rating: number | null;
+            reviewsCount: number | null;
+            latitude: number | null;
+            longitude: number | null;
+            status: import("@prisma/client").$Enums.LeadStatus;
+            stageId: string | null;
+            statusLabel: string;
+            statusColor: string;
+            crmStatus: import("@prisma/client").$Enums.CrmLeadStatus;
+            isMinimized: boolean;
+            kanbanTracked: boolean;
+            kanbanOrder: number;
+            orcamento: number | null;
+            cnpj: string | null;
+            jobTitle: string | null;
+            aiScore: number | null;
+            aiNotes: string | null;
+            source: string;
+            rawData: Prisma.JsonValue;
+            meeting: {
+                id: string;
+                title: string;
+                guestName: string;
+                startAt: string;
+                endAt: string;
+                meetUrl: string | null;
+            } | null;
+            createdAt: string;
+            updatedAt: string;
+        };
+        googleConnected: boolean;
+    }>;
+    listTodayMeetings(user: AuthenticatedUser): Promise<{
+        meetings: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+            leadId: string;
+            leadName: string;
+        }[];
     }>;
     private resolveLeadForUser;
     private materializeCatalogLead;

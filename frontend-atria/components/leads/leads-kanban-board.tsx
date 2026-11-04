@@ -1000,6 +1000,9 @@ export function LeadsKanbanBoard({
                                         setSelectedLead(selected);
                                         setDetailOpen(true);
                                       }}
+                                      onMeetingCreated={(updated) =>
+                                        updateLeadInColumns(updated.id, updated)
+                                      }
                                       onRemove={
                                         portalClientView
                                           ? undefined

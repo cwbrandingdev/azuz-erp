@@ -49,6 +49,14 @@ export declare class CrmLeadsController {
         aiNotes: string | null;
         source: string;
         rawData: import("@prisma/client/runtime/library").JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }[]>;
@@ -93,6 +101,14 @@ export declare class CrmLeadsController {
         aiNotes: string | null;
         source: string;
         rawData: import("@prisma/client/runtime/library").JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }[]>;
@@ -146,6 +162,14 @@ export declare class CrmLeadsController {
                 aiNotes: string | null;
                 source: string;
                 rawData: import("@prisma/client/runtime/library").JsonValue;
+                meeting: {
+                    id: string;
+                    title: string;
+                    guestName: string;
+                    startAt: string;
+                    endAt: string;
+                    meetUrl: string | null;
+                } | null;
                 createdAt: string;
                 updatedAt: string;
             }[];
@@ -195,6 +219,14 @@ export declare class CrmLeadsController {
         aiNotes: string | null;
         source: string;
         rawData: import("@prisma/client/runtime/library").JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -236,6 +268,14 @@ export declare class CrmLeadsController {
         aiNotes: string | null;
         source: string;
         rawData: import("@prisma/client/runtime/library").JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -280,6 +320,14 @@ export declare class CrmLeadsController {
         aiNotes: string | null;
         source: string;
         rawData: import("@prisma/client/runtime/library").JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -321,6 +369,14 @@ export declare class CrmLeadsController {
         aiNotes: string | null;
         source: string;
         rawData: import("@prisma/client/runtime/library").JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;

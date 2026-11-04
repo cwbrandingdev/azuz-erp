@@ -2480,8 +2480,40 @@ export interface Lead {
   aiNotes: string | null;
   source: string;
   rawData?: unknown;
+  meeting?: LeadMeeting | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LeadMeeting {
+  id: string;
+  title: string;
+  guestName: string;
+  startAt: string;
+  endAt: string;
+  meetUrl: string | null;
+}
+
+export interface CreateLeadMeetingInput {
+  title: string;
+  guestName: string;
+  startAt: string;
+}
+
+export interface CreateLeadMeetingResult {
+  lead: Lead;
+  googleConnected: boolean;
+}
+
+export interface TodayLeadMeeting {
+  id: string;
+  title: string;
+  guestName: string;
+  startAt: string;
+  endAt: string;
+  meetUrl: string | null;
+  leadId: string;
+  leadName: string;
 }
 
 export interface LeadKanbanColumn {
