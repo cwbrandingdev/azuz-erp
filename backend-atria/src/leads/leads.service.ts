@@ -23,6 +23,8 @@ import { CompanySettingsService } from '../company-settings/company-settings.ser
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { addBusinessDays } from './business-days';
+import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
+import { GoogleMeetService } from './google-meet.service';
 import { CrmScopeService } from './crm-scope.service';
 import { LeadNotificationService } from './lead-notification.service';
 import { CreateCrmLeadDto } from '../crm/dto/create-crm-lead.dto';
@@ -75,6 +77,36 @@ const APIFY_MAX_RESULTS_LIMIT = 120;
 const leadOwnerInclude = {
   owner: { select: { id: true, name: true } },
 } satisfies Prisma.LeadInclude;
+
+const latestMeetingInclude = {
+  meetings: {
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
+    select: {
+      id: true,
+      title: true,
+      guestName: true,
+      startAt: true,
+      endAt: true,
+      meetUrl: true,
+    },
+  },
+} satisfies Prisma.LeadInclude;
+
+const MEETING_DURATION_MS = 60 * 60 * 1000;
+
+function saoPauloDayRange(now = new Date()) {
+  const day = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  return {
+    start: new Date(`${day}T00:00:00.000-03:00`),
+    end: new Date(`${day}T23:59:59.999-03:00`),
+  };
+}
 
 interface OutscraperPlace {
   name?: string;
@@ -133,6 +165,7 @@ export class LeadsService {
     private readonly leadSearchSessions: LeadSearchSessionService,
     private readonly whatsAppCrm: WhatsAppCrmService,
     private readonly whatsAppAutomation: WhatsAppAutomationService,
+    private readonly googleMeet: GoogleMeetService,
   ) {}
 
   async preQualify(user: AuthenticatedUser, id: string) {
@@ -500,6 +533,7 @@ export class LeadsService {
       include: {
         stage: { select: { id: true, key: true, name: true } },
         ...leadOwnerInclude,
+        ...latestMeetingInclude,
       },
       orderBy: [
         { status: 'asc' },
@@ -1131,6 +1165,100 @@ export class LeadsService {
     };
   }
 
+  async createMeeting(
+    user: AuthenticatedUser,
+    leadId: string,
+    dto: CreateLeadMeetingDto,
+  ) {
+    const lead = await this.findLeadForUser(user, leadId);
+    const startAt = new Date(dto.startAt);
+    if (Number.isNaN(startAt.getTime())) {
+      throw new BadRequestException('Data da reunião inválida.');
+    }
+
+    const endAt = new Date(startAt.getTime() + MEETING_DURATION_MS);
+    const title = dto.title.trim();
+    const guestName = dto.guestName.trim();
+    if (!title || !guestName) {
+      throw new BadRequestException(
+        'Informe o nome da reunião e o participante.',
+      );
+    }
+    const description = `Reunião com ${guestName}\nLead: ${lead.name}`;
+    const googleConnected = this.googleMeet.isConfigured();
+    const meetUrl = googleConnected
+      ? await this.googleMeet.createMeeting({
+          title,
+          description,
+          guestName,
+          guestEmail: lead.email ?? undefined,
+          startAt,
+          endAt,
+        })
+      : null;
+
+    const meeting = await this.prisma.leadMeeting.create({
+      data: {
+        companyId: lead.companyId,
+        leadId: lead.id,
+        title,
+        guestName,
+        startAt,
+        endAt,
+        meetUrl,
+        createdById: user.userId,
+      },
+    });
+
+    return {
+      lead: this.toLeadResponse({ ...lead, meetings: [meeting] }),
+      googleConnected,
+    };
+  }
+
+  async listTodayMeetings(user: AuthenticatedUser) {
+    const orgFilter =
+      await this.crmScope.buildKanbanLeadOrganizationFilter(user);
+    const ownerFilter = this.crmScope.buildKanbanOwnerFilter(user);
+    const scopeFilters = [orgFilter, ownerFilter].filter(
+      (filter) => Object.keys(filter).length > 0,
+    );
+    const { start, end } = saoPauloDayRange();
+
+    const meetings = await this.prisma.leadMeeting.findMany({
+      where: {
+        startAt: { gte: start, lte: end },
+        lead: {
+          deletedAt: null,
+          ...(scopeFilters.length > 0 ? { AND: scopeFilters } : {}),
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        guestName: true,
+        startAt: true,
+        endAt: true,
+        meetUrl: true,
+        lead: { select: { id: true, name: true } },
+      },
+      orderBy: { startAt: 'asc' },
+    });
+
+    return {
+      meetings: meetings.map((meeting) => ({
+        id: meeting.id,
+        title: meeting.title,
+        guestName: meeting.guestName,
+        startAt: meeting.startAt.toISOString(),
+        endAt: meeting.endAt.toISOString(),
+        meetUrl: meeting.meetUrl,
+        leadId: meeting.lead.id,
+        leadName: meeting.lead.name,
+      })),
+    };
+  }
+
   private async resolveLeadForUser(user: AuthenticatedUser, id: string) {
     if (isCatalogPreviewId(id)) {
       return this.materializeCatalogLead(
@@ -1497,8 +1625,19 @@ export class LeadsService {
   }
 
   private toLeadResponse(
-    lead: Lead & { owner?: { id: string; name: string } | null },
+    lead: Lead & {
+      owner?: { id: string; name: string } | null;
+      meetings?: {
+        id: string;
+        title: string;
+        guestName: string;
+        startAt: Date;
+        endAt: Date;
+        meetUrl: string | null;
+      }[];
+    },
   ) {
+    const meeting = lead.meetings?.[0];
     return {
       id: lead.id,
       companyId: lead.companyId,
@@ -1537,6 +1676,16 @@ export class LeadsService {
       aiNotes: lead.aiNotes,
       source: lead.source,
       rawData: lead.rawData,
+      meeting: meeting
+        ? {
+            id: meeting.id,
+            title: meeting.title,
+            guestName: meeting.guestName,
+            startAt: meeting.startAt.toISOString(),
+            endAt: meeting.endAt.toISOString(),
+            meetUrl: meeting.meetUrl,
+          }
+        : null,
       createdAt: lead.createdAt.toISOString(),
       updatedAt: lead.updatedAt.toISOString(),
     };

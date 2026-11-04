@@ -18,6 +18,7 @@ const crm_scope_service_1 = require("./crm-scope.service");
 const lead_notification_service_1 = require("./lead-notification.service");
 const leads_controller_1 = require("./leads.controller");
 const lead_stages_service_1 = require("./lead-stages.service");
+const google_meet_service_1 = require("./google-meet.service");
 const leads_service_1 = require("./leads.service");
 let LeadsModule = class LeadsModule {
 };
@@ -35,6 +36,7 @@ exports.LeadsModule = LeadsModule = __decorate([
         controllers: [leads_controller_1.LeadsController],
         providers: [
             leads_service_1.LeadsService,
+            google_meet_service_1.GoogleMeetService,
             lead_stages_service_1.LeadStagesService,
             crm_scope_service_1.CrmScopeService,
             lead_notification_service_1.LeadNotificationService,

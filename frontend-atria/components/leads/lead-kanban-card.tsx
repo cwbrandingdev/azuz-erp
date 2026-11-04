@@ -10,6 +10,7 @@ import {
   MessageCircle,
   MessagesSquare,
   Trash2,
+  Video,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -17,11 +18,14 @@ import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
+import { LeadMeetingDialog } from "@/components/leads/lead-meeting-dialog";
 import { LeadOrcamentoInput } from "@/components/leads/lead-orcamento-input";
+import { formatEventDateTime } from "@/lib/calendar-utils";
 import {
   formatLeadOrcamento,
   getLeadStatusColor,
   isLeadCollapsed,
+  isScheduledMeetingColumn,
   leadColumnKey,
 } from "@/lib/leads-kanban-utils";
 import {
@@ -43,6 +47,7 @@ interface LeadKanbanCardProps {
   onStatusChange: (leadId: string, columnKey: string) => void;
   onCollapseChange: (leadId: string, isMinimized: boolean) => void;
   onOpenDetails: (lead: Lead) => void;
+  onMeetingCreated?: (lead: Lead) => void;
   onRemove?: (leadId: string) => void;
   showOrcamento?: boolean;
   showOwner?: boolean;
@@ -60,6 +65,7 @@ export function LeadKanbanCard({
   onStatusChange,
   onCollapseChange,
   onOpenDetails,
+  onMeetingCreated,
   onRemove,
   showOrcamento = false,
   showOwner = false,
@@ -67,6 +73,7 @@ export function LeadKanbanCard({
 }: LeadKanbanCardProps) {
   const confirm = useConfirm();
   const [copied, setCopied] = useState(false);
+  const [meetingOpen, setMeetingOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => isLeadCollapsed(lead));
   const [hovered, setHovered] = useState(false);
   const selectedColumnKey =
@@ -292,6 +299,49 @@ export function LeadKanbanCard({
                     );
                   })}
                 </select>
+              </>
+            )}
+
+            {!portalClientView && isScheduledMeetingColumn(currentColumn) && (
+              <>
+                {lead.meeting && (
+                  <div className="rounded-lg bg-[var(--atria-primary)]/[0.04] px-2 py-1.5 text-[11px] leading-snug text-[var(--atria-primary)]/75">
+                    <p className="truncate font-medium text-[var(--atria-primary)]">
+                      {lead.meeting.title}
+                    </p>
+                    <p className="truncate">
+                      {formatEventDateTime(lead.meeting.startAt)} ·{" "}
+                      {lead.meeting.guestName}
+                    </p>
+                    {lead.meeting.meetUrl && (
+                      <a
+                        href={lead.meeting.meetUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 font-medium text-[var(--atria-accent)]"
+                      >
+                        <Video className="size-3" />
+                        Abrir Meet
+                      </a>
+                    )}
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setMeetingOpen(true)}
+                >
+                  <Video className="size-3.5" />
+                  Criar reunião
+                </Button>
+                <LeadMeetingDialog
+                  lead={lead}
+                  open={meetingOpen}
+                  onOpenChange={setMeetingOpen}
+                  onCreated={(updated) => onMeetingCreated?.(updated)}
+                />
               </>
             )}
 

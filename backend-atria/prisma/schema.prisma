@@ -60,6 +60,7 @@ model Company {
   appUpdates                 AppUpdate[]
   tasks                      Task[]
   leadCalls                  LeadCall[]
+  leadMeetings               LeadMeeting[]
   whatsappInboxSettings      WhatsAppInboxSettings?
   whatsappRoutingRules       WhatsAppRoutingRule[]
   whatsappStageMessages      WhatsAppStageMessage[]
@@ -138,6 +139,7 @@ model User {
   systemSuggestions            SystemSuggestion[]
   appUpdatesCreated            AppUpdate[]
   leadCalls                    LeadCall[]
+  leadMeetingsCreated          LeadMeeting[]              @relation("LeadMeetingCreator")
   whatsappAssignedConversations WhatsAppConversation[]
   whatsappMessagesSent          WhatsAppMessage[]
   whatsappCrmEvents             WhatsAppCrmEvent[]
@@ -456,6 +458,7 @@ model CalendarEvent {
   contentPost     ContentPost?  @relation(fields: [contentPostId], references: [id], onDelete: Cascade)
   createdBy       User          @relation("EventCreator", fields: [createdById], references: [id])
   kanbanTask      KanbanTask?
+  leadMeeting     LeadMeeting?
 
   @@index([startAt])
   @@index([assigneeId])
@@ -1279,6 +1282,7 @@ model Lead {
   reminderTasks  CrmReminderTask[]
   comments              LeadComment[]
   calls                 LeadCall[]
+  meetings              LeadMeeting[]
   whatsappCrmEvents     WhatsAppCrmEvent[]
   company               Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deletedBy      User?             @relation("LeadDeletedBy", fields: [deletedById], references: [id])
@@ -1313,6 +1317,28 @@ model LeadComment {
   @@index([leadId, createdAt])
   @@index([userId])
   @@map("lead_comments")
+}
+
+model LeadMeeting {
+  id              String    @id @default(uuid())
+  companyId       String    @map("company_id")
+  leadId          String    @map("lead_id")
+  title           String
+  guestName       String    @map("guest_name")
+  startAt         DateTime  @map("start_at")
+  endAt           DateTime  @map("end_at")
+  meetUrl         String?   @map("meet_url")
+  calendarEventId String?   @unique @map("calendar_event_id")
+  createdById     String    @map("created_by_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  calendarEvent   CalendarEvent? @relation(fields: [calendarEventId], references: [id], onDelete: SetNull)
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy       User      @relation("LeadMeetingCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  lead            Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, startAt])
+  @@index([companyId])
+  @@map("lead_meetings")
 }
 
 model LeadCall {

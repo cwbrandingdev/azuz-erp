@@ -21,6 +21,7 @@ const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const rbac_1 = require("../auth/utils/rbac");
 const fetch_maps_leads_dto_1 = require("./dto/fetch-maps-leads.dto");
 const lead_comment_dto_1 = require("./dto/lead-comment.dto");
+const create_lead_meeting_dto_1 = require("./dto/create-lead-meeting.dto");
 const lead_kanban_dto_1 = require("./dto/lead-kanban.dto");
 const prospecting_leads_query_dto_1 = require("../crm/dto/prospecting-leads-query.dto");
 const cnae_resolver_service_1 = require("./company-lookup/application/cnae-resolver.service");
@@ -40,6 +41,9 @@ let LeadsController = class LeadsController {
     }
     findAll(user) {
         return this.leadsService.findAll(user);
+    }
+    listTodayMeetings(user) {
+        return this.leadsService.listTodayMeetings(user);
     }
     getKanbanBoard(user, query) {
         return this.leadsService.findKanbanBoard(user, query.organizationId, query.ownerUserId);
@@ -74,6 +78,9 @@ let LeadsController = class LeadsController {
     getComments(user, id) {
         return this.leadsService.getComments(user, id);
     }
+    createMeeting(user, id, dto) {
+        return this.leadsService.createMeeting(user, id, dto);
+    }
     createComment(user, id, dto) {
         return this.leadsService.createComment(user, user.userId, id, dto.content);
     }
@@ -98,6 +105,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LeadsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('meetings/today'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "listTodayMeetings", null);
 __decorate([
     (0, common_1.Get)('kanban'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
@@ -182,6 +196,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], LeadsController.prototype, "getComments", null);
+__decorate([
+    (0, common_1.Post)(':id/meeting'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, create_lead_meeting_dto_1.CreateLeadMeetingDto]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "createMeeting", null);
 __decorate([
     (0, common_1.Post)(':id/comments'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

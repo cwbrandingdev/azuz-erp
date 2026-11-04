@@ -8,7 +8,10 @@ import type {
   CrmReminderTaskStatus,
   FetchMapsLeadsInput,
   CrmUserOption,
+  CreateLeadMeetingInput,
+  CreateLeadMeetingResult,
   Lead,
+  TodayLeadMeeting,
   LeadComment,
   LeadKanbanBoard,
   LeadStage,
@@ -155,6 +158,24 @@ export async function preQualifyLead(id: string): Promise<Lead> {
 
 export async function getLeadComments(leadId: string): Promise<LeadComment[]> {
   return apiRequest<LeadComment[]>(`/leads/${leadId}/comments`);
+}
+
+export async function listTodayMeetings(): Promise<TodayLeadMeeting[]> {
+  const result = await apiRequest<{ meetings: TodayLeadMeeting[] }>(
+    "/leads/meetings/today",
+    { skipToast: true },
+  );
+  return result.meetings;
+}
+
+export async function createLeadMeeting(
+  leadId: string,
+  data: CreateLeadMeetingInput,
+): Promise<CreateLeadMeetingResult> {
+  return apiRequest<CreateLeadMeetingResult>(`/leads/${leadId}/meeting`, {
+    method: "POST",
+    body: data,
+  });
 }
 
 export async function createLeadComment(
