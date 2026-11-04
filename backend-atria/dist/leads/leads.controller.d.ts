@@ -506,8 +506,8 @@ export declare class LeadsController {
         updatedAt: string;
         user: {
             id: string;
-            email: string;
             name: string;
+            email: string;
             avatarUrl: string | null;
         };
     }[]>;
@@ -570,8 +570,8 @@ export declare class LeadsController {
         updatedAt: string;
         user: {
             id: string;
-            email: string;
             name: string;
+            email: string;
             avatarUrl: string | null;
         };
     }>;

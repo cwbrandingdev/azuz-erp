@@ -679,6 +679,7 @@ export declare class KanbanService {
     applyInternalApproval(taskId: string, userId: string, role: string, note?: string | null): Promise<void>;
     applyInternalAdjustment(taskId: string, userId?: string | null, reason?: string | null): Promise<void>;
     applyClientRejection(taskId: string, userId?: string | null, reason?: string | null): Promise<void>;
+    private closeOpenClientReview;
     applyClientApproval(taskId: string, userId?: string | null): Promise<void>;
     uploadTaskAsset(userId: string, role: string, taskId: string, file: Express.Multer.File, caption?: string): Promise<{
         id: string;
