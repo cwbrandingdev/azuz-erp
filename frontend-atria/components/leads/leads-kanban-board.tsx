@@ -172,35 +172,6 @@ export function LeadsKanbanBoard({
     [crmUsers, personFilter],
   );
 
-  useEffect(() => {
-    if (!showPersonFilter) return;
-    // #region agent log
-    fetch("http://127.0.0.1:7796/ingest/d0e4e72f-da91-4dd1-9779-2825ee7f66bc", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "8158b9",
-      },
-      body: JSON.stringify({
-        sessionId: "8158b9",
-        runId: "pre-fix",
-        hypothesisId: "A",
-        location: "leads-kanban-board.tsx:person-filter",
-        message: "person filter label vs raw value",
-        data: {
-          filterIsAll: personFilter === "all",
-          valueLength: personFilter.length,
-          crmUserCount: crmUsers.length,
-          hasNameMatch: Boolean(selectedPerson?.name?.trim()),
-          nameLength: selectedPerson?.name?.trim().length ?? 0,
-          triggerUsesSelectValue: true,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  }, [crmUsers.length, personFilter, selectedPerson, showPersonFilter]);
-
   const hasDateFilter = Boolean(startDate || endDate);
 
   const pendingReminders = useMemo(
@@ -783,7 +754,15 @@ export function LeadsKanbanBoard({
                       id="kanban-person-filter"
                       className="h-11 w-full text-sm font-medium"
                     >
-                      <SelectValue placeholder="Todas as pessoas" />
+                      {personFilter === "all" || selectedPerson?.name?.trim() ? (
+                        <span className="line-clamp-1 min-w-0 flex-1 truncate text-left">
+                          {personFilter === "all"
+                            ? "Todas as pessoas"
+                            : selectedPerson?.name?.trim()}
+                        </span>
+                      ) : (
+                        <SelectValue placeholder="Todas as pessoas" />
+                      )}
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todas as pessoas</SelectItem>
