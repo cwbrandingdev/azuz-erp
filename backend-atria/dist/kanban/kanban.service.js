@@ -419,6 +419,10 @@ let KanbanService = class KanbanService {
             });
         }, prisma_service_1.PRISMA_TRANSACTION_OPTIONS);
         await this.syncCalendarEventColor(id);
+        if (resolvedStatus === client_1.KanbanTaskStatus.OK &&
+            existing.status !== client_1.KanbanTaskStatus.OK) {
+            await this.closeOpenClientReview(id);
+        }
         const updated = await this.ensureTaskExists(id);
         if (dto.postCaption !== undefined && updated.contentPostId) {
             await this.syncContentPostCopy(updated.contentPostId, this.resolvePostCopy(updated));
@@ -478,6 +482,10 @@ let KanbanService = class KanbanService {
                 internalReviewStatus: client_1.InternalReviewStatus.APPROVED,
                 internalReviewNote: existing.internalReviewNote ?? null,
             });
+        }
+        if (dto.status === client_1.KanbanTaskStatus.OK &&
+            existing.status !== client_1.KanbanTaskStatus.OK) {
+            await this.closeOpenClientReview(id);
         }
         await this.syncCalendarEventColor(id);
         await this.logHistory(userId, id, `Status alterado para ${kanban_status_1.STATUS_LABELS[dto.status]}`);
@@ -548,6 +556,9 @@ let KanbanService = class KanbanService {
             });
         }, prisma_service_1.PRISMA_TRANSACTION_OPTIONS);
         await this.syncCalendarEventColor(id);
+        if (newStatus === client_1.KanbanTaskStatus.OK && task.status !== client_1.KanbanTaskStatus.OK) {
+            await this.closeOpenClientReview(id);
+        }
         if (newStatus === client_1.KanbanTaskStatus.JHONATAN_APROVOU &&
             task.status !== client_1.KanbanTaskStatus.JHONATAN_APROVOU) {
             await this.publishTaskForClientReview(id, userId, {
@@ -728,6 +739,32 @@ let KanbanService = class KanbanService {
             actorId: userId,
             reason,
         });
+    }
+    async closeOpenClientReview(taskId) {
+        const task = await this.prisma.kanbanTask.findUnique({
+            where: { id: taskId },
+            select: { contentPostId: true },
+        });
+        if (!task)
+            return;
+        if (task.contentPostId) {
+            await this.prisma.contentPost.updateMany({
+                where: {
+                    id: task.contentPostId,
+                    status: client_1.ContentPostStatus.PENDING_APPROVAL,
+                },
+                data: { status: client_1.ContentPostStatus.APPROVED },
+            });
+        }
+        const deliverable = await this.prisma.deliverable.findUnique({
+            where: { kanbanTaskId: taskId },
+            select: { approvalStatus: true },
+        });
+        if (deliverable?.approvalStatus ===
+            client_1.DeliverableApprovalStatus.WAITING_CLIENT_APPROVAL ||
+            deliverable?.approvalStatus === client_1.DeliverableApprovalStatus.PENDING_APPROVAL) {
+            await this.deliverablesService.markClientApproved(taskId);
+        }
     }
     async applyClientApproval(taskId, userId) {
         const existing = await this.prisma.kanbanTask.findUnique({

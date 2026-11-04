@@ -11,6 +11,7 @@ import {
   ContentPlatform,
   ContentPostFormat,
   ContentPostStatus,
+  DeliverableApprovalStatus,
   EventCategory,
   KanbanColumn,
   KanbanColumnType,
@@ -605,6 +606,12 @@ export class KanbanService {
     }, PRISMA_TRANSACTION_OPTIONS);
 
     await this.syncCalendarEventColor(id);
+    if (
+      resolvedStatus === KanbanTaskStatus.OK &&
+      existing.status !== KanbanTaskStatus.OK
+    ) {
+      await this.closeOpenClientReview(id);
+    }
 
     const updated = await this.ensureTaskExists(id);
     if (dto.postCaption !== undefined && updated.contentPostId) {
@@ -701,6 +708,13 @@ export class KanbanService {
       });
     }
 
+    if (
+      dto.status === KanbanTaskStatus.OK &&
+      existing.status !== KanbanTaskStatus.OK
+    ) {
+      await this.closeOpenClientReview(id);
+    }
+
     await this.syncCalendarEventColor(id);
     await this.logHistory(
       userId,
@@ -785,6 +799,10 @@ export class KanbanService {
     }, PRISMA_TRANSACTION_OPTIONS);
 
     await this.syncCalendarEventColor(id);
+
+    if (newStatus === KanbanTaskStatus.OK && task.status !== KanbanTaskStatus.OK) {
+      await this.closeOpenClientReview(id);
+    }
 
     if (
       newStatus === KanbanTaskStatus.JHONATAN_APROVOU &&
@@ -1055,6 +1073,36 @@ export class KanbanService {
       actorId: userId,
       reason,
     });
+  }
+
+  private async closeOpenClientReview(taskId: string) {
+    const task = await this.prisma.kanbanTask.findUnique({
+      where: { id: taskId },
+      select: { contentPostId: true },
+    });
+    if (!task) return;
+
+    if (task.contentPostId) {
+      await this.prisma.contentPost.updateMany({
+        where: {
+          id: task.contentPostId,
+          status: ContentPostStatus.PENDING_APPROVAL,
+        },
+        data: { status: ContentPostStatus.APPROVED },
+      });
+    }
+
+    const deliverable = await this.prisma.deliverable.findUnique({
+      where: { kanbanTaskId: taskId },
+      select: { approvalStatus: true },
+    });
+    if (
+      deliverable?.approvalStatus ===
+        DeliverableApprovalStatus.WAITING_CLIENT_APPROVAL ||
+      deliverable?.approvalStatus === DeliverableApprovalStatus.PENDING_APPROVAL
+    ) {
+      await this.deliverablesService.markClientApproved(taskId);
+    }
   }
 
   async applyClientApproval(taskId: string, userId?: string | null) {

@@ -738,8 +738,8 @@ export declare class LeadsService {
         updatedAt: string;
         user: {
             id: string;
-            email: string;
             name: string;
+            email: string;
             avatarUrl: string | null;
         };
     }[]>;
@@ -750,8 +750,8 @@ export declare class LeadsService {
         updatedAt: string;
         user: {
             id: string;
-            email: string;
             name: string;
+            email: string;
             avatarUrl: string | null;
         };
     }>;

@@ -191,8 +191,8 @@ export declare class ClientPortalController {
         updatedAt: string;
         user: {
             id: string;
-            email: string;
             name: string;
+            email: string;
             avatarUrl: string | null;
         };
     }[]>;
@@ -203,8 +203,8 @@ export declare class ClientPortalController {
         updatedAt: string;
         user: {
             id: string;
-            email: string;
             name: string;
+            email: string;
             avatarUrl: string | null;
         };
     }>;
@@ -214,9 +214,9 @@ export declare class ClientPortalController {
             email: string | null;
             avatarUrl: string | null;
             isActive: boolean;
+            companyName: string;
             contactName: string | null;
             instagram: string | null;
-            companyName: string;
             hasCrmEnabled: boolean;
         };
         accountStatus: {
@@ -337,9 +337,9 @@ export declare class ClientPortalController {
             email: string | null;
             avatarUrl: string | null;
             isActive: boolean;
+            companyName: string;
             contactName: string | null;
             instagram: string | null;
-            companyName: string;
             hasCrmEnabled: boolean;
         };
         month: number;
@@ -422,11 +422,11 @@ export declare class ClientPortalController {
             id: string;
             email: string | null;
             avatarUrl: string | null;
-            phone: string | null;
-            city: string | null;
-            contactName: string | null;
-            street: string | null;
             companyName: string;
+            contactName: string | null;
+            phone: string | null;
+            street: string | null;
+            city: string | null;
             state: string | null;
             zipCode: string | null;
         };
@@ -440,8 +440,8 @@ export declare class ClientPortalController {
         pdfUrl: string | null;
         createdBy: {
             id: string;
-            email: string;
             name: string;
+            email: string;
             avatarUrl: string | null;
         };
         createdAt: string;
@@ -456,11 +456,11 @@ export declare class ClientPortalController {
                 id: string;
                 email: string | null;
                 avatarUrl: string | null;
-                phone: string | null;
-                city: string | null;
-                contactName: string | null;
-                street: string | null;
                 companyName: string;
+                contactName: string | null;
+                phone: string | null;
+                street: string | null;
+                city: string | null;
                 state: string | null;
                 zipCode: string | null;
             };
@@ -474,8 +474,8 @@ export declare class ClientPortalController {
             pdfUrl: string | null;
             createdBy: {
                 id: string;
-                email: string;
                 name: string;
+                email: string;
                 avatarUrl: string | null;
             };
             receivablesCount: number;
