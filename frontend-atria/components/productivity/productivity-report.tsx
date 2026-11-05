@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Input, inputClassName } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useProductivityReport } from "@/hooks/use-productivity-report";
@@ -76,13 +76,15 @@ const CARGO_SECTIONS: CargoSection[] = [
   },
 ];
 
-const CARGO_OPTIONS = [
-  { value: "", label: "Todos os cargos" },
-  { value: "CRM", label: "CRM / SDR" },
-  { value: "DESIGNER_MASTER", label: "Designer Sênior" },
-  { value: "DESIGNER_JUNIOR", label: "Designer Júnior" },
-  { value: "MASTER", label: "Master" },
-];
+const VIEW_TOGGLES = [
+  { id: "sdr", label: "SDR", roles: ["crm"] },
+  {
+    id: "designers",
+    label: "Designers",
+    roles: ["designer_junior", "designer_master"],
+  },
+  { id: "master", label: "Master", roles: ["master"] },
+] as const;
 
 const numberFormat = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 1,
@@ -161,7 +163,7 @@ function DayCalendar({
   ];
 
   return (
-    <div className="w-full max-w-xs rounded-2xl border border-[var(--atria-primary)]/35 bg-white p-3 shadow-sm dark:bg-card">
+    <div className="w-full max-w-xs rounded-2xl border border-[var(--atria-primary)]/35 bg-white p-3 shadow-sm lg:w-80 dark:bg-card">
       <div className="mb-2 flex items-center justify-between gap-2">
         <Button
           type="button"
@@ -315,11 +317,11 @@ function CargoCards({
           {rows.length === 1 ? "1 pessoa" : `${rows.length} pessoas`}
         </p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {rows.map((row) => (
           <article
             key={row.userId}
-            className="rounded-2xl border border-[var(--atria-primary)]/35 bg-white p-4 shadow-sm dark:bg-card"
+            className="min-w-0 rounded-2xl border border-[var(--atria-primary)]/35 bg-white p-4 shadow-sm dark:bg-card"
           >
             <h3 className="truncate text-sm font-semibold text-[var(--atria-primary)]">
               {row.name}
@@ -340,8 +342,10 @@ export function ProductivityReport() {
   const initialRange = useMemo(() => currentMonthInputs(), []);
   const [from, setFrom] = useState(initialRange.from);
   const [to, setTo] = useState(initialRange.to);
-  const [role, setRole] = useState("");
   const [name, setName] = useState("");
+  const [visibleGroups, setVisibleGroups] = useState<Set<string>>(
+    () => new Set(VIEW_TOGGLES.map((group) => group.id)),
+  );
   const deferredName = useDeferredValue(name.trim());
   const rangeInvalid = Boolean(from && to && from > to);
 
@@ -349,10 +353,9 @@ export function ProductivityReport() {
     () => ({
       from: from ? startOfLocalDay(from) : undefined,
       to: to ? endOfLocalDay(to) : undefined,
-      role: canFilterPeople && role ? role : undefined,
       q: canFilterPeople && deferredName ? deferredName : undefined,
     }),
-    [canFilterPeople, deferredName, from, role, to],
+    [canFilterPeople, deferredName, from, to],
   );
 
   const fightQuery = useMemo(
@@ -365,10 +368,26 @@ export function ProductivityReport() {
     canFilterPeople && !rangeInvalid,
   );
   const rows = report.data?.rows ?? [];
+  const visibleRoles = new Set(
+    VIEW_TOGGLES.filter((group) => visibleGroups.has(group.id)).flatMap(
+      (group) => group.roles,
+    ),
+  );
   const sections = CARGO_SECTIONS.map((section) => ({
     ...section,
     rows: rows.filter((row) => normalizeAppRole(row.role) === section.role),
-  })).filter((section) => section.rows.length > 0);
+  })).filter(
+    (section) => section.rows.length > 0 && visibleRoles.has(section.role),
+  );
+
+  function toggleGroup(id: string) {
+    setVisibleGroups((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
   const ownColumns = rows[0]
     ? CARGO_SECTIONS.find(
         (section) => section.role === normalizeAppRole(rows[0].role),
@@ -381,10 +400,40 @@ export function ProductivityReport() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-      <DayCalendar from={from} to={to} onSelectDay={selectDay} />
-      <div className="flex flex-1 flex-wrap items-end gap-3">
+    <div className="flex min-w-0 max-w-full flex-col gap-5">
+      <div className="flex min-w-0 flex-wrap items-end gap-3">
+        {canFilterPeople ? (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setVisibleGroups(new Set(VIEW_TOGGLES.map((group) => group.id)))
+              }
+              className="rounded-full border border-[var(--atria-primary)]/40 px-3 py-1.5 text-sm font-medium text-[var(--atria-primary)]"
+            >
+              Todos
+            </button>
+            {VIEW_TOGGLES.map((group) => {
+              const active = visibleGroups.has(group.id);
+              return (
+                <button
+                  key={group.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => toggleGroup(group.id)}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-sm font-medium",
+                    active
+                      ? "border-[var(--atria-primary)] bg-[var(--atria-primary)] text-white"
+                      : "border-[var(--atria-primary)]/40 bg-transparent text-[var(--atria-primary)]",
+                  )}
+                >
+                  {group.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
         <label className="flex min-w-[10rem] flex-col gap-1 text-xs font-medium text-[var(--atria-primary)]">
           De
           <Input
@@ -422,37 +471,49 @@ export function ProductivityReport() {
         >
           Todo o período
         </Button>
-        <Button type="button" variant="outline" onClick={() => selectDay(toDateInputValue(new Date()))}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => selectDay(toDateInputValue(new Date()))}
+        >
           Hoje
         </Button>
         {canFilterPeople ? (
-          <>
-            <label className="flex min-w-[12rem] flex-col gap-1 text-xs font-medium text-[var(--atria-primary)]">
-              Cargo
-              <select
-                className={cn(inputClassName, "h-8")}
-                value={role}
-                onChange={(event) => setRole(event.target.value)}
-              >
-                {CARGO_OPTIONS.map((option) => (
-                  <option key={option.value || "all"} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex min-w-[14rem] flex-1 flex-col gap-1 text-xs font-medium text-[var(--atria-primary)]">
-              Nome
-              <Input
-                value={name}
-                placeholder="Buscar por nome"
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-          </>
+          <label className="flex min-w-[14rem] flex-1 flex-col gap-1 text-xs font-medium text-[var(--atria-primary)]">
+            Nome
+            <Input
+              value={name}
+              placeholder="Buscar por nome"
+              onChange={(event) => setName(event.target.value)}
+            />
+          </label>
         ) : null}
       </div>
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-stretch">
+        <DayCalendar from={from} to={to} onSelectDay={selectDay} />
+        {canFilterPeople && !rangeInvalid ? (
+          <div className="relative min-w-0">
+            {fightReport.isPending ? (
+              <div className="flex min-h-40 items-center justify-center rounded-2xl border border-[var(--atria-primary)]/35 bg-white lg:absolute lg:inset-0 lg:min-h-0 dark:bg-card">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
+              </div>
+            ) : null}
+            {fightReport.data ? (
+              <ProductivityFight
+                rows={fightReport.data.rows}
+                className="lg:absolute lg:inset-0"
+              />
+            ) : null}
+          </div>
+        ) : null}
       </div>
+      {canFilterPeople ? (
+        <p className="text-xs leading-relaxed text-[var(--atria-primary)]/80">
+          Os dois lutadores precisam ser do mesmo cargo. SDR conta ligações,
+          mensagens, leads e reuniões. Designer conta tarefas criadas,
+          arquivos, tarefas concluídas, comentários e aprovações do cliente.
+        </p>
+      ) : null}
 
       {rangeInvalid ? (
         <p className="text-sm text-destructive">
@@ -481,17 +542,20 @@ export function ProductivityReport() {
       {!report.isPending && !report.isError && !rangeInvalid && rows.length > 0 ? (
         canFilterPeople ? (
           <div className="flex flex-col gap-6">
-            {fightReport.data ? (
-              <ProductivityFight rows={fightReport.data.rows} />
-            ) : null}
-            {sections.map((section) => (
-              <CargoCards
-                key={section.role}
-                label={section.label}
-                columns={section.columns}
-                rows={section.rows}
-              />
-            ))}
+            {sections.length === 0 ? (
+              <p className="text-sm text-[var(--atria-primary)]/85">
+                Ative um cargo para ver os gráficos.
+              </p>
+            ) : (
+              sections.map((section) => (
+                <CargoCards
+                  key={section.role}
+                  label={section.label}
+                  columns={section.columns}
+                  rows={section.rows}
+                />
+              ))
+            )}
           </div>
         ) : (
           <article className="max-w-xl rounded-2xl border border-[var(--atria-primary)]/35 bg-white p-4 shadow-sm dark:bg-card">

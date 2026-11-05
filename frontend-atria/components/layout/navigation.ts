@@ -41,7 +41,6 @@ export const navSections: NavSection[] = [
     label: "VISÃO GERAL",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Produtividade", href: "/produtividade", icon: Activity },
       { name: "Meta Insights", href: "/insights", icon: BarChart2 },
     ],
   },
@@ -60,6 +59,7 @@ export const navSections: NavSection[] = [
   {
     label: "GESTÃO",
     items: [
+      { name: "Produtividade", href: "/produtividade", icon: Activity },
       { name: "Clientes", href: "/clients", icon: Users },
       {
         name: "Financeiro",

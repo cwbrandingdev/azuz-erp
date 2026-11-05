@@ -39,7 +39,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
 
   if (isStudio) {
     return (
-      <div className="flex h-screen flex-col overflow-hidden bg-[var(--atria-base)]">
+      <div className="flex h-dvh w-full max-w-full flex-col overflow-hidden bg-[var(--atria-base)]">
         <div data-app-chrome>
           <NavStudio
             onMenuClick={() => setMobileOpen(true)}
@@ -51,7 +51,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
         <FinanceDueAlertsWatcher />
         <LeadMeetingTodayWatcher />
 
-        <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6 lg:pb-32 xl:p-8">
+        <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6 lg:pb-32 xl:p-8">
           {children}
         </main>
 
@@ -61,7 +61,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--atria-base)]">
+    <div className="flex h-dvh w-full max-w-full overflow-hidden bg-[var(--atria-base)]">
       <div data-app-chrome className="contents">
         <AppSidebar />
         <MobileDrawer open={mobileOpen} onOpenChange={setMobileOpen} />
@@ -77,7 +77,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
         <FinanceDueAlertsWatcher />
         <LeadMeetingTodayWatcher />
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 xl:p-8">
+        <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6 xl:p-8">
           {children}
         </main>
       </div>

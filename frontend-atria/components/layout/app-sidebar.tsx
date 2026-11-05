@@ -20,7 +20,7 @@ export function AppSidebar() {
     <TooltipProvider delay={300}>
       <aside
         className={cn(
-          "sidebar-scroll sticky top-0 hidden h-screen shrink-0 flex-col border-r border-white/5 bg-gradient-to-b from-[var(--atria-sidebar)] via-[color-mix(in_oklch,var(--atria-sidebar),black_12%)] to-[color-mix(in_oklch,var(--atria-sidebar),black_22%)] text-white transition-all duration-300 ease-in-out lg:flex",
+          "sidebar-scroll hidden h-full shrink-0 flex-col border-r border-white/5 bg-gradient-to-b from-[var(--atria-sidebar)] via-[color-mix(in_oklch,var(--atria-sidebar),black_12%)] to-[color-mix(in_oklch,var(--atria-sidebar),black_22%)] text-white transition-all duration-300 ease-in-out lg:flex",
           isCollapsed ? "w-20" : "w-[17.5rem]",
         )}
       >
