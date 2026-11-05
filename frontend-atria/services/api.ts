@@ -1,3 +1,4 @@
+import { notifySessionExpired } from "@/lib/auth-session-events";
 import {
   clearAuthStorage,
   getAccessToken,
@@ -107,6 +108,11 @@ async function refreshAccessToken(): Promise<string | null> {
   return session?.accessToken ?? null;
 }
 
+function expireSession(): void {
+  clearAuthStorage();
+  notifySessionExpired();
+}
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {},
@@ -132,6 +138,7 @@ export async function apiRequest<T>(
 
   let token = skipAuth ? null : getAccessToken();
   let response = await makeRequest(token);
+  let sessionExpired = false;
 
   if (response.status === 401 && !skipAuth) {
     const newToken = await refreshAccessToken();
@@ -139,7 +146,8 @@ export async function apiRequest<T>(
       token = newToken;
       response = await makeRequest(token);
     } else {
-      clearAuthStorage();
+      expireSession();
+      sessionExpired = true;
     }
   }
 
@@ -187,7 +195,11 @@ export async function apiRequest<T>(
     }
     // #endregion
 
-    if (!skipToast && shouldShowApiErrorToast(response.status, endpoint, error.message)) {
+    if (
+      !skipToast &&
+      !sessionExpired &&
+      shouldShowApiErrorToast(response.status, endpoint, error.message)
+    ) {
       showApiError(error, endpoint);
     }
 
@@ -244,6 +256,7 @@ export async function apiRequestBlob(
 
   let token = skipAuth ? null : getAccessToken();
   let response = await makeRequest(token);
+  let sessionExpired = false;
 
   if (response.status === 401 && !skipAuth) {
     const newToken = await refreshAccessToken();
@@ -251,7 +264,8 @@ export async function apiRequestBlob(
       token = newToken;
       response = await makeRequest(token);
     } else {
-      clearAuthStorage();
+      expireSession();
+      sessionExpired = true;
     }
   }
 
@@ -265,7 +279,11 @@ export async function apiRequestBlob(
       data,
     );
 
-    if (!skipToast && shouldShowApiErrorToast(response.status, endpoint, error.message)) {
+    if (
+      !skipToast &&
+      !sessionExpired &&
+      shouldShowApiErrorToast(response.status, endpoint, error.message)
+    ) {
       showApiError(error, endpoint);
     }
 
@@ -331,13 +349,15 @@ export async function uploadFile<T>(
   let token = options.skipAuth ? null : getAccessToken();
   let result = await makeRequest(token);
 
+  let sessionExpired = false;
   if (result.status === 401 && !options.skipAuth) {
     const newToken = await refreshAccessToken();
     if (newToken) {
       token = newToken;
       result = await makeRequest(token);
     } else {
-      clearAuthStorage();
+      expireSession();
+      sessionExpired = true;
     }
   }
 
@@ -355,6 +375,7 @@ export async function uploadFile<T>(
 
     if (
       !options.skipToast &&
+      !sessionExpired &&
       shouldShowApiErrorToast(result.status, endpoint, error.message)
     ) {
       showApiError(error, endpoint);
