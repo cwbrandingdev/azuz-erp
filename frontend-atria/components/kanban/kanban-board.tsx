@@ -9,7 +9,7 @@ import {
   type DropResult,
 } from "@hello-pangea/dnd";
 import { useQueryClient } from "@tanstack/react-query";
-import { GripVertical, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
 import { calendarService, clientsService, kanbanService } from "@/services";
@@ -25,6 +25,7 @@ import { matchesRecordingFilter } from "@/lib/production-phase";
 import { invalidateTasksCache } from "@/lib/task-cache";
 import type { Client, KanbanColumn, KanbanTask, TeamMember } from "@/services/types";
 import { ColumnHeader } from "./column-header";
+import { DragHandleStrip } from "./drag-handle-strip";
 import { CreateTaskDialog } from "./create-task-dialog";
 import { DeletionHistoryDrawer } from "./deletion-history-drawer";
 import {
@@ -354,21 +355,17 @@ export function KanbanBoard() {
                                           }
                                           style={dragProvided.draggableProps.style}
                                         >
-                                          <div className="flex items-start gap-1">
+                                          <div className="flex items-stretch gap-1">
                                             {canEditKanbanTask(task) ? (
-                                              <button
-                                                type="button"
-                                                aria-label="Arrastar tarefa"
-                                                className="mt-3 shrink-0 cursor-grab rounded p-1 text-[var(--atria-primary)]/40 hover:bg-[var(--atria-primary)]/5 hover:text-[var(--atria-primary)] active:cursor-grabbing"
+                                              <DragHandleStrip
+                                                label="Arrastar tarefa"
                                                 {...dragProvided.dragHandleProps}
                                                 onClick={(event) =>
                                                   event.stopPropagation()
                                                 }
-                                              >
-                                                <GripVertical className="size-4" />
-                                              </button>
+                                              />
                                             ) : (
-                                              <span className="mt-3 size-6 shrink-0" />
+                                              <span className="w-6 shrink-0" />
                                             )}
                                             <div className="min-w-0 flex-1">
                                               <TaskCard

@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  GripVertical,
   Lock,
   MessageCircle,
   MessagesSquare,
@@ -18,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
+import { DragHandleStrip } from "@/components/kanban/drag-handle-strip";
 import { LeadMeetingDialog } from "@/components/leads/lead-meeting-dialog";
 import { LeadOrcamentoInput } from "@/components/leads/lead-orcamento-input";
 import { formatEventDateTime } from "@/lib/calendar-utils";
@@ -130,11 +130,26 @@ export function LeadKanbanCard({
 
   return (
     <div
-      className="group relative rounded-xl border bg-white p-3 shadow-sm"
+      className="group relative rounded-xl border bg-white p-3 pl-9 shadow-sm"
       style={{ borderLeftWidth: 3, borderLeftColor: color }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {columnLocked ? (
+        <span
+          className="absolute inset-y-0 left-0 flex w-7 items-center justify-center text-[var(--atria-primary)]/25"
+          aria-hidden
+        >
+          <Lock className="size-4" />
+        </span>
+      ) : (
+        <DragHandleStrip
+          label="Arrastar lead"
+          className="absolute inset-y-0 left-0 w-7 rounded-l-xl rounded-r-none"
+          {...dragHandleProps}
+        />
+      )}
+
       {columnLocked && hovered && (
         <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-[var(--atria-primary)]/8 px-2 py-0.5 text-[10px] font-medium text-[var(--atria-primary)]/60">
           <Lock className="size-3" />
@@ -143,20 +158,6 @@ export function LeadKanbanCard({
       )}
 
       <div className="flex items-start gap-2">
-        {columnLocked ? (
-          <span className="mt-0.5 text-[var(--atria-primary)]/25" aria-hidden>
-            <Lock className="size-4" />
-          </span>
-        ) : (
-          <button
-            type="button"
-            className="mt-0.5 cursor-grab text-[var(--atria-primary)]/35 hover:text-[var(--atria-primary)]/70 active:cursor-grabbing"
-            aria-label="Arrastar lead"
-            {...dragHandleProps}
-          >
-            <GripVertical className="size-4" />
-          </button>
-        )}
         <button
           type="button"
           className="min-w-0 flex-1 text-left"
