@@ -100,7 +100,10 @@ export class LeadDossierService {
       discoveredInstagram &&
       apifyToken
     ) {
-      instagramData = await this.fetchInstagram(discoveredInstagram, apifyToken);
+      instagramData = await this.fetchInstagram(
+        discoveredInstagram,
+        apifyToken,
+      );
     }
 
     const raw = this.mergeRawData(lead.rawData, {
@@ -287,9 +290,8 @@ export class LeadDossierService {
     if (matches.length === 0) return null;
     const city = lead.city ? normalizeCatalogText(lead.city) : '';
     const preferred =
-      (city
-        ? matches.find((row) => row.cityNormalized === city)
-        : undefined) ?? matches[0];
+      (city ? matches.find((row) => row.cityNormalized === city) : undefined) ??
+      matches[0];
     return snapshotFromCatalog(preferred, 'phone');
   }
 

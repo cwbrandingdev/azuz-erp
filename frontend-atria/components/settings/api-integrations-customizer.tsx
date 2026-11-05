@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  BarChart3,
-  KeyRound,
-  Loader2,
-  Save,
-  Webhook,
-} from "lucide-react";
+import { BarChart3, KeyRound, Loader2, Save, Webhook } from "lucide-react";
 import { SecretInput } from "@/components/settings/secret-input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -45,8 +39,7 @@ const EMPTY_SECRETS: SecretDrafts = {
 export function ApiIntegrationsCustomizer() {
   const [integrations, setIntegrations] =
     useState<CompanyIntegrations>(DEFAULT_INTEGRATIONS);
-  const [secretDrafts, setSecretDrafts] =
-    useState<SecretDrafts>(EMPTY_SECRETS);
+  const [secretDrafts, setSecretDrafts] = useState<SecretDrafts>(EMPTY_SECRETS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -137,7 +130,10 @@ export function ApiIntegrationsCustomizer() {
   }
 
   return (
-    <form onSubmit={(event) => void handleSave(event)} className="flex flex-col gap-6">
+    <form
+      onSubmit={(event) => void handleSave(event)}
+      className="flex flex-col gap-6"
+    >
       <Card className="rounded-2xl border border-[var(--atria-primary)]/10 bg-white p-6">
         <div className="mb-5 flex items-start gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-[var(--atria-primary)]/8 text-[var(--atria-primary)]">
@@ -155,9 +151,7 @@ export function ApiIntegrationsCustomizer() {
 
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="meta-ad-account-id">
-              Ad Account ID
-            </FieldLabel>
+            <FieldLabel htmlFor="meta-ad-account-id">Ad Account ID</FieldLabel>
             <Input
               id="meta-ad-account-id"
               value={integrations.metaAdAccountId ?? ""}

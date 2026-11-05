@@ -10,10 +10,7 @@ import { Prisma } from '@prisma/client';
 import { CompanySettingsService } from '../../company-settings/company-settings.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FetchMapsLeadsDto } from '../dto/fetch-maps-leads.dto';
-import {
-  buildApifyActorInput,
-  mapApifyPlaces,
-} from './apify-place.mapper';
+import { buildApifyActorInput, mapApifyPlaces } from './apify-place.mapper';
 import { pickBestPlaceForCompany } from './company-place-match.util';
 import type { MappedPlace } from './maps-scraper.types';
 

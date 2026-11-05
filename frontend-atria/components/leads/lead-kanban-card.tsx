@@ -33,7 +33,7 @@ import {
   type CrmMoveZone,
 } from "@/lib/lead-pipeline-zones";
 import { toast } from "@/lib/toast";
-import { toWhatsAppUrl } from "@/lib/lead-phone";
+import { toVivoDialString, toWhatsAppUrl } from "@/lib/lead-phone";
 import type { Lead, LeadKanbanColumn } from "@/services/types";
 
 interface LeadKanbanCardProps {
@@ -96,7 +96,9 @@ export function LeadKanbanCard({
   async function handleCopy() {
     if (!lead.phone) return;
     try {
-      await navigator.clipboard.writeText(lead.phone);
+      await navigator.clipboard.writeText(
+        toVivoDialString(lead.phone) ?? lead.phone,
+      );
       setCopied(true);
       toast.success("Telefone copiado");
       window.setTimeout(() => setCopied(false), 1800);
