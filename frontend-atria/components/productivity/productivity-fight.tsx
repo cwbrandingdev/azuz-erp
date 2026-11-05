@@ -66,33 +66,67 @@ function initials(name: string): string {
   return parts.map((part) => part.charAt(0).toUpperCase()).join("") || "?";
 }
 
-function defaultIds(rows: ProductivityRow[]): { left: string; right: string } {
-  const sdr = rows.find((row) => row.role.toLowerCase() === "crm");
-  const designer = rows.find((row) =>
-    row.role.toLowerCase().startsWith("designer"),
-  );
-  const left = sdr?.userId ?? rows[0]?.userId ?? "";
-  const rightCandidate =
-    designer && designer.userId !== left
-      ? designer.userId
-      : rows.find((row) => row.userId !== left)?.userId;
-  return { left, right: rightCandidate ?? "" };
+function cargoOf(row: ProductivityRow): string {
+  return row.role.toLowerCase();
 }
 
-export function ProductivityFight({ rows }: { rows: ProductivityRow[] }) {
+function peersOf(rows: ProductivityRow[], person: ProductivityRow | null) {
+  if (!person) return [];
+  return rows.filter(
+    (row) => row.userId !== person.userId && cargoOf(row) === cargoOf(person),
+  );
+}
+
+function defaultIds(rows: ProductivityRow[]): { left: string; right: string } {
+  const groups = new Map<string, ProductivityRow[]>();
+  for (const row of rows) {
+    const cargo = cargoOf(row);
+    const group = groups.get(cargo) ?? [];
+    group.push(row);
+    groups.set(cargo, group);
+  }
+  const pair = [...groups.values()].find((group) => group.length >= 2);
+  return {
+    left: pair?.[0].userId ?? rows[0]?.userId ?? "",
+    right: pair?.[1].userId ?? "",
+  };
+}
+
+export function ProductivityFight({
+  rows,
+  className,
+}: {
+  rows: ProductivityRow[];
+  className?: string;
+}) {
   const rosterKey = rows.map((row) => row.userId).join("|");
   const [choice, setChoice] = useState<{
     key: string;
     left: string;
     right: string;
   } | null>(null);
-  const active =
+  const stored =
     choice && choice.key === rosterKey
       ? choice
       : { key: rosterKey, ...defaultIds(rows) };
+  const storedLeft = rows.find((row) => row.userId === stored.left) ?? null;
+  const storedRight = rows.find((row) => row.userId === stored.right) ?? null;
+  const active =
+    storedLeft &&
+    storedRight &&
+    cargoOf(storedLeft) !== cargoOf(storedRight)
+      ? { key: rosterKey, ...defaultIds(rows) }
+      : stored;
 
   const left = rows.find((row) => row.userId === active.left) ?? null;
-  const right = rows.find((row) => row.userId === active.right) ?? null;
+  const right =
+    rows.find(
+      (row) =>
+        row.userId === active.right &&
+        left != null &&
+        cargoOf(row) === cargoOf(left),
+    ) ?? null;
+  const opponents = peersOf(rows, left);
   const leftScore = left ? personScore(left) : 0;
   const rightScore = right ? personScore(right) : 0;
   const combined = leftScore + rightScore;
@@ -101,38 +135,47 @@ export function ProductivityFight({ rows }: { rows: ProductivityRow[] }) {
   const verdict = verdictFor(left, right, leftScore, rightScore);
 
   function pick(side: "left" | "right", userId: string) {
-    const next = { ...active, key: rosterKey, [side]: userId };
-    if (next.left === next.right) {
-      const other = rows.find((row) => row.userId !== userId);
-      if (side === "left") next.right = other?.userId ?? "";
-      else next.left = other?.userId ?? "";
+    if (side === "right") {
+      setChoice({ key: rosterKey, left: active.left, right: userId });
+      return;
     }
-    setChoice(next);
+    const chosen = rows.find((row) => row.userId === userId) ?? null;
+    const stillValid =
+      right != null && chosen != null && cargoOf(right) === cargoOf(chosen);
+    const nextRight = stillValid
+      ? right.userId
+      : peersOf(rows, chosen)[0]?.userId ?? "";
+    setChoice({ key: rosterKey, left: userId, right: nextRight });
   }
 
   return (
-    <section className="rounded-2xl border border-[var(--atria-primary)]/35 bg-white p-4 shadow-sm dark:bg-card">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <section
+      className={cn(
+        "flex min-h-0 min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-[var(--atria-primary)]/35 bg-white p-3 shadow-sm dark:bg-card",
+        className,
+      )}
+    >
+      <div className="mb-2 flex shrink-0 items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-[var(--atria-primary)]">
           Disputa
         </h2>
         <p className="text-xs text-[var(--atria-primary)]/80">
-          Escolha quem entra no ringue
+          Só entre o mesmo cargo
         </p>
       </div>
 
-      <div className="grid items-end gap-4 sm:grid-cols-[1fr_auto_1fr]">
+      <div className="grid min-h-0 min-w-0 flex-1 items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         <FighterSide
           row={left}
           rows={rows}
           selectedId={active.left}
-          otherId={active.right}
+          otherId=""
           score={leftScore}
           share={leftShare}
           mood={left && right ? mood.left : "neutral"}
           onChange={(userId) => pick("left", userId)}
         />
-        <div className="flex flex-col items-center justify-center pb-8">
+        <div className="flex flex-col items-center justify-end pb-6">
           <span className="fight-impact text-3xl" aria-hidden>
             💥
           </span>
@@ -140,9 +183,9 @@ export function ProductivityFight({ rows }: { rows: ProductivityRow[] }) {
         </div>
         <FighterSide
           row={right}
-          rows={rows}
-          selectedId={active.right}
-          otherId={active.left}
+          rows={opponents}
+          selectedId={right?.userId ?? ""}
+          otherId=""
           score={rightScore}
           share={100 - leftShare}
           mood={left && right ? mood.right : "neutral"}
@@ -151,14 +194,8 @@ export function ProductivityFight({ rows }: { rows: ProductivityRow[] }) {
         />
       </div>
 
-      <p className="mt-4 text-sm font-medium text-[var(--atria-primary)]">
+      <p className="mt-2 shrink-0 truncate text-sm font-medium text-[var(--atria-primary)]">
         {verdict}
-      </p>
-      <p className="mt-1 text-xs leading-relaxed text-[var(--atria-primary)]/80">
-        Cada pessoa soma as ações do próprio cargo. SDR conta ligações,
-        mensagens, leads e reuniões. Designer conta tarefas
-        criadas, arquivos, tarefas concluídas, comentários e aprovações do
-        cliente.
       </p>
     </section>
   );
@@ -212,14 +249,22 @@ function FighterSide({
 }) {
   const height = score <= 0 ? 0 : Math.max(share, 12);
   return (
-    <div className={cn("flex flex-col gap-3", align === "right" && "sm:items-end")}>
+    <div
+      className={cn(
+        "flex min-h-0 min-w-0 flex-col gap-1.5",
+        align === "right" && "sm:items-end",
+      )}
+    >
       <label className="flex w-full flex-col gap-1 text-xs font-medium text-[var(--atria-primary)]">
         Lutador
         <select
-          className={cn(inputClassName, "h-8")}
+          className={cn(inputClassName, "h-8 w-full min-w-0 max-w-full")}
           value={selectedId}
           onChange={(event) => onChange(event.target.value)}
         >
+          {rows.length === 0 ? (
+            <option value="">Ninguém nesse cargo</option>
+          ) : null}
           {rows.map((person) => (
             <option
               key={person.userId}
@@ -232,17 +277,21 @@ function FighterSide({
         </select>
       </label>
       {row ? (
-        <StickFighter
-          name={row.name}
-          avatarUrl={row.avatarUrl}
-          mood={mood}
-        />
-      ) : null}
-      <div className="flex w-16 flex-col items-center gap-1">
-        <span className="text-sm font-semibold tabular-nums text-[var(--atria-primary)]">
+        <div className="flex h-24 w-full items-end justify-center lg:h-auto lg:min-h-0 lg:flex-1">
+          <StickFighter
+            name={row.name}
+            avatarUrl={row.avatarUrl}
+            mood={mood}
+          />
+        </div>
+      ) : (
+        <div className="h-24 lg:h-auto lg:min-h-0 lg:flex-1" />
+      )}
+      <div className="flex w-14 shrink-0 flex-col items-center gap-1">
+        <span className="text-xs font-semibold tabular-nums text-[var(--atria-primary)]">
           {numberFormat.format(score)}
         </span>
-        <div className="flex h-16 w-full items-end rounded-md bg-[var(--atria-primary)]/15">
+        <div className="flex h-8 w-full items-end rounded-md bg-[var(--atria-primary)]/15">
           <div
             className={cn(
               "w-full rounded-md transition-[height] duration-500",
@@ -272,7 +321,7 @@ function StickFighter({
   return (
     <div
       className={cn(
-        "relative h-44 w-28",
+        "relative h-full max-h-28 w-16",
         mood === "happy" && "fight-winner",
         mood === "sad" && "fight-loser",
       )}
@@ -290,46 +339,16 @@ function StickFighter({
           <path d="M56 118 L36 158 M56 118 L76 158" />
         </g>
       </svg>
-      <div className="absolute top-1 left-1/2 size-14 -translate-x-1/2 overflow-hidden rounded-full border-2 border-[var(--atria-primary)] bg-[var(--atria-primary)]">
+      <div className="absolute top-[2%] left-1/2 aspect-square w-[48%] -translate-x-1/2 overflow-hidden rounded-full border-2 border-[var(--atria-primary)] bg-[var(--atria-primary)]">
         {photo ? (
           <img src={photo} alt="" className="size-full object-cover" />
         ) : (
-          <span className="flex size-full items-center justify-center text-sm font-semibold text-white">
+          <span className="flex size-full items-center justify-center text-[10px] font-semibold text-white">
             {initials(name)}
           </span>
         )}
-        <Face mood={mood} />
       </div>
-      <span className="sr-only">
-        {name} está {mood === "happy" ? "feliz" : mood === "sad" ? "triste" : "neutro"}
-      </span>
+      <span className="sr-only">{name}</span>
     </div>
-  );
-}
-
-function Face({ mood }: { mood: Mood }) {
-  const mouth =
-    mood === "happy"
-      ? "M18 30 Q28 40 38 30"
-      : mood === "sad"
-        ? "M18 38 Q28 28 38 38"
-        : "M18 34 H38";
-  return (
-    <svg
-      viewBox="0 0 56 56"
-      className="absolute inset-0"
-      aria-hidden
-    >
-      <ellipse cx="28" cy="34" rx="16" ry="12" fill="white" fillOpacity="0.82" />
-      <circle cx="21" cy="30" r="2.2" fill="#0f172a" />
-      <circle cx="35" cy="30" r="2.2" fill="#0f172a" />
-      <path
-        d={mouth}
-        fill="none"
-        stroke="#0f172a"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }
