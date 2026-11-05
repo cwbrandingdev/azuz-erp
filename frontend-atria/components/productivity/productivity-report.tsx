@@ -13,7 +13,7 @@ import type { ProductivityRow } from "@/services/productivity.service";
 
 type MetricKey = Exclude<
   keyof ProductivityRow,
-  "userId" | "name" | "role"
+  "userId" | "name" | "role" | "avatarUrl"
 >;
 
 interface MetricColumn {
