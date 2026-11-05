@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AddGroupMembersDialog } from "@/components/users/add-group-members-dialog";
 import { CreateUserGroupDialog } from "@/components/users/create-user-group-dialog";
+import { DeactivateUserButton } from "@/components/users/deactivate-user-button";
 import { EditUserButton } from "@/components/users/edit-user-dialog";
 import { ProvisionUserDialog } from "@/components/users/provision-user-dialog";
 import { GroupBadge } from "@/components/ui/group-badge";
@@ -185,7 +186,10 @@ function MembersTable({
                 <PasswordStatus user={user} />
               </td>
               <td className="px-4 py-3 text-right">
-                <EditUserButton user={user} onSuccess={onRefresh} />
+                <div className="inline-flex items-center justify-end gap-0.5">
+                  <EditUserButton user={user} onSuccess={onRefresh} />
+                  <DeactivateUserButton user={user} onSuccess={onRefresh} />
+                </div>
               </td>
             </tr>
           ))}
