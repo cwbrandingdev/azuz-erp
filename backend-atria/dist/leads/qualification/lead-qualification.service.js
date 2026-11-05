@@ -68,7 +68,8 @@ let LeadQualificationService = class LeadQualificationService {
             });
             commercialScore = Math.min(commercialScore, 25);
         }
-        const blended = Math.round(operationalScore * OPERATIONAL_WEIGHT + commercialScore * COMMERCIAL_WEIGHT);
+        const blended = Math.round(operationalScore * OPERATIONAL_WEIGHT +
+            commercialScore * COMMERCIAL_WEIGHT);
         let score = Math.max(0, Math.min(100, blended));
         if (commercialFit.verdict === 'do_not_prioritize') {
             score = Math.min(score, 35);
@@ -269,7 +270,10 @@ let LeadQualificationService = class LeadQualificationService {
         }
         if (typeof lead.rating === 'number' && lead.rating >= 4) {
             score += 8;
-            factors.push({ label: `Avaliação Google ≥ 4 (${lead.rating})`, delta: 8 });
+            factors.push({
+                label: `Avaliação Google ≥ 4 (${lead.rating})`,
+                delta: 8,
+            });
         }
         if (typeof lead.reviewsCount === 'number' && lead.reviewsCount >= 20) {
             score += 7;

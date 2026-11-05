@@ -33,7 +33,11 @@ import {
   type CrmMoveZone,
 } from "@/lib/lead-pipeline-zones";
 import { toast } from "@/lib/toast";
-import { toVivoDialString, toWhatsAppUrl } from "@/lib/lead-phone";
+import {
+  isDialablePhone,
+  toVivoDialString,
+  toWhatsAppUrl,
+} from "@/lib/lead-phone";
 import type { Lead, LeadKanbanColumn } from "@/services/types";
 
 interface LeadKanbanCardProps {
@@ -220,6 +224,12 @@ export function LeadKanbanCard({
         </Button>
       </div>
 
+      {!portalClientView && isDialablePhone(lead.phone) && (
+        <div className="mt-2 pl-6">
+          <LeadCallButton lead={lead} className="w-full" />
+        </div>
+      )}
+
       {!collapsed && (
         <>
           <div className="mb-3 mt-2 min-w-0 space-y-1 pl-6 text-xs text-[var(--atria-primary)]/65">
@@ -357,10 +367,6 @@ export function LeadKanbanCard({
               <MessagesSquare className="size-3.5" />
               Comentários
             </Button>
-
-            {!portalClientView && (
-              <LeadCallButton lead={lead} className="w-full" />
-            )}
 
             {lead.phone ? (
               <Button
