@@ -20,6 +20,7 @@ import { useTasks } from "@/hooks/use-tasks";
 import { PermissionGate } from "@/components/auth/permission-gate";
 import { Permission } from "@/lib/permissions";
 import { DEFAULT_TASK_STATUS } from "@/lib/kanban-utils";
+import { moveColumn } from "@/lib/kanban-columns";
 import { matchesRecordingFilter } from "@/lib/production-phase";
 import { invalidateTasksCache } from "@/lib/task-cache";
 import type { Client, KanbanColumn, KanbanTask, TeamMember } from "@/services/types";
@@ -42,7 +43,8 @@ export function KanbanBoard() {
   const taskIdFromQuery = searchParams.get("taskId");
   const confirm = useConfirm();
   const queryClient = useQueryClient();
-  const { canEditKanbanTask } = usePermissions();
+  const { canEditKanbanTask, canEditAllKanban } = usePermissions();
+  const canReorderColumns = canEditAllKanban();
   const { data: tasks = [], isLoading: tasksLoading } = useTasks();
   const moveTaskMutation = useMoveTaskMutation();
   const updateTaskStatusMutation = useUpdateTaskStatusMutation();
@@ -125,6 +127,21 @@ export function KanbanBoard() {
       .sort((a, b) => a.order - b.order);
   }
 
+  async function handleColumnDragEnd(fromIndex: number, toIndex: number) {
+    const previous = columns;
+    const reordered = moveColumn(columns, fromIndex, toIndex);
+    setColumns(reordered);
+
+    try {
+      await kanbanService.reorderColumns(
+        reordered.map(({ id, order }) => ({ id, order })),
+      );
+    } catch {
+      setColumns(previous);
+      toast.error("Não foi possível reordenar as colunas.");
+    }
+  }
+
   async function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
     if (!destination) return;
@@ -132,6 +149,11 @@ export function KanbanBoard() {
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     ) {
+      return;
+    }
+
+    if (result.type === "COLUMN") {
+      await handleColumnDragEnd(source.index, destination.index);
       return;
     }
 
@@ -252,92 +274,127 @@ export function KanbanBoard() {
             </p>
           </div>
         ) : (
-          <KanbanHorizontalScroll>
-            {columns.map((column) => {
-              const columnTasks = getColumnTasks(column.id);
+                    <KanbanHorizontalScroll>
+            <Droppable
+              droppableId="kanban-board"
+              type="COLUMN"
+              direction="horizontal"
+            >
+              {(boardProvided) => (
+                <div
+                  ref={boardProvided.innerRef}
+                  {...boardProvided.droppableProps}
+                  className="flex"
+                >
+                  {columns.map((column, columnIndex) => {
+                    const columnTasks = getColumnTasks(column.id);
 
-              return (
-                <div key={column.id} className="flex w-72 shrink-0 flex-col">
-                  <ColumnHeader
-                    column={column}
-                    taskCount={columnTasks.length}
-                    onUpdate={() => void loadBoardMeta()}
-                  />
-
-                  <Droppable droppableId={column.id}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={`flex min-h-[420px] flex-1 flex-col gap-3 rounded-b-2xl border border-t-0 p-3 transition-colors ${
-                          snapshot.isDraggingOver
-                            ? "border-[var(--atria-accent)] bg-[var(--atria-accent)]/10"
-                            : "border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02]"
-                        }`}
-                        style={{
-                          borderLeftColor: `${column.color}55`,
-                          borderLeftWidth: 2,
-                        }}
+                    return (
+                      <Draggable
+                        key={column.id}
+                        draggableId={column.id}
+                        index={columnIndex}
+                        isDragDisabled={!canReorderColumns}
                       >
-                        {columnTasks.length === 0 && (
-                          <p className="py-8 text-center text-xs text-[var(--atria-primary)]/40">
-                            Arraste tarefas para cá
-                          </p>
-                        )}
-
-                        {columnTasks.map((task, index) => (
-                          <Draggable
-                            key={task.id}
-                            draggableId={task.id}
-                            index={index}
-                            isDragDisabled={!canEditKanbanTask(task)}
+                        {(columnProvided, columnSnapshot) => (
+                          <div
+                            ref={columnProvided.innerRef}
+                            {...columnProvided.draggableProps}
+                            className={`mr-4 flex w-72 shrink-0 flex-col ${
+                              columnSnapshot.isDragging ? "opacity-95 shadow-lg" : ""
+                            }`}
                           >
-                            {(dragProvided, dragSnapshot) => (
-                              <div
-                                ref={dragProvided.innerRef}
-                                {...dragProvided.draggableProps}
-                                className={
-                                  dragSnapshot.isDragging
-                                    ? "opacity-95 shadow-lg"
-                                    : ""
-                                }
-                                style={dragProvided.draggableProps.style}
-                              >
-                                <div className="flex items-start gap-1">
-                                  {canEditKanbanTask(task) ? (
-                                    <button
-                                      type="button"
-                                      aria-label="Arrastar tarefa"
-                                      className="mt-3 shrink-0 cursor-grab rounded p-1 text-[var(--atria-primary)]/40 hover:bg-[var(--atria-primary)]/5 hover:text-[var(--atria-primary)] active:cursor-grabbing"
-                                      {...dragProvided.dragHandleProps}
-                                      onClick={(event) =>
-                                        event.stopPropagation()
-                                      }
-                                    >
-                                      <GripVertical className="size-4" />
-                                    </button>
-                                  ) : (
-                                    <span className="mt-3 size-6 shrink-0" />
+                            <ColumnHeader
+                              column={column}
+                              taskCount={columnTasks.length}
+                              onUpdate={() => void loadBoardMeta()}
+                              dragHandleProps={
+                                canReorderColumns
+                                  ? columnProvided.dragHandleProps
+                                  : null
+                              }
+                            />
+
+                            <Droppable droppableId={column.id} type="TASK">
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.droppableProps}
+                                  className={`flex min-h-[420px] flex-1 flex-col gap-3 rounded-b-2xl border border-t-0 p-3 transition-colors ${
+                                    snapshot.isDraggingOver
+                                      ? "border-[var(--atria-accent)] bg-[var(--atria-accent)]/10"
+                                      : "border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02]"
+                                  }`}
+                                  style={{
+                                    borderLeftColor: `${column.color}55`,
+                                    borderLeftWidth: 2,
+                                  }}
+                                >
+                                  {columnTasks.length === 0 && (
+                                    <p className="py-8 text-center text-xs text-[var(--atria-primary)]/40">
+                                      Arraste tarefas para cá
+                                    </p>
                                   )}
-                                  <div className="min-w-0 flex-1">
-                                    <TaskCard
-                                      task={task}
-                                      column={column}
-                                      onClick={() => openTask(task, columns)}
-                                    />
-                                  </div>
+
+                                  {columnTasks.map((task, index) => (
+                                    <Draggable
+                                      key={task.id}
+                                      draggableId={task.id}
+                                      index={index}
+                                      isDragDisabled={!canEditKanbanTask(task)}
+                                    >
+                                      {(dragProvided, dragSnapshot) => (
+                                        <div
+                                          ref={dragProvided.innerRef}
+                                          {...dragProvided.draggableProps}
+                                          className={
+                                            dragSnapshot.isDragging
+                                              ? "opacity-95 shadow-lg"
+                                              : ""
+                                          }
+                                          style={dragProvided.draggableProps.style}
+                                        >
+                                          <div className="flex items-start gap-1">
+                                            {canEditKanbanTask(task) ? (
+                                              <button
+                                                type="button"
+                                                aria-label="Arrastar tarefa"
+                                                className="mt-3 shrink-0 cursor-grab rounded p-1 text-[var(--atria-primary)]/40 hover:bg-[var(--atria-primary)]/5 hover:text-[var(--atria-primary)] active:cursor-grabbing"
+                                                {...dragProvided.dragHandleProps}
+                                                onClick={(event) =>
+                                                  event.stopPropagation()
+                                                }
+                                              >
+                                                <GripVertical className="size-4" />
+                                              </button>
+                                            ) : (
+                                              <span className="mt-3 size-6 shrink-0" />
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                              <TaskCard
+                                                task={task}
+                                                column={column}
+                                                onClick={() => openTask(task, columns)}
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </Draggable>
+                                  ))}
+                                  {provided.placeholder}
                                 </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
+                              )}
+                            </Droppable>
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })}
+                  {boardProvided.placeholder}
                 </div>
-              );
-            })}
+              )}
+            </Droppable>
           </KanbanHorizontalScroll>
         )}
       </DragDropContext>
