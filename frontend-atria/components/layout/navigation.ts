@@ -10,6 +10,7 @@ import {
   Settings,
   Wallet,
   BarChart2,
+  Activity,
   type LucideIcon,
   KanbanSquareIcon,
   MessageSquarePlus,
@@ -40,6 +41,7 @@ export const navSections: NavSection[] = [
     label: "VISÃO GERAL",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Produtividade", href: "/produtividade", icon: Activity },
       { name: "Meta Insights", href: "/insights", icon: BarChart2 },
     ],
   },

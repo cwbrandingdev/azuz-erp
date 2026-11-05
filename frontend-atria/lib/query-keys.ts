@@ -116,6 +116,22 @@ export const assetKeys = {
   root: ["assets"] as const,
 };
 
+export const productivityKeys = {
+  report: (
+    companyId: string,
+    params: { from?: string; to?: string; role?: string; q?: string },
+  ) =>
+    [
+      "productivity",
+      companyId,
+      params.from ?? null,
+      params.to ?? null,
+      params.role ?? null,
+      params.q ?? null,
+    ] as const,
+  root: ["productivity"] as const,
+};
+
 export const whatsappKeys = {
   conversations: (companyId: string) =>
     ["whatsapp", companyId, "conversations"] as const,

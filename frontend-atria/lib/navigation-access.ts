@@ -2,6 +2,7 @@ import {
   canPerformInternalApproval,
   hasAnyPermission,
   isMasterOrAdmin,
+  normalizeAppRole,
   Permission,
   type PermissionKey,
 } from "./permissions";
@@ -13,6 +14,13 @@ import {
 } from "./roles";
 
 const ADMIN_ONLY_ROUTES = new Set(["/dashboard/tv", "/insights"]);
+const PRODUCTIVITY_ROLES = new Set([
+  "master",
+  "admin",
+  "designer_master",
+  "designer_junior",
+  "crm",
+]);
 const INTERNAL_APPROVAL_ROUTES = new Set(["/internal-approvals"]);
 
 const ROUTE_PERMISSIONS: Record<string, PermissionKey[]> = {
@@ -53,6 +61,9 @@ function resolveAccessRouteKey(href: string): string {
   if (href === "/clients" || href.startsWith("/clients/")) {
     return "/clients";
   }
+  if (href === "/produtividade" || href.startsWith("/produtividade/")) {
+    return "/produtividade";
+  }
   return href;
 }
 
@@ -85,6 +96,11 @@ export function canAccessRoute(
 
   if (routeKey === "/clients") {
     return canAccessClientDirectory(role);
+  }
+
+  if (routeKey === "/produtividade") {
+    const normalized = normalizeAppRole(role);
+    return normalized != null && PRODUCTIVITY_ROLES.has(normalized);
   }
 
   const required = ROUTE_PERMISSIONS[routeKey];

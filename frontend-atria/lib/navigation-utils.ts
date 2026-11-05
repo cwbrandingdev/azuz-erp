@@ -7,6 +7,7 @@ export interface BreadcrumbItem {
 
 const ROUTE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
+  produtividade: "Produtividade",
   creation: "Kanban",
   financial: "Financeiro",
   lancamentos: "Lançamentos",
