@@ -427,7 +427,7 @@ export function ProductivityReport() {
     canFilterPeople && !rangeInvalid,
   );
   const rows = report.data?.rows ?? [];
-  const visibleRoles = new Set(
+  const visibleRoles = new Set<string>(
     VIEW_TOGGLES.filter((group) => visibleGroups.has(group.id)).flatMap(
       (group) => group.roles,
     ),
