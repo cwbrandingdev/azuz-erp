@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import type { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
+import { GripVertical, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,9 +27,15 @@ interface ColumnHeaderProps {
   column: KanbanColumn;
   taskCount: number;
   onUpdate: () => void;
+  dragHandleProps?: DraggableProvidedDragHandleProps | null;
 }
 
-export function ColumnHeader({ column, taskCount, onUpdate }: ColumnHeaderProps) {
+export function ColumnHeader({
+  column,
+  taskCount,
+  onUpdate,
+  dragHandleProps,
+}: ColumnHeaderProps) {
   const [renameOpen, setRenameOpen] = useState(false);
   const [title, setTitle] = useState(column.title);
   const [loading, setLoading] = useState(false);
@@ -75,6 +82,16 @@ export function ColumnHeader({ column, taskCount, onUpdate }: ColumnHeaderProps)
       >
         <div className="flex items-center justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-2">
+            {dragHandleProps && (
+              <button
+                type="button"
+                aria-label="Arrastar coluna"
+                className="-ml-1 shrink-0 cursor-grab rounded p-1 text-[var(--atria-primary)]/40 hover:bg-[var(--atria-primary)]/5 hover:text-[var(--atria-primary)] active:cursor-grabbing"
+                {...dragHandleProps}
+              >
+                <GripVertical className="size-4" />
+              </button>
+            )}
             <span
               className="size-2.5 shrink-0 rounded-full ring-2 ring-[var(--atria-accent)]/40"
               style={{ backgroundColor: column.color }}

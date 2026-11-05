@@ -24,6 +24,7 @@ import {
 } from '../auth/decorators/current-user.decorator';
 import { AnyPermissions } from '../auth/decorators/any-permissions.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Permission } from '../auth/constants/permissions';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -74,6 +75,7 @@ export class KanbanController {
   }
 
   @Patch('columns/reorder')
+  @AnyPermissions(Permission.SYSTEM_ALL, Permission.KANBAN_ALL_EDIT)
   reorderColumns(@Body() dto: ReorderColumnsDto) {
     return this.kanbanService.reorderColumns(dto);
   }
