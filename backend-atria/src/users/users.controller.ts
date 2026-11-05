@@ -133,8 +133,11 @@ export class UsersController {
   @Patch(':id/deactivate')
   @Roles(...USER_MANAGEMENT_ROLES)
   @Permissions(Permission.USERS_DEACTIVATE)
-  deactivate(@Param('id') id: string) {
-    return this.usersService.deactivate(id);
+  deactivate(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.usersService.deactivate(id, user.userId);
   }
 
   @Patch(':id')
