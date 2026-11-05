@@ -29,7 +29,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      router.replace("/login");
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
     if (isClientRole(user?.role)) {

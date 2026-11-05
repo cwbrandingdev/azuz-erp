@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -18,6 +19,7 @@ import {
   setAccessToken,
   setStoredUser,
 } from "@/lib/auth-storage";
+import { onSessionExpired } from "@/lib/auth-session-events";
 import { clearAppQueryCache } from "@/lib/query-client";
 import { apiRequest, refreshAuthSession } from "@/services/api";
 import { toast } from "@/lib/toast";
@@ -60,8 +62,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Várias requisições falham juntas quando a sessão expira; só a primeira deve agir.
+  const sessionExpiredHandledRef = useRef(false);
 
   const applySession = useCallback((response: AuthResponse, remember = false) => {
+    sessionExpiredHandledRef.current = false;
     setAccessToken(response.accessToken, remember);
     setStoredUser(response.user, remember);
     setToken(response.accessToken);
@@ -108,6 +113,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     void init();
   }, [refreshSession]);
+
+  useEffect(() => {
+    return onSessionExpired(() => {
+      if (sessionExpiredHandledRef.current) return;
+      sessionExpiredHandledRef.current = true;
+
+      clearAppQueryCache();
+      setToken(null);
+      setUser(null);
+      toast.error("Sua sessão expirou. Faça login novamente.");
+    });
+  }, []);
 
   const login = useCallback(
     async (credentials: LoginCredentials, rememberMe = false) => {

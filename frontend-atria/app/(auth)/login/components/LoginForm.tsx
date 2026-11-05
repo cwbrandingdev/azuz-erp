@@ -12,6 +12,7 @@ import {
   setRememberedEmail,
 } from "@/lib/auth-storage";
 import { getHomePathForRole } from "@/lib/roles";
+import { getSafeNextPath } from "@/lib/auth-redirect";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/services";
@@ -111,7 +112,7 @@ export function LoginForm() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace(getHomePathForRole(user?.role));
+      router.replace(getSafeNextPath() ?? getHomePathForRole(user?.role));
     }
   }, [isAuthenticated, isLoading, router, user?.role]);
 
@@ -128,7 +129,7 @@ export function LoginForm() {
       const loggedUser = await login({ email, password }, rememberMe);
       setRememberedEmail(rememberMe ? email : null);
       toast.success("Bem-vindo de volta!");
-      router.push(getHomePathForRole(loggedUser?.role ?? user?.role));
+      router.push(getSafeNextPath() ?? getHomePathForRole(loggedUser?.role ?? user?.role));
     } catch (err) {
       triggerShake();
       if (err instanceof ApiError) {
