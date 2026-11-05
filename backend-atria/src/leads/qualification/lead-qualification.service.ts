@@ -120,7 +120,8 @@ export class LeadQualificationService {
     }
 
     const blended = Math.round(
-      operationalScore * OPERATIONAL_WEIGHT + commercialScore * COMMERCIAL_WEIGHT,
+      operationalScore * OPERATIONAL_WEIGHT +
+        commercialScore * COMMERCIAL_WEIGHT,
     );
     let score = Math.max(0, Math.min(100, blended));
 
@@ -397,7 +398,10 @@ export class LeadQualificationService {
     }
     if (typeof lead.rating === 'number' && lead.rating >= 4) {
       score += 8;
-      factors.push({ label: `Avaliação Google ≥ 4 (${lead.rating})`, delta: 8 });
+      factors.push({
+        label: `Avaliação Google ≥ 4 (${lead.rating})`,
+        delta: 8,
+      });
     }
     if (typeof lead.reviewsCount === 'number' && lead.reviewsCount >= 20) {
       score += 7;
@@ -489,7 +493,9 @@ export class LeadQualificationService {
       );
     }
     if (commercialFit.revenueJustification?.trim()) {
-      lines.push(`• Por que esse faturamento: ${commercialFit.revenueJustification}`);
+      lines.push(
+        `• Por que esse faturamento: ${commercialFit.revenueJustification}`,
+      );
     }
     lines.push(
       `• Pacote entrada Posicionamento: R$ ${CW_MIN_PACKAGE_MONTHLY.toLocaleString('pt-BR')}/mês` +
@@ -538,9 +544,7 @@ export class LeadQualificationService {
         });
       }
       if (instagram.daysSinceLastPost != null) {
-        lines.push(
-          `• Último post há ${instagram.daysSinceLastPost} dia(s).`,
-        );
+        lines.push(`• Último post há ${instagram.daysSinceLastPost} dia(s).`);
       }
       if (usedInstagramApify) {
         lines.push('• Instagram via Apify.');
@@ -552,7 +556,9 @@ export class LeadQualificationService {
     }
 
     if (usedMaps) {
-      lines.push('• Contatos (Instagram/site/avaliação) via Google Maps (Apify).');
+      lines.push(
+        '• Contatos (Instagram/site/avaliação) via Google Maps (Apify).',
+      );
     }
 
     lines.push('');

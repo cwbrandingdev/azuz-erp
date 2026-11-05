@@ -729,9 +729,7 @@ export class LeadsService {
         ...(dto.jobTitle !== undefined
           ? { jobTitle: emptyToNull(dto.jobTitle) }
           : {}),
-        ...(ownerUserId !== undefined && ownerUserId
-          ? { ownerUserId }
-          : {}),
+        ...(ownerUserId !== undefined && ownerUserId ? { ownerUserId } : {}),
       },
       include: leadOwnerInclude,
     });
@@ -748,10 +746,7 @@ export class LeadsService {
     const leadFilter =
       roleName === RoleName.CRM
         ? { ownerUserId: user.userId }
-        : this.crmScope.buildKanbanOwnerFilter(
-            user,
-            resolvedOwnerId,
-          );
+        : this.crmScope.buildKanbanOwnerFilter(user, resolvedOwnerId);
 
     const orgFilter =
       roleName === RoleName.CRM

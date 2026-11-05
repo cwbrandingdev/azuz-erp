@@ -34,7 +34,7 @@ import {
   getLeadStatusLabel,
   LEAD_STATUS_LABELS,
 } from "@/lib/leads-kanban-utils";
-import { isDialablePhone, toWhatsAppUrl } from "@/lib/lead-phone";
+import { isDialablePhone, toVivoDialString, toWhatsAppUrl } from "@/lib/lead-phone";
 import { toast } from "@/lib/toast";
 import { LeadCategoryText } from "@/components/leads/lead-category-text";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
@@ -262,7 +262,7 @@ export function LeadsTable({
   async function handleCopy(lead: Lead) {
     if (!lead.phone) return;
     try {
-      await copyPhone(lead.phone);
+      await copyPhone(toVivoDialString(lead.phone) ?? lead.phone);
       setCopiedId(lead.id);
       window.setTimeout(() => {
         setCopiedId((current) => (current === lead.id ? null : current));
