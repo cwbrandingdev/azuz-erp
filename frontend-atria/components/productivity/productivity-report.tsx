@@ -20,30 +20,86 @@ interface MetricColumn {
   key: MetricKey;
   label: string;
   short: string;
+  source: string;
 }
 
 const SDR_COLUMNS: MetricColumn[] = [
-  { key: "calls", label: "Ligações", short: "Ligações" },
-  { key: "messagesSent", label: "Mensagens enviadas", short: "Mensagens" },
-  { key: "leadsOnKanban", label: "Leads no kanban", short: "Leads" },
-  { key: "meetings", label: "Reuniões agendadas", short: "Reuniões" },
+  { key: "calls", label: "Ligações", short: "Ligações", source: "Ligação do lead" },
+  {
+    key: "messagesSent",
+    label: "Mensagens enviadas",
+    short: "Mensagens",
+    source: "WhatsApp enviado",
+  },
+  {
+    key: "leadsOnKanban",
+    label: "Leads no kanban",
+    short: "Leads",
+    source: "Lead no kanban",
+  },
+  {
+    key: "meetings",
+    label: "Reuniões agendadas",
+    short: "Reuniões",
+    source: "Reunião do lead",
+  },
 ];
 
 const PRODUCTION_COLUMNS: MetricColumn[] = [
-  { key: "tasksCreated", label: "Tarefas criadas", short: "Criadas" },
-  { key: "uploads", label: "Arquivos enviados", short: "Arquivos" },
-  { key: "tasksCompleted", label: "Tarefas concluídas", short: "Concluídas" },
-  { key: "comments", label: "Comentários", short: "Notas" },
+  {
+    key: "tasksCreated",
+    label: "Tarefas criadas",
+    short: "Criadas",
+    source: "Tarefa do kanban",
+  },
+  {
+    key: "uploads",
+    label: "Arquivos enviados",
+    short: "Arquivos",
+    source: "Arquivo do kanban",
+  },
+  {
+    key: "tasksCompleted",
+    label: "Tarefas concluídas",
+    short: "Concluídas",
+    source: "Concluída no kanban",
+  },
+  {
+    key: "comments",
+    label: "Comentários",
+    short: "Notas",
+    source: "Comentário no kanban",
+  },
 ];
 
 const REVIEW_COLUMNS: MetricColumn[] = [
-  { key: "internalApprovals", label: "Aprovações internas", short: "Aprovadas" },
-  { key: "internalRejections", label: "Reprovações internas", short: "Reprovadas" },
+  {
+    key: "internalApprovals",
+    label: "Aprovações internas",
+    short: "Aprovadas",
+    source: "Revisão interna",
+  },
+  {
+    key: "internalRejections",
+    label: "Reprovações internas",
+    short: "Reprovadas",
+    source: "Revisão interna",
+  },
 ];
 
 const PORTAL_COLUMNS: MetricColumn[] = [
-  { key: "clientApprovals", label: "Aprovados pelo cliente", short: "Cliente" },
-  { key: "clientAdjustments", label: "Pedidos de ajuste", short: "Ajustes" },
+  {
+    key: "clientApprovals",
+    label: "Aprovados pelo cliente",
+    short: "Cliente",
+    source: "Portal do cliente",
+  },
+  {
+    key: "clientAdjustments",
+    label: "Pedidos de ajuste",
+    short: "Ajustes",
+    source: "Portal do cliente",
+  },
 ];
 
 interface CargoSection {
@@ -274,8 +330,8 @@ function MetricBars({
         return (
           <div
             key={column.key}
-            className="flex w-12 flex-col items-center gap-1"
-            title={`${column.label}: ${formatMetric(value)}`}
+            className="flex w-16 flex-col items-center gap-1"
+            title={`${column.label} · ${column.source}: ${formatMetric(value)}`}
           >
             <span className="text-[10px] tabular-nums text-[var(--atria-primary)]">
               {formatMetric(value)}
@@ -286,8 +342,11 @@ function MetricBars({
                 style={{ height: `${height}%` }}
               />
             </div>
-            <span className="text-center text-[10px] leading-tight text-[var(--atria-primary)]/90">
+            <span className="text-center text-[10px] leading-tight font-medium text-[var(--atria-primary)]">
               {column.short}
+            </span>
+            <span className="line-clamp-2 min-h-8 text-center text-[10px] leading-tight text-[var(--atria-primary)]/70">
+              {column.source}
             </span>
           </div>
         );
