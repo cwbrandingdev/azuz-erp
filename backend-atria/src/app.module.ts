@@ -25,6 +25,7 @@ import { CrmModule } from './crm/crm.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
 import { PortalModule } from './portal/portal.module';
+import { ProductivityModule } from './productivity/productivity.module';
 import { FinanceModule } from './finance/finance.module';
 import { HealthModule } from './health/health.module';
 import { MetaAnalyticsModule } from './integrations/meta-analytics/meta-analytics.module';
@@ -102,6 +103,7 @@ import { MediaModule } from './common/media/media.module';
     MessageModule,
     NotificationsModule,
     PortalModule,
+    ProductivityModule,
     ProposalsModule,
     ReportsModule,
     SettingsModule,

@@ -34,6 +34,7 @@ const crm_module_1 = require("./crm/crm.module");
 const dashboard_module_1 = require("./dashboard/dashboard.module");
 const deliverables_module_1 = require("./deliverables/deliverables.module");
 const portal_module_1 = require("./portal/portal.module");
+const productivity_module_1 = require("./productivity/productivity.module");
 const finance_module_1 = require("./finance/finance.module");
 const health_module_1 = require("./health/health.module");
 const meta_analytics_module_1 = require("./integrations/meta-analytics/meta-analytics.module");
@@ -113,6 +114,7 @@ exports.AppModule = AppModule = __decorate([
             message_module_1.MessageModule,
             notifications_module_1.NotificationsModule,
             portal_module_1.PortalModule,
+            productivity_module_1.ProductivityModule,
             proposals_module_1.ProposalsModule,
             reports_module_1.ReportsModule,
             settings_module_1.SettingsModule,
