@@ -513,9 +513,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 ...(dto.jobTitle !== undefined
                     ? { jobTitle: emptyToNull(dto.jobTitle) }
                     : {}),
-                ...(ownerUserId !== undefined && ownerUserId
-                    ? { ownerUserId }
-                    : {}),
+                ...(ownerUserId !== undefined && ownerUserId ? { ownerUserId } : {}),
             },
             include: leadOwnerInclude,
         });

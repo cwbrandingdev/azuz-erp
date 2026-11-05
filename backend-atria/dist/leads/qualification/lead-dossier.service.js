@@ -222,9 +222,8 @@ let LeadDossierService = LeadDossierService_1 = class LeadDossierService {
         if (matches.length === 0)
             return null;
         const city = lead.city ? (0, text_normalize_1.normalizeCatalogText)(lead.city) : '';
-        const preferred = (city
-            ? matches.find((row) => row.cityNormalized === city)
-            : undefined) ?? matches[0];
+        const preferred = (city ? matches.find((row) => row.cityNormalized === city) : undefined) ??
+            matches[0];
         return snapshotFromCatalog(preferred, 'phone');
     }
     async matchCatalogByName(lead) {
