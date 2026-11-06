@@ -23,6 +23,7 @@ const validate_upload_file_size_pipe_1 = require("../common/upload/validate-uplo
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
 const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
+const permissions_1 = require("../auth/constants/permissions");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const permissions_guard_1 = require("../auth/guards/permissions.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
@@ -136,6 +137,7 @@ __decorate([
 ], KanbanController.prototype, "createColumn", null);
 __decorate([
     (0, common_1.Patch)('columns/reorder'),
+    (0, any_permissions_decorator_1.AnyPermissions)(permissions_1.Permission.SYSTEM_ALL, permissions_1.Permission.KANBAN_ALL_EDIT),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [column_dto_1.ReorderColumnsDto]),

@@ -755,6 +755,19 @@ export declare class LeadsService {
             avatarUrl: string | null;
         };
     }>;
+    updateComment(user: AuthenticatedUser, leadId: string, commentId: string, content: string): Promise<{
+        id: string;
+        content: string;
+        createdAt: string;
+        updatedAt: string;
+        user: {
+            id: string;
+            name: string;
+            email: string;
+            avatarUrl: string | null;
+        };
+    }>;
+    deleteComment(user: AuthenticatedUser, leadId: string, commentId: string): Promise<void>;
     createMeeting(user: AuthenticatedUser, leadId: string, dto: CreateLeadMeetingDto): Promise<{
         lead: {
             id: string;
@@ -822,6 +835,7 @@ export declare class LeadsService {
     private resolveLeadForUser;
     private materializeCatalogLead;
     private nextKanbanOrderAtTop;
+    private findCommentForLead;
     private findLeadForUser;
     private resolveOrganizationIdForCreate;
     private ensureLeadExists;

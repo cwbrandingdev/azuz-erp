@@ -1,6 +1,6 @@
 import { type AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { FetchMapsLeadsDto } from './dto/fetch-maps-leads.dto';
-import { CreateLeadCommentDto } from './dto/lead-comment.dto';
+import { CreateLeadCommentDto, UpdateLeadCommentDto } from './dto/lead-comment.dto';
 import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { ProspectingLeadsQueryDto } from '../crm/dto/prospecting-leads-query.dto';
@@ -575,6 +575,19 @@ export declare class LeadsController {
             avatarUrl: string | null;
         };
     }>;
+    updateComment(user: AuthenticatedUser, id: string, commentId: string, dto: UpdateLeadCommentDto): Promise<{
+        id: string;
+        content: string;
+        createdAt: string;
+        updatedAt: string;
+        user: {
+            id: string;
+            name: string;
+            email: string;
+            avatarUrl: string | null;
+        };
+    }>;
+    deleteComment(user: AuthenticatedUser, id: string, commentId: string): Promise<void>;
     updateStatus(user: AuthenticatedUser, id: string, dto: UpdateLeadStatusDto): Promise<{
         id: string;
         companyId: string;

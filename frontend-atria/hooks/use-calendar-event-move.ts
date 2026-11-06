@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
-  getEventTaskStatus,
   shiftEventScheduleToDay,
   withEventSchedule,
   type ShiftedEventSchedule,
@@ -28,7 +27,6 @@ export function useCalendarEventMove({
 
   const canDragEvent = useCallback(
     (event: CalendarEvent) => {
-      if (getEventTaskStatus(event) === "ok") return false;
       if (!event.kanbanTaskId) return canEditCalendarEvent(event);
 
       const linkedTask = tasks.find((task) => task.id === event.kanbanTaskId);

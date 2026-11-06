@@ -15,6 +15,7 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const client_1 = require("@prisma/client");
 const permissions_1 = require("../auth/constants/permissions");
+const rbac_1 = require("../auth/utils/rbac");
 const ai_service_1 = require("../ai/ai.service");
 const company_settings_service_1 = require("../company-settings/company-settings.service");
 const prisma_service_1 = require("../prisma/prisma.service");
@@ -837,6 +838,42 @@ let LeadsService = LeadsService_1 = class LeadsService {
             user: comment.user,
         };
     }
+    async updateComment(user, leadId, commentId, content) {
+        await this.findLeadForUser(user, leadId);
+        const comment = await this.findCommentForLead(leadId, commentId);
+        if (comment.userId !== user.userId) {
+            throw new common_1.ForbiddenException('Você só pode editar seus próprios comentários.');
+        }
+        const trimmed = content.trim();
+        if (!trimmed) {
+            throw new common_1.BadRequestException('O comentário não pode ficar vazio.');
+        }
+        const updated = await this.prisma.leadComment.update({
+            where: { id: commentId },
+            data: { content: trimmed },
+            include: {
+                user: {
+                    select: { id: true, name: true, avatarUrl: true, email: true },
+                },
+            },
+        });
+        return {
+            id: updated.id,
+            content: updated.content,
+            createdAt: updated.createdAt.toISOString(),
+            updatedAt: updated.updatedAt.toISOString(),
+            user: updated.user,
+        };
+    }
+    async deleteComment(user, leadId, commentId) {
+        await this.findLeadForUser(user, leadId);
+        const comment = await this.findCommentForLead(leadId, commentId);
+        const isAuthor = comment.userId === user.userId;
+        if (!isAuthor && !(0, rbac_1.canModerateLeadComments)(user.role)) {
+            throw new common_1.ForbiddenException('Você só pode apagar seus próprios comentários.');
+        }
+        await this.prisma.leadComment.delete({ where: { id: commentId } });
+    }
     async createMeeting(user, leadId, dto) {
         const lead = await this.findLeadForUser(user, leadId);
         const startAt = new Date(dto.startAt);
@@ -974,6 +1011,16 @@ let LeadsService = LeadsService_1 = class LeadsService {
             _min: { kanbanOrder: true },
         });
         return (minOrder._min.kanbanOrder ?? 0) - 1;
+    }
+    async findCommentForLead(leadId, commentId) {
+        const comment = await this.prisma.leadComment.findFirst({
+            where: { id: commentId, leadId },
+            select: { id: true, userId: true },
+        });
+        if (!comment) {
+            throw new common_1.NotFoundException('Comentário não encontrado.');
+        }
+        return comment;
     }
     async findLeadForUser(user, id) {
         const orgFilter = this.crmScope.buildOwnedOrSharedLeadFilter(user, await this.crmScope.buildLeadOrganizationFilter(user));
