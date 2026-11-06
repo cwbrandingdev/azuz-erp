@@ -115,7 +115,7 @@ let UsersService = class UsersService {
     }
     async findMembers() {
         const users = await this.prisma.user.findMany({
-            where: { category: client_1.UserCategory.MEMBER },
+            where: { category: client_1.UserCategory.MEMBER, isActive: true },
             orderBy: { name: 'asc' },
             include: {
                 role: true,
@@ -524,7 +524,10 @@ let UsersService = class UsersService {
     async removeAvatar(id) {
         return this.updateAvatar(id, null);
     }
-    async deactivate(id) {
+    async deactivate(id, actorUserId) {
+        if (actorUserId && actorUserId === id) {
+            throw new common_1.BadRequestException('Você não pode revogar o próprio acesso.');
+        }
         const existing = await this.prisma.user.findUnique({
             where: { id },
             include: {
@@ -542,9 +545,13 @@ let UsersService = class UsersService {
         }
         const user = await this.prisma.$transaction(async (tx) => {
             await tx.authToken.deleteMany({ where: { userId: id } });
+            await tx.userGroupMember.deleteMany({ where: { userId: id } });
+            await tx.userCrmScope.deleteMany({ where: { userId: id } });
+            await tx.crmSdrAssignment.deleteMany({ where: { userId: id } });
+            await tx.companyRepresentative.deleteMany({ where: { userId: id } });
             return tx.user.update({
                 where: { id },
-                data: { isActive: false },
+                data: { isActive: false, userGroupId: null },
                 include: {
                     role: true,
                     userGroup: true,

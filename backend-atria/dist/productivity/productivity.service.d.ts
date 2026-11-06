@@ -8,6 +8,8 @@ export interface ProductivityRow {
     avatarUrl: string | null;
     role: RoleName;
     calls: number;
+    callsAnswered: number;
+    callsUnanswered: number;
     callMinutes: number;
     messagesSent: number;
     leadsOnKanban: number;
