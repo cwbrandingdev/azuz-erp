@@ -18,7 +18,10 @@ import {
   RoleName,
 } from '@prisma/client';
 import { normalizeRoleName } from '../auth/constants/permissions';
-import { canModerateLeadComments } from '../auth/utils/rbac';
+import {
+  canModerateLeadComments,
+  canModerateLeadMeetings,
+} from '../auth/utils/rbac';
 import { AiService } from '../ai/ai.service';
 import { CompanySettingsService } from '../company-settings/company-settings.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
@@ -90,6 +93,7 @@ const latestMeetingInclude = {
       startAt: true,
       endAt: true,
       meetUrl: true,
+      createdById: true,
     },
   },
 } satisfies Prisma.LeadInclude;
@@ -1312,6 +1316,36 @@ export class LeadsService {
     };
   }
 
+  async deleteMeeting(
+    user: AuthenticatedUser,
+    leadId: string,
+    meetingId: string,
+  ) {
+    await this.findLeadForUser(user, leadId);
+    const meeting = await this.prisma.leadMeeting.findFirst({
+      where: { id: meetingId, leadId },
+      select: { id: true, createdById: true },
+    });
+    if (!meeting) {
+      throw new NotFoundException('Reunião não encontrada.');
+    }
+
+    const isCreator = meeting.createdById === user.userId;
+    if (!isCreator && !canModerateLeadMeetings(user.role)) {
+      throw new ForbiddenException(
+        'Você só pode apagar reuniões que você criou.',
+      );
+    }
+
+    await this.prisma.leadMeeting.delete({ where: { id: meetingId } });
+
+    const lead = await this.prisma.lead.findUniqueOrThrow({
+      where: { id: leadId },
+      include: { ...leadOwnerInclude, ...latestMeetingInclude },
+    });
+    return this.toLeadResponse(lead);
+  }
+
   private async resolveLeadForUser(user: AuthenticatedUser, id: string) {
     if (isCatalogPreviewId(id)) {
       return this.materializeCatalogLead(
@@ -1698,6 +1732,7 @@ export class LeadsService {
         startAt: Date;
         endAt: Date;
         meetUrl: string | null;
+        createdById: string;
       }[];
     },
   ) {
@@ -1748,6 +1783,7 @@ export class LeadsService {
             startAt: meeting.startAt.toISOString(),
             endAt: meeting.endAt.toISOString(),
             meetUrl: meeting.meetUrl,
+            createdById: meeting.createdById,
           }
         : null,
       createdAt: lead.createdAt.toISOString(),

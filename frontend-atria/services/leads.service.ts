@@ -178,6 +178,15 @@ export async function createLeadMeeting(
   });
 }
 
+export async function deleteLeadMeeting(
+  leadId: string,
+  meetingId: string,
+): Promise<Lead> {
+  return apiRequest<Lead>(`/leads/${leadId}/meetings/${meetingId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function createLeadComment(
   leadId: string,
   content: string,

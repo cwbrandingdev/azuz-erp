@@ -2492,6 +2492,7 @@ export interface LeadMeeting {
   startAt: string;
   endAt: string;
   meetUrl: string | null;
+  createdById: string;
 }
 
 export interface CreateLeadMeetingInput {

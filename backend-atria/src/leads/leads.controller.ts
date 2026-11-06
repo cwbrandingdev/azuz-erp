@@ -141,6 +141,15 @@ export class LeadsController {
     return this.leadsService.createMeeting(user, id, dto);
   }
 
+  @Delete(':id/meetings/:meetingId')
+  deleteMeeting(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('meetingId') meetingId: string,
+  ) {
+    return this.leadsService.deleteMeeting(user, id, meetingId);
+  }
+
   @Post(':id/comments')
   createComment(
     @CurrentUser() user: AuthenticatedUser,
