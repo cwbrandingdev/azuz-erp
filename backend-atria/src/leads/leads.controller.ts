@@ -18,7 +18,10 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { getRequiredCrmPermissions } from '../auth/utils/rbac';
 import { FetchMapsLeadsDto } from './dto/fetch-maps-leads.dto';
-import { CreateLeadCommentDto } from './dto/lead-comment.dto';
+import {
+  CreateLeadCommentDto,
+  UpdateLeadCommentDto,
+} from './dto/lead-comment.dto';
 import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { ProspectingLeadsQueryDto } from '../crm/dto/prospecting-leads-query.dto';
@@ -145,6 +148,25 @@ export class LeadsController {
     @Body() dto: CreateLeadCommentDto,
   ) {
     return this.leadsService.createComment(user, user.userId, id, dto.content);
+  }
+
+  @Patch(':id/comments/:commentId')
+  updateComment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+    @Body() dto: UpdateLeadCommentDto,
+  ) {
+    return this.leadsService.updateComment(user, id, commentId, dto.content);
+  }
+
+  @Delete(':id/comments/:commentId')
+  deleteComment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+  ) {
+    return this.leadsService.deleteComment(user, id, commentId);
   }
 
   @Patch(':id/status')

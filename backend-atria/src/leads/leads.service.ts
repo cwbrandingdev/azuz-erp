@@ -18,6 +18,7 @@ import {
   RoleName,
 } from '@prisma/client';
 import { normalizeRoleName } from '../auth/constants/permissions';
+import { canModerateLeadComments } from '../auth/utils/rbac';
 import { AiService } from '../ai/ai.service';
 import { CompanySettingsService } from '../company-settings/company-settings.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
@@ -1165,6 +1166,63 @@ export class LeadsService {
     };
   }
 
+  async updateComment(
+    user: AuthenticatedUser,
+    leadId: string,
+    commentId: string,
+    content: string,
+  ) {
+    await this.findLeadForUser(user, leadId);
+    const comment = await this.findCommentForLead(leadId, commentId);
+
+    if (comment.userId !== user.userId) {
+      throw new ForbiddenException(
+        'Você só pode editar seus próprios comentários.',
+      );
+    }
+
+    const trimmed = content.trim();
+    if (!trimmed) {
+      throw new BadRequestException('O comentário não pode ficar vazio.');
+    }
+
+    const updated = await this.prisma.leadComment.update({
+      where: { id: commentId },
+      data: { content: trimmed },
+      include: {
+        user: {
+          select: { id: true, name: true, avatarUrl: true, email: true },
+        },
+      },
+    });
+
+    return {
+      id: updated.id,
+      content: updated.content,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+      user: updated.user,
+    };
+  }
+
+  async deleteComment(
+    user: AuthenticatedUser,
+    leadId: string,
+    commentId: string,
+  ) {
+    await this.findLeadForUser(user, leadId);
+    const comment = await this.findCommentForLead(leadId, commentId);
+
+    const isAuthor = comment.userId === user.userId;
+    if (!isAuthor && !canModerateLeadComments(user.role)) {
+      throw new ForbiddenException(
+        'Você só pode apagar seus próprios comentários.',
+      );
+    }
+
+    await this.prisma.leadComment.delete({ where: { id: commentId } });
+  }
+
   async createMeeting(
     user: AuthenticatedUser,
     leadId: string,
@@ -1329,6 +1387,17 @@ export class LeadsService {
       _min: { kanbanOrder: true },
     });
     return (minOrder._min.kanbanOrder ?? 0) - 1;
+  }
+
+  private async findCommentForLead(leadId: string, commentId: string) {
+    const comment = await this.prisma.leadComment.findFirst({
+      where: { id: commentId, leadId },
+      select: { id: true, userId: true },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comentário não encontrado.');
+    }
+    return comment;
   }
 
   private async findLeadForUser(user: AuthenticatedUser, id: string) {

@@ -6,3 +6,5 @@ export class CreateLeadCommentDto {
   @MaxLength(5000)
   content: string;
 }
+
+export class UpdateLeadCommentDto extends CreateLeadCommentDto {}

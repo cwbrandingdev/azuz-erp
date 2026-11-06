@@ -188,6 +188,26 @@ export async function createLeadComment(
   });
 }
 
+export async function updateLeadComment(
+  leadId: string,
+  commentId: string,
+  content: string,
+): Promise<LeadComment> {
+  return apiRequest<LeadComment>(`/leads/${leadId}/comments/${commentId}`, {
+    method: "PATCH",
+    body: { content },
+  });
+}
+
+export async function deleteLeadComment(
+  leadId: string,
+  commentId: string,
+): Promise<void> {
+  return apiRequest<void>(`/leads/${leadId}/comments/${commentId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function toggleLeadCollapse(
   id: string,
   isMinimized?: boolean,

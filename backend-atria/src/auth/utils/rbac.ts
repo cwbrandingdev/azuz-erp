@@ -47,6 +47,11 @@ export function canViewDashboardFinance(role: string): boolean {
   return roleName === RoleName.MASTER || roleName === RoleName.ADMIN;
 }
 
+export function canModerateLeadComments(role: string): boolean {
+  const roleName = normalizeRoleName(role);
+  return roleName === RoleName.MASTER || roleName === RoleName.ADMIN;
+}
+
 export function canAccessStaffDashboard(role: string): boolean {
   return canViewDashboardFinance(role) || isDesignerRole(role);
 }
