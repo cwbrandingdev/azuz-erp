@@ -84,6 +84,12 @@ let LeadsController = class LeadsController {
     createComment(user, id, dto) {
         return this.leadsService.createComment(user, user.userId, id, dto.content);
     }
+    updateComment(user, id, commentId, dto) {
+        return this.leadsService.updateComment(user, id, commentId, dto.content);
+    }
+    deleteComment(user, id, commentId) {
+        return this.leadsService.deleteComment(user, id, commentId);
+    }
     updateStatus(user, id, dto) {
         return this.leadsService.updateStatus(user, id, dto);
     }
@@ -214,6 +220,25 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, lead_comment_dto_1.CreateLeadCommentDto]),
     __metadata("design:returntype", void 0)
 ], LeadsController.prototype, "createComment", null);
+__decorate([
+    (0, common_1.Patch)(':id/comments/:commentId'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('commentId')),
+    __param(3, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, lead_comment_dto_1.UpdateLeadCommentDto]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "updateComment", null);
+__decorate([
+    (0, common_1.Delete)(':id/comments/:commentId'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('commentId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "deleteComment", null);
 __decorate([
     (0, common_1.Patch)(':id/status'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

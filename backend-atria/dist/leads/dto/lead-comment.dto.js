@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateLeadCommentDto = void 0;
+exports.UpdateLeadCommentDto = exports.CreateLeadCommentDto = void 0;
 const class_validator_1 = require("class-validator");
 class CreateLeadCommentDto {
     content;
@@ -21,4 +21,7 @@ __decorate([
     (0, class_validator_1.MaxLength)(5000),
     __metadata("design:type", String)
 ], CreateLeadCommentDto.prototype, "content", void 0);
+class UpdateLeadCommentDto extends CreateLeadCommentDto {
+}
+exports.UpdateLeadCommentDto = UpdateLeadCommentDto;
 //# sourceMappingURL=lead-comment.dto.js.map
