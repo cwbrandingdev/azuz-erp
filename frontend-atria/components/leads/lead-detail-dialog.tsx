@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { LeadOwnerSelect } from "@/components/leads/lead-owner-select";
 import { Loader2, MessageCircle, Phone, Save, Send } from "lucide-react";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LeadCommentItem } from "@/components/leads/lead-comment-item";
+import { useConfirm } from "@/contexts/confirm-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,12 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { getInitials } from "@/lib/kanban-utils";
 import {
   getLeadStatusColor,
   getLeadStatusLabel,
 } from "@/lib/leads-kanban-utils";
-import { resolveMediaUrl } from "@/lib/media-url";
 import { useAuth } from "@/contexts/auth-context";
 import { useCrmUsers } from "@/hooks/use-crm-users";
 import { isMasterOrAdmin } from "@/lib/permissions";
@@ -100,6 +99,8 @@ export function LeadDetailDialog({
 }: LeadDetailDialogProps) {
   const { user } = useAuth();
   const canAssignOwner = !portalClientView && isMasterOrAdmin(user?.role);
+  const confirm = useConfirm();
+  const canModerateComments = !portalClientView && isMasterOrAdmin(user?.role);
   const { users: crmUsers, loading: crmUsersLoading } = useCrmUsers(
     open && canAssignOwner,
   );
@@ -205,6 +206,34 @@ export function LeadDetailDialog({
 
   function updateField(field: keyof typeof EMPTY_EDIT, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleUpdateComment(commentId: string, nextContent: string) {
+    if (!lead) return;
+    const updated = await leadsService.updateLeadComment(
+      lead.id,
+      commentId,
+      nextContent,
+    );
+    setComments((current) =>
+      current.map((comment) => (comment.id === commentId ? updated : comment)),
+    );
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    if (!lead) return;
+    const confirmed = await confirm({
+      title: "Apagar comentário",
+      description: "Apagar este comentário? Essa ação não pode ser desfeita.",
+      confirmLabel: "Apagar",
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    await leadsService.deleteLeadComment(lead.id, commentId);
+    setComments((current) =>
+      current.filter((comment) => comment.id !== commentId),
+    );
   }
 
   async function handleSave(event: React.FormEvent) {
@@ -522,31 +551,18 @@ export function LeadDetailDialog({
             ) : (
               <div className="mb-4 max-h-64 space-y-3 overflow-y-auto">
                 {comments.map((comment) => {
-                  const src = resolveMediaUrl(comment.user.avatarUrl);
+                  const isAuthor =
+                    !portalClientView && comment.user.id === user?.id;
                   return (
-                    <div key={comment.id} className="flex gap-2.5">
-                      <Avatar className="size-8 shrink-0">
-                        {src && (
-                          <AvatarImage src={src} alt={comment.user.name} />
-                        )}
-                        <AvatarFallback className="bg-[var(--atria-accent)] text-[10px] font-semibold text-[var(--atria-primary)]">
-                          {getInitials(comment.user.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1 rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-[var(--atria-primary)]/8">
-                        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-                          <p className="text-xs font-semibold text-[var(--atria-primary)]">
-                            {comment.user.name}
-                          </p>
-                          <p className="text-[10px] text-[var(--atria-primary)]/45">
-                            {formatCommentDate(comment.createdAt)}
-                          </p>
-                        </div>
-                        <p className="whitespace-pre-wrap text-sm text-[var(--atria-primary)]/80">
-                          {comment.content}
-                        </p>
-                      </div>
-                    </div>
+                    <LeadCommentItem
+                      key={comment.id}
+                      comment={comment}
+                      dateLabel={formatCommentDate(comment.createdAt)}
+                      canEdit={isAuthor}
+                      canDelete={isAuthor || canModerateComments}
+                      onUpdate={handleUpdateComment}
+                      onDelete={handleDeleteComment}
+                    />
                   );
                 })}
               </div>
