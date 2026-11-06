@@ -17,6 +17,53 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/services";
 
+export type LoginFormTone = "light" | "dark";
+
+// Classes que mudam entre fundo claro e fundo escuro; a lógica do login é a mesma.
+const TONES = {
+  light: {
+    title: "text-[var(--atria-primary)]",
+    subtitle: "text-[var(--atria-primary)]/55",
+    card: "border-[var(--atria-primary)]/10 bg-white/80 shadow-xl shadow-[#004949]/5",
+    labelActive: "text-[var(--atria-primary)]",
+    labelIdle: "text-[var(--atria-primary)]/45",
+    icon: "text-[var(--atria-primary)]/40",
+    input:
+      "border-[var(--atria-primary)]/15 bg-white text-[var(--atria-primary)] hover:border-[var(--atria-primary)]/25 focus:border-[var(--atria-primary)] focus:ring-[var(--atria-primary)]/10",
+    eye: "text-[var(--atria-primary)]/45 hover:bg-[var(--atria-primary)]/5 hover:text-[var(--atria-primary)]",
+    remember: "text-[var(--atria-primary)]/70",
+    checkbox:
+      "border-[var(--atria-primary)]/25 text-[var(--atria-primary)] focus:ring-[var(--atria-primary)]/20",
+    link: "text-[var(--atria-primary)] hover:text-[var(--atria-primary)]/80",
+    button:
+      "bg-gradient-to-r from-[#004949] via-[#005f5f] to-[#004949] text-white hover:shadow-[#004949]/20",
+    spinnerDot: "bg-white",
+    footer: "text-[var(--atria-primary)]/40",
+    logoVariant: "login",
+  },
+  dark: {
+    title: "text-white",
+    subtitle: "text-white/55",
+    card: "border-white/10 bg-white/[0.06] shadow-2xl shadow-black/30",
+    labelActive: "text-[#E8C39E]",
+    labelIdle: "text-white/45",
+    icon: "text-white/40",
+    input:
+      "border-white/15 bg-white/[0.04] text-white hover:border-white/25 focus:border-[#E8C39E] focus:ring-[#E8C39E]/15",
+    eye: "text-white/45 hover:bg-white/10 hover:text-white",
+    remember: "text-white/70",
+    checkbox: "border-white/25 text-[#E8C39E] focus:ring-[#E8C39E]/20",
+    link: "text-[#E8C39E] hover:text-[#E8C39E]/80",
+    button:
+      "bg-gradient-to-r from-[#E8C39E] via-[#f0d4b4] to-[#E8C39E] text-[#003535] hover:shadow-[#E8C39E]/20",
+    spinnerDot: "bg-[#003535]",
+    footer: "text-white/35",
+    logoVariant: "sidebar",
+  },
+} as const;
+
+type ToneClasses = (typeof TONES)[LoginFormTone];
+
 function FloatingField({
   id,
   label,
@@ -26,6 +73,7 @@ function FloatingField({
   icon: Icon,
   autoComplete,
   trailing,
+  tone,
 }: {
   id: string;
   label: string;
@@ -35,6 +83,7 @@ function FloatingField({
   icon: React.ComponentType<{ className?: string }>;
   autoComplete?: string;
   trailing?: React.ReactNode;
+  tone: ToneClasses;
 }) {
   const [focused, setFocused] = useState(false);
   const active = focused || value.length > 0;
@@ -46,13 +95,18 @@ function FloatingField({
         className={cn(
           "pointer-events-none absolute left-11 z-10 origin-left transition-all duration-200",
           active
-            ? "top-2 text-[11px] font-medium text-[var(--atria-primary)]"
-            : "top-1/2 -translate-y-1/2 text-sm text-[var(--atria-primary)]/45",
+            ? cn("top-2 text-[11px] font-medium", tone.labelActive)
+            : cn("top-1/2 -translate-y-1/2 text-sm", tone.labelIdle),
         )}
       >
         {label}
       </label>
-      <div className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[var(--atria-primary)]/40">
+      <div
+        className={cn(
+          "pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2",
+          tone.icon,
+        )}
+      >
         <Icon className="size-4" />
       </div>
       {trailing}
@@ -65,9 +119,8 @@ function FloatingField({
         onBlur={() => setFocused(false)}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          "h-14 w-full rounded-xl border bg-white px-11 text-base text-[var(--atria-primary)] outline-none transition-all duration-200 md:text-sm",
-          "border-[var(--atria-primary)]/15 hover:border-[var(--atria-primary)]/25",
-          "focus:border-[var(--atria-primary)] focus:ring-4 focus:ring-[var(--atria-primary)]/10",
+          "h-14 w-full rounded-xl border px-11 text-base outline-none transition-all duration-200 focus:ring-4 md:text-sm",
+          tone.input,
           active ? "pt-5 pb-2" : "py-3.5",
           trailing ? "pr-12" : "pr-4",
         )}
@@ -77,23 +130,34 @@ function FloatingField({
   );
 }
 
-function LoginSpinner() {
+function LoginSpinner({ dotClassName }: { dotClassName: string }) {
   return (
     <span className="inline-flex items-center gap-1" aria-hidden="true">
-      <span className="login-spinner-dot size-1.5 rounded-full bg-white" />
-      <span className="login-spinner-dot size-1.5 rounded-full bg-white" />
-      <span className="login-spinner-dot size-1.5 rounded-full bg-white" />
+      <span className={cn("login-spinner-dot size-1.5 rounded-full", dotClassName)} />
+      <span className={cn("login-spinner-dot size-1.5 rounded-full", dotClassName)} />
+      <span className={cn("login-spinner-dot size-1.5 rounded-full", dotClassName)} />
     </span>
   );
 }
 
-export function LoginForm() {
+export function LoginForm({
+  tone: toneName = "light",
+  showHeader = true,
+  centered = false,
+  framed = true,
+}: {
+  tone?: LoginFormTone;
+  showHeader?: boolean;
+  centered?: boolean;
+  framed?: boolean;
+} = {}) {
   const router = useRouter();
   const { login, isAuthenticated, isLoading, user } = useAuth();
   const { company } = useCompany();
   const emailId = useId();
   const passwordId = useId();
   const companyLabel = company?.name ?? null;
+  const tone = TONES[toneName];
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -144,30 +208,38 @@ export function LoginForm() {
 
   return (
     <div className="flex w-full flex-col">
-      <div className="mb-8 flex flex-col items-center text-center lg:items-start lg:text-left">
-        <div className="mb-5">
-          <AgencyLogo
-            size="lg"
-            variant="login"
-            subtitle="Workspace inteligente"
-            showName
-          />
-        </div>
+      {showHeader && (
+        <div className="mb-8 flex flex-col items-center text-center lg:items-start lg:text-left">
+          <div className="mb-5">
+            <AgencyLogo
+              size="lg"
+              variant={tone.logoVariant}
+              subtitle="Workspace inteligente"
+              showName
+            />
+          </div>
 
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--atria-primary)] sm:text-3xl">
-          Bem-vindo de volta
-        </h1>
-        <p className="mt-2 max-w-sm text-sm text-[var(--atria-primary)]/55">
-          {companyLabel
-            ? `Acesse sua conta em ${companyLabel} para continuar gerenciando projetos, clientes e conteúdo.`
-            : "Acesse sua conta para continuar gerenciando projetos, clientes e conteúdo."}
-        </p>
-      </div>
+          <h1
+            className={cn(
+              "text-2xl font-bold tracking-tight sm:text-3xl",
+              tone.title,
+            )}
+          >
+            Bem-vindo de volta
+          </h1>
+          <p className={cn("mt-2 max-w-sm text-sm", tone.subtitle)}>
+            {companyLabel
+              ? `Acesse sua conta em ${companyLabel} para continuar gerenciando projetos, clientes e conteúdo.`
+              : "Acesse sua conta para continuar gerenciando projetos, clientes e conteúdo."}
+          </p>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit}
         className={cn(
-          "w-full rounded-2xl border border-[var(--atria-primary)]/10 bg-white/80 p-6 shadow-xl shadow-[#004949]/5 backdrop-blur-sm sm:p-8",
+          "w-full",
+          framed && cn("rounded-2xl border p-6 backdrop-blur-sm sm:p-8", tone.card),
           shake && "login-form-shake",
         )}
         noValidate
@@ -181,6 +253,7 @@ export function LoginForm() {
             onChange={setEmail}
             icon={Mail}
             autoComplete="email"
+            tone={tone}
           />
 
           <FloatingField
@@ -191,11 +264,15 @@ export function LoginForm() {
             onChange={setPassword}
             icon={Lock}
             autoComplete="current-password"
+            tone={tone}
             trailing={
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
-                className="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-md p-1.5 text-[var(--atria-primary)]/45 transition-colors hover:bg-[var(--atria-primary)]/5 hover:text-[var(--atria-primary)]"
+                className={cn(
+                  "absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-md p-1.5 transition-colors",
+                  tone.eye,
+                )}
                 aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
               >
                 {showPassword ? (
@@ -208,18 +285,26 @@ export function LoginForm() {
           />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-[var(--atria-primary)]/70">
+            <label
+              className={cn(
+                "flex cursor-pointer items-center gap-2.5 text-sm",
+                tone.remember,
+              )}
+            >
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="size-4 rounded border-[var(--atria-primary)]/25 text-[var(--atria-primary)] focus:ring-[var(--atria-primary)]/20"
+                className={cn("size-4 rounded", tone.checkbox)}
               />
               Lembrar de mim
             </label>
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-[var(--atria-primary)] underline-offset-4 transition-colors hover:text-[var(--atria-primary)]/80 hover:underline"
+              className={cn(
+                "text-sm font-medium underline-offset-4 transition-colors hover:underline",
+                tone.link,
+              )}
             >
               Esqueci a senha
             </Link>
@@ -229,9 +314,9 @@ export function LoginForm() {
             type="submit"
             disabled={submitting}
             className={cn(
-              "group relative mt-1 flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl text-sm font-semibold text-white transition-all duration-300",
-              "bg-gradient-to-r from-[#004949] via-[#005f5f] to-[#004949]",
-              "hover:shadow-lg hover:shadow-[#004949]/20 active:scale-[0.99]",
+              "group relative mt-1 flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl text-sm font-semibold transition-all duration-300",
+              tone.button,
+              "hover:shadow-lg active:scale-[0.99]",
               "disabled:pointer-events-none disabled:opacity-70",
             )}
           >
@@ -246,7 +331,7 @@ export function LoginForm() {
               {submitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  <LoginSpinner />
+                  <LoginSpinner dotClassName={tone.spinnerDot} />
                   <span className="sr-only">Entrando</span>
                 </>
               ) : (
@@ -257,7 +342,13 @@ export function LoginForm() {
         </div>
       </form>
 
-      <p className="mt-6 text-center text-xs text-[var(--atria-primary)]/40 lg:text-left">
+      <p
+        className={cn(
+          "mt-6 text-center text-xs",
+          !centered && "lg:text-left",
+          tone.footer,
+        )}
+      >
         Ao continuar, você concorda com os termos de uso da plataforma ATRIA.
       </p>
     </div>
