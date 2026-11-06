@@ -868,90 +868,6 @@ html:fullscreen [data-calendar-root] {
   background: rgba(255, 255, 255, 0.82);
 }
 
-@keyframes fight-glove-left {
-  0%,
-  100% {
-    transform: translateX(0) rotate(-12deg);
-  }
-  42% {
-    transform: translateX(22px) rotate(16deg);
-  }
-  52% {
-    transform: translateX(6px) rotate(0deg);
-  }
-}
-
-@keyframes fight-glove-right {
-  0%,
-  100% {
-    transform: translateX(0) rotate(12deg) scaleX(-1);
-  }
-  42% {
-    transform: translateX(-22px) rotate(-16deg) scaleX(-1);
-  }
-  52% {
-    transform: translateX(-6px) rotate(0deg) scaleX(-1);
-  }
-}
-
-@keyframes fight-impact {
-  0%,
-  38% {
-    transform: scale(0.2);
-    opacity: 0;
-  }
-  48% {
-    transform: scale(1.35);
-    opacity: 1;
-  }
-  68%,
-  100% {
-    transform: scale(0.4);
-    opacity: 0;
-  }
-}
-
-@keyframes fight-winner-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-.fight-glove-left {
-  animation: fight-glove-left 1.15s ease-in-out infinite;
-}
-
-.fight-glove-right {
-  animation: fight-glove-right 1.15s ease-in-out infinite;
-}
-
-.fight-impact {
-  animation: fight-impact 1.15s ease-in-out infinite;
-}
-
-.fight-winner {
-  animation: fight-winner-bob 1.15s ease-in-out infinite;
-}
-
-@keyframes fight-loser-droop {
-  0%,
-  100% {
-    transform: rotate(6deg) translateY(2px);
-  }
-  50% {
-    transform: rotate(10deg) translateY(4px);
-  }
-}
-
-.fight-loser {
-  animation: fight-loser-droop 1.6s ease-in-out infinite;
-  transform-origin: bottom center;
-}
-
 @keyframes studio-dock-bounce {
   0%,
   100% {
@@ -985,11 +901,6 @@ html:fullscreen [data-calendar-root] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fight-glove-left,
-  .fight-glove-right,
-  .fight-impact,
-  .fight-winner,
-  .fight-loser,
   .studio-dock-bounce {
     animation: none;
   }

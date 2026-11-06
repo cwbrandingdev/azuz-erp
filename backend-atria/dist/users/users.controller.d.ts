@@ -300,7 +300,7 @@ export declare class UsersController {
             color: string;
         }[];
     }>;
-    deactivate(id: string): Promise<{
+    deactivate(id: string, user: AuthenticatedUser): Promise<{
         createdAt: string;
         crmIncludeInternal: boolean;
         crmScopeClientIds: string[];

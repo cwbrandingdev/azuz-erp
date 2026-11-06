@@ -349,7 +349,7 @@ export declare class UsersService {
             color: string;
         }[];
     }>;
-    deactivate(id: string): Promise<{
+    deactivate(id: string, actorUserId?: string): Promise<{
         createdAt: string;
         crmIncludeInternal: boolean;
         crmScopeClientIds: string[];

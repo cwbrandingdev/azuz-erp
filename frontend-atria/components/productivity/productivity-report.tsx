@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { useProductivityReport } from "@/hooks/use-productivity-report";
 import { isMasterOrAdmin, normalizeAppRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import { ProductivityFight } from "@/components/productivity/productivity-fight";
 import type { ProductivityRow } from "@/services/productivity.service";
 
 type MetricKey = Exclude<
@@ -25,6 +24,18 @@ interface MetricColumn {
 
 const SDR_COLUMNS: MetricColumn[] = [
   { key: "calls", label: "Ligações", short: "Ligações", source: "Ligação do lead" },
+  {
+    key: "callsAnswered",
+    label: "Ligações atendidas",
+    short: "Atendeu",
+    source: "Resultado da ligação",
+  },
+  {
+    key: "callsUnanswered",
+    label: "Ligações não atendidas",
+    short: "Não atendeu",
+    source: "Resultado da ligação",
+  },
   {
     key: "messagesSent",
     label: "Mensagens enviadas",
@@ -398,9 +409,8 @@ function CargoCards({
 export function ProductivityReport() {
   const { user } = useAuth();
   const canFilterPeople = isMasterOrAdmin(user?.role);
-  const initialRange = useMemo(() => currentMonthInputs(), []);
-  const [from, setFrom] = useState(initialRange.from);
-  const [to, setTo] = useState(initialRange.to);
+  const [from, setFrom] = useState(() => toDateInputValue(new Date()));
+  const [to, setTo] = useState(() => toDateInputValue(new Date()));
   const [name, setName] = useState("");
   const [visibleGroups, setVisibleGroups] = useState<Set<string>>(
     () => new Set(VIEW_TOGGLES.map((group) => group.id)),
@@ -417,15 +427,7 @@ export function ProductivityReport() {
     [canFilterPeople, deferredName, from, to],
   );
 
-  const fightQuery = useMemo(
-    () => ({ from: query.from, to: query.to }),
-    [query.from, query.to],
-  );
   const report = useProductivityReport(query, !rangeInvalid);
-  const fightReport = useProductivityReport(
-    fightQuery,
-    canFilterPeople && !rangeInvalid,
-  );
   const rows = report.data?.rows ?? [];
   const visibleRoles = new Set<string>(
     VIEW_TOGGLES.filter((group) => visibleGroups.has(group.id)).flatMap(
@@ -548,31 +550,7 @@ export function ProductivityReport() {
           </label>
         ) : null}
       </div>
-      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[max-content_minmax(0,1fr)] lg:items-stretch">
-        <DayCalendar from={from} to={to} onSelectDay={selectDay} />
-        {canFilterPeople && !rangeInvalid ? (
-          <div className="relative min-w-0">
-            {fightReport.isPending ? (
-              <div className="flex min-h-40 items-center justify-center rounded-2xl border border-[var(--atria-primary)]/35 bg-white lg:absolute lg:inset-0 lg:min-h-0 dark:bg-card">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
-              </div>
-            ) : null}
-            {fightReport.data ? (
-              <ProductivityFight
-                rows={fightReport.data.rows}
-                className="lg:absolute lg:inset-0"
-              />
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-      {canFilterPeople ? (
-        <p className="text-xs leading-relaxed text-[var(--atria-primary)]/80">
-          Os dois lutadores precisam ser do mesmo cargo. SDR conta ligações,
-          mensagens, leads e reuniões. Designer conta tarefas criadas,
-          arquivos, tarefas concluídas, comentários e aprovações do cliente.
-        </p>
-      ) : null}
+      <DayCalendar from={from} to={to} onSelectDay={selectDay} />
 
       {rangeInvalid ? (
         <p className="text-sm text-destructive">
@@ -634,9 +612,10 @@ export function ProductivityReport() {
 
       <p className="max-w-3xl text-xs leading-relaxed text-[var(--atria-primary)]/80">
         Cada cargo fica na própria tabela, só com as métricas daquele
-        trabalho. Leads no kanban contam o responsável do lead criado no
-        período. Aprovações e pedidos de ajuste do portal contam para quem
-        enviou o arquivo.
+        trabalho. Atendeu conta ligações em que a pessoa falou. Não atendeu
+        conta não atendeu, ocupado e falhou. Leads no kanban contam o
+        responsável do lead criado no período. Aprovações e pedidos de ajuste
+        do portal contam para quem enviou o arquivo.
       </p>
     </div>
   );

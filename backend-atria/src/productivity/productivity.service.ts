@@ -21,12 +21,24 @@ const REPORT_ROLES: RoleName[] = [
 const INTERNAL_APPROVAL_ACTION = 'Revisão interna: aprovada (Aprovar Jhonatan)';
 const INTERNAL_REJECTION_ACTION = 'Revisão interna: rejeitada internamente';
 
+const ANSWERED_CALL_OUTCOMES = new Set([
+  'COMPLETED',
+  'NO_INTEREST',
+  'INTERESTED',
+  'WHATSAPP',
+  'MEETING',
+]);
+
+const UNANSWERED_CALL_OUTCOMES = new Set(['NO_ANSWER', 'BUSY', 'FAILED']);
+
 export interface ProductivityRow {
   userId: string;
   name: string;
   avatarUrl: string | null;
   role: RoleName;
   calls: number;
+  callsAnswered: number;
+  callsUnanswered: number;
   callMinutes: number;
   messagesSent: number;
   leadsOnKanban: number;
@@ -107,7 +119,7 @@ export class ProductivityService {
       portal,
     ] = await Promise.all([
       this.prisma.leadCall.groupBy({
-        by: ['userId'],
+        by: ['userId', 'outcome'],
         where: { userId: { in: userIds }, ...startedAt },
         _count: { _all: true },
         _sum: { durationSeconds: true },
@@ -186,10 +198,28 @@ export class ProductivityService {
       this.countPortalOutcomes(userIds, range),
     ]);
 
-    const callCounts = this.countBy(calls, 'userId');
+    const callCounts = new Map<string, number>();
+    const answeredCounts = new Map<string, number>();
+    const unansweredCounts = new Map<string, number>();
     const callSeconds = new Map<string, number>();
     for (const row of calls) {
-      callSeconds.set(row.userId, row._sum.durationSeconds ?? 0);
+      const total = row._count._all;
+      callCounts.set(row.userId, (callCounts.get(row.userId) ?? 0) + total);
+      callSeconds.set(
+        row.userId,
+        (callSeconds.get(row.userId) ?? 0) + (row._sum.durationSeconds ?? 0),
+      );
+      if (ANSWERED_CALL_OUTCOMES.has(row.outcome)) {
+        answeredCounts.set(
+          row.userId,
+          (answeredCounts.get(row.userId) ?? 0) + total,
+        );
+      } else if (UNANSWERED_CALL_OUTCOMES.has(row.outcome)) {
+        unansweredCounts.set(
+          row.userId,
+          (unansweredCounts.get(row.userId) ?? 0) + total,
+        );
+      }
     }
 
     const messageCounts = this.countBy(messages, 'sentByUserId');
@@ -217,6 +247,8 @@ export class ProductivityService {
       avatarUrl: person.avatarUrl,
       role: person.role.name,
       calls: callCounts.get(person.id) ?? 0,
+      callsAnswered: answeredCounts.get(person.id) ?? 0,
+      callsUnanswered: unansweredCounts.get(person.id) ?? 0,
       callMinutes: this.toMinutes(callSeconds.get(person.id) ?? 0),
       messagesSent: messageCounts.get(person.id) ?? 0,
       leadsOnKanban: leadCounts.get(person.id) ?? 0,

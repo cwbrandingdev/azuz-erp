@@ -80,8 +80,8 @@ let UsersController = class UsersController {
         }
         return this.usersService.uploadAvatar(id, file);
     }
-    deactivate(id) {
-        return this.usersService.deactivate(id);
+    deactivate(id, user) {
+        return this.usersService.deactivate(id, user.userId);
     }
     update(id, dto) {
         return this.usersService.update(id, dto);
@@ -161,8 +161,9 @@ __decorate([
     (0, roles_decorator_1.Roles)(...roles_1.USER_MANAGEMENT_ROLES),
     (0, permissions_decorator_1.Permissions)(permissions_1.Permission.USERS_DEACTIVATE),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "deactivate", null);
 __decorate([
