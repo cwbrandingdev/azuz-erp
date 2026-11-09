@@ -161,7 +161,7 @@ export function LoginBrandShowcase() {
                   <span className="size-2.5 rounded-full bg-white/20" />
                 </div>
                 <div className="mx-auto flex h-6 w-48 items-center justify-center rounded-md bg-white/5 text-[10px] text-white/30">
-                  app.atria-erp.com/dashboard
+                  app.azuz-erp.com/dashboard
                 </div>
               </div>
 
@@ -265,7 +265,7 @@ export function LoginBrandShowcase() {
 
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/10 pt-6">
             <blockquote className="max-w-md text-sm italic text-white/65">
-              &ldquo;O ATRIA transformou nossa rotina de aprovações e
+              &ldquo;O AZUZ transformou nossa rotina de aprovações e
               entregas.&rdquo;
             </blockquote>
             <div className="flex items-center gap-3">
@@ -284,7 +284,7 @@ export function LoginBrandShowcase() {
       </div>
 
       <div className="relative z-10 border-t border-white/10 px-10 py-5 text-xs text-white/30 xl:px-14">
-        © {new Date().getFullYear()} ATRIA ERP · Todos os direitos reservados
+        © {new Date().getFullYear()} AZUZ ERP · Todos os direitos reservados
       </div>
     </div>
   );

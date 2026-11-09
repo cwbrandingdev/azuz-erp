@@ -349,7 +349,7 @@ export function LoginForm({
           tone.footer,
         )}
       >
-        Ao continuar, você concorda com os termos de uso da plataforma ATRIA.
+        Ao continuar, você concorda com os termos de uso da plataforma AZUZ.
       </p>
     </div>
   );

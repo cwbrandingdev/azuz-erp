@@ -17,7 +17,7 @@ export default function AuthLayout({
       return;
     }
 
-    document.title = "ATRIA ERP";
+    document.title = "AZUZ ERP";
   }, [company?.name, branding.agencyName]);
 
   return <>{children}</>;
