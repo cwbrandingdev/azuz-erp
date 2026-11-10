@@ -1003,6 +1003,9 @@ export function LeadsKanbanBoard({
                                       onMeetingCreated={(updated) =>
                                         updateLeadInColumns(updated.id, updated)
                                       }
+                                      onMeetingDeleted={(updated) =>
+                                        updateLeadInColumns(updated.id, updated)
+                                      }
                                       onRemove={
                                         portalClientView
                                           ? undefined

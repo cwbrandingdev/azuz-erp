@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
+import { useAuth } from "@/contexts/auth-context";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
 import { DragHandleStrip } from "@/components/kanban/drag-handle-strip";
@@ -33,6 +34,8 @@ import {
   type CrmMoveZone,
 } from "@/lib/lead-pipeline-zones";
 import { toast } from "@/lib/toast";
+import { isMasterOrAdmin } from "@/lib/permissions";
+import { leadsService } from "@/services";
 import {
   isDialablePhone,
   toVivoDialString,
@@ -52,6 +55,7 @@ interface LeadKanbanCardProps {
   onCollapseChange: (leadId: string, isMinimized: boolean) => void;
   onOpenDetails: (lead: Lead) => void;
   onMeetingCreated?: (lead: Lead) => void;
+  onMeetingDeleted?: (lead: Lead) => void;
   onRemove?: (leadId: string) => void;
   showOrcamento?: boolean;
   showOwner?: boolean;
@@ -70,12 +74,19 @@ export function LeadKanbanCard({
   onCollapseChange,
   onOpenDetails,
   onMeetingCreated,
+  onMeetingDeleted,
   onRemove,
   showOrcamento = false,
   showOwner = false,
   onOrcamentoChange,
 }: LeadKanbanCardProps) {
   const confirm = useConfirm();
+  const { user } = useAuth();
+  const [deletingMeeting, setDeletingMeeting] = useState(false);
+  const canDeleteMeeting =
+    !portalClientView &&
+    Boolean(lead.meeting) &&
+    (lead.meeting?.createdById === user?.id || isMasterOrAdmin(user?.role));
   const [copied, setCopied] = useState(false);
   const [meetingOpen, setMeetingOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => isLeadCollapsed(lead));
@@ -132,6 +143,29 @@ export function LeadKanbanCard({
     });
     if (!confirmed) return;
     onRemove(lead.id);
+  }
+
+  async function handleDeleteMeeting() {
+    const meeting = lead.meeting;
+    if (!meeting) return;
+    const confirmed = await confirm({
+      title: "Apagar reunião",
+      description: `Apagar a reunião "${meeting.title}"? O evento no Google Agenda não é apagado.`,
+      confirmLabel: "Apagar",
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    setDeletingMeeting(true);
+    try {
+      const updated = await leadsService.deleteLeadMeeting(lead.id, meeting.id);
+      onMeetingDeleted?.(updated);
+      toast.success("Reunião apagada.");
+    } catch {
+      // O erro já aparece em toast pela camada de API.
+    } finally {
+      setDeletingMeeting(false);
+    }
   }
 
   return (
@@ -319,9 +353,22 @@ export function LeadKanbanCard({
               <>
                 {lead.meeting && (
                   <div className="rounded-lg bg-[var(--atria-primary)]/[0.04] px-2 py-1.5 text-[11px] leading-snug text-[var(--atria-primary)]/75">
-                    <p className="truncate font-medium text-[var(--atria-primary)]">
-                      {lead.meeting.title}
-                    </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="truncate font-medium text-[var(--atria-primary)]">
+                        {lead.meeting.title}
+                      </p>
+                      {canDeleteMeeting && (
+                        <button
+                          type="button"
+                          aria-label="Apagar reunião"
+                          disabled={deletingMeeting}
+                          onClick={() => void handleDeleteMeeting()}
+                          className="shrink-0 rounded p-0.5 text-[var(--atria-primary)]/45 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      )}
+                    </div>
                     <p className="truncate">
                       {formatEventDateTime(lead.meeting.startAt)} ·{" "}
                       {lead.meeting.guestName}
