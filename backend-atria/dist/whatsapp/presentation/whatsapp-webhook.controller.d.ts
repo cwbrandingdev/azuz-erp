@@ -1,9 +1,13 @@
+import type { RawBodyRequest } from '@nestjs/common';
+import type { Request } from 'express';
 import { WhatsAppService } from '../application/whatsapp.service';
+import { WhatsAppConfig } from '../infrastructure/whatsapp.config';
 export declare class WhatsAppWebhookController {
     private readonly whatsAppService;
-    constructor(whatsAppService: WhatsAppService);
-    verifyWebhook(mode: string, token: string, challenge: string): string;
-    handleWebhook(payload: unknown): Promise<{
+    private readonly config;
+    constructor(whatsAppService: WhatsAppService, config: WhatsAppConfig);
+    handleWebhook(request: RawBodyRequest<Request>, payload: unknown): Promise<{
         status: string;
     }>;
+    private assertSignature;
 }

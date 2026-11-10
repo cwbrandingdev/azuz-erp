@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Clock,
   FileText,
-  LayoutTemplate,
   MapPin,
   MessageCircle,
   Paperclip,
@@ -52,13 +51,14 @@ import {
   mentionTokenFor,
 } from "@/components/whatsapp/whatsapp-mention";
 import { WhatsappRoutingSettings } from "@/components/whatsapp/whatsapp-routing-settings";
+import { WhatsappSessionPanel } from "@/components/whatsapp/whatsapp-session-panel";
 import { WhatsappTransferDialog } from "@/components/whatsapp/whatsapp-transfer-dialog";
-import { WhatsappTemplateDialog } from "@/components/whatsapp/whatsapp-template-dialog";
 import {
   useWhatsappCannedResponses,
   useWhatsappConversations,
   useWhatsappInboxCounts,
   useWhatsappMutations,
+  useWhatsappSession,
 } from "@/hooks/use-whatsapp";
 import { LEAD_STATUS_LABELS } from "@/lib/leads-kanban-utils";
 import { cn } from "@/lib/utils";
@@ -257,13 +257,13 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     sendMessage,
     sendMedia,
     sendLocation,
-    sendTemplate,
     sendCanned,
     addNote,
     updateConversation,
   } = useWhatsappMutations();
   const { data: canned = [] } = useWhatsappCannedResponses();
   const { data: counts } = useWhatsappInboxCounts();
+  const session = useWhatsappSession(true);
   const membersQuery = useQuery({
     queryKey: ["whatsapp-members"],
     queryFn: () => usersService.getMembers(),
@@ -294,7 +294,6 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const [labelDraft, setLabelDraft] = useState("");
   const [nameDraft, setNameDraft] = useState("");
   const [attachFile, setAttachFile] = useState<File | null>(null);
-  const [templateOpen, setTemplateOpen] = useState(false);
   const [cannedOpen, setCannedOpen] = useState(false);
   const [automationInitialTab, setAutomationInitialTab] =
     useState<WhatsappAutomationTab>("bot");
@@ -448,6 +447,16 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
         }
       },
       () => toast.error("Permissão de localização negada."),
+    );
+  }
+
+  if (session.data?.status !== "WORKING") {
+    return (
+      <div className="-m-4 flex h-[calc(100dvh-3.5rem)] items-center justify-center bg-white lg:-m-6 lg:h-[calc(100dvh-4rem)] xl:-m-8">
+        <div className="w-full max-w-sm px-4">
+          <WhatsappSessionPanel active />
+        </div>
+      </div>
     );
   }
 
@@ -920,15 +929,6 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   type="button"
                   size="icon-sm"
                   variant="ghost"
-                  aria-label="Template HSM"
-                  onClick={() => setTemplateOpen(true)}
-                >
-                  <LayoutTemplate className="size-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="ghost"
                   aria-label="Respostas prontas"
                   onClick={() => setCannedOpen(true)}
                 >
@@ -1188,20 +1188,6 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
         onOpenChange={setSettingsOpen}
       />
       <WhatsappCannedManager open={cannedOpen} onOpenChange={setCannedOpen} />
-      <WhatsappTemplateDialog
-        open={templateOpen}
-        onOpenChange={setTemplateOpen}
-        sending={sendTemplate.isPending}
-        contactName={selected?.name ?? nameDraft}
-        onSend={async (input) => {
-          if (!selectedPhone) return;
-          const created = await sendTemplate.mutateAsync({
-            to: selectedPhone,
-            ...input,
-          });
-          setMessages((current) => [...current, created]);
-        }}
-      />
 
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
         <DialogContent>

@@ -17,6 +17,7 @@ import {
   useWhatsappStageMessages,
 } from "@/hooks/use-whatsapp";
 import { toast } from "@/lib/toast";
+import { WhatsappSessionPanel } from "@/components/whatsapp/whatsapp-session-panel";
 import { leadsService, userGroupsService, usersService } from "@/services";
 import type {
   WhatsAppRoutingMode,
@@ -104,8 +105,8 @@ export function WhatsappRoutingSettings({
           stageName: stage.name,
           enabled: existing?.enabled ?? false,
           body: existing?.body ?? "",
-          templateName: existing?.templateName ?? "",
-          templateLanguage: existing?.templateLanguage ?? "pt_BR",
+          templateName: null,
+          templateLanguage: null,
         };
       }),
     );
@@ -137,8 +138,8 @@ export function WhatsappRoutingSettings({
             stageId: item.stageId,
             enabled: item.enabled,
             body: item.body || null,
-            templateName: item.templateName || null,
-            templateLanguage: item.templateLanguage || null,
+            templateName: null,
+            templateLanguage: null,
           })),
         );
       }
@@ -157,6 +158,7 @@ export function WhatsappRoutingSettings({
         </DialogHeader>
 
         <div className="flex flex-col gap-4 text-sm">
+          <WhatsappSessionPanel active={open} />
           <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
             Modo de atribuição
             <select
@@ -390,27 +392,13 @@ export function WhatsappRoutingSettings({
                 <textarea
                   className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-xs"
                   rows={2}
-                  placeholder="Texto da sessão (ou deixe vazio e use um template HSM)"
+                  placeholder="Texto enviado quando o card entra nesta etapa"
                   value={item.body ?? ""}
                   onChange={(event) =>
                     setStageDrafts((current) =>
                       current.map((row, rowIndex) =>
                         rowIndex === index
                           ? { ...row, body: event.target.value }
-                          : row,
-                      ),
-                    )
-                  }
-                />
-                <Input
-                  className="mt-1 h-7 text-xs"
-                  placeholder="Template HSM (opcional)"
-                  value={item.templateName ?? ""}
-                  onChange={(event) =>
-                    setStageDrafts((current) =>
-                      current.map((row, rowIndex) =>
-                        rowIndex === index
-                          ? { ...row, templateName: event.target.value }
                           : row,
                       ),
                     )

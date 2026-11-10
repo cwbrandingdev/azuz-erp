@@ -138,11 +138,13 @@ export type ConversationPatch = {
   lastCustomerMessageAt?: Date | null;
 };
 
-export function mapMetaStatus(status: unknown): WhatsAppStatus | null {
-  if (status === 'sent') return WhatsAppStatus.SENT;
-  if (status === 'delivered') return WhatsAppStatus.DELIVERED;
-  if (status === 'read') return WhatsAppStatus.READ;
-  if (status === 'failed') return WhatsAppStatus.FAILED;
+/** WAHA ack: 1 server, 2 device, 3 read, 4 played, -1 error. */
+export function mapWahaAck(ack: unknown): WhatsAppStatus | null {
+  const value = typeof ack === 'number' ? ack : Number(ack);
+  if (value === 1) return WhatsAppStatus.SENT;
+  if (value === 2) return WhatsAppStatus.DELIVERED;
+  if (value === 3 || value === 4) return WhatsAppStatus.READ;
+  if (value === -1) return WhatsAppStatus.FAILED;
   return null;
 }
 

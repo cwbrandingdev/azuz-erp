@@ -8,8 +8,9 @@ import { WhatsAppRoutingService } from './application/whatsapp-routing.service';
 import { WhatsAppService } from './application/whatsapp.service';
 import { WhatsAppGraphGateway } from './domain/whatsapp-graph.gateway';
 import { WhatsAppMessageRepository } from './domain/whatsapp-message.repository';
-import { MetaWhatsAppGraphClient } from './infrastructure/meta-whatsapp-graph.client';
 import { PrismaWhatsAppMessageRepository } from './infrastructure/prisma-whatsapp-message.repository';
+import { WahaSessionBootstrap } from './infrastructure/waha-session.bootstrap';
+import { WahaWhatsAppClient } from './infrastructure/waha-whatsapp.client';
 import { WhatsAppConfig } from './infrastructure/whatsapp.config';
 import { WhatsAppMediaStore } from './infrastructure/whatsapp-media.store';
 import { WhatsAppController } from './presentation/whatsapp.controller';
@@ -27,6 +28,8 @@ import { WhatsAppWebhookController } from './presentation/whatsapp-webhook.contr
   providers: [
     WhatsAppConfig,
     WhatsAppMediaStore,
+    WahaWhatsAppClient,
+    WahaSessionBootstrap,
     WhatsAppService,
     WhatsAppCrmService,
     WhatsAppRoutingService,
@@ -38,7 +41,7 @@ import { WhatsAppWebhookController } from './presentation/whatsapp-webhook.contr
     },
     {
       provide: WhatsAppGraphGateway,
-      useClass: MetaWhatsAppGraphClient,
+      useExisting: WahaWhatsAppClient,
     },
   ],
   exports: [

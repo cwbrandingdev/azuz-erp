@@ -1,0 +1,42 @@
+import { HttpService } from '@nestjs/axios';
+import { WhatsAppGraphGateway, type WhatsAppDownloadedMedia, type WhatsAppInteractiveOption, type WhatsAppSendResult, type WhatsAppSessionInfo } from '../domain/whatsapp-graph.gateway';
+import { WhatsAppMessageKind } from '../domain/whatsapp-message';
+import { WhatsAppConfig } from './whatsapp.config';
+export declare class WahaWhatsAppClient extends WhatsAppGraphGateway {
+    private readonly http;
+    private readonly config;
+    private readonly logger;
+    private readonly pendingMedia;
+    private businessPhoneCache;
+    constructor(http: HttpService, config: WhatsAppConfig);
+    sendText(to: string, body: string): Promise<WhatsAppSendResult>;
+    sendInteractiveMenu(to: string, bodyText: string, options: WhatsAppInteractiveOption[]): Promise<WhatsAppSendResult>;
+    uploadMedia(buffer: Buffer, mimeType: string, filename: string): Promise<string>;
+    sendMedia(to: string, kind: WhatsAppMessageKind, mediaId: string, options?: {
+        caption?: string;
+        filename?: string;
+    }): Promise<WhatsAppSendResult>;
+    sendLocation(to: string, latitude: number, longitude: number, name?: string, address?: string): Promise<WhatsAppSendResult>;
+    downloadMedia(mediaId: string): Promise<WhatsAppDownloadedMedia>;
+    getBusinessPhone(): Promise<string>;
+    getSession(): Promise<WhatsAppSessionInfo>;
+    getSessionQr(): Promise<Buffer>;
+    restartSession(): Promise<WhatsAppSessionInfo>;
+    logoutSession(): Promise<WhatsAppSessionInfo>;
+    ensureSession(): Promise<void>;
+    private sessionExists;
+    private createSession;
+    private putSessionConfig;
+    private sessionConfig;
+    private fetchSession;
+    private toInfo;
+    private resolveMediaUrl;
+    private chatId;
+    private sendResult;
+    private post;
+    private request;
+    private authHeaders;
+    private assertConfigured;
+    private statusOf;
+    private readError;
+}

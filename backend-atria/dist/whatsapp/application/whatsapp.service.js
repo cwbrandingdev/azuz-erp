@@ -22,7 +22,6 @@ const whatsapp_inbound_1 = require("../domain/whatsapp-inbound");
 const whatsapp_graph_gateway_1 = require("../domain/whatsapp-graph.gateway");
 const whatsapp_message_repository_1 = require("../domain/whatsapp-message.repository");
 const whatsapp_phone_1 = require("../domain/whatsapp-phone");
-const whatsapp_config_1 = require("../infrastructure/whatsapp.config");
 const whatsapp_media_store_1 = require("../infrastructure/whatsapp-media.store");
 const notifications_service_1 = require("../../notifications/notifications.service");
 const whatsapp_automation_service_1 = require("./whatsapp-automation.service");
@@ -30,45 +29,76 @@ const whatsapp_routing_service_1 = require("./whatsapp-routing.service");
 let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
     messages;
     graph;
-    config;
     routing;
     media;
     ai;
     automation;
     notifications;
     logger = new common_1.Logger(WhatsAppService_1.name);
-    constructor(messages, graph, config, routing, media, ai, automation, notifications) {
+    lastSessionStatus = null;
+    constructor(messages, graph, routing, media, ai, automation, notifications) {
         this.messages = messages;
         this.graph = graph;
-        this.config = config;
         this.routing = routing;
         this.media = media;
         this.ai = ai;
         this.automation = automation;
         this.notifications = notifications;
     }
-    verifyWebhook(mode, token, challenge) {
-        if (mode === 'subscribe' && token === this.config.verifyToken) {
-            return challenge;
-        }
-        throw new common_1.UnauthorizedException('Verification failed');
+    getSession() {
+        return this.graph.getSession();
+    }
+    getSessionQr() {
+        return this.graph.getSessionQr();
+    }
+    restartSession() {
+        return this.graph.restartSession();
+    }
+    logoutSession() {
+        return this.graph.logoutSession();
     }
     async handleWebhook(payload) {
-        const entries = payload.entry ?? [];
-        for (const entry of entries) {
-            for (const change of entry.changes ?? []) {
-                const value = change.value;
-                if (!value)
-                    continue;
-                const contactName = value.contacts?.[0]?.profile?.name ?? null;
-                for (const inbound of value.messages ?? []) {
-                    await this.persistInbound(inbound, contactName);
-                }
-                for (const status of value.statuses ?? []) {
-                    await this.persistStatus(status);
-                }
+        if (!payload || typeof payload !== 'object')
+            return;
+        const event = 'event' in payload && typeof payload.event === 'string' ? payload.event : '';
+        const body = 'payload' in payload && payload.payload && typeof payload.payload === 'object'
+            ? payload.payload
+            : undefined;
+        const session = 'session' in payload && typeof payload.session === 'string'
+            ? payload.session
+            : 'default';
+        if (!body)
+            return;
+        if (event === 'session.status') {
+            const status = body.status ?? 'unknown';
+            if (status !== this.lastSessionStatus) {
+                this.lastSessionStatus = status;
+                this.logger.log(`WAHA session ${session} is ${status}`);
             }
+            return;
         }
+        if (event === 'message.ack') {
+            await this.persistStatus(body);
+            return;
+        }
+        if (event !== 'message' && event !== 'message.any')
+            return;
+        if (body.fromMe)
+            return;
+        const from = (0, whatsapp_inbound_1.inboundChatPhone)(body);
+        const parsed = (0, whatsapp_inbound_1.parseWahaInbound)(body);
+        if (!from || !parsed) {
+            if (!from) {
+                this.logger.warn(`Ignored WhatsApp ${event} from=${body.from ?? ''} fromMe=${Boolean(body.fromMe)}`);
+            }
+            return;
+        }
+        await this.persistInbound({
+            id: body.id ?? null,
+            from,
+            contactName: (0, whatsapp_inbound_1.wahaContactName)(body),
+            parsed,
+        });
     }
     async send(to, message, userId, agentReply = true) {
         const recipient = (0, whatsapp_phone_1.normalizeWhatsAppPhone)(to);
@@ -139,23 +169,6 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
             locationAddress: address ?? null,
         });
     }
-    async sendTemplate(to, name, language, parameters, userId, agentReply = true) {
-        const recipient = (0, whatsapp_phone_1.normalizeWhatsAppPhone)(to);
-        const result = await this.graph.sendTemplate(recipient, name, language, parameters);
-        const preview = parameters.length > 0
-            ? `${name}: ${parameters.join(' · ')}`
-            : `Template ${name}`;
-        return this.persistOutbound({
-            to: result.to,
-            body: preview,
-            userId,
-            whatsappMessageId: result.whatsappMessageId,
-            agentReply,
-            kind: whatsapp_message_1.WhatsAppMessageKind.TEMPLATE,
-            templateName: name,
-            templateLanguage: language,
-        });
-    }
     async sendCanned(to, cannedId, userId) {
         const canned = (await this.messages.listCannedResponses()).find((item) => item.id === cannedId);
         if (!canned) {
@@ -177,9 +190,6 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
             }, canned.content, userId);
         }
         return this.send(to, canned.content, userId);
-    }
-    listTemplates() {
-        return this.graph.listTemplates();
     }
     async addPrivateNote(phone, body, userId) {
         const recipient = (0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone);
@@ -305,14 +315,10 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
             conversationId: conversation.id,
         });
     }
-    async persistInbound(message, contactName) {
-        const parsed = (0, whatsapp_inbound_1.parseInboundMessage)(message);
-        const from = message.from ? (0, whatsapp_phone_1.normalizeWhatsAppPhone)(message.from) : '';
-        if (!parsed || !from) {
-            return;
-        }
-        if (message.id) {
-            const existing = await this.messages.findByWhatsappMessageId(message.id);
+    async persistInbound(input) {
+        const { parsed, from } = input;
+        if (input.id) {
+            const existing = await this.messages.findByWhatsappMessageId(input.id);
             if (existing) {
                 return;
             }
@@ -338,7 +344,7 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
         const businessPhone = await this.graph.getBusinessPhone();
         const conversation = await this.messages.upsertConversation({
             phone: from,
-            name: contactName,
+            name: input.contactName,
             preview: parsed.body,
             inbound: true,
             reopen: true,
@@ -346,7 +352,7 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
         const [withLead] = await this.routing.attachLeads([conversation]);
         const created = await this.messages.create({
             ...this.emptyMediaFields(),
-            whatsappMessageId: message.id ?? null,
+            whatsappMessageId: input.id,
             fromPhone: from,
             toPhone: businessPhone,
             body: parsed.body,
@@ -386,7 +392,7 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
             .then((settings) => this.notifications.notifyWhatsAppInbound({
             companyId,
             phone: from,
-            contactName: withLead.name ?? contactName,
+            contactName: withLead.name ?? input.contactName,
             preview: parsed.body.slice(0, 200),
             assignedUserId: withLead.assignedUser?.id ?? null,
             agentUserIds: settings.agentUserIds,
@@ -408,7 +414,7 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
         if (!status.id) {
             return;
         }
-        const mapped = (0, whatsapp_message_1.mapMetaStatus)(status.status);
+        const mapped = (0, whatsapp_message_1.mapWahaAck)(status.ack);
         if (!mapped) {
             return;
         }
@@ -438,10 +444,9 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
 exports.WhatsAppService = WhatsAppService;
 exports.WhatsAppService = WhatsAppService = WhatsAppService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __param(6, (0, common_1.Inject)((0, common_1.forwardRef)(() => whatsapp_automation_service_1.WhatsAppAutomationService))),
+    __param(5, (0, common_1.Inject)((0, common_1.forwardRef)(() => whatsapp_automation_service_1.WhatsAppAutomationService))),
     __metadata("design:paramtypes", [whatsapp_message_repository_1.WhatsAppMessageRepository,
         whatsapp_graph_gateway_1.WhatsAppGraphGateway,
-        whatsapp_config_1.WhatsAppConfig,
         whatsapp_routing_service_1.WhatsAppRoutingService,
         whatsapp_media_store_1.WhatsAppMediaStore,
         ai_service_1.AiService,

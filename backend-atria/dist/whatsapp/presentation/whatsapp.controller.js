@@ -37,7 +37,6 @@ const query_conversations_dto_1 = require("./dto/query-conversations.dto");
 const send_canned_dto_1 = require("./dto/send-canned.dto");
 const send_location_dto_1 = require("./dto/send-location.dto");
 const send_media_dto_1 = require("./dto/send-media.dto");
-const send_template_dto_1 = require("./dto/send-template.dto");
 const send_whatsapp_message_dto_1 = require("./dto/send-whatsapp-message.dto");
 const update_inbox_settings_dto_1 = require("./dto/update-inbox-settings.dto");
 const update_whatsapp_conversation_dto_1 = require("./dto/update-whatsapp-conversation.dto");
@@ -69,14 +68,21 @@ let WhatsAppController = class WhatsAppController {
     sendLocation(user, dto) {
         return this.whatsAppService.sendLocation(dto.to, dto.latitude, dto.longitude, dto.name, dto.address, user.userId);
     }
-    sendTemplate(user, dto) {
-        return this.whatsAppService.sendTemplate(dto.to, dto.name, dto.language, dto.parameters ?? [], user.userId);
-    }
     sendCanned(user, dto) {
         return this.whatsAppService.sendCanned(dto.to, dto.cannedId, user.userId);
     }
-    listTemplates() {
-        return this.whatsAppService.listTemplates();
+    getSession() {
+        return this.whatsAppService.getSession();
+    }
+    async sessionQr() {
+        const buffer = await this.whatsAppService.getSessionQr();
+        return new common_1.StreamableFile(buffer, { type: 'image/png' });
+    }
+    restartSession() {
+        return this.whatsAppService.restartSession();
+    }
+    logoutSession() {
+        return this.whatsAppService.logoutSession();
     }
     inboxCounts(user) {
         return this.routing.inboxCounts(user.companyId ?? '00000000-0000-4000-8000-000000000001', user.userId);
@@ -267,14 +273,6 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], WhatsAppController.prototype, "sendLocation", null);
 __decorate([
-    (0, common_1.Post)('send-template'),
-    __param(0, (0, current_user_decorator_1.CurrentUser)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, send_template_dto_1.SendTemplateDto]),
-    __metadata("design:returntype", void 0)
-], WhatsAppController.prototype, "sendTemplate", null);
-__decorate([
     (0, common_1.Post)('send-canned'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Body)()),
@@ -283,11 +281,30 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], WhatsAppController.prototype, "sendCanned", null);
 __decorate([
-    (0, common_1.Get)('templates'),
+    (0, common_1.Get)('session'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], WhatsAppController.prototype, "listTemplates", null);
+], WhatsAppController.prototype, "getSession", null);
+__decorate([
+    (0, common_1.Get)('session/qr'),
+    (0, common_1.Header)('Cache-Control', 'no-store'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], WhatsAppController.prototype, "sessionQr", null);
+__decorate([
+    (0, common_1.Post)('session/restart'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "restartSession", null);
+__decorate([
+    (0, common_1.Post)('session/logout'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "logoutSession", null);
 __decorate([
     (0, common_1.Get)('inbox/counts'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

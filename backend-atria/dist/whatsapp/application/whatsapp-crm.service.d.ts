@@ -84,5 +84,4 @@ export declare class WhatsAppCrmService {
     private toContact;
     private varsFor;
     private interpolate;
-    private extractPlaceholders;
 }

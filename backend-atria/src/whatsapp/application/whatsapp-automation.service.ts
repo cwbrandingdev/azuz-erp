@@ -22,7 +22,6 @@ import { AiService } from '../../ai/ai.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   defaultWhatsAppBotDefinition,
-  extractPlaceholders,
   interpolateTemplate,
   parseBotDefinition,
   wantsHumanHandoff,
@@ -346,8 +345,10 @@ export class WhatsAppAutomationService {
     ) {
       throw new BadRequestException('Campanha não pode ser iniciada');
     }
-    if (!row.body && !row.templateName) {
-      throw new BadRequestException('Informe o texto ou um template');
+    if (!row.body?.trim()) {
+      throw new BadRequestException(
+        'Informe o texto da mensagem. O WAHA não envia templates HSM.',
+      );
     }
 
     if (row.status === WhatsAppBroadcastStatus.PAUSED) {
@@ -975,21 +976,13 @@ export class WhatsAppAutomationService {
     },
   ) {
     const vars = content.vars ?? {};
-    if (content.templateName) {
-      const language = content.templateLanguage || 'pt_BR';
-      const parameters = extractPlaceholders(content.body || '', vars);
-      return this.whatsApp.sendTemplate(
-        phone,
-        content.templateName,
-        language,
-        parameters,
-        undefined,
-        false,
-      );
-    }
     const body = interpolateTemplate(content.body || '', vars).trim();
     if (!body) {
-      throw new BadRequestException('Mensagem vazia');
+      throw new BadRequestException(
+        content.templateName
+          ? 'Templates HSM não existem no WAHA. Informe o texto da mensagem.'
+          : 'Mensagem vazia',
+      );
     }
     return this.whatsApp.send(phone, body, undefined, false);
   }
@@ -1003,7 +996,7 @@ export class WhatsAppAutomationService {
     const trigger = await this.prisma.whatsAppTrigger.findUnique({
       where: { id: triggerId },
     });
-    if (!trigger?.enabled || (!trigger.body && !trigger.templateName)) {
+    if (!trigger?.enabled || !trigger.body?.trim()) {
       return false;
     }
     const existing = await this.prisma.whatsAppTriggerDispatch.findUnique({
