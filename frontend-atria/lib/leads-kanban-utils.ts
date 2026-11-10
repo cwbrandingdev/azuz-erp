@@ -195,3 +195,34 @@ export function sumLeadOrcamentos(
 ): number {
   return leads.reduce((sum, lead) => sum + (Number(lead.orcamento) || 0), 0);
 }
+
+export function columnLeadTotal(column: {
+  total?: number;
+  leads: unknown[];
+}) {
+  return column.total ?? column.leads.length;
+}
+
+export function columnOrcamentoTotal(column: {
+  orcamentoTotal?: number;
+  leads: Array<{ orcamento?: number | null }>;
+}) {
+  return column.orcamentoTotal ?? sumLeadOrcamentos(column.leads);
+}
+
+// Ajusta os totais vindos do servidor quando um card entra, sai ou muda de valor.
+export function shiftColumnTotals<
+  T extends { total?: number; orcamentoTotal?: number },
+>(column: T, leadDelta: number, orcamentoDelta: number): T {
+  return {
+    ...column,
+    total:
+      column.total === undefined
+        ? undefined
+        : Math.max(0, column.total + leadDelta),
+    orcamentoTotal:
+      column.orcamentoTotal === undefined
+        ? undefined
+        : column.orcamentoTotal + orcamentoDelta,
+  };
+}

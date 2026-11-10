@@ -57,11 +57,7 @@ export class LeadsController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ProspectingLeadsQueryDto,
   ) {
-    return this.leadsService.findKanbanBoard(
-      user,
-      query.organizationId,
-      query.ownerUserId,
-    );
+    return this.leadsService.findKanbanBoard(user, query);
   }
 
   @Get('cnae/search')

@@ -2524,6 +2524,9 @@ export interface LeadKanbanColumn {
   color: string;
   order?: number;
   leads: Lead[];
+  total?: number;
+  hasMore?: boolean;
+  orcamentoTotal?: number;
 }
 
 export interface LeadKanbanBoard {
@@ -2531,6 +2534,23 @@ export interface LeadKanbanBoard {
   total: number;
   crmMoveZone?: "all" | "sdr" | "client" | "none";
   showOrcamento?: boolean;
+  categories?: string[];
+}
+
+export interface LeadKanbanColumnPage {
+  leads: Lead[];
+  total: number;
+  hasMore: boolean;
+  orcamentoTotal: number;
+}
+
+export interface LeadKanbanFilters {
+  organizationId?: string;
+  ownerUserId?: string;
+  search?: string;
+  category?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface UpdateCrmLeadInput {

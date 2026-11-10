@@ -16,6 +16,8 @@ import type {
   LeadKanbanBoard,
   LeadStage,
   LeadStatus,
+  LeadKanbanColumnPage,
+  LeadKanbanFilters,
   UpdateCrmLeadInput,
   UpdateLeadStageInput,
   UpdateLeadStatusInput,
@@ -82,19 +84,33 @@ export async function listCrmUsers(): Promise<CrmUserOption[]> {
   return apiRequest<CrmUserOption[]>("/crm/leads/owners");
 }
 
-export async function getKanbanBoard(
-  organizationId?: string,
-  ownerUserId?: string,
-): Promise<LeadKanbanBoard> {
+function kanbanFilterParams(filters: LeadKanbanFilters) {
   const params = new URLSearchParams();
-  if (organizationId) {
-    params.set("organizationId", organizationId);
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) params.set(key, value);
   }
-  if (ownerUserId) {
-    params.set("ownerUserId", ownerUserId);
-  }
-  const query = params.toString() ? `?${params.toString()}` : "";
-  return apiRequest<LeadKanbanBoard>(`/crm/leads/kanban${query}`);
+  return params;
+}
+
+export async function getKanbanBoard(
+  filters: LeadKanbanFilters = {},
+): Promise<LeadKanbanBoard> {
+  const query = kanbanFilterParams(filters).toString();
+  return apiRequest<LeadKanbanBoard>(
+    `/crm/leads/kanban${query ? `?${query}` : ""}`,
+  );
+}
+
+export async function getKanbanColumnPage(
+  stageId: string,
+  offset: number,
+  filters: LeadKanbanFilters = {},
+): Promise<LeadKanbanColumnPage> {
+  const params = kanbanFilterParams(filters);
+  params.set("offset", String(offset));
+  return apiRequest<LeadKanbanColumnPage>(
+    `/crm/leads/kanban/columns/${stageId}?${params.toString()}`,
+  );
 }
 
 export async function addToKanban(
