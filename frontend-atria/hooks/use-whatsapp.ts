@@ -115,13 +115,13 @@ export function useWhatsappTriggers() {
   });
 }
 
-export function useWhatsappTemplates(enabled = true) {
+export function useWhatsappSession(enabled: boolean) {
   const companyId = useCompanyId();
   return useQuery({
-    queryKey: [...whatsappKeys.root, companyId ?? "", "templates"],
-    queryFn: () => whatsappService.listTemplates(),
+    queryKey: [...whatsappKeys.root, companyId ?? "", "session"],
+    queryFn: () => whatsappService.getWhatsAppSession(),
     enabled: Boolean(companyId) && enabled,
-    staleTime: 60_000,
+    refetchInterval: enabled ? 4000 : false,
   });
 }
 
@@ -152,16 +152,6 @@ export function useWhatsappMutations() {
       name?: string;
       address?: string;
     }) => whatsappService.sendLocation(data),
-    onSuccess: () => invalidate(),
-  });
-
-  const sendTemplate = useMutation({
-    mutationFn: (data: {
-      to: string;
-      name: string;
-      language: string;
-      parameters: string[];
-    }) => whatsappService.sendTemplate(data),
     onSuccess: () => invalidate(),
   });
 
@@ -336,7 +326,6 @@ export function useWhatsappMutations() {
     sendMessage,
     sendMedia,
     sendLocation,
-    sendTemplate,
     sendCanned,
     createCanned,
     deleteCanned,

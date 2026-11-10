@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiRequest, uploadFile } from "./api";
+import { API_BASE_URL, apiRequest, apiRequestBlob, uploadFile } from "./api";
 
 export type WhatsAppMessageDirection = "INBOUND" | "OUTBOUND";
 export type WhatsAppMessageStatus = "SENT" | "DELIVERED" | "READ" | "FAILED";
@@ -101,17 +101,12 @@ export interface WhatsAppCannedResponse {
   mediaFilename: string | null;
 }
 
-export interface WhatsAppHsmTemplate {
+export interface WhatsAppSessionStatus {
+  configured: boolean;
   name: string;
-  language: string;
-  status: string;
-  category: string;
-  components: Array<{
-    type: string;
-    text?: string;
-    format?: string;
-    example?: { body_text?: string[][]; header_text?: string[] };
-  }>;
+  status: string | null;
+  phone: string | null;
+  pushName: string | null;
 }
 
 export interface WhatsAppInboxCounts {
@@ -249,18 +244,6 @@ export async function sendLocation(data: {
   });
 }
 
-export async function sendTemplate(data: {
-  to: string;
-  name: string;
-  language: string;
-  parameters: string[];
-}): Promise<WhatsAppMessage> {
-  return apiRequest<WhatsAppMessage>("/whatsapp/send-template", {
-    method: "POST",
-    body: data,
-  });
-}
-
 export async function sendCanned(data: {
   to: string;
   cannedId: string;
@@ -271,8 +254,25 @@ export async function sendCanned(data: {
   });
 }
 
-export async function listTemplates(): Promise<WhatsAppHsmTemplate[]> {
-  return apiRequest<WhatsAppHsmTemplate[]>("/whatsapp/templates");
+export async function getWhatsAppSession(): Promise<WhatsAppSessionStatus> {
+  return apiRequest<WhatsAppSessionStatus>("/whatsapp/session");
+}
+
+export async function getWhatsAppSessionQr(): Promise<string> {
+  const blob = await apiRequestBlob("/whatsapp/session/qr");
+  return URL.createObjectURL(blob);
+}
+
+export function restartWhatsAppSession(): Promise<WhatsAppSessionStatus> {
+  return apiRequest<WhatsAppSessionStatus>("/whatsapp/session/restart", {
+    method: "POST",
+  });
+}
+
+export function logoutWhatsAppSession(): Promise<WhatsAppSessionStatus> {
+  return apiRequest<WhatsAppSessionStatus>("/whatsapp/session/logout", {
+    method: "POST",
+  });
 }
 
 export interface WhatsAppCrmContact {

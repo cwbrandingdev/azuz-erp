@@ -248,7 +248,15 @@ export class WhatsAppCrmService {
       },
     });
     if (!rule?.enabled) return;
-    if (!rule.body && !rule.templateName) return;
+    const text = rule.body?.trim() ?? '';
+    if (!text) {
+      if (rule.templateName) {
+        this.logger.warn(
+          `Stage message for ${input.toStageName} has only a template name. WAHA needs the message text.`,
+        );
+      }
+      return;
+    }
 
     const lead = await this.prisma.lead.findUnique({
       where: { id: input.leadId },
@@ -256,32 +264,16 @@ export class WhatsAppCrmService {
     if (!lead) return;
 
     const vars = this.varsFor(lead, input.toStageName);
+    const body = this.interpolate(text, vars);
     try {
-      if (rule.templateName) {
-        const language = rule.templateLanguage || 'pt_BR';
-        const parameters = this.extractPlaceholders(
-          rule.body || '',
-          vars,
-        );
-        await this.whatsApp.sendTemplate(
-          phone,
-          rule.templateName,
-          language,
-          parameters,
-          input.actorUserId,
-        );
-      } else if (rule.body) {
-        await this.whatsApp.send(phone, this.interpolate(rule.body, vars), input.actorUserId);
-      }
+      await this.whatsApp.send(phone, body, input.actorUserId);
       await this.logEvent({
         companyId: input.companyId,
         leadId: input.leadId,
         phone,
         type: WhatsAppCrmEventType.AUTO_MESSAGE,
         title: `Mensagem automática · ${input.toStageName}`,
-        body: rule.templateName
-          ? `Template ${rule.templateName}`
-          : this.interpolate(rule.body ?? '', vars),
+        body,
         actorUserId: input.actorUserId,
       });
     } catch (error) {
@@ -595,13 +587,5 @@ export class WhatsAppCrmService {
     return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key: string) => {
       return vars[key] ?? '';
     });
-  }
-
-  private extractPlaceholders(template: string, vars: Record<string, string>) {
-    const keys = [...template.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map(
-      (match) => match[1],
-    );
-    const unique = [...new Set(keys)];
-    return unique.map((key) => vars[key] ?? '');
   }
 }

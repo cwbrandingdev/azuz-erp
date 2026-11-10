@@ -50,12 +50,11 @@ const envSchema = z
     DIALER_MODE: z.enum(['native', 'twilio']).optional(),
     META_APP_ID: z.string().optional().or(z.literal('')),
     META_APP_SECRET: z.string().optional().or(z.literal('')),
-    WEBHOOK_VERIFY_TOKEN: z.string().optional().or(z.literal('')),
-    WHATSAPP_PHONE_NUMBER_ID: z.string().optional().or(z.literal('')),
-    WHATSAPP_PERMANENT_TOKEN: z.string().optional().or(z.literal('')),
-    WHATSAPP_ACCESS_TOKEN: z.string().optional().or(z.literal('')),
-    WHATSAPP_WABA_ID: z.string().optional().or(z.literal('')),
-    WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().or(z.literal('')),
+    WAHA_BASE_URL: z.string().optional().or(z.literal('')),
+    WAHA_API_KEY: z.string().optional().or(z.literal('')),
+    WAHA_SESSION: z.string().optional().or(z.literal('')),
+    WAHA_WEBHOOK_URL: z.string().optional().or(z.literal('')),
+    WAHA_WEBHOOK_HMAC_KEY: z.string().optional().or(z.literal('')),
     GOOGLE_CLIENT_ID: z.string().optional().or(z.literal('')),
     GOOGLE_CLIENT_SECRET: z.string().optional().or(z.literal('')),
     GOOGLE_REFRESH_TOKEN: z.string().optional().or(z.literal('')),
@@ -75,8 +74,6 @@ const envSchema = z
       SUPABASE_ANON_KEY: data.SUPABASE_ANON_KEY || undefined,
       SUPABASE_SERVICE_ROLE_KEY: data.SUPABASE_SERVICE_ROLE_KEY || undefined,
       SUPABASE_DB_SCHEMA: schema,
-      WHATSAPP_PERMANENT_TOKEN:
-        data.WHATSAPP_PERMANENT_TOKEN || data.WHATSAPP_ACCESS_TOKEN || '',
     };
   });
 

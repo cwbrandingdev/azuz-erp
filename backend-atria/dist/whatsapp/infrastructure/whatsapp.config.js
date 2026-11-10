@@ -17,29 +17,24 @@ let WhatsAppConfig = class WhatsAppConfig {
     constructor(configService) {
         this.configService = configService;
     }
-    get phoneNumberId() {
-        return (this.configService.get('WHATSAPP_PHONE_NUMBER_ID')?.trim() ?? '');
+    get baseUrl() {
+        return (this.configService.get('WAHA_BASE_URL')?.trim() ||
+            'http://127.0.0.1:3010').replace(/\/$/, '');
     }
-    get permanentToken() {
-        return (this.configService.get('WHATSAPP_PERMANENT_TOKEN')?.trim() ||
-            this.configService.get('WHATSAPP_ACCESS_TOKEN')?.trim() ||
-            '');
+    get apiKey() {
+        return this.configService.get('WAHA_API_KEY')?.trim() ?? '';
     }
-    get verifyToken() {
-        return (this.configService.get('WEBHOOK_VERIFY_TOKEN')?.trim() ?? '');
+    get session() {
+        return this.configService.get('WAHA_SESSION')?.trim() || 'default';
     }
-    get graphVersion() {
-        return 'v23.0';
+    get webhookUrl() {
+        return this.configService.get('WAHA_WEBHOOK_URL')?.trim() ?? '';
     }
-    get wabaId() {
-        return (this.configService.get('WHATSAPP_WABA_ID')?.trim() ||
-            this.configService
-                .get('WHATSAPP_BUSINESS_ACCOUNT_ID')
-                ?.trim() ||
-            '');
+    get webhookHmacKey() {
+        return (this.configService.get('WAHA_WEBHOOK_HMAC_KEY')?.trim() ?? '');
     }
     get isConfigured() {
-        return Boolean(this.phoneNumberId && this.permanentToken);
+        return Boolean(this.baseUrl && this.apiKey);
     }
 };
 exports.WhatsAppConfig = WhatsAppConfig;

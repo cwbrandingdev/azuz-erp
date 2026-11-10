@@ -1,0 +1,25 @@
+# Self-hosted WhatsApp HTTP API. The Nest backend talks to this service only.
+# Host port 3010 avoids the frontend, which already uses 3000.
+# Start: docker compose -f docker-compose.waha.yml up -d
+services:
+  waha:
+    image: devlikeapro/waha:latest
+    restart: unless-stopped
+    ports:
+      - "3010:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - waha-sessions:/app/.sessions
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: GOWS
+      WAHA_API_KEY: ${WAHA_API_KEY:-dev-waha-key}
+      # Media links in webhooks must be reachable from the Nest process on the host.
+      WAHA_BASE_URL: http://127.0.0.1:3010
+      WAHA_DASHBOARD_ENABLED: "true"
+      WHATSAPP_RESTART_ALL_SESSIONS: "True"
+      WAHA_CLIENT_DEVICE_NAME: Atria
+      WAHA_CLIENT_BROWSER_NAME: Desktop
+
+volumes:
+  waha-sessions:

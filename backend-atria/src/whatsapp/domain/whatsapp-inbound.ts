@@ -1,43 +1,54 @@
-import { WhatsAppMessageKind } from './whatsapp-message';
+import { kindFromMime, WhatsAppMessageKind } from './whatsapp-message';
+import { normalizeWhatsAppPhone } from './whatsapp-phone';
 
-export type MetaInboundMessage = {
-  id?: string;
-  from?: string;
-  type?: string;
-  text?: { body?: string };
-  interactive?: {
-    type?: string;
-    button_reply?: { id?: string; title?: string };
-    list_reply?: { id?: string; title?: string; description?: string };
-  };
-  image?: MetaInboundMedia;
-  video?: MetaInboundMedia;
-  document?: MetaInboundMedia;
-  audio?: MetaInboundMedia;
-  sticker?: MetaInboundMedia;
-  location?: {
-    latitude?: number;
-    longitude?: number;
-    name?: string;
-    address?: string;
-  };
+type WahaJid = {
+  User?: string;
+  Server?: string;
 };
 
-type MetaInboundMedia = {
+function jidText(value: string | WahaJid | undefined): string | undefined {
+  if (typeof value === 'string') return value;
+  const user = value?.User?.trim();
+  const server = value?.Server?.trim();
+  if (user && server) return `${user}@${server}`;
+  return undefined;
+}
+
+export type WahaInboundMessage = {
   id?: string;
-  mime_type?: string;
-  filename?: string;
-  caption?: string;
-  voice?: boolean;
-  view_once?: boolean;
-  transcript?: string;
-  transcription?: { text?: string };
+  from?: string;
+  fromMe?: boolean;
+  body?: string;
+  hasMedia?: boolean;
+  pushName?: string;
+  notifyName?: string;
+  media?: {
+    url?: string;
+    mimetype?: string;
+    filename?: string | null;
+  } | null;
+  location?: {
+    latitude?: number | string;
+    longitude?: number | string;
+    description?: string;
+    name?: string;
+    address?: string;
+  } | null;
+  _data?: {
+    notifyName?: string;
+    pushName?: string;
+    Info?: {
+      PushName?: string;
+      Sender?: string | WahaJid;
+      SenderAlt?: string | WahaJid;
+    };
+  };
 };
 
 export type ParsedInboundMessage = {
   kind: WhatsAppMessageKind;
   body: string;
-  /** Option id from interactive button/list taps (for bot routing). */
+  /** Option id from a menu reply, when the engine sends one. */
   menuSelectionId: string | null;
   mediaId: string | null;
   mediaMimeType: string | null;
@@ -51,36 +62,62 @@ export type ParsedInboundMessage = {
   transcription: string | null;
 };
 
-export function parseInboundMessage(
-  message: MetaInboundMessage,
+export function directChatPhone(from: string | undefined): string | null {
+  const value = from?.trim() ?? '';
+  if (!value || isIgnoredChat(value) || value.endsWith('@lid')) return null;
+  if (
+    value.endsWith('@c.us') ||
+    value.endsWith('@s.whatsapp.net') ||
+    /^\d+$/.test(value)
+  ) {
+    const phone = normalizeWhatsAppPhone(value);
+    return phone || null;
+  }
+  return null;
+}
+
+/** GOWS often identifies a 1:1 chat as @lid. The phone is SenderAlt. */
+export function inboundChatPhone(message: WahaInboundMessage): string | null {
+  const from = message.from?.trim() ?? '';
+  if (isIgnoredChat(from)) return null;
+  const direct = directChatPhone(from);
+  if (direct) return direct;
+  if (!from.endsWith('@lid')) return null;
+  const info = message._data?.Info;
+  return (
+    directChatPhone(jidText(info?.SenderAlt)) ??
+    directChatPhone(jidText(info?.Sender))
+  );
+}
+
+function isIgnoredChat(value: string): boolean {
+  return (
+    value.endsWith('@g.us') ||
+    value.endsWith('@broadcast') ||
+    value.includes('@newsletter')
+  );
+}
+
+export function wahaContactName(message: WahaInboundMessage): string | null {
+  const name =
+    message.pushName?.trim() ||
+    message.notifyName?.trim() ||
+    message._data?.pushName?.trim() ||
+    message._data?.notifyName?.trim() ||
+    message._data?.Info?.PushName?.trim() ||
+    '';
+  return name || null;
+}
+
+export function parseWahaInbound(
+  message: WahaInboundMessage,
 ): ParsedInboundMessage | null {
-  const type = message.type ?? 'text';
-
-  if (type === 'text') {
-    const body = message.text?.body?.trim();
-    if (!body) return null;
-    return base({ kind: WhatsAppMessageKind.TEXT, body });
-  }
-
-  if (type === 'interactive') {
-    const button = message.interactive?.button_reply;
-    const list = message.interactive?.list_reply;
-    const selectionId = (button?.id ?? list?.id)?.trim();
-    const title = (button?.title ?? list?.title)?.trim();
-    if (!selectionId) return null;
-    return base({
-      kind: WhatsAppMessageKind.TEXT,
-      body: title ? `▸ ${title}` : selectionId,
-      menuSelectionId: selectionId,
-    });
-  }
-
-  if (type === 'location') {
-    const latitude = message.location?.latitude;
-    const longitude = message.location?.longitude;
-    if (latitude == null || longitude == null) return null;
-    const name = message.location?.name?.trim() || null;
-    const address = message.location?.address?.trim() || null;
+  const location = message.location;
+  const latitude = numberOrNull(location?.latitude);
+  const longitude = numberOrNull(location?.longitude);
+  if (latitude != null && longitude != null) {
+    const name = location?.name?.trim() || location?.description?.trim() || null;
+    const address = location?.address?.trim() || null;
     return base({
       kind: WhatsAppMessageKind.LOCATION,
       body: name || address || `${latitude}, ${longitude}`,
@@ -91,59 +128,42 @@ export function parseInboundMessage(
     });
   }
 
-  const mediaField =
-    type === 'image'
-      ? message.image
-      : type === 'video'
-        ? message.video
-        : type === 'document'
-          ? message.document
-          : type === 'audio'
-            ? message.audio
-            : type === 'sticker'
-              ? message.sticker
-              : undefined;
-
-  if (!mediaField?.id) return null;
-
-  const kind =
-    type === 'image'
-      ? WhatsAppMessageKind.IMAGE
-      : type === 'video'
-        ? WhatsAppMessageKind.VIDEO
-        : type === 'document'
-          ? WhatsAppMessageKind.DOCUMENT
-          : type === 'audio'
-            ? WhatsAppMessageKind.AUDIO
-            : WhatsAppMessageKind.STICKER;
-
-  const transcription =
-    mediaField.transcript?.trim() ||
-    mediaField.transcription?.text?.trim() ||
-    null;
-  const caption = mediaField.caption?.trim() || null;
-
-  return base({
-    kind,
-    body:
-      caption ||
-      mediaField.filename ||
-      (kind === WhatsAppMessageKind.IMAGE
-        ? 'Imagem'
-        : kind === WhatsAppMessageKind.VIDEO
-          ? 'Vídeo'
-          : kind === WhatsAppMessageKind.AUDIO
-            ? 'Áudio'
-            : kind === WhatsAppMessageKind.STICKER
-              ? 'Figurinha'
+  const mediaUrl = message.media?.url?.trim() || '';
+  if (message.hasMedia || mediaUrl) {
+    const mimeType = message.media?.mimetype?.trim() || null;
+    const filename = message.media?.filename?.trim() || null;
+    const kind = mimeType
+      ? kindFromMime(mimeType)
+      : WhatsAppMessageKind.DOCUMENT;
+    const caption = message.body?.trim() || '';
+    return base({
+      kind,
+      body:
+        caption ||
+        filename ||
+        (kind === WhatsAppMessageKind.IMAGE
+          ? 'Imagem'
+          : kind === WhatsAppMessageKind.VIDEO
+            ? 'Vídeo'
+            : kind === WhatsAppMessageKind.AUDIO
+              ? 'Áudio'
               : 'Documento'),
-    mediaId: mediaField.id,
-    mediaMimeType: mediaField.mime_type ?? null,
-    mediaFilename: mediaField.filename ?? null,
-    isViewOnce: Boolean(mediaField.view_once),
-    isVoiceNote: Boolean(mediaField.voice),
-    transcription,
-  });
+      mediaId: mediaUrl || null,
+      mediaMimeType: mimeType,
+      mediaFilename: filename,
+      isVoiceNote: kind === WhatsAppMessageKind.AUDIO,
+    });
+  }
+
+  const body = message.body?.trim() ?? '';
+  if (!body) return null;
+  return base({ kind: WhatsAppMessageKind.TEXT, body });
+}
+
+function numberOrNull(value: number | string | undefined): number | null {
+  if (value == null || value === '') return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function base(

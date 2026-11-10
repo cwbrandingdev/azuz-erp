@@ -126,5 +126,5 @@ export type ConversationPatch = {
     lastAgentReplyAt?: Date | null;
     lastCustomerMessageAt?: Date | null;
 };
-export declare function mapMetaStatus(status: unknown): WhatsAppStatus | null;
+export declare function mapWahaAck(ack: unknown): WhatsAppStatus | null;
 export declare function kindFromMime(mimeType: string | undefined): WhatsAppMessageKind;

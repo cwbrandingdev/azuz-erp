@@ -4,11 +4,13 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
   Put,
   Query,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -42,7 +44,6 @@ import { QueryConversationsDto } from './dto/query-conversations.dto';
 import { SendCannedDto } from './dto/send-canned.dto';
 import { SendLocationDto } from './dto/send-location.dto';
 import { SendMediaDto } from './dto/send-media.dto';
-import { SendTemplateDto } from './dto/send-template.dto';
 import { SendWhatsAppMessageDto } from './dto/send-whatsapp-message.dto';
 import { UpdateInboxSettingsDto } from './dto/update-inbox-settings.dto';
 import { UpdateWhatsAppConversationDto } from './dto/update-whatsapp-conversation.dto';
@@ -108,20 +109,6 @@ export class WhatsAppController {
     );
   }
 
-  @Post('send-template')
-  sendTemplate(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() dto: SendTemplateDto,
-  ) {
-    return this.whatsAppService.sendTemplate(
-      dto.to,
-      dto.name,
-      dto.language,
-      dto.parameters ?? [],
-      user.userId,
-    );
-  }
-
   @Post('send-canned')
   sendCanned(
     @CurrentUser() user: AuthenticatedUser,
@@ -130,9 +117,26 @@ export class WhatsAppController {
     return this.whatsAppService.sendCanned(dto.to, dto.cannedId, user.userId);
   }
 
-  @Get('templates')
-  listTemplates() {
-    return this.whatsAppService.listTemplates();
+  @Get('session')
+  getSession() {
+    return this.whatsAppService.getSession();
+  }
+
+  @Get('session/qr')
+  @Header('Cache-Control', 'no-store')
+  async sessionQr(): Promise<StreamableFile> {
+    const buffer = await this.whatsAppService.getSessionQr();
+    return new StreamableFile(buffer, { type: 'image/png' });
+  }
+
+  @Post('session/restart')
+  restartSession() {
+    return this.whatsAppService.restartSession();
+  }
+
+  @Post('session/logout')
+  logoutSession() {
+    return this.whatsAppService.logoutSession();
   }
 
   @Get('inbox/counts')

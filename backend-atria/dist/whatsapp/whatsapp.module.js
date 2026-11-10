@@ -17,8 +17,9 @@ const whatsapp_routing_service_1 = require("./application/whatsapp-routing.servi
 const whatsapp_service_1 = require("./application/whatsapp.service");
 const whatsapp_graph_gateway_1 = require("./domain/whatsapp-graph.gateway");
 const whatsapp_message_repository_1 = require("./domain/whatsapp-message.repository");
-const meta_whatsapp_graph_client_1 = require("./infrastructure/meta-whatsapp-graph.client");
 const prisma_whatsapp_message_repository_1 = require("./infrastructure/prisma-whatsapp-message.repository");
+const waha_session_bootstrap_1 = require("./infrastructure/waha-session.bootstrap");
+const waha_whatsapp_client_1 = require("./infrastructure/waha-whatsapp.client");
 const whatsapp_config_1 = require("./infrastructure/whatsapp.config");
 const whatsapp_media_store_1 = require("./infrastructure/whatsapp-media.store");
 const whatsapp_controller_1 = require("./presentation/whatsapp.controller");
@@ -39,6 +40,8 @@ exports.WhatsAppModule = WhatsAppModule = __decorate([
         providers: [
             whatsapp_config_1.WhatsAppConfig,
             whatsapp_media_store_1.WhatsAppMediaStore,
+            waha_whatsapp_client_1.WahaWhatsAppClient,
+            waha_session_bootstrap_1.WahaSessionBootstrap,
             whatsapp_service_1.WhatsAppService,
             whatsapp_crm_service_1.WhatsAppCrmService,
             whatsapp_routing_service_1.WhatsAppRoutingService,
@@ -50,7 +53,7 @@ exports.WhatsAppModule = WhatsAppModule = __decorate([
             },
             {
                 provide: whatsapp_graph_gateway_1.WhatsAppGraphGateway,
-                useClass: meta_whatsapp_graph_client_1.MetaWhatsAppGraphClient,
+                useExisting: waha_whatsapp_client_1.WahaWhatsAppClient,
             },
         ],
         exports: [

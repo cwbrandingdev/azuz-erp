@@ -5,41 +5,32 @@ import { ConfigService } from '@nestjs/config';
 export class WhatsAppConfig {
   constructor(private readonly configService: ConfigService) {}
 
-  get phoneNumberId(): string {
+  get baseUrl(): string {
     return (
-      this.configService.get<string>('WHATSAPP_PHONE_NUMBER_ID')?.trim() ?? ''
-    );
+      this.configService.get<string>('WAHA_BASE_URL')?.trim() ||
+      'http://127.0.0.1:3010'
+    ).replace(/\/$/, '');
   }
 
-  get permanentToken(): string {
-    return (
-      this.configService.get<string>('WHATSAPP_PERMANENT_TOKEN')?.trim() ||
-      this.configService.get<string>('WHATSAPP_ACCESS_TOKEN')?.trim() ||
-      ''
-    );
+  get apiKey(): string {
+    return this.configService.get<string>('WAHA_API_KEY')?.trim() ?? '';
   }
 
-  get verifyToken(): string {
-    return (
-      this.configService.get<string>('WEBHOOK_VERIFY_TOKEN')?.trim() ?? ''
-    );
+  get session(): string {
+    return this.configService.get<string>('WAHA_SESSION')?.trim() || 'default';
   }
 
-  get graphVersion(): string {
-    return 'v23.0';
+  get webhookUrl(): string {
+    return this.configService.get<string>('WAHA_WEBHOOK_URL')?.trim() ?? '';
   }
 
-  get wabaId(): string {
+  get webhookHmacKey(): string {
     return (
-      this.configService.get<string>('WHATSAPP_WABA_ID')?.trim() ||
-      this.configService
-        .get<string>('WHATSAPP_BUSINESS_ACCOUNT_ID')
-        ?.trim() ||
-      ''
+      this.configService.get<string>('WAHA_WEBHOOK_HMAC_KEY')?.trim() ?? ''
     );
   }
 
   get isConfigured(): boolean {
-    return Boolean(this.phoneNumberId && this.permanentToken);
+    return Boolean(this.baseUrl && this.apiKey);
   }
 }

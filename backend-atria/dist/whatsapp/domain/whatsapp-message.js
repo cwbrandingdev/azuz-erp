@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhatsAppMessageKind = exports.WhatsAppInboxPriority = exports.WhatsAppInboxStatus = exports.WhatsAppStatus = exports.WhatsAppDirection = void 0;
-exports.mapMetaStatus = mapMetaStatus;
+exports.mapWahaAck = mapWahaAck;
 exports.kindFromMime = kindFromMime;
 var WhatsAppDirection;
 (function (WhatsAppDirection) {
@@ -41,14 +41,15 @@ var WhatsAppMessageKind;
     WhatsAppMessageKind["TEMPLATE"] = "TEMPLATE";
     WhatsAppMessageKind["STICKER"] = "STICKER";
 })(WhatsAppMessageKind || (exports.WhatsAppMessageKind = WhatsAppMessageKind = {}));
-function mapMetaStatus(status) {
-    if (status === 'sent')
+function mapWahaAck(ack) {
+    const value = typeof ack === 'number' ? ack : Number(ack);
+    if (value === 1)
         return WhatsAppStatus.SENT;
-    if (status === 'delivered')
+    if (value === 2)
         return WhatsAppStatus.DELIVERED;
-    if (status === 'read')
+    if (value === 3 || value === 4)
         return WhatsAppStatus.READ;
-    if (status === 'failed')
+    if (value === -1)
         return WhatsAppStatus.FAILED;
     return null;
 }

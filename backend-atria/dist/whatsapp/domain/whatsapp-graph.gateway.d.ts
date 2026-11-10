@@ -8,25 +8,16 @@ export type WhatsAppDownloadedMedia = {
     mimeType: string;
     filename: string;
 };
-export type WhatsAppTemplateComponent = {
-    type: string;
-    text?: string;
-    format?: string;
-    example?: {
-        body_text?: string[][];
-        header_text?: string[];
-    };
-};
-export type WhatsAppHsmTemplate = {
-    name: string;
-    language: string;
-    status: string;
-    category: string;
-    components: WhatsAppTemplateComponent[];
-};
 export type WhatsAppInteractiveOption = {
     id: string;
     title: string;
+};
+export type WhatsAppSessionInfo = {
+    configured: boolean;
+    name: string;
+    status: string | null;
+    phone: string | null;
+    pushName: string | null;
 };
 export declare abstract class WhatsAppGraphGateway {
     abstract sendText(to: string, body: string): Promise<WhatsAppSendResult>;
@@ -36,9 +27,12 @@ export declare abstract class WhatsAppGraphGateway {
         filename?: string;
     }): Promise<WhatsAppSendResult>;
     abstract sendLocation(to: string, latitude: number, longitude: number, name?: string, address?: string): Promise<WhatsAppSendResult>;
-    abstract sendTemplate(to: string, name: string, language: string, bodyParameters: string[]): Promise<WhatsAppSendResult>;
     abstract uploadMedia(buffer: Buffer, mimeType: string, filename: string): Promise<string>;
     abstract downloadMedia(mediaId: string): Promise<WhatsAppDownloadedMedia>;
-    abstract listTemplates(): Promise<WhatsAppHsmTemplate[]>;
     abstract getBusinessPhone(): Promise<string>;
+    abstract getSession(): Promise<WhatsAppSessionInfo>;
+    abstract getSessionQr(): Promise<Buffer>;
+    abstract restartSession(): Promise<WhatsAppSessionInfo>;
+    abstract logoutSession(): Promise<WhatsAppSessionInfo>;
+    abstract ensureSession(): Promise<void>;
 }

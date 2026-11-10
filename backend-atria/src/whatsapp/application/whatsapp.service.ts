@@ -3,13 +3,12 @@ import {
   Inject,
   Injectable,
   Logger,
-  UnauthorizedException,
   forwardRef,
 } from '@nestjs/common';
 import { readFileSync } from 'fs';
 import { AiService } from '../../ai/ai.service';
 import {
-  mapMetaStatus,
+  mapWahaAck,
   kindFromMime,
   WhatsAppDirection,
   WhatsAppMessageKind,
@@ -21,41 +20,40 @@ import {
   type WhatsAppMessageRecord,
 } from '../domain/whatsapp-message';
 import {
-  parseInboundMessage,
-  type MetaInboundMessage,
+  inboundChatPhone,
+  parseWahaInbound,
+  wahaContactName,
+  type ParsedInboundMessage,
+  type WahaInboundMessage,
 } from '../domain/whatsapp-inbound';
-import { WhatsAppGraphGateway } from '../domain/whatsapp-graph.gateway';
+import {
+  WhatsAppGraphGateway,
+  type WhatsAppSessionInfo,
+} from '../domain/whatsapp-graph.gateway';
 import { WhatsAppMessageRepository } from '../domain/whatsapp-message.repository';
 import { normalizeWhatsAppPhone } from '../domain/whatsapp-phone';
-import { WhatsAppConfig } from '../infrastructure/whatsapp.config';
 import { WhatsAppMediaStore } from '../infrastructure/whatsapp-media.store';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { WhatsAppAutomationService } from './whatsapp-automation.service';
 import { WhatsAppRoutingService } from './whatsapp-routing.service';
 
-type MetaWebhookPayload = {
-  entry?: Array<{
-    changes?: Array<{
-      value?: {
-        contacts?: Array<{ profile?: { name?: string }; wa_id?: string }>;
-        messages?: MetaInboundMessage[];
-        statuses?: Array<{
-          id?: string;
-          status?: string;
-        }>;
-      };
-    }>;
-  }>;
+type WahaWebhookPayload = {
+  event?: string;
+  session?: string;
+  payload?: WahaInboundMessage & {
+    ack?: number;
+    status?: string;
+  };
 };
 
 @Injectable()
 export class WhatsAppService {
   private readonly logger = new Logger(WhatsAppService.name);
+  private lastSessionStatus: string | null = null;
 
   constructor(
     private readonly messages: WhatsAppMessageRepository,
     private readonly graph: WhatsAppGraphGateway,
-    private readonly config: WhatsAppConfig,
     private readonly routing: WhatsAppRoutingService,
     private readonly media: WhatsAppMediaStore,
     private readonly ai: AiService,
@@ -64,31 +62,70 @@ export class WhatsAppService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  verifyWebhook(mode: string, token: string, challenge: string): string {
-    if (mode === 'subscribe' && token === this.config.verifyToken) {
-      return challenge;
-    }
-    throw new UnauthorizedException('Verification failed');
+  getSession(): Promise<WhatsAppSessionInfo> {
+    return this.graph.getSession();
   }
 
-  async handleWebhook(payload: MetaWebhookPayload): Promise<void> {
-    const entries = payload.entry ?? [];
+  getSessionQr(): Promise<Buffer> {
+    return this.graph.getSessionQr();
+  }
 
-    for (const entry of entries) {
-      for (const change of entry.changes ?? []) {
-        const value = change.value;
-        if (!value) continue;
-        const contactName = value.contacts?.[0]?.profile?.name ?? null;
+  restartSession(): Promise<WhatsAppSessionInfo> {
+    return this.graph.restartSession();
+  }
 
-        for (const inbound of value.messages ?? []) {
-          await this.persistInbound(inbound, contactName);
-        }
+  logoutSession(): Promise<WhatsAppSessionInfo> {
+    return this.graph.logoutSession();
+  }
 
-        for (const status of value.statuses ?? []) {
-          await this.persistStatus(status);
-        }
+  async handleWebhook(payload: unknown): Promise<void> {
+    if (!payload || typeof payload !== 'object') return;
+    const event =
+      'event' in payload && typeof payload.event === 'string' ? payload.event : '';
+    const body =
+      'payload' in payload && payload.payload && typeof payload.payload === 'object'
+        ? (payload.payload as WahaWebhookPayload['payload'])
+        : undefined;
+    const session =
+      'session' in payload && typeof payload.session === 'string'
+        ? payload.session
+        : 'default';
+    if (!body) return;
+
+    if (event === 'session.status') {
+      const status = body.status ?? 'unknown';
+      if (status !== this.lastSessionStatus) {
+        this.lastSessionStatus = status;
+        this.logger.log(`WAHA session ${session} is ${status}`);
       }
+      return;
     }
+
+    if (event === 'message.ack') {
+      await this.persistStatus(body);
+      return;
+    }
+
+    if (event !== 'message' && event !== 'message.any') return;
+    if (body.fromMe) return;
+
+    const from = inboundChatPhone(body);
+    const parsed = parseWahaInbound(body);
+    if (!from || !parsed) {
+      if (!from) {
+        this.logger.warn(
+          `Ignored WhatsApp ${event} from=${body.from ?? ''} fromMe=${Boolean(body.fromMe)}`,
+        );
+      }
+      return;
+    }
+
+    await this.persistInbound({
+      id: body.id ?? null,
+      from,
+      contactName: wahaContactName(body),
+      parsed,
+    });
   }
 
   async send(
@@ -198,37 +235,6 @@ export class WhatsAppService {
     });
   }
 
-  async sendTemplate(
-    to: string,
-    name: string,
-    language: string,
-    parameters: string[],
-    userId?: string,
-    agentReply = true,
-  ): Promise<WhatsAppMessageRecord> {
-    const recipient = normalizeWhatsAppPhone(to);
-    const result = await this.graph.sendTemplate(
-      recipient,
-      name,
-      language,
-      parameters,
-    );
-    const preview =
-      parameters.length > 0
-        ? `${name}: ${parameters.join(' · ')}`
-        : `Template ${name}`;
-    return this.persistOutbound({
-      to: result.to,
-      body: preview,
-      userId,
-      whatsappMessageId: result.whatsappMessageId,
-      agentReply,
-      kind: WhatsAppMessageKind.TEMPLATE,
-      templateName: name,
-      templateLanguage: language,
-    });
-  }
-
   async sendCanned(
     to: string,
     cannedId: string,
@@ -261,10 +267,6 @@ export class WhatsAppService {
       );
     }
     return this.send(to, canned.content, userId);
-  }
-
-  listTemplates() {
-    return this.graph.listTemplates();
   }
 
   async addPrivateNote(
@@ -452,18 +454,15 @@ export class WhatsAppService {
     });
   }
 
-  private async persistInbound(
-    message: MetaInboundMessage,
-    contactName: string | null,
-  ): Promise<void> {
-    const parsed = parseInboundMessage(message);
-    const from = message.from ? normalizeWhatsAppPhone(message.from) : '';
-    if (!parsed || !from) {
-      return;
-    }
-
-    if (message.id) {
-      const existing = await this.messages.findByWhatsappMessageId(message.id);
+  private async persistInbound(input: {
+    id: string | null;
+    from: string;
+    contactName: string | null;
+    parsed: ParsedInboundMessage;
+  }): Promise<void> {
+    const { parsed, from } = input;
+    if (input.id) {
+      const existing = await this.messages.findByWhatsappMessageId(input.id);
       if (existing) {
         return;
       }
@@ -495,7 +494,7 @@ export class WhatsAppService {
     const businessPhone = await this.graph.getBusinessPhone();
     const conversation = await this.messages.upsertConversation({
       phone: from,
-      name: contactName,
+      name: input.contactName,
       preview: parsed.body,
       inbound: true,
       reopen: true,
@@ -504,7 +503,7 @@ export class WhatsAppService {
 
     const created = await this.messages.create({
       ...this.emptyMediaFields(),
-      whatsappMessageId: message.id ?? null,
+      whatsappMessageId: input.id,
       fromPhone: from,
       toPhone: businessPhone,
       body: parsed.body,
@@ -556,7 +555,7 @@ export class WhatsAppService {
         this.notifications.notifyWhatsAppInbound({
           companyId,
           phone: from,
-          contactName: withLead.name ?? contactName,
+          contactName: withLead.name ?? input.contactName,
           preview: parsed.body.slice(0, 200),
           assignedUserId: withLead.assignedUser?.id ?? null,
           agentUserIds: settings.agentUserIds,
@@ -592,12 +591,12 @@ export class WhatsAppService {
 
   private async persistStatus(status: {
     id?: string;
-    status?: string;
+    ack?: number;
   }): Promise<void> {
     if (!status.id) {
       return;
     }
-    const mapped = mapMetaStatus(status.status);
+    const mapped = mapWahaAck(status.ack);
     if (!mapped) {
       return;
     }

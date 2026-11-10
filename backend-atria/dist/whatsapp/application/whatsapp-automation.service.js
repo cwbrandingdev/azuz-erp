@@ -256,8 +256,8 @@ let WhatsAppAutomationService = WhatsAppAutomationService_1 = class WhatsAppAuto
             row.status !== client_1.WhatsAppBroadcastStatus.PAUSED) {
             throw new common_1.BadRequestException('Campanha não pode ser iniciada');
         }
-        if (!row.body && !row.templateName) {
-            throw new common_1.BadRequestException('Informe o texto ou um template');
+        if (!row.body?.trim()) {
+            throw new common_1.BadRequestException('Informe o texto da mensagem. O WAHA não envia templates HSM.');
         }
         if (row.status === client_1.WhatsAppBroadcastStatus.PAUSED) {
             return this.prisma.whatsAppBroadcast.update({
@@ -774,14 +774,11 @@ let WhatsAppAutomationService = WhatsAppAutomationService_1 = class WhatsAppAuto
     }
     async sendAutomated(companyId, phone, content) {
         const vars = content.vars ?? {};
-        if (content.templateName) {
-            const language = content.templateLanguage || 'pt_BR';
-            const parameters = (0, whatsapp_bot_flow_1.extractPlaceholders)(content.body || '', vars);
-            return this.whatsApp.sendTemplate(phone, content.templateName, language, parameters, undefined, false);
-        }
         const body = (0, whatsapp_bot_flow_1.interpolateTemplate)(content.body || '', vars).trim();
         if (!body) {
-            throw new common_1.BadRequestException('Mensagem vazia');
+            throw new common_1.BadRequestException(content.templateName
+                ? 'Templates HSM não existem no WAHA. Informe o texto da mensagem.'
+                : 'Mensagem vazia');
         }
         return this.whatsApp.send(phone, body, undefined, false);
     }
@@ -789,7 +786,7 @@ let WhatsAppAutomationService = WhatsAppAutomationService_1 = class WhatsAppAuto
         const trigger = await this.prisma.whatsAppTrigger.findUnique({
             where: { id: triggerId },
         });
-        if (!trigger?.enabled || (!trigger.body && !trigger.templateName)) {
+        if (!trigger?.enabled || !trigger.body?.trim()) {
             return false;
         }
         const existing = await this.prisma.whatsAppTriggerDispatch.findUnique({

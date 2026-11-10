@@ -1,45 +1,36 @@
 import { WhatsAppMessageKind } from './whatsapp-message';
-export type MetaInboundMessage = {
+type WahaJid = {
+    User?: string;
+    Server?: string;
+};
+export type WahaInboundMessage = {
     id?: string;
     from?: string;
-    type?: string;
-    text?: {
-        body?: string;
-    };
-    interactive?: {
-        type?: string;
-        button_reply?: {
-            id?: string;
-            title?: string;
-        };
-        list_reply?: {
-            id?: string;
-            title?: string;
-            description?: string;
-        };
-    };
-    image?: MetaInboundMedia;
-    video?: MetaInboundMedia;
-    document?: MetaInboundMedia;
-    audio?: MetaInboundMedia;
-    sticker?: MetaInboundMedia;
+    fromMe?: boolean;
+    body?: string;
+    hasMedia?: boolean;
+    pushName?: string;
+    notifyName?: string;
+    media?: {
+        url?: string;
+        mimetype?: string;
+        filename?: string | null;
+    } | null;
     location?: {
-        latitude?: number;
-        longitude?: number;
+        latitude?: number | string;
+        longitude?: number | string;
+        description?: string;
         name?: string;
         address?: string;
-    };
-};
-type MetaInboundMedia = {
-    id?: string;
-    mime_type?: string;
-    filename?: string;
-    caption?: string;
-    voice?: boolean;
-    view_once?: boolean;
-    transcript?: string;
-    transcription?: {
-        text?: string;
+    } | null;
+    _data?: {
+        notifyName?: string;
+        pushName?: string;
+        Info?: {
+            PushName?: string;
+            Sender?: string | WahaJid;
+            SenderAlt?: string | WahaJid;
+        };
     };
 };
 export type ParsedInboundMessage = {
@@ -57,5 +48,8 @@ export type ParsedInboundMessage = {
     isVoiceNote: boolean;
     transcription: string | null;
 };
-export declare function parseInboundMessage(message: MetaInboundMessage): ParsedInboundMessage | null;
+export declare function directChatPhone(from: string | undefined): string | null;
+export declare function inboundChatPhone(message: WahaInboundMessage): string | null;
+export declare function wahaContactName(message: WahaInboundMessage): string | null;
+export declare function parseWahaInbound(message: WahaInboundMessage): ParsedInboundMessage | null;
 export {};
