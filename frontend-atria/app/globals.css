@@ -430,7 +430,8 @@ html.dark[data-theme="amber"] {
     --width: 380px;
   }
 
-  [data-sonner-toast].atria-toast {
+  /* Só toasts padrão (data-styled=true); os de toast.custom() trazem o próprio visual. */
+  [data-sonner-toast][data-styled="true"].atria-toast {
     background: rgba(0, 73, 73, 0.82) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -441,7 +442,7 @@ html.dark[data-theme="amber"] {
       0 0 24px rgba(232, 195, 158, 0.08) !important;
   }
 
-  html.dark [data-sonner-toast].atria-toast {
+  html.dark [data-sonner-toast][data-styled="true"].atria-toast {
     background: rgba(20, 20, 20, 0.95) !important;
     border: 1px solid rgba(255, 255, 255, 0.14) !important;
     box-shadow:
