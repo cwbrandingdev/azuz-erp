@@ -20,6 +20,10 @@ import { LeadsService } from '../leads/leads.service';
 import { CreateCrmLeadDto } from './dto/create-crm-lead.dto';
 import { UpdateCrmLeadDto } from './dto/update-crm-lead.dto';
 import { ProspectingLeadsQueryDto } from './dto/prospecting-leads-query.dto';
+import {
+  LeadKanbanColumnQueryDto,
+  LeadKanbanQueryDto,
+} from './dto/lead-kanban-query.dto';
 import { ToggleLeadCollapseDto } from './dto/toggle-lead-collapse.dto';
 import { UpdateLeadStatusDto } from '../leads/dto/lead-kanban.dto';
 
@@ -50,13 +54,18 @@ export class CrmLeadsController {
   @Get('kanban')
   getKanbanBoard(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: ProspectingLeadsQueryDto,
+    @Query() query: LeadKanbanQueryDto,
   ) {
-    return this.leadsService.findKanbanBoard(
-      user,
-      query.organizationId,
-      query.ownerUserId,
-    );
+    return this.leadsService.findKanbanBoard(user, query, true);
+  }
+
+  @Get('kanban/columns/:stageId')
+  getKanbanColumnPage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('stageId') stageId: string,
+    @Query() query: LeadKanbanColumnQueryDto,
+  ) {
+    return this.leadsService.findKanbanColumnPage(user, stageId, query);
   }
 
   @Post()

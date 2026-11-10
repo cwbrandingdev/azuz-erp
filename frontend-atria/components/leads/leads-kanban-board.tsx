@@ -17,6 +17,7 @@ import { LeadKanbanImportDialog } from "@/components/leads/lead-kanban-import-di
 import { LeadKanbanCard } from "@/components/leads/lead-kanban-card";
 import { NativeTelButton } from "@/components/leads/native-tel-button";
 import { KanbanHorizontalScroll } from "@/components/kanban/kanban-horizontal-scroll";
+import { KanbanLoadMore } from "@/components/kanban/kanban-load-more";
 import { PortalCrmSdrLeadsBanner } from "@/components/portal/portal-crm-sdr-leads-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,15 +47,13 @@ import {
   LEAD_KANBAN_STATUSES,
   LEAD_STATUS_COLORS,
   LEAD_STATUS_LABELS,
-  collectLeadCategories,
+  columnLeadTotal,
+  columnOrcamentoTotal,
   formatLeadOrcamento,
   isOrcamentoColumn,
   leadColumnKey,
-  leadMatchesCategory,
-  leadMatchesDateFilter,
-  leadMatchesSearchQuery,
+  shiftColumnTotals,
   shouldLeadAutoMinimize,
-  sumLeadOrcamentos,
 } from "@/lib/leads-kanban-utils";
 import { normalizeAppRole } from "@/lib/permissions";
 import { isCrmDisabledApiError } from "@/lib/crm-errors";
@@ -74,6 +73,7 @@ import type {
   CrmReminderBoard,
   Lead,
   LeadKanbanColumn,
+  LeadKanbanFilters,
 } from "@/services/types";
 
 function emptyColumns(): LeadKanbanColumn[] {
@@ -138,6 +138,9 @@ export function LeadsKanbanBoard({
   const [newSdrLeadCount, setNewSdrLeadCount] = useState(0);
   const [sdrBannerDismissed, setSdrBannerDismissed] = useState(false);
   const [showOrcamento, setShowOrcamento] = useState(true);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [loadingMore, setLoadingMore] = useState<Record<string, boolean>>({});
 
   const allClientsLabel = isMasterOrAdmin()
     ? "Todas as Empresas"
@@ -190,59 +193,42 @@ export function LeadsKanbanBoard({
   const dragDisabled =
     hasActiveFilters || isDragDisabledForZone(crmMoveZone, portalClientView);
 
-  const allBoardLeads = useMemo(
-    () => columns.flatMap((column) => column.leads),
-    [columns],
+  // Espera a pessoa parar de digitar para não chamar a API a cada tecla.
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setDebouncedSearch(searchQuery.trim()),
+      400,
+    );
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  const kanbanFilters = useMemo<LeadKanbanFilters>(
+    () => ({
+      organizationId: clientFilter === "all" ? undefined : clientFilter,
+      ownerUserId:
+        showPersonFilter && personFilter !== "all" ? personFilter : undefined,
+      search: debouncedSearch || undefined,
+      category: categoryFilter === "all" ? undefined : categoryFilter,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+    }),
+    [
+      categoryFilter,
+      clientFilter,
+      debouncedSearch,
+      endDate,
+      personFilter,
+      showPersonFilter,
+      startDate,
+    ],
   );
 
-  const categoryOptions = useMemo(
-    () => collectLeadCategories(allBoardLeads),
-    [allBoardLeads],
-  );
-
-  const filteredColumns = useMemo(() => {
-    const visibleColumns = showOrcamento
-      ? columns
-      : columns.filter((column) => !isOrcamentoColumn(column));
-
-    if (portalClientView) return visibleColumns;
-
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-
-    return visibleColumns.map((column) => ({
-      ...column,
-      leads: column.leads.filter((lead) => {
-        if (
-          categoryFilter !== "all" &&
-          !leadMatchesCategory(lead, categoryFilter)
-        ) {
-          return false;
-        }
-
-        if (
-          hasDateFilter &&
-          !leadMatchesDateFilter(lead, { startDate, endDate })
-        ) {
-          return false;
-        }
-
-        return leadMatchesSearchQuery(lead, normalizedQuery);
-      }),
-    }));
-  }, [
-    columns,
-    searchQuery,
-    categoryFilter,
-    portalClientView,
-    hasDateFilter,
-    startDate,
-    endDate,
-    showOrcamento,
-  ]);
-
-  const filteredTotal = useMemo(
-    () => filteredColumns.reduce((sum, column) => sum + column.leads.length, 0),
-    [filteredColumns],
+  const filteredColumns = useMemo(
+    () =>
+      showOrcamento
+        ? columns
+        : columns.filter((column) => !isOrcamentoColumn(column)),
+    [columns, showOrcamento],
   );
 
   const dialableVisible = useMemo(
@@ -259,16 +245,15 @@ export function LeadsKanbanBoard({
       return;
     }
 
-    setLoading(true);
+    // Sem ligar o "loading" aqui: ao buscar ou filtrar, o quadro continua na
+    // tela e a caixa de busca não perde o foco. A rodinha só aparece na 1ª carga.
     try {
-      const organizationId = clientFilter === "all" ? undefined : clientFilter;
-      const ownerUserId =
-        showPersonFilter && personFilter !== "all" ? personFilter : undefined;
       const board = portalClientView
         ? await clientPortalService.getCrmKanbanBoard()
-        : await leadsService.getKanbanBoard(organizationId, ownerUserId);
+        : await leadsService.getKanbanBoard(kanbanFilters);
       setColumns(board.columns.length > 0 ? board.columns : emptyColumns());
       setTotal(board.total);
+      setCategoryOptions(board.categories ?? []);
       setCrmMoveZone(portalClientView ? "all" : (board.crmMoveZone ?? "all"));
       setShowOrcamento(board.showOrcamento !== false);
       setCrmDisabled(false);
@@ -293,7 +278,7 @@ export function LeadsKanbanBoard({
     } finally {
       setLoading(false);
     }
-  }, [clientFilter, crmDisabled, personFilter, portalClientView, showPersonFilter, user?.id]);
+  }, [crmDisabled, kanbanFilters, portalClientView, user?.id]);
 
   const loadReminders = useCallback(async () => {
     if (portalClientView) return;
@@ -346,12 +331,21 @@ export function LeadsKanbanBoard({
 
   function updateLeadInColumns(leadId: string, patch: Partial<Lead>) {
     setColumns((current) =>
-      current.map((column) => ({
-        ...column,
-        leads: column.leads.map((lead) =>
-          lead.id === leadId ? { ...lead, ...patch } : lead,
-        ),
-      })),
+      current.map((column) => {
+        const existing = column.leads.find((lead) => lead.id === leadId);
+        if (!existing) return column;
+        const next = { ...existing, ...patch };
+        const orcamentoDelta =
+          (Number(next.orcamento) || 0) - (Number(existing.orcamento) || 0);
+        return shiftColumnTotals(
+          {
+            ...column,
+            leads: column.leads.map((lead) => (lead.id === leadId ? next : lead)),
+          },
+          0,
+          orcamentoDelta,
+        );
+      }),
     );
   }
 
@@ -366,31 +360,40 @@ export function LeadsKanbanBoard({
         .find((lead) => lead.id === leadId);
       if (!moving) return current;
 
-      const without = current.map((column) => ({
-        ...column,
-        leads: column.leads.filter((lead) => lead.id !== leadId),
-      }));
-
       const target = current.find(
         (column) => leadColumnKey(column) === toColumnKey,
       );
       const autoMinimize = shouldLeadAutoMinimize(
         target?.status ?? moving.status,
       );
+      const movedOrcamento = Number(moving.orcamento) || 0;
 
-      return without.map((column) => {
-        if (leadColumnKey(column) !== toColumnKey) return column;
-        const nextLeads = [...column.leads];
-        nextLeads.splice(toIndex, 0, {
-          ...moving,
-          status: (target?.status as Lead["status"]) ?? moving.status,
-          stageId: target?.stageId ?? moving.stageId,
-          kanbanOrder: toIndex,
-          statusLabel: target?.title ?? moving.statusLabel,
-          statusColor: target?.color ?? moving.statusColor,
-          isMinimized: autoMinimize ? true : moving.isMinimized,
-        });
-        return { ...column, leads: nextLeads };
+      return current.map((column) => {
+        const isSource = column.leads.some((lead) => lead.id === leadId);
+        const isTarget = leadColumnKey(column) === toColumnKey;
+        if (!isSource && !isTarget) return column;
+
+        const nextLeads = column.leads.filter((lead) => lead.id !== leadId);
+        if (isTarget) {
+          nextLeads.splice(toIndex, 0, {
+            ...moving,
+            status: (target?.status as Lead["status"]) ?? moving.status,
+            stageId: target?.stageId ?? moving.stageId,
+            kanbanOrder: toIndex,
+            statusLabel: target?.title ?? moving.statusLabel,
+            statusColor: target?.color ?? moving.statusColor,
+            isMinimized: autoMinimize ? true : moving.isMinimized,
+          });
+        }
+
+        const withLeads = { ...column, leads: nextLeads };
+        if (isSource && isTarget) return withLeads;
+        const direction = isTarget ? 1 : -1;
+        return shiftColumnTotals(
+          withLeads,
+          direction,
+          direction * movedOrcamento,
+        );
       });
     });
   }
@@ -527,10 +530,18 @@ export function LeadsKanbanBoard({
 
   function removeLeadFromColumns(leadId: string) {
     setColumns((current) =>
-      current.map((column) => ({
-        ...column,
-        leads: column.leads.filter((lead) => lead.id !== leadId),
-      })),
+      current.map((column) => {
+        const existing = column.leads.find((lead) => lead.id === leadId);
+        if (!existing) return column;
+        return shiftColumnTotals(
+          {
+            ...column,
+            leads: column.leads.filter((lead) => lead.id !== leadId),
+          },
+          -1,
+          -(Number(existing.orcamento) || 0),
+        );
+      }),
     );
     setTotal((current) => Math.max(0, current - 1));
   }
@@ -549,6 +560,39 @@ export function LeadsKanbanBoard({
     } catch {
       await loadBoard();
       toast.error("Não foi possível remover o lead do funil.");
+    }
+  }
+
+  async function loadMoreColumn(column: LeadKanbanColumn) {
+    const columnKey = leadColumnKey(column);
+    if (!column.stageId || !column.hasMore || loadingMore[columnKey]) return;
+
+    setLoadingMore((current) => ({ ...current, [columnKey]: true }));
+    try {
+      const page = await leadsService.getKanbanColumnPage(
+        column.stageId,
+        column.leads.length,
+        kanbanFilters,
+      );
+      setColumns((current) =>
+        current.map((item) => {
+          if (leadColumnKey(item) !== columnKey) return item;
+          const known = new Set(item.leads.map((lead) => lead.id));
+          const fresh = page.leads.filter((lead) => !known.has(lead.id));
+          return {
+            ...item,
+            leads: [...item.leads, ...fresh],
+            total: page.total,
+            orcamentoTotal: page.orcamentoTotal,
+            // Se a página só trouxe repetidos, para aqui para não pedir a mesma página sem fim.
+            hasMore: fresh.length > 0 && page.hasMore,
+          };
+        }),
+      );
+    } catch {
+      toast.error("Não foi possível carregar mais leads.");
+    } finally {
+      setLoadingMore((current) => ({ ...current, [columnKey]: false }));
     }
   }
 
@@ -579,7 +623,7 @@ export function LeadsKanbanBoard({
             {view === "reminders"
               ? `${reminderBoard.total} lembrete${reminderBoard.total === 1 ? "" : "s"} de follow-up`
               : hasActiveFilters
-                ? `${filteredTotal} de ${total} lead${total === 1 ? "" : "s"} no quadro`
+                ? `${total} lead${total === 1 ? "" : "s"} encontrado${total === 1 ? "" : "s"} com os filtros`
                 : portalClientView
                   ? `Acompanhe seus leads · ${total} no quadro`
                   : `Acompanhe o funil comercial · ${total} lead${total === 1 ? "" : "s"} no quadro`}
@@ -913,13 +957,13 @@ export function LeadsKanbanBoard({
                               )}
                           </div>
                           <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-medium text-[var(--atria-primary)]/70">
-                            {column.leads.length}
+                            {columnLeadTotal(column)}
                           </span>
                         </div>
                         {isOrcamento && (
                           <p className="mt-1 pl-[18px] text-[11px] font-semibold text-[var(--atria-primary)]/80">
                             {formatLeadOrcamento(
-                              sumLeadOrcamentos(column.leads),
+                              columnOrcamentoTotal(column),
                             ) || "R$ 0,00"}
                           </p>
                         )}
@@ -1027,6 +1071,12 @@ export function LeadsKanbanBoard({
                               </Draggable>
                             ))}
                             {provided.placeholder}
+                            {!portalClientView && column.hasMore && (
+                              <KanbanLoadMore
+                                loading={Boolean(loadingMore[columnKey])}
+                                onLoadMore={() => void loadMoreColumn(column)}
+                              />
+                            )}
                           </div>
                         )}
                       </Droppable>
