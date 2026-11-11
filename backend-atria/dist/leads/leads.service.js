@@ -142,7 +142,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
             city: session.city,
             category: session.queryValue,
             neighborhood,
-        }, Math.min(50, Math.max(targets.length, 15)));
+        }, Math.min(APIFY_MAX_RESULTS_LIMIT, Math.max(targets.length, 15)));
         const matches = (0, company_place_match_util_1.matchPlacesToCompanies)(targets, places, (lead) => [
             (0, registry_signals_util_1.readLegalNameFromRawData)(lead.rawData),
         ]);
@@ -255,7 +255,12 @@ let LeadsService = LeadsService_1 = class LeadsService {
         }
     }
     async fetchMaps(dto) {
-        const places = await this.fetchPlacesFromExternalApi(dto);
+        const neighborhood = dto.neighborhood?.trim() || dto.city.trim();
+        const places = await this.mapsScraper.fetchPlacesForProspecting({
+            city: dto.city.trim(),
+            category: dto.category.trim(),
+            neighborhood,
+        });
         if (places.length === 0) {
             return [];
         }
@@ -292,7 +297,32 @@ let LeadsService = LeadsService_1 = class LeadsService {
             });
             created.push(lead);
         }
-        return created.map((lead) => this.toLeadResponse(lead));
+        const responses = created.map((lead) => this.toLeadResponse(lead));
+        fetch('http://127.0.0.1:7781/ingest/f34f2959-5a62-4e5d-abf4-c542de20d154', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Debug-Session-Id': '375ea0',
+            },
+            body: JSON.stringify({
+                sessionId: '375ea0',
+                runId: 'pre-fix',
+                hypothesisId: 'C',
+                location: 'leads.service.ts:fetchMaps',
+                message: 'fetchMaps response summary',
+                data: {
+                    placesIn: places.length,
+                    returned: responses.length,
+                    sources: responses.reduce((acc, lead) => {
+                        const key = lead.source ?? 'unknown';
+                        acc[key] = (acc[key] ?? 0) + 1;
+                        return acc;
+                    }, {}),
+                },
+                timestamp: Date.now(),
+            }),
+        }).catch(() => { });
+        return responses;
     }
     async findAll(user) {
         const orgFilter = user

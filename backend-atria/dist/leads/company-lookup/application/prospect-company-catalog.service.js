@@ -9,21 +9,20 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProspectCompanyCatalogService = exports.CATALOG_MAX_RESULTS_LIMIT = exports.DEFAULT_CATALOG_MAX_RESULTS = void 0;
+exports.ProspectCompanyCatalogService = exports.CATALOG_FETCH_BATCH_SIZE = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../../../prisma/prisma.service");
 const text_normalize_1 = require("../domain/text-normalize");
 const registry_company_qualifier_1 = require("../../qualification/registry-company-qualifier");
-exports.DEFAULT_CATALOG_MAX_RESULTS = 100;
-exports.CATALOG_MAX_RESULTS_LIMIT = 100;
+exports.CATALOG_FETCH_BATCH_SIZE = 500;
 let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
     }
     async search(params) {
-        const take = this.resolveLimit(params.maxResults);
+        const take = this.resolveOptionalLimit(params.maxResults);
         const uf = params.uf.trim().toUpperCase();
         const cityNormalized = (0, text_normalize_1.normalizeCatalogText)(params.city);
         const neighborhoodNormalized = params.neighborhood
@@ -45,7 +44,7 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
             { useCity: false, useNeighborhood: false, cnaeMode: 'prefix' },
         ];
         for (const stage of stages) {
-            if (collected.length >= take) {
+            if (take !== null && collected.length >= take) {
                 break;
             }
             if (stage.useNeighborhood && !neighborhoodNormalized) {
@@ -59,27 +58,46 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
                 prefixes.length === 0) {
                 continue;
             }
-            const rows = await this.prisma.prospectCompany.findMany({
-                where: this.buildWhere({
-                    uf,
-                    cityNormalized: stage.useCity ? cityNormalized : '',
-                    neighborhoodNormalized: stage.useNeighborhood
-                        ? neighborhoodNormalized
-                        : '',
-                    exactCodes,
-                    prefixes,
-                    cnaeMode: stage.cnaeMode,
-                    excludeCnpjs: [...seen],
-                }),
-                orderBy: { blendedScore: 'desc' },
-                take: take - collected.length,
-            });
-            for (const row of rows) {
-                if (seen.has(row.cnpj)) {
-                    continue;
+            let skip = 0;
+            while (true) {
+                if (take !== null && collected.length >= take) {
+                    break;
                 }
-                seen.add(row.cnpj);
-                collected.push(row);
+                const remaining = take !== null ? take - collected.length : exports.CATALOG_FETCH_BATCH_SIZE;
+                const batchTake = Math.min(exports.CATALOG_FETCH_BATCH_SIZE, remaining);
+                const rows = await this.prisma.prospectCompany.findMany({
+                    where: this.buildWhere({
+                        uf,
+                        cityNormalized: stage.useCity ? cityNormalized : '',
+                        neighborhoodNormalized: stage.useNeighborhood
+                            ? neighborhoodNormalized
+                            : '',
+                        exactCodes,
+                        prefixes,
+                        cnaeMode: stage.cnaeMode,
+                        excludeCnpjs: [...seen],
+                    }),
+                    orderBy: { blendedScore: 'desc' },
+                    take: batchTake,
+                    skip,
+                });
+                if (rows.length === 0) {
+                    break;
+                }
+                for (const row of rows) {
+                    if (seen.has(row.cnpj)) {
+                        continue;
+                    }
+                    seen.add(row.cnpj);
+                    collected.push(row);
+                    if (take !== null && collected.length >= take) {
+                        break;
+                    }
+                }
+                if (rows.length < batchTake) {
+                    break;
+                }
+                skip += rows.length;
             }
         }
         return collected.map((row) => this.toCandidate(row));
@@ -192,11 +210,11 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
             },
         };
     }
-    resolveLimit(maxResults) {
-        if (!maxResults || maxResults <= 0) {
-            return exports.DEFAULT_CATALOG_MAX_RESULTS;
+    resolveOptionalLimit(maxResults) {
+        if (maxResults === undefined || maxResults === null || maxResults <= 0) {
+            return null;
         }
-        return Math.min(exports.CATALOG_MAX_RESULTS_LIMIT, Math.round(maxResults));
+        return Math.round(maxResults);
     }
 };
 exports.ProspectCompanyCatalogService = ProspectCompanyCatalogService;

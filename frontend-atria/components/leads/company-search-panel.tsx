@@ -387,7 +387,6 @@ export function CompanySearchPanel() {
         city,
         uf,
         address: address || undefined,
-        maxResults: 100,
       })
       .then((data) => {
         setActiveLeads(data.leads);
@@ -396,8 +395,9 @@ export function CompanySearchPanel() {
         void queryClient.invalidateQueries({ queryKey: PROSPECTING_LEADS_KEY });
 
         if (data.leads.length > 0) {
+          const total = data.totalCount ?? data.leads.length;
           toast.success(
-            `Encontramos ${data.leads.length} empresa(s) em ${city}.`,
+            `Encontramos ${total} empresa(s) em ${city} para este CNAE.`,
           );
         } else {
           toast.info(

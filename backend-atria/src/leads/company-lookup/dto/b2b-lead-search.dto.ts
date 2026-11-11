@@ -43,6 +43,6 @@ export class B2bLeadSearchDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(500_000)
   maxResults?: number;
 }

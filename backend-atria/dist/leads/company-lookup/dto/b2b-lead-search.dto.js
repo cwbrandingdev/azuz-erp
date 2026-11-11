@@ -58,7 +58,7 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsInt)(),
     (0, class_validator_1.Min)(1),
-    (0, class_validator_1.Max)(100),
+    (0, class_validator_1.Max)(500_000),
     __metadata("design:type", Number)
 ], B2bLeadSearchDto.prototype, "maxResults", void 0);
 //# sourceMappingURL=b2b-lead-search.dto.js.map

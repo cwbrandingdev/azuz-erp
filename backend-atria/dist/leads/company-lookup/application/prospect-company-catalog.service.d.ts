@@ -1,7 +1,6 @@
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { DiscoveredCompanyCandidate } from '../domain/company-lookup.types';
-export declare const DEFAULT_CATALOG_MAX_RESULTS = 100;
-export declare const CATALOG_MAX_RESULTS_LIMIT = 100;
+export declare const CATALOG_FETCH_BATCH_SIZE = 500;
 export interface CatalogSearchParams {
     queryValue: string;
     city: string;
@@ -23,5 +22,5 @@ export declare class ProspectCompanyCatalogService {
     private uniqueCodes;
     private uniquePrefixes;
     private toCandidate;
-    private resolveLimit;
+    private resolveOptionalLimit;
 }

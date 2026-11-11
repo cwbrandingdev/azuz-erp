@@ -314,6 +314,7 @@ export declare class LeadsController {
             createdAt: string;
             updatedAt: string;
         })[];
+        totalCount: number;
     }>;
     search(user: AuthenticatedUser, dto: B2bLeadSearchDto): Promise<{
         session: {
@@ -396,6 +397,7 @@ export declare class LeadsController {
             createdAt: string;
             updatedAt: string;
         })[];
+        totalCount: number;
     }>;
     searchScraper(dto: LeadSearchDto): Promise<unknown>;
     fetchMaps(dto: FetchMapsLeadsDto): Promise<{
@@ -505,8 +507,8 @@ export declare class LeadsController {
         createdAt: string;
         updatedAt: string;
         user: {
-            name: string;
             id: string;
+            name: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -569,8 +571,8 @@ export declare class LeadsController {
         createdAt: string;
         updatedAt: string;
         user: {
-            name: string;
             id: string;
+            name: string;
             email: string;
             avatarUrl: string | null;
         };
@@ -581,8 +583,8 @@ export declare class LeadsController {
         createdAt: string;
         updatedAt: string;
         user: {
-            name: string;
             id: string;
+            name: string;
             email: string;
             avatarUrl: string | null;
         };

@@ -10,10 +10,10 @@ import type { DiscoveredCompanyCandidate } from '../domain/company-lookup.types'
 import { CnaeResolverService } from './cnae-resolver.service';
 import {
   CatalogCandidate,
-  DEFAULT_CATALOG_MAX_RESULTS,
   ProspectCompanyCatalogService,
 } from './prospect-company-catalog.service';
 import type { B2bLeadSearchDto } from '../dto/b2b-lead-search.dto';
+import { isProspectCatalogAllowedUf } from '../domain/prospect-catalog.constants';
 import {
   extractCnpjFromLead,
   materializeRegistrySnapshotFromRawData,
@@ -48,6 +48,12 @@ export class LeadSearchSessionService {
       throw new BadRequestException('queryValue, city and uf are required');
     }
 
+    if (!isProspectCatalogAllowedUf(uf)) {
+      throw new BadRequestException(
+        'A busca por CNAE está disponível apenas para São Paulo (SP) e Paraná (PR).',
+      );
+    }
+
     const discovered = await this.discoverCandidates({
       queryType,
       queryValue,
@@ -76,6 +82,7 @@ export class LeadSearchSessionService {
     return {
       session: this.toSessionResponse(session, leads.length),
       leads,
+      totalCount: leads.length,
     };
   }
 
@@ -134,6 +141,7 @@ export class LeadSearchSessionService {
       return {
         session: this.toSessionResponse(session, linked.length),
         leads: linked.map((lead) => this.toLeadResponse(lead)),
+        totalCount: linked.length,
       };
     }
 
@@ -152,6 +160,7 @@ export class LeadSearchSessionService {
     return {
       session: this.toSessionResponse(session, leads.length),
       leads,
+      totalCount: leads.length,
     };
   }
 
@@ -174,7 +183,7 @@ export class LeadSearchSessionService {
       uf: params.uf,
       neighborhood: params.address,
       cnaeCodes: this.cnaeResolver.cnaeFilterCodes(cnaeClasses),
-      maxResults: params.maxResults ?? DEFAULT_CATALOG_MAX_RESULTS,
+      maxResults: params.maxResults,
     });
   }
 
@@ -187,16 +196,20 @@ export class LeadSearchSessionService {
       .map((candidate) => candidate.placeId)
       .filter((placeId): placeId is string => Boolean(placeId));
 
-    const existing =
-      placeIds.length === 0
-        ? []
-        : await this.prisma.lead.findMany({
-            where: {
-              companyId: tenantId,
-              deletedAt: null,
-              placeId: { in: placeIds },
-            },
-          });
+    const existing: Lead[] = [];
+    const PLACE_ID_CHUNK = 400;
+    for (let offset = 0; offset < placeIds.length; offset += PLACE_ID_CHUNK) {
+      const chunk = placeIds.slice(offset, offset + PLACE_ID_CHUNK);
+      if (chunk.length === 0) continue;
+      const batch = await this.prisma.lead.findMany({
+        where: {
+          companyId: tenantId,
+          deletedAt: null,
+          placeId: { in: chunk },
+        },
+      });
+      existing.push(...batch);
+    }
 
     const byPlaceId = new Map<string, Lead>();
     for (const lead of existing) {

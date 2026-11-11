@@ -91,6 +91,7 @@ export declare class LeadSearchSessionService {
             createdAt: string;
             updatedAt: string;
         })[];
+        totalCount: number;
     }>;
     listSessions(tenantId: string | null | undefined): Promise<{
         id: string;
@@ -183,6 +184,7 @@ export declare class LeadSearchSessionService {
             createdAt: string;
             updatedAt: string;
         })[];
+        totalCount: number;
     }>;
     private discoverCandidates;
     private hydrateCandidates;

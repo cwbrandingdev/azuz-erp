@@ -10,18 +10,24 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 var MapsScraperService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MapsScraperService = void 0;
+exports.MapsScraperService = exports.MAPS_PROSPECTING_MAX_RESULTS = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const company_settings_service_1 = require("../../company-settings/company-settings.service");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const apify_place_mapper_1 = require("./apify-place.mapper");
 const company_place_match_util_1 = require("./company-place-match.util");
+const serpapi_geocode_util_1 = require("./serpapi-geocode.util");
+const serpapi_place_mapper_1 = require("./serpapi-place.mapper");
 const OUTSCRAPER_TIMEOUT_MS = 180_000;
 const OUTSCRAPER_LIMIT = 25;
 const APIFY_TIMEOUT_MS = 180_000;
 const APIFY_DEFAULT_MAX_RESULTS = 25;
 const APIFY_MAX_RESULTS_LIMIT = 120;
+exports.MAPS_PROSPECTING_MAX_RESULTS = 100;
+const SERPAPI_TIMEOUT_MS = 60_000;
+const SERPAPI_PAGE_SIZE = 20;
+const SERPAPI_MAX_START_OFFSET = 100;
 let MapsScraperService = MapsScraperService_1 = class MapsScraperService {
     configService;
     prisma;
@@ -31,6 +37,13 @@ let MapsScraperService = MapsScraperService_1 = class MapsScraperService {
         this.configService = configService;
         this.prisma = prisma;
         this.companySettings = companySettings;
+    }
+    async fetchPlacesForProspecting(dto) {
+        const apiKey = this.resolveSerpApiKey();
+        if (!apiKey) {
+            throw new common_1.BadRequestException('Configure a chave SerpApi (SERPAPI_API_KEY) para buscar leads no Google Maps.');
+        }
+        return this.fetchFromSerpApi(dto, apiKey, Math.min(exports.MAPS_PROSPECTING_MAX_RESULTS, SERPAPI_MAX_START_OFFSET + SERPAPI_PAGE_SIZE));
     }
     async fetchPlaces(dto) {
         const credentials = await this.resolveScraperCredentials();
@@ -79,13 +92,89 @@ let MapsScraperService = MapsScraperService_1 = class MapsScraperService {
         }
     }
     async fetchPlacesForCatalogEnrichment(dto, maxResults) {
-        const credentials = await this.resolveScraperCredentials();
-        if (!credentials.apifyApiToken) {
-            throw new common_1.BadRequestException('Configure o token Apify para completar Instagram e site no Google.');
+        const apiKey = this.resolveSerpApiKey();
+        if (!apiKey) {
+            throw new common_1.BadRequestException('Configure a chave SerpApi (SERPAPI_API_KEY) para completar Instagram e site no Google.');
         }
-        return this.fetchFromApify(dto, credentials.apifyApiToken, {
-            maxResults: Math.min(50, Math.max(1, Math.round(maxResults))),
-        });
+        const capped = Math.min(APIFY_MAX_RESULTS_LIMIT, Math.max(1, Math.round(maxResults)), SERPAPI_MAX_START_OFFSET + SERPAPI_PAGE_SIZE);
+        return this.fetchFromSerpApi(dto, apiKey, capped);
+    }
+    resolveSerpApiKey() {
+        return this.configService.get('SERPAPI_API_KEY')?.trim() || null;
+    }
+    async fetchFromSerpApi(dto, apiKey, maxResults) {
+        const q = (0, serpapi_place_mapper_1.buildSerpApiMapsQuery)(dto);
+        const neighborhood = dto.neighborhood.trim();
+        const city = dto.city.trim();
+        const ll = (await (0, serpapi_geocode_util_1.resolveSerpApiLlForSearch)(`${neighborhood}, ${city}`)) ?? (await (0, serpapi_geocode_util_1.resolveSerpApiLlForSearch)(city));
+        if (!ll) {
+            throw new common_1.BadGatewayException('Não foi possível geolocalizar a cidade para busca no Google Maps.');
+        }
+        const collected = [];
+        const seen = new Set();
+        for (let start = 0; start <= SERPAPI_MAX_START_OFFSET && collected.length < maxResults; start += SERPAPI_PAGE_SIZE) {
+            const params = new URLSearchParams({
+                engine: 'google_maps',
+                type: 'search',
+                q,
+                ll,
+                start: String(start),
+                hl: 'pt-BR',
+                gl: 'br',
+                api_key: apiKey,
+            });
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), SERPAPI_TIMEOUT_MS);
+            let body;
+            try {
+                const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`, {
+                    method: 'GET',
+                    headers: { Accept: 'application/json' },
+                    signal: controller.signal,
+                });
+                const bodyText = await response.text();
+                try {
+                    body = bodyText ? JSON.parse(bodyText) : null;
+                }
+                catch {
+                    body = bodyText;
+                }
+                if (!response.ok) {
+                    this.logger.warn(`SerpApi error ${response.status}: ${String(bodyText).slice(0, 500)}`);
+                    throw new common_1.BadGatewayException('Falha ao buscar lugares no SerpApi. Tente novamente.');
+                }
+            }
+            catch (error) {
+                if (error instanceof common_1.BadGatewayException)
+                    throw error;
+                if (error instanceof Error && error.name === 'AbortError') {
+                    throw new common_1.RequestTimeoutException('A busca no SerpApi excedeu o tempo limite. Tente novamente.');
+                }
+                this.logger.warn(`SerpApi request failed: ${String(error)}`);
+                throw new common_1.BadGatewayException('Não foi possível conectar ao SerpApi.');
+            }
+            finally {
+                clearTimeout(timeout);
+            }
+            const pagePlaces = (0, serpapi_place_mapper_1.mapSerpApiPlaces)(body, dto);
+            if (pagePlaces.length === 0) {
+                break;
+            }
+            for (const place of pagePlaces) {
+                const key = place.placeId ?? place.name.toLowerCase();
+                if (seen.has(key))
+                    continue;
+                seen.add(key);
+                collected.push(place);
+                if (collected.length >= maxResults) {
+                    break;
+                }
+            }
+            if (pagePlaces.length < SERPAPI_PAGE_SIZE) {
+                break;
+            }
+        }
+        return collected;
     }
     async resolveScraperCredentials() {
         let tenantApifyApiToken = null;

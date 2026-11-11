@@ -54,9 +54,11 @@ export async function searchLeads(
 
 export async function fetchMapsLeads(
   data: FetchMapsLeadsInput,
+  options?: { timeoutMs?: number },
 ): Promise<Lead[]> {
   return apiRequest<Lead[]>("/leads/fetch-maps", {
     method: "POST",
+    timeoutMs: options?.timeoutMs,
     body: {
       city: data.city,
       category: data.category,

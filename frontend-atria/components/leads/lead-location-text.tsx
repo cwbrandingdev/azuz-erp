@@ -6,6 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { CopyableText } from "@/components/ui/copyable-text";
 import { cn } from "@/lib/utils";
 import type { Lead } from "@/services/types";
 
@@ -28,6 +29,7 @@ interface LeadLocationTextProps {
   secondaryClassName?: string;
   showAddress?: boolean;
   emptyLabel?: string;
+  copyable?: boolean;
 }
 
 export function LeadLocationText({
@@ -37,6 +39,7 @@ export function LeadLocationText({
   secondaryClassName,
   showAddress = true,
   emptyLabel = "—",
+  copyable = false,
 }: LeadLocationTextProps) {
   const locationLabel = buildLocationLabel(lead);
   const fullLocation = buildFullLocation(lead);
@@ -47,6 +50,21 @@ export function LeadLocationText({
       <span className={cn("text-[var(--atria-primary)]/45", className)}>
         {emptyLabel}
       </span>
+    );
+  }
+
+  if (copyable && (fullLocation || locationLabel)) {
+    return (
+      <CopyableText
+        value={fullLocation || locationLabel}
+        copyLabel="Local"
+        className={className}
+        textClassName={cn(
+          "text-sm text-[var(--atria-primary)]/70",
+          primaryClassName,
+        )}
+        title={fullLocation || locationLabel}
+      />
     );
   }
 

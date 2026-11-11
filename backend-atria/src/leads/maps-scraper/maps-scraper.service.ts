@@ -12,6 +12,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { FetchMapsLeadsDto } from '../dto/fetch-maps-leads.dto';
 import { buildApifyActorInput, mapApifyPlaces } from './apify-place.mapper';
 import { pickBestPlaceForCompany } from './company-place-match.util';
+import { resolveSerpApiLlForSearch } from './serpapi-geocode.util';
+import {
+  buildSerpApiMapsQuery,
+  mapSerpApiPlaces,
+} from './serpapi-place.mapper';
 import type { MappedPlace } from './maps-scraper.types';
 
 const OUTSCRAPER_TIMEOUT_MS = 180_000;
@@ -19,6 +24,10 @@ const OUTSCRAPER_LIMIT = 25;
 const APIFY_TIMEOUT_MS = 180_000;
 const APIFY_DEFAULT_MAX_RESULTS = 25;
 const APIFY_MAX_RESULTS_LIMIT = 120;
+export const MAPS_PROSPECTING_MAX_RESULTS = 100;
+const SERPAPI_TIMEOUT_MS = 60_000;
+const SERPAPI_PAGE_SIZE = 20;
+const SERPAPI_MAX_START_OFFSET = 100;
 
 interface OutscraperPlace {
   name?: string;
@@ -49,6 +58,23 @@ export class MapsScraperService {
     private readonly prisma: PrismaService,
     private readonly companySettings: CompanySettingsService,
   ) {}
+
+  async fetchPlacesForProspecting(
+    dto: FetchMapsLeadsDto,
+  ): Promise<MappedPlace[]> {
+    const apiKey = this.resolveSerpApiKey();
+    if (!apiKey) {
+      throw new BadRequestException(
+        'Configure a chave SerpApi (SERPAPI_API_KEY) para buscar leads no Google Maps.',
+      );
+    }
+
+    return this.fetchFromSerpApi(
+      dto,
+      apiKey,
+      Math.min(MAPS_PROSPECTING_MAX_RESULTS, SERPAPI_MAX_START_OFFSET + SERPAPI_PAGE_SIZE),
+    );
+  }
 
   async fetchPlaces(dto: FetchMapsLeadsDto): Promise<MappedPlace[]> {
     const credentials = await this.resolveScraperCredentials();
@@ -123,16 +149,127 @@ export class MapsScraperService {
     dto: FetchMapsLeadsDto,
     maxResults: number,
   ): Promise<MappedPlace[]> {
-    const credentials = await this.resolveScraperCredentials();
-    if (!credentials.apifyApiToken) {
+    const apiKey = this.resolveSerpApiKey();
+    if (!apiKey) {
       throw new BadRequestException(
-        'Configure o token Apify para completar Instagram e site no Google.',
+        'Configure a chave SerpApi (SERPAPI_API_KEY) para completar Instagram e site no Google.',
       );
     }
 
-    return this.fetchFromApify(dto, credentials.apifyApiToken, {
-      maxResults: Math.min(50, Math.max(1, Math.round(maxResults))),
-    });
+    const capped = Math.min(
+      APIFY_MAX_RESULTS_LIMIT,
+      Math.max(1, Math.round(maxResults)),
+      SERPAPI_MAX_START_OFFSET + SERPAPI_PAGE_SIZE,
+    );
+
+    return this.fetchFromSerpApi(dto, apiKey, capped);
+  }
+
+  private resolveSerpApiKey(): string | null {
+    return this.configService.get<string>('SERPAPI_API_KEY')?.trim() || null;
+  }
+
+  private async fetchFromSerpApi(
+    dto: FetchMapsLeadsDto,
+    apiKey: string,
+    maxResults: number,
+  ): Promise<MappedPlace[]> {
+    const q = buildSerpApiMapsQuery(dto);
+    const neighborhood = dto.neighborhood.trim();
+    const city = dto.city.trim();
+    const ll =
+      (await resolveSerpApiLlForSearch(
+        `${neighborhood}, ${city}`,
+      )) ?? (await resolveSerpApiLlForSearch(city));
+
+    if (!ll) {
+      throw new BadGatewayException(
+        'Não foi possível geolocalizar a cidade para busca no Google Maps.',
+      );
+    }
+
+    const collected: MappedPlace[] = [];
+    const seen = new Set<string>();
+
+    for (
+      let start = 0;
+      start <= SERPAPI_MAX_START_OFFSET && collected.length < maxResults;
+      start += SERPAPI_PAGE_SIZE
+    ) {
+      const params = new URLSearchParams({
+        engine: 'google_maps',
+        type: 'search',
+        q,
+        ll,
+        start: String(start),
+        hl: 'pt-BR',
+        gl: 'br',
+        api_key: apiKey,
+      });
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), SERPAPI_TIMEOUT_MS);
+
+      let body: unknown;
+      try {
+        const response = await fetch(
+          `https://serpapi.com/search.json?${params.toString()}`,
+          {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+          },
+        );
+
+        const bodyText = await response.text();
+        try {
+          body = bodyText ? JSON.parse(bodyText) : null;
+        } catch {
+          body = bodyText;
+        }
+
+        if (!response.ok) {
+          this.logger.warn(
+            `SerpApi error ${response.status}: ${String(bodyText).slice(0, 500)}`,
+          );
+          throw new BadGatewayException(
+            'Falha ao buscar lugares no SerpApi. Tente novamente.',
+          );
+        }
+      } catch (error) {
+        if (error instanceof BadGatewayException) throw error;
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new RequestTimeoutException(
+            'A busca no SerpApi excedeu o tempo limite. Tente novamente.',
+          );
+        }
+        this.logger.warn(`SerpApi request failed: ${String(error)}`);
+        throw new BadGatewayException('Não foi possível conectar ao SerpApi.');
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      const pagePlaces = mapSerpApiPlaces(body, dto);
+      if (pagePlaces.length === 0) {
+        break;
+      }
+
+      for (const place of pagePlaces) {
+        const key = place.placeId ?? place.name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        collected.push(place);
+        if (collected.length >= maxResults) {
+          break;
+        }
+      }
+
+      if (pagePlaces.length < SERPAPI_PAGE_SIZE) {
+        break;
+      }
+    }
+
+    return collected;
   }
 
   private async resolveScraperCredentials() {

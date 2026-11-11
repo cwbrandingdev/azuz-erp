@@ -17,6 +17,7 @@ const company_constants_1 = require("../../../company/company.constants");
 const prisma_service_1 = require("../../../prisma/prisma.service");
 const cnae_resolver_service_1 = require("./cnae-resolver.service");
 const prospect_company_catalog_service_1 = require("./prospect-company-catalog.service");
+const prospect_catalog_constants_1 = require("../domain/prospect-catalog.constants");
 const registry_signals_util_1 = require("../../qualification/registry-signals.util");
 exports.CATALOG_PREVIEW_ID_PREFIX = 'external:cnpj:';
 function catalogPreviewId(cnpj) {
@@ -43,6 +44,9 @@ let LeadSearchSessionService = class LeadSearchSessionService {
         if (!city || !uf || !queryValue) {
             throw new common_1.BadRequestException('queryValue, city and uf are required');
         }
+        if (!(0, prospect_catalog_constants_1.isProspectCatalogAllowedUf)(uf)) {
+            throw new common_1.BadRequestException('A busca por CNAE está disponível apenas para São Paulo (SP) e Paraná (PR).');
+        }
         const discovered = await this.discoverCandidates({
             queryType,
             queryValue,
@@ -64,6 +68,7 @@ let LeadSearchSessionService = class LeadSearchSessionService {
         return {
             session: this.toSessionResponse(session, leads.length),
             leads,
+            totalCount: leads.length,
         };
     }
     async listSessions(tenantId) {
@@ -111,6 +116,7 @@ let LeadSearchSessionService = class LeadSearchSessionService {
             return {
                 session: this.toSessionResponse(session, linked.length),
                 leads: linked.map((lead) => this.toLeadResponse(lead)),
+                totalCount: linked.length,
             };
         }
         const discovered = await this.discoverCandidates({
@@ -123,6 +129,7 @@ let LeadSearchSessionService = class LeadSearchSessionService {
         return {
             session: this.toSessionResponse(session, leads.length),
             leads,
+            totalCount: leads.length,
         };
     }
     async discoverCandidates(params) {
@@ -133,22 +140,28 @@ let LeadSearchSessionService = class LeadSearchSessionService {
             uf: params.uf,
             neighborhood: params.address,
             cnaeCodes: this.cnaeResolver.cnaeFilterCodes(cnaeClasses),
-            maxResults: params.maxResults ?? prospect_company_catalog_service_1.DEFAULT_CATALOG_MAX_RESULTS,
+            maxResults: params.maxResults,
         });
     }
     async hydrateCandidates(tenantId, sessionId, candidates) {
         const placeIds = candidates
             .map((candidate) => candidate.placeId)
             .filter((placeId) => Boolean(placeId));
-        const existing = placeIds.length === 0
-            ? []
-            : await this.prisma.lead.findMany({
+        const existing = [];
+        const PLACE_ID_CHUNK = 400;
+        for (let offset = 0; offset < placeIds.length; offset += PLACE_ID_CHUNK) {
+            const chunk = placeIds.slice(offset, offset + PLACE_ID_CHUNK);
+            if (chunk.length === 0)
+                continue;
+            const batch = await this.prisma.lead.findMany({
                 where: {
                     companyId: tenantId,
                     deletedAt: null,
-                    placeId: { in: placeIds },
+                    placeId: { in: chunk },
                 },
             });
+            existing.push(...batch);
+        }
         const byPlaceId = new Map();
         for (const lead of existing) {
             if (!lead.placeId)
