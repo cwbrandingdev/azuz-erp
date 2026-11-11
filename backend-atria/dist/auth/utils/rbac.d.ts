@@ -10,6 +10,7 @@ export declare function isTaskAssignedToUser(userId: string, task: {
 export declare function isDesignerRole(role: string): boolean;
 export declare function canViewDashboardFinance(role: string): boolean;
 export declare function canModerateLeadComments(role: string): boolean;
+export declare function canModerateLeadMeetings(role: string): boolean;
 export declare function canAccessStaffDashboard(role: string): boolean;
 export declare function canPerformInternalApproval(role: string): boolean;
 export declare function assertCanPerformInternalApproval(role: string): void;

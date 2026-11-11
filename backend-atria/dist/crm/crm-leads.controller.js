@@ -23,6 +23,7 @@ const leads_service_1 = require("../leads/leads.service");
 const create_crm_lead_dto_1 = require("./dto/create-crm-lead.dto");
 const update_crm_lead_dto_1 = require("./dto/update-crm-lead.dto");
 const prospecting_leads_query_dto_1 = require("./dto/prospecting-leads-query.dto");
+const lead_kanban_query_dto_1 = require("./dto/lead-kanban-query.dto");
 const toggle_lead_collapse_dto_1 = require("./dto/toggle-lead-collapse.dto");
 const lead_kanban_dto_1 = require("../leads/dto/lead-kanban.dto");
 let CrmLeadsController = class CrmLeadsController {
@@ -40,7 +41,10 @@ let CrmLeadsController = class CrmLeadsController {
         return this.leadsService.listLeadOwners(user);
     }
     getKanbanBoard(user, query) {
-        return this.leadsService.findKanbanBoard(user, query.organizationId, query.ownerUserId);
+        return this.leadsService.findKanbanBoard(user, query, true);
+    }
+    getKanbanColumnPage(user, stageId, query) {
+        return this.leadsService.findKanbanColumnPage(user, stageId, query);
     }
     create(user, dto) {
         return this.leadsService.createForCrm(user, dto);
@@ -83,9 +87,18 @@ __decorate([
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, prospecting_leads_query_dto_1.ProspectingLeadsQueryDto]),
+    __metadata("design:paramtypes", [Object, lead_kanban_query_dto_1.LeadKanbanQueryDto]),
     __metadata("design:returntype", void 0)
 ], CrmLeadsController.prototype, "getKanbanBoard", null);
+__decorate([
+    (0, common_1.Get)('kanban/columns/:stageId'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('stageId')),
+    __param(2, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, lead_kanban_query_dto_1.LeadKanbanColumnQueryDto]),
+    __metadata("design:returntype", void 0)
+], CrmLeadsController.prototype, "getKanbanColumnPage", null);
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

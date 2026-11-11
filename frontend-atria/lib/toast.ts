@@ -40,7 +40,19 @@ export function showApiError(error: ApiError, endpoint?: string) {
     return;
   }
 
-  toast.error(error.message || "Ocorreu um erro inesperado. Tente novamente.");
+  const payload = error.data as
+    | { errors?: string[]; message?: string | string[] }
+    | undefined;
+  const validationDetail =
+    payload?.errors?.[0] ??
+    (Array.isArray(payload?.message) ? payload.message[0] : undefined);
+
+  const message =
+    error.message === "Validation failed" && validationDetail
+      ? validationDetail
+      : error.message || "Ocorreu um erro inesperado. Tente novamente.";
+
+  toast.error(message);
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string) {

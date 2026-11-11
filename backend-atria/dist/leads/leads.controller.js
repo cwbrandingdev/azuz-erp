@@ -46,7 +46,7 @@ let LeadsController = class LeadsController {
         return this.leadsService.listTodayMeetings(user);
     }
     getKanbanBoard(user, query) {
-        return this.leadsService.findKanbanBoard(user, query.organizationId, query.ownerUserId);
+        return this.leadsService.findKanbanBoard(user, query);
     }
     searchCnae(query) {
         return this.cnaeResolverService.search(query.q ?? '');
@@ -80,6 +80,9 @@ let LeadsController = class LeadsController {
     }
     createMeeting(user, id, dto) {
         return this.leadsService.createMeeting(user, id, dto);
+    }
+    deleteMeeting(user, id, meetingId) {
+        return this.leadsService.deleteMeeting(user, id, meetingId);
     }
     createComment(user, id, dto) {
         return this.leadsService.createComment(user, user.userId, id, dto.content);
@@ -211,6 +214,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, create_lead_meeting_dto_1.CreateLeadMeetingDto]),
     __metadata("design:returntype", void 0)
 ], LeadsController.prototype, "createMeeting", null);
+__decorate([
+    (0, common_1.Delete)(':id/meetings/:meetingId'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('meetingId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], LeadsController.prototype, "deleteMeeting", null);
 __decorate([
     (0, common_1.Post)(':id/comments'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

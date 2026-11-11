@@ -10,17 +10,21 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProspectingLeadsQueryDto = void 0;
+const class_transformer_1 = require("class-transformer");
 const entity_id_1 = require("../../common/validation/entity-id");
+const query_param_1 = require("../../common/validation/query-param");
 class ProspectingLeadsQueryDto {
     organizationId;
     ownerUserId;
 }
 exports.ProspectingLeadsQueryDto = ProspectingLeadsQueryDto;
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => (0, query_param_1.firstQueryValue)(value)),
     (0, entity_id_1.IsEntityId)({ optional: true }),
     __metadata("design:type", String)
 ], ProspectingLeadsQueryDto.prototype, "organizationId", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => (0, query_param_1.firstQueryValue)(value)),
     (0, entity_id_1.IsEntityId)({ optional: true }),
     __metadata("design:type", String)
 ], ProspectingLeadsQueryDto.prototype, "ownerUserId", void 0);

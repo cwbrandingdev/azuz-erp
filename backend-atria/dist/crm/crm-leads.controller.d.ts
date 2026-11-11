@@ -3,6 +3,7 @@ import { LeadsService } from '../leads/leads.service';
 import { CreateCrmLeadDto } from './dto/create-crm-lead.dto';
 import { UpdateCrmLeadDto } from './dto/update-crm-lead.dto';
 import { ProspectingLeadsQueryDto } from './dto/prospecting-leads-query.dto';
+import { LeadKanbanColumnQueryDto, LeadKanbanQueryDto } from './dto/lead-kanban-query.dto';
 import { ToggleLeadCollapseDto } from './dto/toggle-lead-collapse.dto';
 import { UpdateLeadStatusDto } from '../leads/dto/lead-kanban.dto';
 export declare class CrmLeadsController {
@@ -56,6 +57,7 @@ export declare class CrmLeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -108,6 +110,7 @@ export declare class CrmLeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -116,14 +119,8 @@ export declare class CrmLeadsController {
         id: string;
         name: string;
     }[]>;
-    getKanbanBoard(user: AuthenticatedUser, query: ProspectingLeadsQueryDto): Promise<{
+    getKanbanBoard(user: AuthenticatedUser, query: LeadKanbanQueryDto): Promise<{
         columns: {
-            id: string;
-            stageId: string;
-            status: string;
-            title: string;
-            color: string;
-            order: number;
             leads: {
                 id: string;
                 companyId: string;
@@ -169,14 +166,80 @@ export declare class CrmLeadsController {
                     startAt: string;
                     endAt: string;
                     meetUrl: string | null;
+                    createdById: string;
                 } | null;
                 createdAt: string;
                 updatedAt: string;
             }[];
+            total: number;
+            hasMore: boolean;
+            orcamentoTotal: number;
+            id: string;
+            stageId: string;
+            status: string;
+            title: string;
+            color: string;
+            order: number;
         }[];
         total: number;
         crmMoveZone: import("../leads/lead-pipeline-zones").CrmMoveZone;
         showOrcamento: boolean;
+        categories: string[];
+    }>;
+    getKanbanColumnPage(user: AuthenticatedUser, stageId: string, query: LeadKanbanColumnQueryDto): Promise<{
+        leads: {
+            id: string;
+            companyId: string;
+            tenantId: string;
+            searchSessionId: string | null;
+            organizationId: string | null;
+            ownerUserId: string | null;
+            ownerName: string | null;
+            name: string;
+            contactName: string | null;
+            phone: string | null;
+            email: string | null;
+            website: string | null;
+            instagram: string | null;
+            address: string | null;
+            city: string | null;
+            neighborhood: string | null;
+            category: string | null;
+            placeId: string | null;
+            rating: number | null;
+            reviewsCount: number | null;
+            latitude: number | null;
+            longitude: number | null;
+            status: import("@prisma/client").$Enums.LeadStatus;
+            stageId: string | null;
+            statusLabel: string;
+            statusColor: string;
+            crmStatus: import("@prisma/client").$Enums.CrmLeadStatus;
+            isMinimized: boolean;
+            kanbanTracked: boolean;
+            kanbanOrder: number;
+            orcamento: number | null;
+            cnpj: string | null;
+            jobTitle: string | null;
+            aiScore: number | null;
+            aiNotes: string | null;
+            source: string;
+            rawData: import("@prisma/client/runtime/library").JsonValue;
+            meeting: {
+                id: string;
+                title: string;
+                guestName: string;
+                startAt: string;
+                endAt: string;
+                meetUrl: string | null;
+                createdById: string;
+            } | null;
+            createdAt: string;
+            updatedAt: string;
+        }[];
+        total: number;
+        hasMore: boolean;
+        orcamentoTotal: number;
     }>;
     create(user: AuthenticatedUser, dto: CreateCrmLeadDto): Promise<{
         status: import("@prisma/client").$Enums.CrmLeadStatus;
@@ -226,6 +289,7 @@ export declare class CrmLeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -275,6 +339,7 @@ export declare class CrmLeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -327,6 +392,7 @@ export declare class CrmLeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -376,6 +442,7 @@ export declare class CrmLeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;

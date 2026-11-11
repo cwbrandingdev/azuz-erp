@@ -850,6 +850,7 @@ export function LeadsKanbanBoard({
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder="Buscar por nome, telefone, cidade, endereço..."
+                    maxLength={200}
                     className="pl-9"
                   />
                 </div>

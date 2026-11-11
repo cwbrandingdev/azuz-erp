@@ -23,12 +23,6 @@ export declare class ClientPortalController {
     private requireCrmEnabled;
     getCrmKanbanBoard(user: AuthenticatedUser): Promise<{
         columns: {
-            id: string;
-            stageId: string;
-            status: string;
-            title: string;
-            color: string;
-            order: number;
             leads: {
                 id: string;
                 companyId: string;
@@ -74,14 +68,25 @@ export declare class ClientPortalController {
                     startAt: string;
                     endAt: string;
                     meetUrl: string | null;
+                    createdById: string;
                 } | null;
                 createdAt: string;
                 updatedAt: string;
             }[];
+            total: number;
+            hasMore: boolean;
+            orcamentoTotal: number;
+            id: string;
+            stageId: string;
+            status: string;
+            title: string;
+            color: string;
+            order: number;
         }[];
         total: number;
         crmMoveZone: import("../leads/lead-pipeline-zones").CrmMoveZone;
         showOrcamento: boolean;
+        categories: string[];
     }>;
     updateCrmLeadStage(user: AuthenticatedUser, id: string, dto: UpdateLeadStatusDto): Promise<{
         id: string;
@@ -128,6 +133,7 @@ export declare class ClientPortalController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -180,6 +186,7 @@ export declare class ClientPortalController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;

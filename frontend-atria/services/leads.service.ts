@@ -86,10 +86,30 @@ export async function listCrmUsers(): Promise<CrmUserOption[]> {
   return apiRequest<CrmUserOption[]>("/crm/leads/owners");
 }
 
+const KANBAN_FILTER_SEARCH_MAX = 200;
+const KANBAN_ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function normalizeKanbanFilterEntry(key: string, raw: string): string | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+
+  if (key === "search" || key === "category") {
+    return trimmed.slice(0, KANBAN_FILTER_SEARCH_MAX);
+  }
+
+  if (key === "startDate" || key === "endDate") {
+    return KANBAN_ISO_DATE.test(trimmed) ? trimmed : undefined;
+  }
+
+  return trimmed;
+}
+
 function kanbanFilterParams(filters: LeadKanbanFilters) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
-    if (value) params.set(key, value);
+    if (typeof value !== "string") continue;
+    const normalized = normalizeKanbanFilterEntry(key, value);
+    if (normalized) params.set(key, normalized);
   }
   return params;
 }
@@ -98,9 +118,8 @@ export async function getKanbanBoard(
   filters: LeadKanbanFilters = {},
 ): Promise<LeadKanbanBoard> {
   const query = kanbanFilterParams(filters).toString();
-  return apiRequest<LeadKanbanBoard>(
-    `/crm/leads/kanban${query ? `?${query}` : ""}`,
-  );
+  const endpoint = `/crm/leads/kanban${query ? `?${query}` : ""}`;
+  return apiRequest<LeadKanbanBoard>(endpoint);
 }
 
 export async function getKanbanColumnPage(
@@ -110,9 +129,8 @@ export async function getKanbanColumnPage(
 ): Promise<LeadKanbanColumnPage> {
   const params = kanbanFilterParams(filters);
   params.set("offset", String(offset));
-  return apiRequest<LeadKanbanColumnPage>(
-    `/crm/leads/kanban/columns/${stageId}?${params.toString()}`,
-  );
+  const endpoint = `/crm/leads/kanban/columns/${stageId}?${params.toString()}`;
+  return apiRequest<LeadKanbanColumnPage>(endpoint);
 }
 
 export async function addToKanban(
