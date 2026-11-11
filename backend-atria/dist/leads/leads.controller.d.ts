@@ -60,6 +60,7 @@ export declare class LeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -78,12 +79,6 @@ export declare class LeadsController {
     }>;
     getKanbanBoard(user: AuthenticatedUser, query: ProspectingLeadsQueryDto): Promise<{
         columns: {
-            id: string;
-            stageId: string;
-            status: string;
-            title: string;
-            color: string;
-            order: number;
             leads: {
                 id: string;
                 companyId: string;
@@ -129,14 +124,25 @@ export declare class LeadsController {
                     startAt: string;
                     endAt: string;
                     meetUrl: string | null;
+                    createdById: string;
                 } | null;
                 createdAt: string;
                 updatedAt: string;
             }[];
+            total: number;
+            hasMore: boolean;
+            orcamentoTotal: number;
+            id: string;
+            stageId: string;
+            status: string;
+            title: string;
+            color: string;
+            order: number;
         }[];
         total: number;
         crmMoveZone: import("./lead-pipeline-zones").CrmMoveZone;
         showOrcamento: boolean;
+        categories: string[];
     }>;
     searchCnae(query: CnaeSearchQueryDto): Promise<import("./company-lookup/domain/company-lookup.types").CnaeClassInfo[]>;
     listSearchSessions(user: AuthenticatedUser): Promise<{
@@ -445,6 +451,7 @@ export declare class LeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -494,6 +501,7 @@ export declare class LeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -559,11 +567,62 @@ export declare class LeadsController {
                 startAt: string;
                 endAt: string;
                 meetUrl: string | null;
+                createdById: string;
             } | null;
             createdAt: string;
             updatedAt: string;
         };
         googleConnected: boolean;
+    }>;
+    deleteMeeting(user: AuthenticatedUser, id: string, meetingId: string): Promise<{
+        id: string;
+        companyId: string;
+        tenantId: string;
+        searchSessionId: string | null;
+        organizationId: string | null;
+        ownerUserId: string | null;
+        ownerName: string | null;
+        name: string;
+        contactName: string | null;
+        phone: string | null;
+        email: string | null;
+        website: string | null;
+        instagram: string | null;
+        address: string | null;
+        city: string | null;
+        neighborhood: string | null;
+        category: string | null;
+        placeId: string | null;
+        rating: number | null;
+        reviewsCount: number | null;
+        latitude: number | null;
+        longitude: number | null;
+        status: import("@prisma/client").$Enums.LeadStatus;
+        stageId: string | null;
+        statusLabel: string;
+        statusColor: string;
+        crmStatus: import("@prisma/client").$Enums.CrmLeadStatus;
+        isMinimized: boolean;
+        kanbanTracked: boolean;
+        kanbanOrder: number;
+        orcamento: number | null;
+        cnpj: string | null;
+        jobTitle: string | null;
+        aiScore: number | null;
+        aiNotes: string | null;
+        source: string;
+        rawData: import("@prisma/client/runtime/library").JsonValue;
+        meeting: {
+            id: string;
+            title: string;
+            guestName: string;
+            startAt: string;
+            endAt: string;
+            meetUrl: string | null;
+            createdById: string;
+        } | null;
+        createdAt: string;
+        updatedAt: string;
     }>;
     createComment(user: AuthenticatedUser, id: string, dto: CreateLeadCommentDto): Promise<{
         id: string;
@@ -635,6 +694,7 @@ export declare class LeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -684,6 +744,7 @@ export declare class LeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -733,6 +794,7 @@ export declare class LeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -782,6 +844,7 @@ export declare class LeadsController {
             startAt: string;
             endAt: string;
             meetUrl: string | null;
+            createdById: string;
         } | null;
         createdAt: string;
         updatedAt: string;

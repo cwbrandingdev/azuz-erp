@@ -6,6 +6,7 @@ exports.isTaskAssignedToUser = isTaskAssignedToUser;
 exports.isDesignerRole = isDesignerRole;
 exports.canViewDashboardFinance = canViewDashboardFinance;
 exports.canModerateLeadComments = canModerateLeadComments;
+exports.canModerateLeadMeetings = canModerateLeadMeetings;
 exports.canAccessStaffDashboard = canAccessStaffDashboard;
 exports.canPerformInternalApproval = canPerformInternalApproval;
 exports.assertCanPerformInternalApproval = assertCanPerformInternalApproval;
@@ -45,6 +46,10 @@ function canViewDashboardFinance(role) {
     return roleName === client_1.RoleName.MASTER || roleName === client_1.RoleName.ADMIN;
 }
 function canModerateLeadComments(role) {
+    const roleName = (0, permissions_1.normalizeRoleName)(role);
+    return roleName === client_1.RoleName.MASTER || roleName === client_1.RoleName.ADMIN;
+}
+function canModerateLeadMeetings(role) {
     const roleName = (0, permissions_1.normalizeRoleName)(role);
     return roleName === client_1.RoleName.MASTER || roleName === client_1.RoleName.ADMIN;
 }

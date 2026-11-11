@@ -58,10 +58,28 @@ const latestMeetingInclude = {
             startAt: true,
             endAt: true,
             meetUrl: true,
+            createdById: true,
         },
     },
 };
 const MEETING_DURATION_MS = 60 * 60 * 1000;
+const KANBAN_PAGE_SIZE = 30;
+const kanbanLeadInclude = {
+    stage: { select: { id: true, key: true, name: true } },
+    ...leadOwnerInclude,
+    ...latestMeetingInclude,
+};
+function isLeadStatusKey(value) {
+    return Object.values(client_1.LeadStatus).includes(value);
+}
+function saoPauloDateBounds(startDate, endDate) {
+    if (!startDate && !endDate)
+        return undefined;
+    return {
+        ...(startDate ? { gte: new Date(`${startDate}T00:00:00.000-03:00`) } : {}),
+        ...(endDate ? { lte: new Date(`${endDate}T23:59:59.999-03:00`) } : {}),
+    };
+}
 function saoPauloDayRange(now = new Date()) {
     const day = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'America/Sao_Paulo',
@@ -298,30 +316,6 @@ let LeadsService = LeadsService_1 = class LeadsService {
             created.push(lead);
         }
         const responses = created.map((lead) => this.toLeadResponse(lead));
-        fetch('http://127.0.0.1:7781/ingest/f34f2959-5a62-4e5d-abf4-c542de20d154', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Debug-Session-Id': '375ea0',
-            },
-            body: JSON.stringify({
-                sessionId: '375ea0',
-                runId: 'pre-fix',
-                hypothesisId: 'C',
-                location: 'leads.service.ts:fetchMaps',
-                message: 'fetchMaps response summary',
-                data: {
-                    placesIn: places.length,
-                    returned: responses.length,
-                    sources: responses.reduce((acc, lead) => {
-                        const key = lead.source ?? 'unknown';
-                        acc[key] = (acc[key] ?? 0) + 1;
-                        return acc;
-                    }, {}),
-                },
-                timestamp: Date.now(),
-            }),
-        }).catch(() => { });
         return responses;
     }
     async findAll(user) {
@@ -375,54 +369,157 @@ let LeadsService = LeadsService_1 = class LeadsService {
         }
         return this.crmScope.listActiveCrmUsers();
     }
-    async findKanbanBoard(user, organizationId, ownerUserId) {
-        const stageOrganizationId = this.resolveKanbanOrganizationId(user, organizationId);
+    async findKanbanBoard(user, filters, paginated = false) {
+        const stageOrganizationId = this.resolveKanbanOrganizationId(user, filters.organizationId);
         const stages = await this.leadStages.ensureDefaults(stageOrganizationId);
-        const orgFilter = await this.crmScope.buildKanbanLeadOrganizationFilter(user, organizationId);
-        const resolvedOwnerId = await this.crmScope.resolveOwnerFilter(user, ownerUserId);
-        const ownerFilter = this.crmScope.buildKanbanOwnerFilter(user, resolvedOwnerId);
-        const scopeFilters = [orgFilter, ownerFilter].filter((filter) => Object.keys(filter).length > 0);
-        const leads = await this.prisma.lead.findMany({
-            where: {
-                kanbanTracked: true,
-                deletedAt: null,
-                ...(scopeFilters.length > 0 ? { AND: scopeFilters } : {}),
-            },
-            include: {
-                stage: { select: { id: true, key: true, name: true } },
-                ...leadOwnerInclude,
-                ...latestMeetingInclude,
-            },
-            orderBy: [
-                { status: 'asc' },
-                { kanbanOrder: 'asc' },
-                { updatedAt: 'desc' },
-            ],
-        });
         const showOrcamento = await this.resolveShowOrcamento(user, stageOrganizationId);
         const visibleStages = showOrcamento
             ? stages
             : stages.filter((stage) => stage.key !== lead_kanban_constants_1.ORCAMENTO_STAGE_KEY);
-        const columns = visibleStages.map((stage) => {
-            const pipelineStatus = this.leadStages.statusFromStage(stage);
+        const baseWhere = await this.buildKanbanBaseWhere(user, filters);
+        const pageSize = paginated ? KANBAN_PAGE_SIZE : undefined;
+        const columns = await Promise.all(visibleStages.map(async (stage) => {
+            const page = await this.loadKanbanColumnPage({ AND: [baseWhere, this.buildKanbanStageFilter(stage, stages)] }, 0, pageSize);
             return {
                 id: stage.id,
                 stageId: stage.id,
-                status: stage.key ?? pipelineStatus,
+                status: stage.key ?? this.leadStages.statusFromStage(stage),
                 title: stage.name,
                 color: stage.color,
                 order: stage.order,
-                leads: leads
-                    .filter((lead) => this.leadMatchesStage(lead, stage, stages))
-                    .map((lead) => this.toLeadResponse(lead)),
+                ...page,
             };
+        }));
+        const categoryScope = await this.buildKanbanBaseWhere(user, {
+            organizationId: filters.organizationId,
+            ownerUserId: filters.ownerUserId,
         });
         return {
             columns,
-            total: columns.reduce((sum, column) => sum + column.leads.length, 0),
+            total: columns.reduce((sum, column) => sum + column.total, 0),
             crmMoveZone: this.crmScope.getMoveZone(user.role),
             showOrcamento,
+            categories: await this.listKanbanCategories(categoryScope),
         };
+    }
+    async findKanbanColumnPage(user, stageId, query) {
+        const stageOrganizationId = this.resolveKanbanOrganizationId(user, query.organizationId);
+        const stages = await this.leadStages.ensureDefaults(stageOrganizationId);
+        const stage = stages.find((item) => item.id === stageId);
+        if (!stage) {
+            throw new common_1.NotFoundException('Coluna não encontrada.');
+        }
+        const baseWhere = await this.buildKanbanBaseWhere(user, query);
+        return this.loadKanbanColumnPage({ AND: [baseWhere, this.buildKanbanStageFilter(stage, stages)] }, query.offset ?? 0, KANBAN_PAGE_SIZE);
+    }
+    async buildKanbanBaseWhere(user, filters) {
+        const orgFilter = await this.crmScope.buildKanbanLeadOrganizationFilter(user, filters.organizationId);
+        const resolvedOwnerId = await this.crmScope.resolveOwnerFilter(user, filters.ownerUserId);
+        const ownerFilter = this.crmScope.buildKanbanOwnerFilter(user, resolvedOwnerId);
+        const conditions = [orgFilter, ownerFilter].filter((filter) => Object.keys(filter).length > 0);
+        const search = filters.search?.trim();
+        if (search) {
+            const contains = { contains: search, mode: 'insensitive' };
+            conditions.push({
+                OR: [
+                    { name: contains },
+                    { city: contains },
+                    { neighborhood: contains },
+                    { category: contains },
+                    { phone: contains },
+                    { email: contains },
+                    { address: contains },
+                    { website: contains },
+                ],
+            });
+        }
+        const category = filters.category?.trim();
+        if (category) {
+            conditions.push({
+                category: { equals: category, mode: 'insensitive' },
+            });
+        }
+        const createdAt = saoPauloDateBounds(filters.startDate, filters.endDate);
+        if (createdAt) {
+            conditions.push({ createdAt });
+        }
+        return {
+            kanbanTracked: true,
+            deletedAt: null,
+            ...(conditions.length > 0 ? { AND: conditions } : {}),
+        };
+    }
+    buildKanbanStageFilter(stage, stages) {
+        const fallbacks = [];
+        if (stage.key) {
+            fallbacks.push({ stage: { is: { key: stage.key } } });
+            if (isLeadStatusKey(stage.key)) {
+                fallbacks.push({ status: stage.key });
+            }
+        }
+        if (stage.name.trim()) {
+            fallbacks.push({
+                stage: {
+                    is: { name: { equals: stage.name.trim(), mode: 'insensitive' } },
+                },
+            });
+        }
+        const knownStageIds = stages.map((item) => item.id);
+        return {
+            OR: [
+                { stageId: stage.id },
+                ...(fallbacks.length > 0
+                    ? [
+                        {
+                            AND: [
+                                {
+                                    OR: [
+                                        { stageId: null },
+                                        { stageId: { notIn: knownStageIds } },
+                                    ],
+                                },
+                                { OR: fallbacks },
+                            ],
+                        },
+                    ]
+                    : []),
+            ],
+        };
+    }
+    async loadKanbanColumnPage(where, offset, limit) {
+        const [leads, total, sums] = await Promise.all([
+            this.prisma.lead.findMany({
+                where,
+                include: kanbanLeadInclude,
+                orderBy: [
+                    { status: 'asc' },
+                    { kanbanOrder: 'asc' },
+                    { updatedAt: 'desc' },
+                    { id: 'asc' },
+                ],
+                skip: offset,
+                ...(limit ? { take: limit } : {}),
+            }),
+            this.prisma.lead.count({ where }),
+            this.prisma.lead.aggregate({ where, _sum: { orcamento: true } }),
+        ]);
+        return {
+            leads: leads.map((lead) => this.toLeadResponse(lead)),
+            total,
+            hasMore: offset + leads.length < total,
+            orcamentoTotal: Number(sums._sum.orcamento ?? 0),
+        };
+    }
+    async listKanbanCategories(where) {
+        const rows = await this.prisma.lead.findMany({
+            where: { AND: [where, { category: { not: null } }] },
+            distinct: ['category'],
+            select: { category: true },
+        });
+        const categories = new Set(rows
+            .map((row) => row.category?.trim())
+            .filter((category) => Boolean(category)));
+        return Array.from(categories).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     }
     async getBoardSettings(user, organizationId) {
         const scopedOrganizationId = this.resolveKanbanOrganizationId(user, organizationId);
@@ -982,6 +1079,26 @@ let LeadsService = LeadsService_1 = class LeadsService {
             })),
         };
     }
+    async deleteMeeting(user, leadId, meetingId) {
+        await this.findLeadForUser(user, leadId);
+        const meeting = await this.prisma.leadMeeting.findFirst({
+            where: { id: meetingId, leadId },
+            select: { id: true, createdById: true },
+        });
+        if (!meeting) {
+            throw new common_1.NotFoundException('Reunião não encontrada.');
+        }
+        const isCreator = meeting.createdById === user.userId;
+        if (!isCreator && !(0, rbac_1.canModerateLeadMeetings)(user.role)) {
+            throw new common_1.ForbiddenException('Você só pode apagar reuniões que você criou.');
+        }
+        await this.prisma.leadMeeting.delete({ where: { id: meetingId } });
+        const lead = await this.prisma.lead.findUniqueOrThrow({
+            where: { id: leadId },
+            include: { ...leadOwnerInclude, ...latestMeetingInclude },
+        });
+        return this.toLeadResponse(lead);
+    }
     async resolveLeadForUser(user, id) {
         if ((0, lead_search_session_service_1.isCatalogPreviewId)(id)) {
             return this.materializeCatalogLead(user, id.slice(lead_search_session_service_1.CATALOG_PREVIEW_ID_PREFIX.length));
@@ -1105,22 +1222,6 @@ let LeadsService = LeadsService_1 = class LeadsService {
             select: { crmShowOrcamento: true },
         });
         return company?.crmShowOrcamento ?? true;
-    }
-    leadMatchesStage(lead, stage, stages) {
-        if (lead.stageId) {
-            const known = stages.some((item) => item.id === lead.stageId);
-            if (known)
-                return lead.stageId === stage.id;
-        }
-        if (lead.stage?.key && stage.key && lead.stage.key === stage.key) {
-            return true;
-        }
-        if (lead.stage?.name &&
-            stage.name &&
-            lead.stage.name.trim().toLowerCase() === stage.name.trim().toLowerCase()) {
-            return true;
-        }
-        return Boolean(stage.key) && lead.status === stage.key;
     }
     notifyOrganizationRepresentatives(lead, actorId) {
         if (!lead.organizationId) {
@@ -1310,6 +1411,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                     startAt: meeting.startAt.toISOString(),
                     endAt: meeting.endAt.toISOString(),
                     meetUrl: meeting.meetUrl,
+                    createdById: meeting.createdById,
                 }
                 : null,
             createdAt: lead.createdAt.toISOString(),
