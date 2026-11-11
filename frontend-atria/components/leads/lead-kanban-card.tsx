@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  Check,
   ChevronDown,
   ChevronUp,
-  Copy,
   GripVertical,
   Lock,
   MessageCircle,
@@ -17,6 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
+import { CopyableText } from "@/components/ui/copyable-text";
+import {
+  extractCnpjFromLead,
+  getLeadCnpjLabel,
+} from "@/lib/lead-cnpj";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
 import { LeadMeetingDialog } from "@/components/leads/lead-meeting-dialog";
 import { LeadOrcamentoInput } from "@/components/leads/lead-orcamento-input";
@@ -32,7 +35,6 @@ import {
   canMoveLeadToColumn,
   type CrmMoveZone,
 } from "@/lib/lead-pipeline-zones";
-import { toast } from "@/lib/toast";
 import {
   isDialablePhone,
   toVivoDialString,
@@ -76,7 +78,6 @@ export function LeadKanbanCard({
   onOrcamentoChange,
 }: LeadKanbanCardProps) {
   const confirm = useConfirm();
-  const [copied, setCopied] = useState(false);
   const [meetingOpen, setMeetingOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => isLeadCollapsed(lead));
   const [hovered, setHovered] = useState(false);
@@ -96,20 +97,6 @@ export function LeadKanbanCard({
   useEffect(() => {
     setCollapsed(isLeadCollapsed(lead));
   }, [lead.id, lead.isMinimized, lead.status]);
-
-  async function handleCopy() {
-    if (!lead.phone) return;
-    try {
-      await navigator.clipboard.writeText(
-        toVivoDialString(lead.phone) ?? lead.phone,
-      );
-      setCopied(true);
-      toast.success("Telefone copiado");
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast.error("Não foi possível copiar o telefone.");
-    }
-  }
 
   function handleToggleCollapse() {
     const next = !collapsed;
@@ -163,19 +150,23 @@ export function LeadKanbanCard({
             <GripVertical className="size-4" />
           </button>
         )}
-        <button
-          type="button"
-          className="min-w-0 flex-1 text-left"
-          onClick={() => onOpenDetails(lead)}
-        >
-          <p className="truncate text-sm font-semibold text-[var(--atria-primary)]">
-            {lead.name}
-          </p>
-          {lead.contactName?.trim() && (
-            <p className="mt-0.5 truncate text-xs text-[var(--atria-primary)]/60">
-              Fala com: {lead.contactName.trim()}
-            </p>
-          )}
+        <div className="min-w-0 flex-1">
+          <CopyableText
+            value={lead.name}
+            copyLabel="Nome"
+            className="mb-0.5"
+            textClassName="truncate text-sm font-semibold text-[var(--atria-primary)]"
+          />
+          <button
+            type="button"
+            className="w-full text-left"
+            onClick={() => onOpenDetails(lead)}
+          >
+            {lead.contactName?.trim() && (
+              <p className="mt-0.5 truncate text-xs text-[var(--atria-primary)]/60">
+                Fala com: {lead.contactName.trim()}
+              </p>
+            )}
           {showOwner && lead.ownerName?.trim() && (
             <p className="mt-0.5 truncate text-xs text-[var(--atria-primary)]/60">
               Responsável: {lead.ownerName.trim()}
@@ -207,6 +198,7 @@ export function LeadKanbanCard({
             </p>
           )}
         </button>
+        </div>
         <Button
           type="button"
           variant="ghost"
@@ -233,30 +225,39 @@ export function LeadKanbanCard({
       {!collapsed && (
         <>
           <div className="mb-3 mt-2 min-w-0 space-y-1 pl-6 text-xs text-[var(--atria-primary)]/65">
-            <div className="flex min-w-0 items-center gap-1.5">
-              <span className="min-w-0 flex-1 truncate">
-                {lead.phone ?? "Sem telefone"}
-              </span>
-              {lead.phone && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="shrink-0"
-                  onClick={() => void handleCopy()}
-                  title="Copiar telefone"
-                >
-                  {copied ? (
-                    <Check className="size-3.5 text-green-600" />
-                  ) : (
-                    <Copy className="size-3.5" />
-                  )}
-                </Button>
-              )}
-            </div>
+            {lead.phone ? (
+              <CopyableText
+                value={toVivoDialString(lead.phone) ?? lead.phone}
+                display={lead.phone}
+                copyLabel="Telefone"
+              />
+            ) : (
+              <span>Sem telefone</span>
+            )}
+            {extractCnpjFromLead(lead) ? (
+              <CopyableText
+                value={getLeadCnpjLabel(lead) ?? extractCnpjFromLead(lead)!}
+                display={
+                  getLeadCnpjLabel(lead)
+                    ? `CNPJ ${getLeadCnpjLabel(lead)}`
+                    : extractCnpjFromLead(lead)!
+                }
+                copyLabel="CNPJ"
+              />
+            ) : null}
+            {lead.email ? (
+              <CopyableText value={lead.email} copyLabel="E-mail" />
+            ) : null}
+            {lead.website ? (
+              <CopyableText value={lead.website} copyLabel="Website" />
+            ) : null}
+            {lead.instagram ? (
+              <CopyableText value={lead.instagram} copyLabel="Instagram" />
+            ) : null}
             {(lead.neighborhood || lead.city || lead.address) && (
               <LeadLocationText
                 lead={lead}
+                copyable
                 showAddress={false}
                 primaryClassName="text-xs text-[var(--atria-primary)]/65"
               />

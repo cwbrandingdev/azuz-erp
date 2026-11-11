@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Check,
   ChevronLeft,
   ChevronRight,
-  Copy,
   Download,
   Kanban,
   Loader2,
@@ -38,7 +36,8 @@ import { isDialablePhone, toVivoDialString, toWhatsAppUrl } from "@/lib/lead-pho
 import { toast } from "@/lib/toast";
 import { LeadCategoryText } from "@/components/leads/lead-category-text";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
-import { getLeadCnpjLabel } from "@/lib/lead-cnpj";
+import { extractCnpjFromLead, getLeadCnpjLabel } from "@/lib/lead-cnpj";
+import { CopyableText } from "@/components/ui/copyable-text";
 import { formatInstagramHandle, formatLeadRating } from "@/lib/lead-map-utils";
 import {
   commercialFitBadgeVariant,
@@ -63,9 +62,12 @@ const STATUS_VARIANTS: Record<
   AGUARDANDO_RESPOSTA: "outline",
 };
 
-async function copyPhone(phone: string) {
-  await navigator.clipboard.writeText(phone);
-  toast.success("Telefone copiado");
+function leadPhoneCopyValue(phone: string) {
+  return toVivoDialString(phone) ?? phone;
+}
+
+function leadWebsiteHref(website: string) {
+  return website.startsWith("http") ? website : `https://${website}`;
 }
 
 interface LeadsTableProps {
@@ -158,7 +160,6 @@ export function LeadsTable({
   const listTopRef = useRef<HTMLDivElement>(null);
   const skipScrollOnMount = useRef(true);
   const [exporting, setExporting] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [pageDraft, setPageDraft] = useState("1");
@@ -256,19 +257,6 @@ export function LeadsTable({
       toast.error("Não foi possível exportar o Excel.");
     } finally {
       setExporting(false);
-    }
-  }
-
-  async function handleCopy(lead: Lead) {
-    if (!lead.phone) return;
-    try {
-      await copyPhone(toVivoDialString(lead.phone) ?? lead.phone);
-      setCopiedId(lead.id);
-      window.setTimeout(() => {
-        setCopiedId((current) => (current === lead.id ? null : current));
-      }, 1800);
-    } catch {
-      toast.error("Não foi possível copiar o telefone.");
     }
   }
 
@@ -397,8 +385,10 @@ export function LeadsTable({
           const position = (page - 1) * LEADS_PAGE_SIZE + index + 1;
           const isQualifying = qualifyingId === lead.id;
           const isAdding = addingKanbanId === lead.id;
-          const isCopied = copiedId === lead.id;
           const onKanban = Boolean(lead.kanbanTracked);
+          const cnpjDigits = extractCnpjFromLead(lead);
+          const cnpjLabel = getLeadCnpjLabel(lead);
+          const ratingLabel = formatLeadRating(lead.rating, lead.reviewsCount);
 
           return (
             <Card
@@ -417,34 +407,43 @@ export function LeadsTable({
                     />
                   )}
                   <div className="min-w-0">
-                    <p className="flex min-w-0 items-baseline gap-2">
+                    <div className="flex min-w-0 items-baseline gap-2">
                       <span className="shrink-0 tabular-nums text-xs font-semibold text-[var(--atria-primary)]/40">
                         {position}
                       </span>
-                      <span className="truncate font-semibold text-[var(--atria-primary)]">
-                        {lead.name}
-                      </span>
-                    </p>
-                    {(lead.category || getLeadCnpjLabel(lead)) && (
+                      <CopyableText
+                        value={lead.name}
+                        copyLabel="Nome"
+                        className="min-w-0 flex-1"
+                        textClassName="truncate font-semibold text-[var(--atria-primary)]"
+                      />
+                    </div>
+                    {(lead.category || cnpjLabel) && (
                       <div className="mt-0.5 min-w-0 space-y-0.5">
-                        {getLeadCnpjLabel(lead) ? (
-                          <p className="truncate text-xs text-[var(--atria-primary)]/50">
-                            CNPJ {getLeadCnpjLabel(lead)}
-                          </p>
+                        {cnpjDigits ? (
+                          <CopyableText
+                            value={cnpjLabel ?? cnpjDigits}
+                            display={cnpjLabel ? `CNPJ ${cnpjLabel}` : cnpjDigits}
+                            copyLabel="CNPJ"
+                            textClassName="text-xs text-[var(--atria-primary)]/50"
+                          />
                         ) : null}
                         {lead.category ? (
                           <LeadCategoryText
                             lead={lead}
+                            copyable
                             primaryClassName="text-xs text-[var(--atria-primary)]/50"
                           />
                         ) : null}
                       </div>
                     )}
-                    {formatLeadRating(lead.rating, lead.reviewsCount) && (
-                      <p className="mt-0.5 text-xs text-[var(--atria-primary)]/50">
-                        {formatLeadRating(lead.rating, lead.reviewsCount)}
-                      </p>
-                    )}
+                    {ratingLabel ? (
+                      <CopyableText
+                        value={ratingLabel}
+                        copyLabel="Avaliação"
+                        textClassName="text-xs text-[var(--atria-primary)]/50"
+                      />
+                    ) : null}
                   </div>
                 </div>
                 <Badge variant={STATUS_VARIANTS[lead.status]}>
@@ -453,54 +452,45 @@ export function LeadsTable({
               </div>
 
               <div className="mt-3 min-w-0 space-y-1.5 text-sm text-[var(--atria-primary)]/70">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate">
-                    {lead.phone ?? "Sem telefone"}
+                {lead.phone ? (
+                  <CopyableText
+                    value={leadPhoneCopyValue(lead.phone)}
+                    display={lead.phone}
+                    copyLabel="Telefone"
+                  />
+                ) : (
+                  <span className="text-[var(--atria-primary)]/45">
+                    Sem telefone
                   </span>
-                  {lead.phone && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      className="shrink-0"
-                      onClick={() => void handleCopy(lead)}
-                      title="Copiar telefone"
-                    >
-                      {isCopied ? (
-                        <Check className="size-4 text-green-600" />
-                      ) : (
-                        <Copy className="size-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-                {lead.website && (
-                  <a
-                    href={
-                      lead.website.startsWith("http")
-                        ? lead.website
-                        : `https://${lead.website}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block truncate text-xs text-[var(--atria-primary)]/50 underline-offset-2 hover:underline"
-                  >
-                    {lead.website}
-                  </a>
                 )}
-                {lead.instagram && (
-                  <a
+                {lead.email ? (
+                  <CopyableText
+                    value={lead.email}
+                    copyLabel="E-mail"
+                    textClassName="text-xs text-[var(--atria-primary)]/50"
+                  />
+                ) : null}
+                {lead.website ? (
+                  <CopyableText
+                    value={lead.website}
+                    href={leadWebsiteHref(lead.website)}
+                    copyLabel="Website"
+                    textClassName="text-xs text-[var(--atria-primary)]/50"
+                  />
+                ) : null}
+                {lead.instagram ? (
+                  <CopyableText
+                    value={lead.instagram}
+                    display={formatInstagramHandle(lead.instagram)}
                     href={lead.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block truncate text-xs text-[var(--atria-primary)]/50 underline-offset-2 hover:underline"
-                  >
-                    {formatInstagramHandle(lead.instagram)}
-                  </a>
-                )}
+                    copyLabel="Instagram"
+                    textClassName="text-xs text-[var(--atria-primary)]/50"
+                  />
+                ) : null}
                 {(lead.neighborhood || lead.city || lead.address) && (
                   <LeadLocationText
                     lead={lead}
+                    copyable
                     primaryClassName="text-xs text-[var(--atria-primary)]/50"
                     showAddress={Boolean(lead.address)}
                   />
@@ -621,8 +611,13 @@ export function LeadsTable({
                 const position = (page - 1) * LEADS_PAGE_SIZE + index + 1;
                 const isQualifying = qualifyingId === lead.id;
                 const isAdding = addingKanbanId === lead.id;
-                const isCopied = copiedId === lead.id;
                 const onKanban = Boolean(lead.kanbanTracked);
+                const cnpjDigits = extractCnpjFromLead(lead);
+                const cnpjLabel = getLeadCnpjLabel(lead);
+                const ratingLabel = formatLeadRating(
+                  lead.rating,
+                  lead.reviewsCount,
+                );
 
                 return (
                   <TableRow key={lead.id}>
@@ -645,79 +640,88 @@ export function LeadsTable({
                           <span className="shrink-0 tabular-nums text-xs font-semibold text-[var(--atria-primary)]/40">
                             {position}
                           </span>
-                          <span className="truncate font-medium text-[var(--atria-primary)]">
-                            {lead.name}
-                          </span>
+                          <CopyableText
+                            value={lead.name}
+                            copyLabel="Nome"
+                            textClassName="truncate font-medium text-[var(--atria-primary)]"
+                          />
                         </div>
-                        {getLeadCnpjLabel(lead) ? (
-                          <p className="mt-0.5 truncate text-xs text-[var(--atria-primary)]/50">
-                            CNPJ {getLeadCnpjLabel(lead)}
-                          </p>
+                        {cnpjDigits ? (
+                          <div className="mt-0.5">
+                            <CopyableText
+                              value={cnpjLabel ?? cnpjDigits}
+                              display={
+                                cnpjLabel ? `CNPJ ${cnpjLabel}` : cnpjDigits
+                              }
+                              copyLabel="CNPJ"
+                              textClassName="text-xs text-[var(--atria-primary)]/50"
+                            />
+                          </div>
                         ) : null}
-                        {lead.website && (
-                          <a
-                            href={
-                              lead.website.startsWith("http")
-                                ? lead.website
-                                : `https://${lead.website}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-0.5 block truncate text-xs text-[var(--atria-primary)]/50 underline-offset-2 hover:underline"
-                          >
-                            {lead.website}
-                          </a>
-                        )}
+                        {lead.website ? (
+                          <div className="mt-0.5">
+                            <CopyableText
+                              value={lead.website}
+                              href={leadWebsiteHref(lead.website)}
+                              copyLabel="Website"
+                              textClassName="text-xs text-[var(--atria-primary)]/50"
+                            />
+                          </div>
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell className="max-w-[160px] text-[var(--atria-primary)]/70">
                       <div className="flex min-w-0 flex-col gap-0.5">
-                        <div className="flex min-w-0 items-center gap-1.5">
-                          <span className="min-w-0 flex-1 truncate">
-                            {lead.phone ?? "—"}
-                          </span>
-                          {lead.phone && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              className="shrink-0"
-                              onClick={() => void handleCopy(lead)}
-                              title="Copiar telefone"
-                            >
-                              {isCopied ? (
-                                <Check className="size-3.5 text-green-600" />
-                              ) : (
-                                <Copy className="size-3.5" />
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                        {lead.email && (
-                          <span className="min-w-0 truncate text-xs text-[var(--atria-primary)]/45">
-                            {lead.email}
-                          </span>
+                        {lead.phone ? (
+                          <CopyableText
+                            value={leadPhoneCopyValue(lead.phone)}
+                            display={lead.phone}
+                            copyLabel="Telefone"
+                          />
+                        ) : (
+                          <span>—</span>
                         )}
-                        {lead.instagram && (
-                          <a
+                        {lead.email ? (
+                          <CopyableText
+                            value={lead.email}
+                            copyLabel="E-mail"
+                            textClassName="text-xs text-[var(--atria-primary)]/45"
+                          />
+                        ) : null}
+                        {lead.instagram ? (
+                          <CopyableText
+                            value={lead.instagram}
+                            display={formatInstagramHandle(lead.instagram)}
                             href={lead.instagram}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="min-w-0 truncate text-xs text-[var(--atria-primary)]/45 underline-offset-2 hover:underline"
-                          >
-                            {formatInstagramHandle(lead.instagram)}
-                          </a>
-                        )}
+                            copyLabel="Instagram"
+                            textClassName="text-xs text-[var(--atria-primary)]/45"
+                          />
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell className="w-[180px] max-w-[180px] text-[var(--atria-primary)]/70">
-                      <LeadLocationText lead={lead} className="w-full" />
+                      <LeadLocationText
+                        lead={lead}
+                        copyable
+                        className="w-full"
+                      />
                     </TableCell>
                     <TableCell className="hidden w-[180px] max-w-[180px] text-[var(--atria-primary)]/70 lg:table-cell">
-                      <LeadCategoryText lead={lead} className="w-full" />
+                      <LeadCategoryText
+                        lead={lead}
+                        copyable
+                        className="w-full"
+                      />
                     </TableCell>
                     <TableCell className="hidden text-[var(--atria-primary)]/70 md:table-cell">
-                      {formatLeadRating(lead.rating, lead.reviewsCount) ?? "—"}
+                      {ratingLabel ? (
+                        <CopyableText
+                          value={ratingLabel}
+                          copyLabel="Avaliação"
+                        />
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={STATUS_VARIANTS[lead.status]}>

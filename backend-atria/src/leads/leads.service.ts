@@ -227,7 +227,7 @@ export class LeadsService {
         category: session.queryValue,
         neighborhood,
       },
-      Math.min(50, Math.max(targets.length, 15)),
+      Math.min(APIFY_MAX_RESULTS_LIMIT, Math.max(targets.length, 15)),
     );
 
     const matches = matchPlacesToCompanies(targets, places, (lead) => [
@@ -365,7 +365,12 @@ export class LeadsService {
   async fetchMaps(
     dto: FetchMapsLeadsDto,
   ): Promise<ReturnType<LeadsService['toLeadResponse']>[]> {
-    const places = await this.fetchPlacesFromExternalApi(dto);
+    const neighborhood = dto.neighborhood?.trim() || dto.city.trim();
+    const places = await this.mapsScraper.fetchPlacesForProspecting({
+      city: dto.city.trim(),
+      category: dto.category.trim(),
+      neighborhood,
+    });
     if (places.length === 0) {
       return [];
     }
@@ -406,7 +411,8 @@ export class LeadsService {
       created.push(lead);
     }
 
-    return created.map((lead) => this.toLeadResponse(lead));
+    const responses = created.map((lead) => this.toLeadResponse(lead));
+    return responses;
   }
 
   async findAll(

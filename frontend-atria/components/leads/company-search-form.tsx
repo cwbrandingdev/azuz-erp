@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Search } from "lucide-react";
-import { BRAZIL_STATES } from "@/lib/brazil-states";
+import { PROSPECT_CATALOG_STATES } from "@/lib/prospect-catalog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -51,7 +51,9 @@ export function CompanySearchForm({
           </CardTitle>
           <p className="text-sm text-[var(--atria-primary)]/50">
             Escolha o CNAE (incluindo subclasses, como estética), a cidade e
-            o estado. Os resultados vêm só do catálogo da Receita.
+            o estado. O catálogo cobre São Paulo e Paraná e retorna todas as
+            empresas que batem com o CNAE. Use &quot;Completar no Google&quot;
+            para site e Instagram quando faltar.
           </p>
         </div>
       </CardHeader>
@@ -95,7 +97,7 @@ export function CompanySearchForm({
                     <SelectValue placeholder="Selecione o estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    {BRAZIL_STATES.map((state) => (
+                    {PROSPECT_CATALOG_STATES.map((state) => (
                       <SelectItem key={state.uf} value={state.uf}>
                         {state.name}
                       </SelectItem>

@@ -236,7 +236,9 @@ export function ApiIntegrationsCustomizer() {
               Apify / Web Scraping
             </h2>
             <p className="text-sm text-[var(--atria-primary)]/50">
-              Token Apify para prospecção de leads no Google Maps
+              Token Apify para qualificação (Instagram e enriquecimento em
+              detalhe). A busca no Maps usa SerpApi (SERPAPI_API_KEY no
+              servidor).
             </p>
           </div>
         </div>

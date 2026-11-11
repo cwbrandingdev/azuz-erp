@@ -4,7 +4,9 @@ import { ApiError, refreshAuthSession } from "@/services/api";
 import type { Lead } from "@/services/types";
 
 const API_BASE_URL = resolveApiBaseUrl();
-const COMPANY_SEARCH_TIMEOUT_MS = 120_000;
+import { CNAE_SEARCH_TIMEOUT_MS } from "@/lib/lead-search-limits";
+
+const COMPANY_SEARCH_TIMEOUT_MS = CNAE_SEARCH_TIMEOUT_MS;
 const MAPS_ENRICH_TIMEOUT_MS = 210_000;
 
 export type LeadSearchQueryType = "NICHO" | "CNAE" | "MAPS";
@@ -49,6 +51,7 @@ export interface LeadSearchSessionDetail {
 export interface B2bLeadSearchResponse {
   session: LeadSearchSessionDetail;
   leads: Lead[];
+  totalCount: number;
 }
 
 async function companySearchRequest<T>(
@@ -125,7 +128,9 @@ export async function searchCompanies(
       city: input.city.trim(),
       uf: input.uf.trim().toUpperCase(),
       address: input.address?.trim() || undefined,
-      maxResults: input.maxResults,
+      ...(input.maxResults !== undefined
+        ? { maxResults: input.maxResults }
+        : {}),
     }),
   });
 }

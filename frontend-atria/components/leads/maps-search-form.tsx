@@ -40,9 +40,9 @@ export function MapsSearchForm({
 }: MapsSearchFormProps) {
   const loadingLabel =
     jobStatus === "processing"
-      ? "Processando busca..."
+      ? "Buscando até 100 empresas (site e Instagram)..."
       : jobStatus === "pending"
-        ? "Aguardando busca..."
+        ? "Aguardando busca alternativa..."
         : "Procurando empresas...";
 
   return (
@@ -55,8 +55,8 @@ export function MapsSearchForm({
             O que você está procurando?
           </CardTitle>
           <p className="text-sm text-[var(--atria-primary)]/50">
-            Informe a categoria, a cidade e o estado. Os resultados vêm do
-            Google Maps, com telefone, site e Instagram quando existirem.
+            Informe a categoria, a cidade e o estado. Até 100 resultados do
+            Google Maps com telefone, site e Instagram (via SerpApi).
           </p>
         </div>
       </CardHeader>

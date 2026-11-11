@@ -5,8 +5,8 @@ import type { DiscoveredCompanyCandidate } from '../domain/company-lookup.types'
 import { normalizeCatalogText } from '../domain/text-normalize';
 import { qualifyRegistryCompany } from '../../qualification/registry-company-qualifier';
 
-export const DEFAULT_CATALOG_MAX_RESULTS = 100;
-export const CATALOG_MAX_RESULTS_LIMIT = 100;
+/** Page size when loading the full catalog (unlimited search). */
+export const CATALOG_FETCH_BATCH_SIZE = 500;
 
 export interface CatalogSearchParams {
   queryValue: string;
@@ -29,7 +29,7 @@ export class ProspectCompanyCatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
   async search(params: CatalogSearchParams): Promise<CatalogCandidate[]> {
-    const take = this.resolveLimit(params.maxResults);
+    const take = this.resolveOptionalLimit(params.maxResults);
     const uf = params.uf.trim().toUpperCase();
     const cityNormalized = normalizeCatalogText(params.city);
     const neighborhoodNormalized = params.neighborhood
@@ -58,7 +58,7 @@ export class ProspectCompanyCatalogService {
     ];
 
     for (const stage of stages) {
-      if (collected.length >= take) {
+      if (take !== null && collected.length >= take) {
         break;
       }
       if (stage.useNeighborhood && !neighborhoodNormalized) {
@@ -75,28 +75,53 @@ export class ProspectCompanyCatalogService {
         continue;
       }
 
-      const rows = await this.prisma.prospectCompany.findMany({
-        where: this.buildWhere({
-          uf,
-          cityNormalized: stage.useCity ? cityNormalized : '',
-          neighborhoodNormalized: stage.useNeighborhood
-            ? neighborhoodNormalized
-            : '',
-          exactCodes,
-          prefixes,
-          cnaeMode: stage.cnaeMode,
-          excludeCnpjs: [...seen],
-        }),
-        orderBy: { blendedScore: 'desc' },
-        take: take - collected.length,
-      });
-
-      for (const row of rows) {
-        if (seen.has(row.cnpj)) {
-          continue;
+      let skip = 0;
+      while (true) {
+        if (take !== null && collected.length >= take) {
+          break;
         }
-        seen.add(row.cnpj);
-        collected.push(row);
+
+        const remaining =
+          take !== null ? take - collected.length : CATALOG_FETCH_BATCH_SIZE;
+        const batchTake = Math.min(CATALOG_FETCH_BATCH_SIZE, remaining);
+
+        const rows = await this.prisma.prospectCompany.findMany({
+          where: this.buildWhere({
+            uf,
+            cityNormalized: stage.useCity ? cityNormalized : '',
+            neighborhoodNormalized: stage.useNeighborhood
+              ? neighborhoodNormalized
+              : '',
+            exactCodes,
+            prefixes,
+            cnaeMode: stage.cnaeMode,
+            excludeCnpjs: [...seen],
+          }),
+          orderBy: { blendedScore: 'desc' },
+          take: batchTake,
+          skip,
+        });
+
+        if (rows.length === 0) {
+          break;
+        }
+
+        for (const row of rows) {
+          if (seen.has(row.cnpj)) {
+            continue;
+          }
+          seen.add(row.cnpj);
+          collected.push(row);
+          if (take !== null && collected.length >= take) {
+            break;
+          }
+        }
+
+        if (rows.length < batchTake) {
+          break;
+        }
+
+        skip += rows.length;
       }
     }
 
@@ -241,10 +266,11 @@ export class ProspectCompanyCatalogService {
     };
   }
 
-  private resolveLimit(maxResults?: number) {
-    if (!maxResults || maxResults <= 0) {
-      return DEFAULT_CATALOG_MAX_RESULTS;
+  /** `null` = no cap (return every catalog row matching the filters). */
+  private resolveOptionalLimit(maxResults?: number): number | null {
+    if (maxResults === undefined || maxResults === null || maxResults <= 0) {
+      return null;
     }
-    return Math.min(CATALOG_MAX_RESULTS_LIMIT, Math.round(maxResults));
+    return Math.round(maxResults);
   }
 }

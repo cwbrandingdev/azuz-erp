@@ -53,6 +53,11 @@ import { leadsService } from "@/services";
 import type { LeadSearchSessionSummary } from "@/services/company-search.service";
 import type { Lead } from "@/services/types";
 import {
+  MAPS_FETCH_TIMEOUT_MS,
+  MAX_LEADMINER_SEARCH_RESULTS,
+} from "@/lib/lead-search-limits";
+import { fetchMapsLeads } from "@/services/leads.service";
+import {
   importLeadMinerLeads,
   pollLeadMinerJob,
   startLeadMinerSearch,
@@ -102,8 +107,16 @@ function collectDistinctValues(
   return Array.from(values).sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
 
+const MAPS_PROSPECT_SOURCES = new Set([
+  "leadminer",
+  "serpapi",
+  "apify",
+  "outscraper",
+]);
+
 function isMapsLead(lead: Lead) {
-  return lead.source === "leadminer";
+  const source = lead.source?.trim().toLowerCase();
+  return Boolean(source && MAPS_PROSPECT_SOURCES.has(source));
 }
 
 function matchesQuery(lead: Lead, query: string) {
@@ -283,6 +296,7 @@ export function LeadsSearchPanel() {
 
   async function refreshSavedLeads() {
     await queryClient.invalidateQueries({ queryKey: PROSPECTING_LEADS_KEY });
+    await queryClient.refetchQueries({ queryKey: PROSPECTING_LEADS_KEY });
   }
 
   const categoryOptions = useMemo(
@@ -330,10 +344,77 @@ export function LeadsSearchPanel() {
   const canShowMap = Boolean(formValues.city.trim() && formValues.uf.trim());
   const loadingResults = loading || initialLoading;
 
+  async function rememberMapsSearch(
+    saved: Lead[],
+    context: ExternalLeadSearchContext,
+    uf: string,
+  ) {
+    if (saved.length === 0) return;
+    const record: MapsSearchRecord = {
+      id: crypto.randomUUID(),
+      category: context.category,
+      city: context.city,
+      neighborhood: context.neighborhood || context.city,
+      uf,
+      createdAt: new Date().toISOString(),
+      leadIds: saved.map((lead) => lead.id),
+    };
+    rememberSearch(record);
+    setSelectedSearchId(record.id);
+    setActiveSearchEmpty(false);
+    await refreshSavedLeads();
+    setExternalPreviewLeads([]);
+  }
+
+  async function runLeadMinerSearchFlow(
+    context: ExternalLeadSearchContext,
+    city: string,
+    neighborhood: string,
+    category: string,
+    uf: string,
+  ) {
+    const { job_id } = await startLeadMinerSearch({
+      city,
+      neighborhood,
+      category,
+      max_results: MAX_LEADMINER_SEARCH_RESULTS,
+    });
+
+    const job = await pollLeadMinerJob(job_id, (status) => {
+      setJobStatus(status);
+    });
+
+    if (job.status === "failed") {
+      toast.error(job.error ?? "Falha ao buscar leads.");
+      await refreshSavedLeads();
+      return;
+    }
+
+    const previewLeads =
+      job.data?.map((item, index) =>
+        leadMinerLeadToPreviewLead(item, context, index),
+      ) ?? [];
+    setExternalPreviewLeads(previewLeads);
+    setActiveSearchEmpty(previewLeads.length === 0);
+
+    if (previewLeads.length > 0) {
+      toast.success(
+        `${previewLeads.length} lead(s) encontrados para ${category}.`,
+      );
+    } else {
+      toast.info(`Nenhum lead encontrado para ${category}.`);
+    }
+
+    if (job.data && job.data.length > 0) {
+      void saveSearchLeads(job.data, context, uf);
+    }
+  }
+
   async function handleSearch() {
     const city = formValues.city.trim();
     const neighborhood = formValues.neighborhood.trim();
     const category = formValues.category.trim();
+    const uf = formValues.uf.trim();
 
     if (!city || !category) {
       toast.error("Preencha categoria e cidade para buscar leads.");
@@ -350,7 +431,7 @@ export function LeadsSearchPanel() {
     setActiveSearchEmpty(false);
     setSelectedSearchId(null);
     setLoading(true);
-    setJobStatus("pending");
+    setJobStatus("processing");
     setSearchContext(context);
     setExternalPreviewLeads([]);
     setFilterCategory(ALL_CATEGORIES);
@@ -358,44 +439,62 @@ export function LeadsSearchPanel() {
     setFilterQuery("");
 
     try {
-      const { job_id } = await startLeadMinerSearch({
-        city,
-        neighborhood,
-        category,
-        max_results: 50,
-      });
+      const saved = await fetchMapsLeads(
+        {
+          city,
+          category,
+          neighborhood: neighborhood || city,
+        },
+        { timeoutMs: MAPS_FETCH_TIMEOUT_MS },
+      );
 
-      const job = await pollLeadMinerJob(job_id, (status) => {
-        setJobStatus(status);
-      });
-
-      if (job.status === "failed") {
-        toast.error(job.error ?? "Falha ao buscar leads.");
-        await refreshSavedLeads();
-        return;
-      }
-
-      const previewLeads =
-        job.data?.map((item, index) =>
-          leadMinerLeadToPreviewLead(item, context, index),
-        ) ?? [];
-      setExternalPreviewLeads(previewLeads);
-      setActiveSearchEmpty(previewLeads.length === 0);
-      setLoading(false);
       setJobStatus(null);
+      setExternalPreviewLeads(saved);
+      setActiveSearchEmpty(saved.length === 0);
 
-      if (previewLeads.length > 0) {
+      if (saved.length > 0) {
+        const withSocial = saved.filter(
+          (lead) => lead.website?.trim() || lead.instagram?.trim(),
+        ).length;
         toast.success(
-          `${previewLeads.length} lead(s) encontrados para ${category}.`,
+          `${saved.length} lead(s) encontrados (${withSocial} com site ou Instagram).`,
         );
+        await rememberMapsSearch(saved, context, uf);
       } else {
         toast.info(`Nenhum lead encontrado para ${category}.`);
       }
-
-      if (job.data && job.data.length > 0) {
-        void saveSearchLeads(job.data, context, formValues.uf.trim());
-      }
     } catch (error) {
+      const useLeadMinerFallback =
+        error instanceof ApiError &&
+        (error.status === 400 || error.status === 408 || error.status === 502);
+
+      if (useLeadMinerFallback) {
+        setJobStatus("pending");
+        try {
+          await runLeadMinerSearchFlow(
+            context,
+            city,
+            neighborhood,
+            category,
+            uf,
+          );
+        } catch (fallbackError) {
+          if (!(fallbackError instanceof ApiError)) {
+            toast.error(
+              fallbackError instanceof Error
+                ? fallbackError.message
+                : "Falha ao buscar leads no Google Maps.",
+            );
+          }
+          try {
+            await refreshSavedLeads();
+          } catch {
+            /* toast handled by api */
+          }
+        }
+        return;
+      }
+
       if (!(error instanceof ApiError)) {
         toast.error(
           error instanceof Error
