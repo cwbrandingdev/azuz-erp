@@ -3,7 +3,6 @@
 import {
   ChevronDown,
   ChevronUp,
-  GripVertical,
   Lock,
   MessageCircle,
   MessagesSquare,
@@ -14,6 +13,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
+import { useAuth } from "@/contexts/auth-context";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
 import { CopyableText } from "@/components/ui/copyable-text";
 import {
@@ -21,6 +21,7 @@ import {
   getLeadCnpjLabel,
 } from "@/lib/lead-cnpj";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
+import { DragHandleStrip } from "@/components/kanban/drag-handle-strip";
 import { LeadMeetingDialog } from "@/components/leads/lead-meeting-dialog";
 import { LeadOrcamentoInput } from "@/components/leads/lead-orcamento-input";
 import { formatEventDateTime } from "@/lib/calendar-utils";
@@ -35,6 +36,9 @@ import {
   canMoveLeadToColumn,
   type CrmMoveZone,
 } from "@/lib/lead-pipeline-zones";
+import { toast } from "@/lib/toast";
+import { isMasterOrAdmin } from "@/lib/permissions";
+import { leadsService } from "@/services";
 import {
   isDialablePhone,
   toVivoDialString,
@@ -54,6 +58,7 @@ interface LeadKanbanCardProps {
   onCollapseChange: (leadId: string, isMinimized: boolean) => void;
   onOpenDetails: (lead: Lead) => void;
   onMeetingCreated?: (lead: Lead) => void;
+  onMeetingDeleted?: (lead: Lead) => void;
   onRemove?: (leadId: string) => void;
   showOrcamento?: boolean;
   showOwner?: boolean;
@@ -72,12 +77,19 @@ export function LeadKanbanCard({
   onCollapseChange,
   onOpenDetails,
   onMeetingCreated,
+  onMeetingDeleted,
   onRemove,
   showOrcamento = false,
   showOwner = false,
   onOrcamentoChange,
 }: LeadKanbanCardProps) {
   const confirm = useConfirm();
+  const { user } = useAuth();
+  const [deletingMeeting, setDeletingMeeting] = useState(false);
+  const canDeleteMeeting =
+    !portalClientView &&
+    Boolean(lead.meeting) &&
+    (lead.meeting?.createdById === user?.id || isMasterOrAdmin(user?.role));
   const [meetingOpen, setMeetingOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => isLeadCollapsed(lead));
   const [hovered, setHovered] = useState(false);
@@ -121,13 +133,51 @@ export function LeadKanbanCard({
     onRemove(lead.id);
   }
 
+  async function handleDeleteMeeting() {
+    const meeting = lead.meeting;
+    if (!meeting) return;
+    const confirmed = await confirm({
+      title: "Apagar reunião",
+      description: `Apagar a reunião "${meeting.title}"? O evento no Google Agenda não é apagado.`,
+      confirmLabel: "Apagar",
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    setDeletingMeeting(true);
+    try {
+      const updated = await leadsService.deleteLeadMeeting(lead.id, meeting.id);
+      onMeetingDeleted?.(updated);
+      toast.success("Reunião apagada.");
+    } catch {
+      // O erro já aparece em toast pela camada de API.
+    } finally {
+      setDeletingMeeting(false);
+    }
+  }
+
   return (
     <div
-      className="group relative rounded-xl border bg-white p-3 shadow-sm"
+      className="group relative rounded-xl border bg-white p-3 pl-9 shadow-sm"
       style={{ borderLeftWidth: 3, borderLeftColor: color }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {columnLocked ? (
+        <span
+          className="absolute inset-y-0 left-0 flex w-7 items-center justify-center text-[var(--atria-primary)]/25"
+          aria-hidden
+        >
+          <Lock className="size-4" />
+        </span>
+      ) : (
+        <DragHandleStrip
+          label="Arrastar lead"
+          className="absolute inset-y-0 left-0 w-7 rounded-l-xl rounded-r-none"
+          {...dragHandleProps}
+        />
+      )}
+
       {columnLocked && hovered && (
         <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-[var(--atria-primary)]/8 px-2 py-0.5 text-[10px] font-medium text-[var(--atria-primary)]/60">
           <Lock className="size-3" />
@@ -136,20 +186,6 @@ export function LeadKanbanCard({
       )}
 
       <div className="flex items-start gap-2">
-        {columnLocked ? (
-          <span className="mt-0.5 text-[var(--atria-primary)]/25" aria-hidden>
-            <Lock className="size-4" />
-          </span>
-        ) : (
-          <button
-            type="button"
-            className="mt-0.5 cursor-grab text-[var(--atria-primary)]/35 hover:text-[var(--atria-primary)]/70 active:cursor-grabbing"
-            aria-label="Arrastar lead"
-            {...dragHandleProps}
-          >
-            <GripVertical className="size-4" />
-          </button>
-        )}
         <div className="min-w-0 flex-1">
           <CopyableText
             value={lead.name}
@@ -319,9 +355,22 @@ export function LeadKanbanCard({
               <>
                 {lead.meeting && (
                   <div className="rounded-lg bg-[var(--atria-primary)]/[0.04] px-2 py-1.5 text-[11px] leading-snug text-[var(--atria-primary)]/75">
-                    <p className="truncate font-medium text-[var(--atria-primary)]">
-                      {lead.meeting.title}
-                    </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="truncate font-medium text-[var(--atria-primary)]">
+                        {lead.meeting.title}
+                      </p>
+                      {canDeleteMeeting && (
+                        <button
+                          type="button"
+                          aria-label="Apagar reunião"
+                          disabled={deletingMeeting}
+                          onClick={() => void handleDeleteMeeting()}
+                          className="shrink-0 rounded p-0.5 text-[var(--atria-primary)]/45 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      )}
+                    </div>
                     <p className="truncate">
                       {formatEventDateTime(lead.meeting.startAt)} ·{" "}
                       {lead.meeting.guestName}

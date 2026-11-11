@@ -57,11 +57,7 @@ export class LeadsController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ProspectingLeadsQueryDto,
   ) {
-    return this.leadsService.findKanbanBoard(
-      user,
-      query.organizationId,
-      query.ownerUserId,
-    );
+    return this.leadsService.findKanbanBoard(user, query);
   }
 
   @Get('cnae/search')
@@ -139,6 +135,15 @@ export class LeadsController {
     @Body() dto: CreateLeadMeetingDto,
   ) {
     return this.leadsService.createMeeting(user, id, dto);
+  }
+
+  @Delete(':id/meetings/:meetingId')
+  deleteMeeting(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('meetingId') meetingId: string,
+  ) {
+    return this.leadsService.deleteMeeting(user, id, meetingId);
   }
 
   @Post(':id/comments')

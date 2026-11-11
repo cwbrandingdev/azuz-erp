@@ -284,8 +284,10 @@ export function DialerProvider({ children }: { children: ReactNode }) {
 
   const skip = useCallback(() => {
     const callId = callLogIdRef.current;
-    skipWrapUpRef.current = true;
-    callRef.current?.disconnect();
+    if (callRef.current) {
+      skipWrapUpRef.current = true;
+      callRef.current.disconnect();
+    }
     if (callId) {
       void voiceService.updateLeadCall(callId, { outcome: "SKIPPED" });
     }
@@ -308,8 +310,10 @@ export function DialerProvider({ children }: { children: ReactNode }) {
   );
 
   const closeQueue = useCallback(() => {
-    skipWrapUpRef.current = true;
-    callRef.current?.disconnect();
+    if (callRef.current) {
+      skipWrapUpRef.current = true;
+      callRef.current.disconnect();
+    }
     callLogIdRef.current = null;
     setQueue([]);
     setCurrentIndex(0);
