@@ -22,7 +22,7 @@ import {
   matchesNameSearch,
   type KanbanFiltersState,
 } from "@/components/kanban/kanban-filters";
-import { CreateEventDialog } from "./create-event-dialog";
+import { CreateTaskDialog } from "@/components/kanban/create-task-dialog";
 import { CalendarEventStatusMenu } from "./calendar-event-status-menu";
 import { EventDetailDialog } from "./event-detail-dialog";
 import { CalendarDayView } from "./calendar-day-view";
@@ -395,11 +395,7 @@ export function TeamCalendar() {
             )}
           </button>
 
-          <CreateEventDialog
-            defaultDate={selectedDate}
-            defaultClientId={filters.clientId || null}
-            onSuccess={() => void refreshSyncedViews()}
-          />
+          <CreateTaskDialog onSuccess={() => void refreshSyncedViews()} />
         </div>
       </div>
 
