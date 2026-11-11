@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { FinanceSubnav } from "@/components/financial/finance-subnav";
 import { useChartOfAccounts } from "@/hooks/use-finance";
 import {
