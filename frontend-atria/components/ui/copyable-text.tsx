@@ -14,7 +14,7 @@ async function copyToClipboard(text: string, label: string) {
 interface CopyableTextProps {
   value: string | null | undefined;
   /** Shown in the UI (defaults to `value`). */
-  display?: string;
+  display?: string | null;
   /** Toast label, e.g. "Telefone". */
   copyLabel?: string;
   className?: string;
@@ -38,16 +38,17 @@ export function CopyableText({
   onClick,
 }: CopyableTextProps) {
   const [copied, setCopied] = useState(false);
-  const raw = value?.trim();
-  if (!raw) return null;
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
 
-  const shown = display?.trim() || raw;
+  const copyValue = trimmed;
+  const shown = display?.trim() || copyValue;
 
   async function handleCopy(event: React.MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
     try {
-      await copyToClipboard(raw, copyLabel);
+      await copyToClipboard(copyValue, copyLabel);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
