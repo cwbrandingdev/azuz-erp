@@ -5,7 +5,6 @@ import {
   Get,
   Param,
   Patch,
-  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -15,11 +14,7 @@ import {
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import {
-  CreateClientGroupDto,
-  UpdateClientGroupDto,
-} from './dto/client-group.dto';
-import { BulkImportClientGroupsDto } from './dto/bulk-import.dto';
+import { UpdateClientGroupDto } from './dto/client-group.dto';
 import { ClientGroupsService } from './client-groups.service';
 
 @Controller('client-groups')
@@ -38,16 +33,6 @@ export class ClientGroupsController {
   @Roles(...CLIENT_VIEW_AND_CREATE_ROLES)
   findOne(@Param('id') id: string) {
     return this.clientGroupsService.findOne(id);
-  }
-
-  @Post('bulk')
-  bulkImport(@Body() dto: BulkImportClientGroupsDto) {
-    return this.clientGroupsService.bulkImport(dto);
-  }
-
-  @Post()
-  create(@Body() dto: CreateClientGroupDto) {
-    return this.clientGroupsService.create(dto);
   }
 
   @Patch(':id')
