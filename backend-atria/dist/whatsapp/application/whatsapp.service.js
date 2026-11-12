@@ -253,6 +253,10 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
     async updateConversation(phone, patch) {
         return this.messages.updateConversation((0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone), patch);
     }
+    async deleteConversation(phone) {
+        await this.messages.deleteConversation((0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone));
+        return { success: true };
+    }
     listCannedResponses() {
         return this.messages.listCannedResponses();
     }

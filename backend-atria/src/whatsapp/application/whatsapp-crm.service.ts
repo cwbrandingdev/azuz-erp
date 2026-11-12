@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   ContractStatus,
   LeadStatus,
@@ -170,6 +170,36 @@ export class WhatsAppCrmService {
       actorUserId,
     });
     return this.toContact(updated);
+  }
+
+  async deleteContact(
+    phone: string,
+    companyId: string,
+    actorUserId?: string,
+  ): Promise<{ success: true }> {
+    const normalized = normalizeWhatsAppPhone(phone);
+    const lead = await this.findLeadByPhone(normalized, companyId);
+    if (!lead) {
+      throw new NotFoundException('Contato não encontrado para este número.');
+    }
+    await this.prisma.lead.update({
+      where: { id: lead.id },
+      data: {
+        deletedAt: new Date(),
+        deletedById: actorUserId ?? null,
+        kanbanTracked: false,
+      },
+    });
+    await this.logEvent({
+      companyId,
+      leadId: lead.id,
+      phone: normalized,
+      type: WhatsAppCrmEventType.FIELD_CHANGE,
+      title: 'Contato excluído',
+      body: lead.name,
+      actorUserId,
+    });
+    return { success: true };
   }
 
   async listStageMessages(

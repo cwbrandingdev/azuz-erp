@@ -300,6 +300,29 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     return this.toConversation(row);
   }
 
+  async deleteConversation(phone: string): Promise<void> {
+    const existing = await this.prisma.whatsAppConversation.findUnique({
+      where: { phone },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Conversation not found');
+    }
+    await this.prisma.$transaction([
+      this.prisma.whatsAppMessage.deleteMany({
+        where: {
+          OR: [
+            { conversationId: existing.id },
+            { fromPhone: phone },
+            { toPhone: phone },
+          ],
+        },
+      }),
+      this.prisma.whatsAppBotSession.deleteMany({ where: { phone } }),
+      this.prisma.whatsAppConversation.delete({ where: { id: existing.id } }),
+    ]);
+  }
+
   async markConversationRead(phone: string): Promise<void> {
     await this.prisma.whatsAppConversation.updateMany({
       where: { phone },

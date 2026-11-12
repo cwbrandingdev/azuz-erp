@@ -373,6 +373,18 @@ export class WhatsAppController {
     );
   }
 
+  @Delete('conversations/:phone/crm')
+  deleteCrmContact(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('phone') phone: string,
+  ) {
+    return this.crm.deleteContact(
+      phone,
+      user.companyId ?? '00000000-0000-4000-8000-000000000001',
+      user.userId,
+    );
+  }
+
   @Get('conversations/:phone')
   getConversation(
     @CurrentUser() user: AuthenticatedUser,
@@ -398,6 +410,11 @@ export class WhatsAppController {
             : null,
       labels: dto.labels,
     });
+  }
+
+  @Delete('conversations/:phone')
+  deleteConversation(@Param('phone') phone: string) {
+    return this.whatsAppService.deleteConversation(phone);
   }
 
   @Post('conversations/:phone/notes')

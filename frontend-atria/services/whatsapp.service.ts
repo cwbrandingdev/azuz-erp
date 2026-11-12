@@ -432,6 +432,24 @@ export async function updateConversation(
   );
 }
 
+export async function deleteConversation(
+  phone: string,
+): Promise<{ success: true }> {
+  return apiRequest<{ success: true }>(
+    `/whatsapp/conversations/${encodeURIComponent(phone)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function deleteCrmContact(
+  phone: string,
+): Promise<{ success: true }> {
+  return apiRequest<{ success: true }>(
+    `/whatsapp/conversations/${encodeURIComponent(phone)}/crm`,
+    { method: "DELETE" },
+  );
+}
+
 export async function listCannedResponses(): Promise<WhatsAppCannedResponse[]> {
   return apiRequest<WhatsAppCannedResponse[]>("/whatsapp/canned-responses");
 }

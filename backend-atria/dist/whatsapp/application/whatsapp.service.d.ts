@@ -35,6 +35,9 @@ export declare class WhatsAppService {
     listConversations(filter: ConversationListFilter, companyId?: string): Promise<WhatsAppConversationSummary[]>;
     getConversation(phone: string, companyId?: string): Promise<WhatsAppConversationSummary | null>;
     updateConversation(phone: string, patch: ConversationPatch): Promise<WhatsAppConversationSummary>;
+    deleteConversation(phone: string): Promise<{
+        success: true;
+    }>;
     listCannedResponses(): Promise<WhatsAppCannedResponseRecord[]>;
     createCannedResponse(input: {
         shortCode: string;

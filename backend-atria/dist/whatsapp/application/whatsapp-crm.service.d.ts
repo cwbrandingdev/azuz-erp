@@ -60,6 +60,9 @@ export declare class WhatsAppCrmService {
         source?: string;
         orcamento?: number | null;
     }, actorUserId?: string): Promise<WhatsAppCrmContact>;
+    deleteContact(phone: string, companyId: string, actorUserId?: string): Promise<{
+        success: true;
+    }>;
     listStageMessages(companyId: string): Promise<WhatsAppStageMessageRecord[]>;
     replaceStageMessages(companyId: string, rules: Array<{
         stageId: string;
