@@ -67,13 +67,13 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
   }
 
   if (isLoading) {
-    return <p className="text-xs text-slate-400">Carregando CRM…</p>;
+    return <p className="text-xs text-slate-400 dark:text-white/40">Carregando CRM…</p>;
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 dark:text-muted-foreground uppercase">
           Contato
         </p>
         <div className="flex flex-col gap-2">
@@ -141,7 +141,7 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
           />
         </div>
         {!contact ? (
-          <p className="mt-2 text-[11px] text-slate-400">
+          <p className="mt-2 text-[11px] text-slate-400 dark:text-white/40">
             Salve um nome para criar o lead neste número.
           </p>
         ) : (
@@ -149,7 +149,7 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
             type="button"
             variant="outline"
             size="sm"
-            className="mt-2 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+            className="mt-2 w-full border-red-200 dark:border-red-400/30 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-400/10 hover:text-red-800 dark:hover:text-red-300"
             onClick={() => setDeleteContactOpen(true)}
             disabled={deleteCrmContact.isPending}
           >
@@ -160,10 +160,10 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
       </div>
 
       {contact ? (
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+        <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-muted-foreground">
           Etapa do funil
           <select
-            className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-800"
+            className="h-8 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm text-slate-800 dark:text-foreground"
             value={contact.stageId ?? ""}
             onChange={(event) => {
               const stageId = event.target.value;
@@ -184,7 +184,7 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
               </option>
             ))}
           </select>
-          <span className="font-normal text-slate-400">
+          <span className="font-normal text-slate-400 dark:text-white/40">
             {LEAD_STATUS_LABELS[
               contact.status as keyof typeof LEAD_STATUS_LABELS
             ] ?? contact.status}
@@ -193,22 +193,22 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
       ) : null}
 
       <div>
-        <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 dark:text-muted-foreground uppercase">
           Histórico
         </p>
         {(data?.timeline ?? []).length === 0 ? (
-          <p className="text-[11px] text-slate-400">Sem interações ainda.</p>
+          <p className="text-[11px] text-slate-400 dark:text-white/40">Sem interações ainda.</p>
         ) : (
           <ol className="flex flex-col gap-2">
             {(data?.timeline ?? []).map((item) => (
-              <li key={item.id} className="border-l-2 border-slate-200 pl-2 text-[11px]">
-                <p className="font-medium text-slate-700">{item.title}</p>
+              <li key={item.id} className="border-l-2 border-slate-200 dark:border-border pl-2 text-[11px]">
+                <p className="font-medium text-slate-700 dark:text-foreground/85">{item.title}</p>
                 {item.body ? (
-                  <p className="line-clamp-3 whitespace-pre-wrap text-slate-500">
+                  <p className="line-clamp-3 whitespace-pre-wrap text-slate-500 dark:text-muted-foreground">
                     {item.body}
                   </p>
                 ) : null}
-                <p className="text-slate-400">
+                <p className="text-slate-400 dark:text-white/40">
                   {item.actorName ? `${item.actorName} · ` : ""}
                   {new Date(item.createdAt).toLocaleString("pt-BR", {
                     day: "2-digit",

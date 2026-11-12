@@ -276,7 +276,7 @@ export function WhatsappAutomationDialog({
           <DialogTitle>Automação WhatsApp</DialogTitle>
         </DialogHeader>
 
-        <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-xs">
+        <div className="flex gap-1 rounded-lg bg-slate-100 dark:bg-white/10 p-1 text-xs">
           {(
             [
               ["bot", "Fluxograma"],
@@ -290,7 +290,7 @@ export function WhatsappAutomationDialog({
               type="button"
               onClick={() => setTab(id)}
               className={`flex-1 rounded-md px-2 py-1.5 font-medium ${
-                tab === id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                tab === id ? "bg-white text-slate-900 dark:text-foreground shadow-sm" : "text-slate-500 dark:text-muted-foreground"
               }`}
             >
               {label}
@@ -300,7 +300,7 @@ export function WhatsappAutomationDialog({
 
         {tab === "bot" ? (
           <div className="flex flex-col gap-3 text-sm">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-muted-foreground">
               O bot atende conversas não atribuídas. Passos de menu enviam
               botões ou lista clicável no WhatsApp. Clique em um bloco no
               fluxograma para editar.
@@ -355,7 +355,7 @@ export function WhatsappAutomationDialog({
                 }}
               />
             ) : (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 dark:text-white/40">
                 Selecione um passo no fluxograma para editar.
               </p>
             )}
@@ -387,7 +387,7 @@ export function WhatsappAutomationDialog({
                 <Button
                   type="button"
                   variant="ghost"
-                  className="text-red-600"
+                  className="text-red-600 dark:text-red-400"
                   onClick={() => removeBotFlow.mutate(flow.id)}
                 >
                   Excluir fluxo
@@ -410,7 +410,7 @@ export function WhatsappAutomationDialog({
               onChange={(event) => setCampaignName(event.target.value)}
             />
             <textarea
-              className="min-h-20 w-full rounded-md border border-slate-200 p-2 text-sm"
+              className="min-h-20 w-full rounded-md border border-slate-200 dark:border-border p-2 text-sm"
               placeholder="Mensagem. Variáveis: {{primeiro_nome}} {{nome}}"
               value={campaignBody}
               onChange={(event) => setCampaignBody(event.target.value)}
@@ -427,7 +427,7 @@ export function WhatsappAutomationDialog({
                 onChange={(event) => setMatchSource(event.target.value)}
               />
               <select
-                className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm"
+                className="h-9 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
                 value={matchStageId}
                 onChange={(event) => setMatchStageId(event.target.value)}
               >
@@ -439,7 +439,7 @@ export function WhatsappAutomationDialog({
                 ))}
               </select>
               <select
-                className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm"
+                className="h-9 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
                 value={matchLeadStatus}
                 onChange={(event) => setMatchLeadStatus(event.target.value)}
               >
@@ -465,7 +465,7 @@ export function WhatsappAutomationDialog({
                 }
               />
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-muted-foreground">
               <button type="button" className="underline" onClick={() => void handlePreview()}>
                 Estimar alcance
                 {previewCount != null ? `: ${previewCount} contato(s)` : ""}
@@ -479,12 +479,12 @@ export function WhatsappAutomationDialog({
               {(broadcasts ?? []).map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-lg border border-slate-200 p-3"
+                  className="rounded-lg border border-slate-200 dark:border-border p-3"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <p className="font-medium">{item.name}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 dark:text-muted-foreground">
                         {BROADCAST_LABEL[item.status]} · enviados {item.sentCount} ·
                         entregues {item.deliveredCount} · lidos {item.readCount} ·
                         respostas {item.repliedCount} · falhas {item.failedCount}
@@ -517,7 +517,7 @@ export function WhatsappAutomationDialog({
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="text-red-600"
+                          className="text-red-600 dark:text-red-400"
                           onClick={() => removeBroadcast.mutate(item.id)}
                         >
                           Excluir
@@ -539,7 +539,7 @@ export function WhatsappAutomationDialog({
               onChange={(event) => setTriggerName(event.target.value)}
             />
             <select
-              className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm"
+              className="h-9 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
               value={triggerType}
               onChange={(event) =>
                 setTriggerType(event.target.value as WhatsAppTriggerEvent)
@@ -562,7 +562,7 @@ export function WhatsappAutomationDialog({
             />
             {triggerType === "POST_SALE" ? (
               <select
-                className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm"
+                className="h-9 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
                 value={triggerStageId}
                 onChange={(event) => setTriggerStageId(event.target.value)}
               >
@@ -575,12 +575,12 @@ export function WhatsappAutomationDialog({
               </select>
             ) : null}
             <textarea
-              className="min-h-16 w-full rounded-md border border-slate-200 p-2 text-sm"
+              className="min-h-16 w-full rounded-md border border-slate-200 dark:border-border p-2 text-sm"
               placeholder="Mensagem do gatilho"
               value={triggerBody}
               onChange={(event) => setTriggerBody(event.target.value)}
             />
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-white/40">
               Compromisso: minutos antes do evento. PIX/boleto: minutos após o
               vencimento. Carrinho: dispare pela API ou pelo teste abaixo.
             </p>
@@ -616,11 +616,11 @@ export function WhatsappAutomationDialog({
             {(triggers ?? []).map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between rounded-lg border border-slate-200 p-3"
+                className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-border p-3"
               >
                 <div>
                   <p className="font-medium">{item.name}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-muted-foreground">
                     {TRIGGER_LABEL[item.eventType]} · {item.delayMinutes} min ·{" "}
                     {item.enabled ? "ativo" : "pausado"}
                   </p>
@@ -640,7 +640,7 @@ export function WhatsappAutomationDialog({
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="text-red-600"
+                    className="text-red-600 dark:text-red-400"
                     onClick={() => removeTrigger.mutate(item.id)}
                   >
                     Excluir
@@ -662,7 +662,7 @@ export function WhatsappAutomationDialog({
               />
               <span>
                 <strong>Chatbot de qualificação</strong>
-                <span className="block text-xs text-slate-500">
+                <span className="block text-xs text-slate-500 dark:text-muted-foreground">
                   Responde automaticamente conversas sem atendente e transfere no
                   passo de handoff.
                 </span>
@@ -677,7 +677,7 @@ export function WhatsappAutomationDialog({
               />
               <span>
                 <strong>Resposta LLM + score preditivo</strong>
-                <span className="block text-xs text-slate-500">
+                <span className="block text-xs text-slate-500 dark:text-muted-foreground">
                   Se o bot não pegar a conversa, a IA responde e atualiza o score
                   do lead.
                 </span>

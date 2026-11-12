@@ -35,9 +35,9 @@ export function WhatsappCopilotBar({
   }
 
   return (
-    <div className="mb-2 rounded-lg border border-violet-100 bg-violet-50/70 p-2">
+    <div className="mb-2 rounded-lg border border-violet-100 dark:border-violet-400/20 bg-violet-50/70 dark:bg-violet-400/10 p-2">
       <div className="flex flex-wrap items-center gap-1">
-        <Sparkles className="mr-1 size-3.5 text-violet-600" />
+        <Sparkles className="mr-1 size-3.5 text-violet-600 dark:text-violet-300" />
         <Button
           type="button"
           size="sm"
@@ -69,7 +69,7 @@ export function WhatsappCopilotBar({
           Gramática
         </Button>
         <select
-          className="h-7 rounded-md border border-violet-200 bg-white px-1 text-[11px]"
+          className="h-7 rounded-md border border-violet-200 dark:border-violet-400/30 bg-white px-1 text-[11px]"
           value={tone}
           onChange={(event) =>
             setTone(event.target.value as "formal" | "casual" | "empathetic")
@@ -100,11 +100,11 @@ export function WhatsappCopilotBar({
           Resumir
         </Button>
         {runCopilot.isPending ? (
-          <span className="text-[11px] text-violet-600">Gerando…</span>
+          <span className="text-[11px] text-violet-600 dark:text-violet-300">Gerando…</span>
         ) : null}
       </div>
       {suggestion ? (
-        <div className="mt-2 rounded-md bg-white p-2 text-xs text-slate-700">
+        <div className="mt-2 rounded-md bg-white p-2 text-xs text-slate-700 dark:text-foreground/85">
           <p className="whitespace-pre-wrap">{suggestion}</p>
           <Button
             type="button"

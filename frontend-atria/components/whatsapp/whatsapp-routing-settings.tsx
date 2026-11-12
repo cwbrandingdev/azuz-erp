@@ -159,10 +159,10 @@ export function WhatsappRoutingSettings({
 
         <div className="flex flex-col gap-4 text-sm">
           <WhatsappSessionPanel active={open} />
-          <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-muted-foreground">
             Modo de atribuição
             <select
-              className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-800"
+              className="h-9 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm text-slate-800 dark:text-foreground"
               value={mode}
               onChange={(event) =>
                 setMode(event.target.value as WhatsAppRoutingMode)
@@ -174,13 +174,13 @@ export function WhatsappRoutingSettings({
                 </option>
               ))}
             </select>
-            <span className="font-normal text-slate-400">
+            <span className="font-normal text-slate-400 dark:text-white/40">
               {MODE_OPTIONS.find((item) => item.id === mode)?.hint}
             </span>
           </label>
 
           <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-muted-foreground">
               SLA 1ª resposta (min)
               <Input
                 type="number"
@@ -189,7 +189,7 @@ export function WhatsappRoutingSettings({
                 onChange={(event) => setSla(Number(event.target.value) || 1)}
               />
             </label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+            <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-muted-foreground">
               Reatribuir após (min)
               <Input
                 type="number"
@@ -202,7 +202,7 @@ export function WhatsappRoutingSettings({
             </label>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-foreground/85">
             <input
               type="checkbox"
               checked={autoReassign}
@@ -211,11 +211,11 @@ export function WhatsappRoutingSettings({
             Reatribuir automaticamente se o atendente não responder
           </label>
 
-          <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-muted-foreground">
             Pool de atendentes (vazio = todos)
             <select
               multiple
-              className="h-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm"
+              className="h-28 rounded-md border border-slate-200 dark:border-border bg-white px-2 py-1 text-sm"
               value={agentIds}
               onChange={(event) =>
                 setAgentIds(
@@ -234,7 +234,7 @@ export function WhatsappRoutingSettings({
           {mode === "SPECIALTY" ? (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-slate-500">
+                <p className="text-xs font-medium text-slate-500 dark:text-muted-foreground">
                   Regras (etiqueta / funil / origem)
                 </p>
                 <Button
@@ -247,14 +247,14 @@ export function WhatsappRoutingSettings({
                 </Button>
               </div>
               {draftRules.length === 0 ? (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 dark:text-white/40">
                   Sem regras. Round-robin no pool será usado como fallback.
                 </p>
               ) : (
                 draftRules.map((rule, index) => (
                   <div
                     key={index}
-                    className="grid gap-2 rounded-lg border border-slate-200 p-2"
+                    className="grid gap-2 rounded-lg border border-slate-200 dark:border-border p-2"
                   >
                     <Input
                       placeholder="Etiqueta (ex: VIP)"
@@ -270,7 +270,7 @@ export function WhatsappRoutingSettings({
                       }
                     />
                     <select
-                      className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm"
+                      className="h-8 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
                       value={rule.matchStageId ?? ""}
                       onChange={(event) =>
                         setDraftRules((current) =>
@@ -303,7 +303,7 @@ export function WhatsappRoutingSettings({
                       }
                     />
                     <select
-                      className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm"
+                      className="h-8 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
                       value={rule.targetUserGroupId ?? ""}
                       onChange={(event) =>
                         setDraftRules((current) =>
@@ -323,7 +323,7 @@ export function WhatsappRoutingSettings({
                       ))}
                     </select>
                     <select
-                      className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm"
+                      className="h-8 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
                       value={rule.targetUserId ?? ""}
                       onChange={(event) =>
                         setDraftRules((current) =>
@@ -361,19 +361,19 @@ export function WhatsappRoutingSettings({
           ) : null}
 
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-slate-500 dark:text-muted-foreground">
               Mensagem ao mover o card no funil
             </p>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-400 dark:text-white/40">
               Use {"{{primeiro_nome}}"}, {"{{nome}}"}, {"{{valor_proposta}}"},
               {" {{etapa}}"}, {"{{origem}}"}, {"{{cnpj}}"}, {"{{cargo}}"}.
             </p>
             {stageDrafts.map((item, index) => (
               <div
                 key={item.stageId}
-                className="rounded-lg border border-slate-200 p-2"
+                className="rounded-lg border border-slate-200 dark:border-border p-2"
               >
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-foreground/85">
                   <input
                     type="checkbox"
                     checked={item.enabled}
@@ -390,7 +390,7 @@ export function WhatsappRoutingSettings({
                   {item.stageName}
                 </label>
                 <textarea
-                  className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1 text-xs"
+                  className="mt-1 w-full rounded-md border border-slate-200 dark:border-border px-2 py-1 text-xs"
                   rows={2}
                   placeholder="Texto enviado quando o card entra nesta etapa"
                   value={item.body ?? ""}

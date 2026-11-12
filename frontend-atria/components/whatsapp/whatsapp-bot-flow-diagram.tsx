@@ -17,11 +17,11 @@ const TYPE_STYLE: Record<
   WhatsAppBotNodeType,
   { label: string; className: string }
 > = {
-  message: { label: "Mensagem", className: "border-slate-300 bg-white" },
-  menu: { label: "Menu", className: "border-violet-300 bg-violet-50" },
-  question: { label: "Pergunta", className: "border-sky-300 bg-sky-50" },
+  message: { label: "Mensagem", className: "border-slate-300 dark:border-white/20 bg-white" },
+  menu: { label: "Menu", className: "border-violet-300 dark:border-violet-400/40 bg-violet-50 dark:bg-violet-400/10" },
+  question: { label: "Pergunta", className: "border-sky-300 dark:border-sky-400/40 bg-sky-50 dark:bg-sky-400/10" },
   ai: { label: "IA", className: "border-fuchsia-300 bg-fuchsia-50" },
-  handoff: { label: "Transferir", className: "border-amber-300 bg-amber-50" },
+  handoff: { label: "Transferir", className: "border-amber-300 dark:border-amber-400/40 bg-amber-50 dark:bg-amber-400/10" },
 };
 
 type Edge = { from: string; to: string; label?: string };
@@ -147,14 +147,14 @@ export function WhatsappBotFlowDiagram({
 
   if (definition.nodes.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+      <p className="rounded-lg border border-dashed border-slate-200 dark:border-border px-4 py-8 text-center text-sm text-slate-500 dark:text-muted-foreground">
         Adicione passos ao fluxo para ver o diagrama.
       </p>
     );
   }
 
   return (
-    <div className="overflow-auto rounded-lg border border-slate-200 bg-slate-50/80">
+    <div className="overflow-auto rounded-lg border border-slate-200 dark:border-border bg-slate-50/80 dark:bg-white/5">
       <div
         className="relative"
         style={{
@@ -227,7 +227,7 @@ export function WhatsappBotFlowDiagram({
               }}
             >
               <span className="flex items-center justify-between gap-1">
-                <span className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                <span className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-muted-foreground">
                   {style.label}
                 </span>
                 {isStart ? (
@@ -236,10 +236,10 @@ export function WhatsappBotFlowDiagram({
                   </span>
                 ) : null}
               </span>
-              <span className="truncate text-xs font-semibold text-slate-800">
+              <span className="truncate text-xs font-semibold text-slate-800 dark:text-foreground">
                 {node.id}
               </span>
-              <span className="line-clamp-2 text-[10px] leading-tight text-slate-600">
+              <span className="line-clamp-2 text-[10px] leading-tight text-slate-600 dark:text-muted-foreground">
                 {previewText(node)}
               </span>
             </button>

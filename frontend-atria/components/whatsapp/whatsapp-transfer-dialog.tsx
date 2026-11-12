@@ -71,14 +71,14 @@ export function WhatsappTransferDialog({
         <DialogHeader>
           <DialogTitle>Transferir conversa</DialogTitle>
         </DialogHeader>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-muted-foreground">
           A nota de contexto é obrigatória. O próximo atendente vê isso como
           nota privada.
         </p>
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+        <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-muted-foreground">
           Atendente
           <select
-            className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm"
+            className="h-9 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
             value={targetUserId}
             onChange={(event) => {
               setTargetUserId(event.target.value);
@@ -93,10 +93,10 @@ export function WhatsappTransferDialog({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+        <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-muted-foreground">
           Ou setor
           <select
-            className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm"
+            className="h-9 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
             value={targetGroupId}
             onChange={(event) => {
               setTargetGroupId(event.target.value);
@@ -112,7 +112,7 @@ export function WhatsappTransferDialog({
           </select>
         </label>
         <textarea
-          className="min-h-24 w-full rounded-md border border-slate-200 p-2 text-sm"
+          className="min-h-24 w-full rounded-md border border-slate-200 dark:border-border p-2 text-sm"
           placeholder="O que já foi combinado, o que falta e por que está passando"
           value={note}
           onChange={(event) => setNote(event.target.value)}
