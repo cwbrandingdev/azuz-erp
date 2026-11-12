@@ -72,7 +72,7 @@ export function WhatsappCannedManager({
             onChange={(event) => setContent(event.target.value)}
             placeholder="Texto ou legenda da mídia"
             rows={3}
-            className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-md border border-slate-200 dark:border-border px-3 py-2 text-sm"
           />
           <input
             type="file"
@@ -89,18 +89,18 @@ export function WhatsappCannedManager({
         </form>
         <div className="mt-4 flex flex-col gap-2">
           {canned.length === 0 ? (
-            <p className="text-xs text-slate-400">Nenhuma resposta pronta.</p>
+            <p className="text-xs text-slate-400 dark:text-white/40">Nenhuma resposta pronta.</p>
           ) : (
             canned.map((item) => (
               <div
                 key={item.id}
-                className="flex items-start justify-between gap-2 rounded-md border border-slate-100 px-2 py-1.5"
+                className="flex items-start justify-between gap-2 rounded-md border border-slate-100 dark:border-border px-2 py-1.5"
               >
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-slate-700">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-foreground/85">
                     /{item.shortCode} · {item.title}
                   </p>
-                  <p className="truncate text-[11px] text-slate-500">
+                  <p className="truncate text-[11px] text-slate-500 dark:text-muted-foreground">
                     {item.mediaFilename
                       ? `${item.kind} · ${item.mediaFilename}`
                       : item.content}

@@ -42,6 +42,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ProposalsModule } from './proposals/proposals.module';
 import { ReportsModule } from './reports/reports.module';
 import { SettingsModule } from './settings/settings.module';
+import { SiteLeadsModule } from './site-leads/site-leads.module';
 import { SlaModule } from './sla/sla.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
 import { SupabaseModule } from './supabase/supabase.module';
@@ -107,6 +108,7 @@ import { MediaModule } from './common/media/media.module';
     ProposalsModule,
     ReportsModule,
     SettingsModule,
+    SiteLeadsModule,
     SuggestionsModule,
     UserGroupsModule,
     UsersModule,

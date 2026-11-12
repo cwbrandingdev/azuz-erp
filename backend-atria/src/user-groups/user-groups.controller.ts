@@ -5,7 +5,6 @@ import {
   Get,
   Param,
   Patch,
-  Post,
   UseGuards,
 } from '@nestjs/common';
 import { INTERNAL_STAFF_ROLES, USER_MANAGEMENT_ROLES } from '../auth/constants/roles';
@@ -13,7 +12,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
-  CreateUserGroupDto,
   UpdateUserGroupDto,
   AddUserGroupMembersDto,
 } from '../users/dto/user.dto';
@@ -35,12 +33,6 @@ export class UserGroupsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userGroupsService.findOne(id);
-  }
-
-  @Post()
-  @Roles(...USER_MANAGEMENT_ROLES)
-  create(@Body() dto: CreateUserGroupDto) {
-    return this.userGroupsService.create(dto);
   }
 
   @Patch(':id')

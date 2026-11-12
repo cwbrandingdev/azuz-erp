@@ -104,21 +104,21 @@ export function WhatsappSessionPanel({ active }: { active: boolean }) {
   const label = status ? (STATUS_LABEL[status] ?? status) : "Sem status";
 
   return (
-    <section className="rounded-lg border border-slate-200 p-3">
-      <p className="text-xs font-medium text-slate-500">Número do WhatsApp</p>
+    <section className="rounded-lg border border-slate-200 dark:border-border p-3">
+      <p className="text-xs font-medium text-slate-500 dark:text-muted-foreground">Número do WhatsApp</p>
       {session.isLoading ? (
-        <p className="mt-2 text-xs text-slate-400">Consultando a sessão…</p>
+        <p className="mt-2 text-xs text-slate-400 dark:text-white/40">Consultando a sessão…</p>
       ) : session.isError ? (
-        <p className="mt-2 text-xs text-red-600">
+        <p className="mt-2 text-xs text-red-600 dark:text-red-400">
           Não foi possível falar com o WAHA. Confira se o serviço está no ar.
         </p>
       ) : session.data && !session.data.configured ? (
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-slate-500 dark:text-muted-foreground">
           Defina WAHA_BASE_URL e WAHA_API_KEY no backend.
         </p>
       ) : (
         <div className="mt-2 flex flex-col gap-2">
-          <p className="text-sm text-slate-800">
+          <p className="text-sm text-slate-800 dark:text-foreground">
             {label}
             {session.data?.phone ? ` · ${session.data.phone}` : ""}
             {session.data?.pushName ? ` · ${session.data.pushName}` : ""}
@@ -129,12 +129,12 @@ export function WhatsappSessionPanel({ active }: { active: boolean }) {
                 <img
                   src={qrUrl}
                   alt="QR Code para parear o WhatsApp"
-                  className="size-52 rounded-md border border-slate-200 bg-white"
+                  className="size-52 rounded-md border border-slate-200 dark:border-border bg-white"
                 />
               ) : (
-                <p className="text-xs text-slate-400">Carregando QR…</p>
+                <p className="text-xs text-slate-400 dark:text-white/40">Carregando QR…</p>
               )}
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-400 dark:text-white/40">
                 No celular: WhatsApp, Aparelhos conectados, Conectar aparelho.
               </p>
             </div>

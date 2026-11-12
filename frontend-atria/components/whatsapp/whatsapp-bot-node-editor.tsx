@@ -31,9 +31,9 @@ export function WhatsappBotNodeEditor({
   onRemove: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3">
+    <div className="rounded-lg border border-slate-200 dark:border-border bg-white p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-slate-700">{node.id}</span>
+        <span className="text-xs font-semibold text-slate-700 dark:text-foreground/85">{node.id}</span>
         <div className="flex gap-2">
           {!isStart ? (
             <Button type="button" size="sm" variant="outline" onClick={onSetStart}>
@@ -46,7 +46,7 @@ export function WhatsappBotNodeEditor({
           )}
           <button
             type="button"
-            className="text-xs text-red-600"
+            className="text-xs text-red-600 dark:text-red-400"
             onClick={onRemove}
           >
             Remover
@@ -55,7 +55,7 @@ export function WhatsappBotNodeEditor({
       </div>
       <div className="grid grid-cols-2 gap-2">
         <select
-          className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
+          className="h-8 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-xs"
           value={node.type}
           onChange={(event) =>
             onUpdate({ type: event.target.value as WhatsAppBotNodeType })
@@ -68,7 +68,7 @@ export function WhatsappBotNodeEditor({
           ))}
         </select>
         <select
-          className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
+          className="h-8 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-xs"
           value={node.nextId ?? ""}
           onChange={(event) =>
             onUpdate({ nextId: event.target.value || null })
@@ -85,7 +85,7 @@ export function WhatsappBotNodeEditor({
         </select>
       </div>
       <textarea
-        className="mt-2 min-h-16 w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+        className="mt-2 min-h-16 w-full rounded-md border border-slate-200 dark:border-border bg-white p-2 text-sm"
         placeholder="Texto (use {{primeiro_nome}})"
         value={node.text ?? ""}
         onChange={(event) => onUpdate({ text: event.target.value })}
@@ -100,7 +100,7 @@ export function WhatsappBotNodeEditor({
       ) : null}
       {node.type === "menu" ? (
         <>
-          <p className="mt-2 text-[10px] text-slate-500">
+          <p className="mt-2 text-[10px] text-slate-500 dark:text-muted-foreground">
             No WhatsApp: até 3 opções viram botões; de 4 a 10 viram lista
             clicável. Títulos longos são encurtados automaticamente.
           </p>
@@ -133,7 +133,7 @@ export function WhatsappBotNodeEditor({
                 }}
               />
               <select
-                className="h-8 rounded-md border border-slate-200 bg-white px-1 text-xs"
+                className="h-8 rounded-md border border-slate-200 dark:border-border bg-white px-1 text-xs"
                 value={option.nextId ?? ""}
                 onChange={(event) => {
                   const options = [...(node.options ?? [])];

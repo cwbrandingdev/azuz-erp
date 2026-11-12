@@ -218,7 +218,7 @@ function MessageBody({
         <p
           className={cn(
             "mt-1 text-[11px] italic",
-            outbound ? "text-white/80" : "text-slate-500",
+            outbound ? "text-white/80" : "text-slate-500 dark:text-muted-foreground",
           )}
         >
           Transcrição: {message.transcription}
@@ -234,7 +234,7 @@ function NoteBody({ body }: { body: string }) {
     <p className="whitespace-pre-wrap">
       {parts.map((part, index) =>
         part.startsWith("@") ? (
-          <span key={index} className="font-semibold text-amber-800">
+          <span key={index} className="font-semibold text-amber-800 dark:text-amber-200">
             {part}
           </span>
         ) : (
@@ -246,14 +246,14 @@ function NoteBody({ body }: { body: string }) {
 }
 
 function StatusTicks({ status }: { status: string }) {
-  if (status === "FAILED") return <span className="text-red-500">!</span>;
+  if (status === "FAILED") return <span className="text-red-500 dark:text-red-400">!</span>;
   if (status === "READ") {
-    return <CheckCheck className="size-3.5 text-sky-500" />;
+    return <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-300" />;
   }
   if (status === "DELIVERED") {
-    return <CheckCheck className="size-3.5 text-black/40" />;
+    return <CheckCheck className="size-3.5 text-black/40 dark:text-white/40" />;
   }
-  return <Check className="size-3.5 text-black/40" />;
+  return <Check className="size-3.5 text-black/40 dark:text-white/40" />;
 }
 
 export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
@@ -477,9 +477,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   }
 
   return (
-    <div className="-m-4 flex h-[calc(100dvh-3.5rem)] overflow-hidden border border-black/5 bg-white lg:-m-6 lg:h-[calc(100dvh-4rem)] xl:-m-8">
-      <aside className="flex w-full max-w-[360px] shrink-0 flex-col border-r border-black/10 bg-[#f8f9fc]">
-        <div className="flex items-center justify-between gap-2 border-b border-black/5 bg-white px-3 py-3">
+    <div className="-m-4 flex h-[calc(100dvh-3.5rem)] overflow-hidden border border-black/5 dark:border-border bg-white lg:-m-6 lg:h-[calc(100dvh-4rem)] xl:-m-8">
+      <aside className="flex w-full max-w-[360px] shrink-0 flex-col border-r border-black/10 dark:border-border bg-[#f8f9fc] dark:bg-card">
+        <div className="flex items-center justify-between gap-2 border-b border-black/5 dark:border-border bg-white px-3 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -519,10 +519,10 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
               </DropdownMenuContent>
             </DropdownMenu>
             <div className="min-w-0">
-              <h1 className="truncate text-base font-semibold text-slate-800">
+              <h1 className="truncate text-base font-semibold text-slate-800 dark:text-foreground">
                 Conversas
               </h1>
-              <p className="text-xs text-slate-500">Inbox compartilhada</p>
+              <p className="text-xs text-slate-500 dark:text-muted-foreground">Inbox compartilhada</p>
             </div>
           </div>
           <Button
@@ -536,7 +536,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
           </Button>
         </div>
 
-        <div className="flex gap-1 overflow-x-auto border-b border-black/5 bg-white px-2 py-2">
+        <div className="flex gap-1 overflow-x-auto border-b border-black/5 dark:border-border bg-white px-2 py-2">
           {TABS.map((item) => (
             <button
               key={item.id}
@@ -546,7 +546,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                 "rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap",
                 tab === item.id
                   ? "bg-[var(--atria-primary)] text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                  : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-muted-foreground hover:bg-slate-200 dark:hover:bg-white/15",
               )}
             >
               {item.label}
@@ -555,19 +555,19 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
           ))}
         </div>
 
-        <div className="border-b border-black/5 px-3 py-2">
+        <div className="border-b border-black/5 dark:border-border px-3 py-2">
           <div className="relative">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400 dark:text-white/40" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Buscar conversas"
-              className="h-9 rounded-lg border-slate-200 bg-white pl-9"
+              className="h-9 rounded-lg border-slate-200 dark:border-border bg-white pl-9"
             />
           </div>
           <div className="mt-2 grid grid-cols-2 gap-1">
             <select
-              className="h-7 rounded-md border border-slate-200 bg-white px-1 text-[11px]"
+              className="h-7 rounded-md border border-slate-200 dark:border-border bg-white px-1 text-[11px]"
               value={operatorId}
               onChange={(event) => setOperatorId(event.target.value)}
             >
@@ -585,7 +585,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
               className="h-7 text-[11px]"
             />
             <select
-              className="h-7 rounded-md border border-slate-200 bg-white px-1 text-[11px]"
+              className="h-7 rounded-md border border-slate-200 dark:border-border bg-white px-1 text-[11px]"
               value={stageId}
               onChange={(event) => setStageId(event.target.value)}
             >
@@ -597,7 +597,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
               ))}
             </select>
             <select
-              className="h-7 rounded-md border border-slate-200 bg-white px-1 text-[11px]"
+              className="h-7 rounded-md border border-slate-200 dark:border-border bg-white px-1 text-[11px]"
               value={leadStatus}
               onChange={(event) => setLeadStatus(event.target.value)}
             >
@@ -619,11 +619,11 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {isLoading ? (
-            <p className="px-4 py-8 text-center text-sm text-slate-400">
+            <p className="px-4 py-8 text-center text-sm text-slate-400 dark:text-white/40">
               Carregando...
             </p>
           ) : conversations.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-slate-400">
+            <p className="px-4 py-8 text-center text-sm text-slate-400 dark:text-white/40">
               Nenhuma conversa neste filtro.
             </p>
           ) : (
@@ -635,20 +635,20 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   type="button"
                   onClick={() => setSelectedPhone(conversation.phone)}
                   className={cn(
-                    "flex w-full gap-3 border-b border-black/5 px-4 py-3 text-left hover:bg-white",
+                    "flex w-full gap-3 border-b border-black/5 dark:border-border px-4 py-3 text-left hover:bg-white dark:hover:bg-white/10",
                     active &&
-                      "bg-white shadow-[inset_3px_0_0_var(--atria-primary)]",
+                      "bg-white shadow-[inset_3px_0_0_var(--atria-primary)] dark:bg-white/10!",
                   )}
                 >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-white/15 text-xs font-semibold text-slate-700 dark:text-foreground/85">
                     {displayName(conversation).slice(0, 2).toUpperCase()}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium text-slate-800">
+                      <span className="truncate text-sm font-medium text-slate-800 dark:text-foreground">
                         {displayName(conversation)}
                       </span>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-slate-400 dark:text-white/40">
                         {formatTime(conversation.lastMessageAt)}
                       </span>
                     </span>
@@ -662,7 +662,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                             />
                           </span>
                         ) : null}
-                        <span className="truncate text-[13px] text-slate-500">
+                        <span className="truncate text-[13px] text-slate-500 dark:text-muted-foreground">
                           {conversation.lastMessage || "Sem mensagens"}
                         </span>
                       </span>
@@ -677,7 +677,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                         {conversation.labels.slice(0, 3).map((label) => (
                           <span
                             key={label}
-                            className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600"
+                            className="rounded bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 text-[10px] text-slate-600 dark:text-muted-foreground"
                           >
                             {label}
                           </span>
@@ -692,17 +692,17 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col bg-[#f4f6fb]">
+      <section className="flex min-w-0 flex-1 flex-col bg-[#f4f6fb] dark:bg-background">
         {selectedPhone ? (
           <>
-            <header className="flex items-center justify-between gap-3 border-b border-black/5 bg-white px-4 py-3">
+            <header className="flex items-center justify-between gap-3 border-b border-black/5 dark:border-border bg-white px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-sm font-semibold text-slate-800 dark:text-foreground">
                   {selected
                     ? displayName(selected)
                     : formatPhone(selectedPhone)}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground">
                   {formatPhone(selectedPhone)}
                 </p>
               </div>
@@ -725,7 +725,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   )}
                 </Button>
                 <select
-                  className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
+                  className="h-8 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-xs"
                   value={selected?.status ?? "OPEN"}
                   onChange={(event) => {
                     const status = event.target.value as WhatsAppInboxStatus;
@@ -762,7 +762,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="border-red-200 text-red-700 hover:bg-red-50"
+                  className="border-red-200 dark:border-red-400/30 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-400/10"
                   onClick={() => setDeleteConvoOpen(true)}
                   disabled={deleteConversation.isPending}
                 >
@@ -778,9 +778,9 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   return (
                     <div
                       key={message.id}
-                      className="mx-auto mb-2 max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+                      className="mx-auto mb-2 max-w-xl rounded-lg border border-amber-200 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100"
                     >
-                      <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                      <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
                         <StickyNote className="size-3" />
                         Nota privada
                         {message.sentByName ? ` · ${message.sentByName}` : ""}
@@ -803,14 +803,14 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                         "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-base shadow-sm",
                         outbound
                           ? "rounded-br-md bg-[var(--atria-primary)] text-white"
-                          : "rounded-bl-md bg-white text-slate-800",
+                          : "rounded-bl-md bg-white text-slate-800 dark:text-foreground",
                       )}
                     >
                       <MessageBody message={message} outbound={outbound} />
                       <span
                         className={cn(
                           "mt-1 flex items-center justify-end gap-1 text-[11px]",
-                          outbound ? "text-white/70" : "text-slate-400",
+                          outbound ? "text-white/70" : "text-slate-400 dark:text-white/40",
                         )}
                       >
                         {formatTime(message.createdAt)}
@@ -826,7 +826,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
             </div>
 
             <form
-              className="border-t border-black/5 bg-white px-3 py-2"
+              className="border-t border-black/5 dark:border-border bg-white px-3 py-2"
               onSubmit={(event) => void handleSubmit(event)}
             >
               <div className="mb-2 flex gap-1">
@@ -836,8 +836,8 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   className={cn(
                     "rounded-md px-3 py-1 text-xs font-medium",
                     mode === "reply"
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-500 hover:bg-slate-100",
+                      ? "bg-slate-900 dark:bg-white/15 text-white"
+                      : "text-slate-500 dark:text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/10",
                   )}
                 >
                   Responder
@@ -849,14 +849,14 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                     "rounded-md px-3 py-1 text-xs font-medium",
                     mode === "note"
                       ? "bg-amber-600 text-white"
-                      : "text-slate-500 hover:bg-slate-100",
+                      : "text-slate-500 dark:text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/10",
                   )}
                 >
                   Nota privada
                 </button>
               </div>
               {cannedMatches.length > 0 ? (
-                <div className="mb-2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div className="mb-2 overflow-hidden rounded-lg border border-slate-200 dark:border-border bg-white shadow-sm">
                   {cannedMatches.map((item) => (
                     <button
                       key={item.id}
@@ -876,12 +876,12 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                         }
                         setDraft(item.content);
                       }}
-                      className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-slate-50"
+                      className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/5"
                     >
-                      <span className="text-xs font-semibold text-slate-700">
+                      <span className="text-xs font-semibold text-slate-700 dark:text-foreground/85">
                         /{item.shortCode} · {item.title}
                       </span>
-                      <span className="truncate text-xs text-slate-500">
+                      <span className="truncate text-xs text-slate-500 dark:text-muted-foreground">
                         {item.content}
                       </span>
                     </button>
@@ -889,7 +889,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                 </div>
               ) : null}
               {attachFile ? (
-                <div className="mb-2 flex items-center justify-between rounded-md bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                <div className="mb-2 flex items-center justify-between rounded-md bg-slate-50 dark:bg-white/5 px-2 py-1 text-xs text-slate-600 dark:text-muted-foreground">
                   <span className="truncate">{attachFile.name}</span>
                   <button type="button" onClick={() => setAttachFile(null)}>
                     ×
@@ -936,12 +936,12 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                 </Button>
               </div>
               {mentionMatches.length > 0 ? (
-                <div className="mb-2 overflow-hidden rounded-lg border border-amber-200 bg-white shadow-sm">
+                <div className="mb-2 overflow-hidden rounded-lg border border-amber-200 dark:border-amber-400/30 bg-white shadow-sm">
                   {mentionMatches.map((member) => (
                     <button
                       key={member.id}
                       type="button"
-                      className="flex w-full px-3 py-1.5 text-left text-sm hover:bg-amber-50"
+                      className="flex w-full px-3 py-1.5 text-left text-sm hover:bg-amber-50 dark:hover:bg-amber-400/10"
                       onClick={() => {
                         const token = mentionTokenFor(
                           member.name,
@@ -971,7 +971,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                       ? "Nota visível só para a equipe. Use @ para mencionar"
                       : "Mensagem. Digite / para respostas prontas"
                   }
-                  className="max-h-32 min-h-12 flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--atria-primary)]"
+                  className="max-h-32 min-h-12 flex-1 resize-none rounded-xl border border-slate-200 dark:border-border px-3 py-2 text-sm outline-none focus:border-[var(--atria-primary)]"
                 />
                 <Button
                   type="submit"
@@ -991,11 +991,11 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <MessageCircle className="size-10 text-slate-300" />
-            <h2 className="mt-3 text-lg font-medium text-slate-600">
+            <MessageCircle className="size-10 text-slate-300 dark:text-white/30" />
+            <h2 className="mt-3 text-lg font-medium text-slate-600 dark:text-muted-foreground">
               Selecione uma conversa
             </h2>
-            <p className="mt-1 max-w-sm text-sm text-slate-400">
+            <p className="mt-1 max-w-sm text-sm text-slate-400 dark:text-white/40">
               Filtre por status, atribua atendentes e use notas privadas como
               numa inbox compartilhada.
             </p>
@@ -1004,13 +1004,13 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
       </section>
 
       {selectedPhone && detailPanelOpen ? (
-        <aside className="flex w-[min(300px,42vw)] shrink-0 flex-col border-l border-black/10 bg-white">
-          <div className="flex items-start justify-between gap-2 border-b border-black/5 px-3 py-3">
+        <aside className="flex w-[min(300px,42vw)] shrink-0 flex-col border-l border-black/10 dark:border-border bg-white">
+          <div className="flex items-start justify-between gap-2 border-b border-black/5 dark:border-border px-3 py-3">
             <Button
               type="button"
               size="icon-sm"
               variant="ghost"
-              className="shrink-0 text-slate-500"
+              className="shrink-0 text-slate-500 dark:text-muted-foreground"
               aria-label="Recolher painel"
               onClick={() => setDetailPanelOpen(false)}
             >
@@ -1029,13 +1029,13 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   }
                 }}
                 placeholder="Nome do cliente"
-                className="h-8 border-transparent bg-transparent px-1 text-right text-sm font-semibold text-slate-800 shadow-none hover:border-slate-200 focus-visible:border-slate-300"
+                className="h-8 border-transparent bg-transparent px-1 text-right text-sm font-semibold text-slate-800 dark:text-foreground shadow-none hover:border-slate-200 dark:hover:border-border focus-visible:border-slate-300 dark:focus-visible:border-white/20"
               />
               <button
                 type="button"
                 onClick={() => void copyPhoneToClipboard()}
                 title="Clique para copiar o número"
-                className="mt-0.5 w-full truncate text-right text-xs text-slate-500 hover:text-slate-800"
+                className="mt-0.5 w-full truncate text-right text-xs text-slate-500 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground"
               >
                 {formatPhone(selectedPhone)}
               </button>
@@ -1044,8 +1044,8 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
 
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-slate-500">Atendente</p>
-            <p className="text-sm text-slate-800">
+            <p className="text-xs font-medium text-slate-500 dark:text-muted-foreground">Atendente</p>
+            <p className="text-sm text-slate-800 dark:text-foreground">
               {selected?.assignedUser?.name ?? "Não atribuído"}
               {selected?.assignedUser?.id === user?.id ? " (você)" : ""}
             </p>
@@ -1077,10 +1077,10 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
             </div>
           </div>
 
-          <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-500 dark:text-muted-foreground">
             Prioridade
             <select
-              className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm"
+              className="h-8 rounded-md border border-slate-200 dark:border-border bg-white px-2 text-sm"
               value={selected?.priority ?? "NONE"}
               onChange={(event) =>
                 void updateConversation.mutateAsync({
@@ -1098,13 +1098,13 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
           </label>
 
           <div>
-            <p className="mb-1 text-xs font-medium text-slate-500">Etiquetas</p>
+            <p className="mb-1 text-xs font-medium text-slate-500 dark:text-muted-foreground">Etiquetas</p>
             <div className="mb-2 flex flex-wrap gap-1">
               {(selected?.labels ?? []).map((label) => (
                 <button
                   key={label}
                   type="button"
-                  className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700"
+                  className="rounded-full bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[11px] text-slate-700 dark:text-foreground/85"
                   onClick={() =>
                     void updateConversation.mutateAsync({
                       phone: selectedPhone,
@@ -1139,7 +1139,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
           </div>
 
           {selected?.assignedUser ? (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-muted-foreground">
               Atendente: {selected.assignedUser.name}
             </p>
           ) : null}
@@ -1151,7 +1151,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
       {selectedPhone && !detailPanelOpen ? (
         <button
           type="button"
-          className="flex w-9 shrink-0 flex-col items-center justify-center gap-1 border-l border-black/10 bg-white text-slate-500 hover:bg-slate-50"
+          className="flex w-9 shrink-0 flex-col items-center justify-center gap-1 border-l border-black/10 dark:border-border bg-white text-slate-500 dark:text-muted-foreground hover:bg-slate-50 dark:hover:bg-white/5"
           aria-label="Abrir painel do cliente"
           onClick={() => setDetailPanelOpen(true)}
         >

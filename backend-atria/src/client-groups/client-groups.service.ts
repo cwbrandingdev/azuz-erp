@@ -4,10 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  CreateClientGroupDto,
-  UpdateClientGroupDto,
-} from './dto/client-group.dto';
+import { UpdateClientGroupDto } from './dto/client-group.dto';
 
 @Injectable()
 export class ClientGroupsService {
@@ -25,25 +22,6 @@ export class ClientGroupsService {
   async findOne(id: string) {
     const group = await this.ensureExists(id);
     return this.toResponse(group);
-  }
-
-  async create(dto: CreateClientGroupDto) {
-    try {
-      const group = await this.prisma.clientGroup.create({
-        data: {
-          name: dto.name.trim(),
-          description: dto.description?.trim(),
-          color: dto.color ?? '#E8C39E',
-        },
-        include: { _count: { select: { clients: true } } },
-      });
-      return this.toResponse(group);
-    } catch (error) {
-      if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException('Client group name already exists');
-      }
-      throw error;
-    }
   }
 
   async update(id: string, dto: UpdateClientGroupDto) {
@@ -71,25 +49,6 @@ export class ClientGroupsService {
   async remove(id: string) {
     await this.ensureExists(id);
     await this.prisma.clientGroup.delete({ where: { id } });
-  }
-
-  async bulkImport(dto: { groups: CreateClientGroupDto[] }) {
-    const created: Awaited<ReturnType<typeof this.create>>[] = [];
-    const errors: { index: number; message: string }[] = [];
-
-    for (let i = 0; i < dto.groups.length; i++) {
-      try {
-        const group = await this.create(dto.groups[i]);
-        created.push(group);
-      } catch (err) {
-        errors.push({
-          index: i,
-          message: err instanceof Error ? err.message : 'Import failed',
-        });
-      }
-    }
-
-    return { created: created.length, errors };
   }
 
   private async ensureExists(id: string) {

@@ -13,7 +13,11 @@ import {
   isCrmRole,
 } from "./roles";
 
-const ADMIN_ONLY_ROUTES = new Set(["/dashboard/tv", "/insights"]);
+const ADMIN_ONLY_ROUTES = new Set([
+  "/dashboard/tv",
+  "/insights",
+  "/leads-central",
+]);
 const PRODUCTIVITY_ROLES = new Set([
   "master",
   "admin",

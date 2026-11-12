@@ -9,6 +9,7 @@ import { AppNavbar } from "./navbar";
 import { NavStudio } from "./nav-studio";
 import { FinanceDueAlertsWatcher } from "@/components/financial/finance-due-alerts-watcher";
 import { LeadMeetingTodayWatcher } from "@/components/leads/lead-meeting-today-watcher";
+import { SiteLeadsWatcher } from "@/components/leads-central/site-leads-watcher";
 import { TaskDetailProvider } from "@/components/kanban/task-detail-provider";
 import { DialerPanel } from "@/components/leads/dialer-panel";
 import { NotificationsProvider } from "@/contexts/notifications-context";
@@ -50,6 +51,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
 
         <FinanceDueAlertsWatcher />
         <LeadMeetingTodayWatcher />
+        <SiteLeadsWatcher />
 
         <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6 lg:pb-32 xl:p-8">
           {children}
@@ -76,6 +78,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
         </div>
         <FinanceDueAlertsWatcher />
         <LeadMeetingTodayWatcher />
+        <SiteLeadsWatcher />
 
         <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6 xl:p-8">
           {children}
