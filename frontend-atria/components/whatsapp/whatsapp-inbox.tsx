@@ -7,7 +7,6 @@ import {
   CheckCheck,
   ChevronLeft,
   ChevronRight,
-  Clock,
   FileText,
   MapPin,
   MessageCircle,
@@ -55,7 +54,6 @@ import {
   WhatsappAutomationDialog,
   type WhatsappAutomationTab,
 } from "@/components/whatsapp/whatsapp-automation-dialog";
-import { WhatsappCopilotBar } from "@/components/whatsapp/whatsapp-copilot-bar";
 import {
   activeMentionQuery,
   insertMention,
@@ -141,14 +139,6 @@ function formatTime(value: string) {
 
 function displayName(conversation: WhatsAppConversation) {
   return conversation.name?.trim() || formatPhone(conversation.phone);
-}
-
-function formatWait(seconds: number) {
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}min`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}min`;
 }
 
 function MessageBody({
@@ -565,12 +555,6 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
           ))}
         </div>
 
-        {counts && counts.slaBreached > 0 ? (
-          <div className="border-b border-amber-200 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/10 px-3 py-1.5 text-[11px] font-medium text-amber-800 dark:text-amber-200">
-            {counts.slaBreached} conversa(s) acima do SLA de primeira resposta
-          </div>
-        ) : null}
-
         <div className="border-b border-black/5 dark:border-border px-3 py-2">
           <div className="relative">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400 dark:text-white/40" />
@@ -688,20 +672,6 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                         </span>
                       ) : null}
                     </span>
-                    {conversation.needsAgentReply ? (
-                      <span
-                        className={cn(
-                          "mt-1 inline-flex items-center gap-1 text-[10px] font-medium",
-                          conversation.slaBreached
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-amber-600 dark:text-amber-300",
-                        )}
-                      >
-                        <Clock className="size-3" />
-                        {formatWait(conversation.waitingSeconds)}
-                        {conversation.slaBreached ? " · SLA" : ""}
-                      </span>
-                    ) : null}
                     {conversation.labels.length > 0 ? (
                       <span className="mt-1 flex flex-wrap gap-1">
                         {conversation.labels.slice(0, 3).map((label) => (
@@ -885,13 +855,6 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   Nota privada
                 </button>
               </div>
-              {selectedPhone ? (
-                <WhatsappCopilotBar
-                  phone={selectedPhone}
-                  draft={draft}
-                  onUse={setDraft}
-                />
-              ) : null}
               {cannedMatches.length > 0 ? (
                 <div className="mb-2 overflow-hidden rounded-lg border border-slate-200 dark:border-border bg-white shadow-sm">
                   {cannedMatches.map((item) => (
@@ -1178,17 +1141,6 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
           {selected?.assignedUser ? (
             <p className="text-xs text-slate-500 dark:text-muted-foreground">
               Atendente: {selected.assignedUser.name}
-            </p>
-          ) : null}
-          {selected?.needsAgentReply ? (
-            <p
-              className={cn(
-                "text-xs font-medium",
-                selected.slaBreached ? "text-red-600 dark:text-red-400" : "text-amber-700 dark:text-amber-300",
-              )}
-            >
-              Espera: {formatWait(selected.waitingSeconds)}
-              {selected.slaBreached ? " — fora do SLA" : ""}
             </p>
           ) : null}
           <WhatsappCrmPanel phone={selectedPhone} />
