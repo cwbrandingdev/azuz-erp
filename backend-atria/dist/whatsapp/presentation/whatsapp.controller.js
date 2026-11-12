@@ -179,6 +179,9 @@ let WhatsAppController = class WhatsAppController {
     updateCrmContact(user, phone, dto) {
         return this.crm.updateContact(phone, user.companyId ?? '00000000-0000-4000-8000-000000000001', dto, user.userId);
     }
+    deleteCrmContact(user, phone) {
+        return this.crm.deleteContact(phone, user.companyId ?? '00000000-0000-4000-8000-000000000001', user.userId);
+    }
     getConversation(user, phone) {
         return this.whatsAppService.getConversation(phone, user.companyId ?? undefined);
     }
@@ -194,6 +197,9 @@ let WhatsAppController = class WhatsAppController {
                     : null,
             labels: dto.labels,
         });
+    }
+    deleteConversation(phone) {
+        return this.whatsAppService.deleteConversation(phone);
     }
     addNote(user, phone, dto) {
         return this.collaboration.addPrivateNote({
@@ -511,6 +517,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], WhatsAppController.prototype, "updateCrmContact", null);
 __decorate([
+    (0, common_1.Delete)('conversations/:phone/crm'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('phone')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "deleteCrmContact", null);
+__decorate([
     (0, common_1.Get)('conversations/:phone'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('phone')),
@@ -526,6 +540,13 @@ __decorate([
     __metadata("design:paramtypes", [String, update_whatsapp_conversation_dto_1.UpdateWhatsAppConversationDto]),
     __metadata("design:returntype", void 0)
 ], WhatsAppController.prototype, "updateConversation", null);
+__decorate([
+    (0, common_1.Delete)('conversations/:phone'),
+    __param(0, (0, common_1.Param)('phone')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], WhatsAppController.prototype, "deleteConversation", null);
 __decorate([
     (0, common_1.Post)('conversations/:phone/notes'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

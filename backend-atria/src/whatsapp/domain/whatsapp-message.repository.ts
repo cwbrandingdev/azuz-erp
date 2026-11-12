@@ -44,6 +44,8 @@ export abstract class WhatsAppMessageRepository {
     patch: ConversationPatch,
   ): Promise<WhatsAppConversationSummary>;
 
+  abstract deleteConversation(phone: string): Promise<void>;
+
   abstract markConversationRead(phone: string): Promise<void>;
 
   abstract updateStatusByWhatsappMessageId(

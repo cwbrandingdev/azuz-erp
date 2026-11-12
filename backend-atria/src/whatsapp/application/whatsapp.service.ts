@@ -366,6 +366,11 @@ export class WhatsAppService {
     );
   }
 
+  async deleteConversation(phone: string): Promise<{ success: true }> {
+    await this.messages.deleteConversation(normalizeWhatsAppPhone(phone));
+    return { success: true };
+  }
+
   listCannedResponses(): Promise<WhatsAppCannedResponseRecord[]> {
     return this.messages.listCannedResponses();
   }

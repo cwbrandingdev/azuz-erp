@@ -16,6 +16,7 @@ export declare abstract class WhatsAppMessageRepository {
         agentReply?: boolean;
     }): Promise<WhatsAppConversationSummary>;
     abstract updateConversation(phone: string, patch: ConversationPatch): Promise<WhatsAppConversationSummary>;
+    abstract deleteConversation(phone: string): Promise<void>;
     abstract markConversationRead(phone: string): Promise<void>;
     abstract updateStatusByWhatsappMessageId(whatsappMessageId: string, status: WhatsAppStatus): Promise<void>;
     abstract listCannedResponses(): Promise<WhatsAppCannedResponseRecord[]>;

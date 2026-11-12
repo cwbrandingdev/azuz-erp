@@ -226,6 +226,16 @@ export function useWhatsappMutations() {
     onSuccess: () => invalidate(),
   });
 
+  const deleteConversation = useMutation({
+    mutationFn: (phone: string) => whatsappService.deleteConversation(phone),
+    onSuccess: () => invalidate(),
+  });
+
+  const deleteCrmContact = useMutation({
+    mutationFn: (phone: string) => whatsappService.deleteCrmContact(phone),
+    onSuccess: () => invalidate(),
+  });
+
   const updateSettings = useMutation({
     mutationFn: (data: Parameters<typeof whatsappService.updateInboxSettings>[0]) =>
       whatsappService.updateInboxSettings(data),
@@ -333,6 +343,8 @@ export function useWhatsappMutations() {
     runCopilot,
     transferConversation,
     updateConversation,
+    deleteConversation,
+    deleteCrmContact,
     updateSettings,
     saveRules,
     updateCrmContact,

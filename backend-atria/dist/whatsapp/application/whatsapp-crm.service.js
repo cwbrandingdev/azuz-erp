@@ -113,6 +113,31 @@ let WhatsAppCrmService = WhatsAppCrmService_1 = class WhatsAppCrmService {
         });
         return this.toContact(updated);
     }
+    async deleteContact(phone, companyId, actorUserId) {
+        const normalized = (0, whatsapp_phone_1.normalizeWhatsAppPhone)(phone);
+        const lead = await this.findLeadByPhone(normalized, companyId);
+        if (!lead) {
+            throw new common_1.NotFoundException('Contato não encontrado para este número.');
+        }
+        await this.prisma.lead.update({
+            where: { id: lead.id },
+            data: {
+                deletedAt: new Date(),
+                deletedById: actorUserId ?? null,
+                kanbanTracked: false,
+            },
+        });
+        await this.logEvent({
+            companyId,
+            leadId: lead.id,
+            phone: normalized,
+            type: client_1.WhatsAppCrmEventType.FIELD_CHANGE,
+            title: 'Contato excluído',
+            body: lead.name,
+            actorUserId,
+        });
+        return { success: true };
+    }
     async listStageMessages(companyId) {
         const rows = await this.prisma.whatsAppStageMessage.findMany({
             where: { companyId },

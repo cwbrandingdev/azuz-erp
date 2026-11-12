@@ -19,9 +19,20 @@ import {
   Send,
   Cog,
   StickyNote,
+  Trash2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -264,6 +275,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     sendCanned,
     addNote,
     updateConversation,
+    deleteConversation,
   } = useWhatsappMutations();
   const { data: canned = [] } = useWhatsappCannedResponses();
   const { data: counts } = useWhatsappInboxCounts();
@@ -302,6 +314,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const [automationInitialTab, setAutomationInitialTab] =
     useState<WhatsappAutomationTab>("bot");
   const [detailPanelOpen, setDetailPanelOpen] = useState(true);
+  const [deleteConvoOpen, setDeleteConvoOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -775,6 +788,17 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                 >
                   {selected?.status === "RESOLVED" ? "Reabrir" : "Finalizar"}
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-red-200 text-red-700 hover:bg-red-50"
+                  onClick={() => setDeleteConvoOpen(true)}
+                  disabled={deleteConversation.isPending}
+                >
+                  <Trash2 className="mr-1 size-3.5" />
+                  Excluir conversa
+                </Button>
               </div>
             </header>
 
@@ -1223,6 +1247,43 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteConvoOpen} onOpenChange={setDeleteConvoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conversa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todas as mensagens e notas deste chat serão removidas da inbox. O
+              contato no CRM (lead) não é excluído — use &quot;Excluir
+              contato&quot; no painel lateral se quiser remover o lead também.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              type="button"
+              className="bg-red-700 hover:bg-red-800"
+              disabled={deleteConversation.isPending || !selectedPhone}
+              onClick={() => {
+                if (!selectedPhone) return;
+                void deleteConversation
+                  .mutateAsync(selectedPhone)
+                  .then(() => {
+                    toast.success("Conversa excluída.");
+                    setSelectedPhone(null);
+                    setMessages([]);
+                    setDeleteConvoOpen(false);
+                  })
+                  .catch(() =>
+                    toast.error("Não foi possível excluir a conversa."),
+                  );
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

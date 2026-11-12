@@ -21,6 +21,7 @@ export declare class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepo
         agentReply?: boolean;
     }): Promise<WhatsAppConversationSummary>;
     updateConversation(phone: string, patch: ConversationPatch): Promise<WhatsAppConversationSummary>;
+    deleteConversation(phone: string): Promise<void>;
     markConversationRead(phone: string): Promise<void>;
     updateStatusByWhatsappMessageId(whatsappMessageId: string, status: WhatsAppStatus): Promise<void>;
     listCannedResponses(): Promise<WhatsAppCannedResponseRecord[]>;

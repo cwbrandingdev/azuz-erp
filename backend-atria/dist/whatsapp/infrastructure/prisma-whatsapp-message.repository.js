@@ -255,6 +255,28 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
         });
         return this.toConversation(row);
     }
+    async deleteConversation(phone) {
+        const existing = await this.prisma.whatsAppConversation.findUnique({
+            where: { phone },
+            select: { id: true },
+        });
+        if (!existing) {
+            throw new common_1.NotFoundException('Conversation not found');
+        }
+        await this.prisma.$transaction([
+            this.prisma.whatsAppMessage.deleteMany({
+                where: {
+                    OR: [
+                        { conversationId: existing.id },
+                        { fromPhone: phone },
+                        { toPhone: phone },
+                    ],
+                },
+            }),
+            this.prisma.whatsAppBotSession.deleteMany({ where: { phone } }),
+            this.prisma.whatsAppConversation.delete({ where: { id: existing.id } }),
+        ]);
+    }
     async markConversationRead(phone) {
         await this.prisma.whatsAppConversation.updateMany({
             where: { phone },

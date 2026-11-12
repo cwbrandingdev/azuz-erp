@@ -2,7 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { LEAD_STATUS_LABELS } from "@/lib/leads-kanban-utils";
 import { toast } from "@/lib/toast";
 import {
@@ -13,7 +25,9 @@ import { leadsService } from "@/services";
 
 export function WhatsappCrmPanel({ phone }: { phone: string }) {
   const { data, isLoading } = useWhatsappCrm(phone);
-  const { updateCrmContact, invalidate } = useWhatsappMutations();
+  const { updateCrmContact, deleteCrmContact, invalidate } =
+    useWhatsappMutations();
+  const [deleteContactOpen, setDeleteContactOpen] = useState(false);
   const stagesQuery = useQuery({
     queryKey: ["whatsapp-stages"],
     queryFn: () => leadsService.listLeadStages(),
@@ -130,7 +144,19 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
           <p className="mt-2 text-[11px] text-slate-400">
             Salve um nome para criar o lead neste número.
           </p>
-        ) : null}
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2 w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+            onClick={() => setDeleteContactOpen(true)}
+            disabled={deleteCrmContact.isPending}
+          >
+            <Trash2 className="mr-1.5 size-3.5" />
+            Excluir contato
+          </Button>
+        )}
       </div>
 
       {contact ? (
@@ -196,6 +222,39 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
           </ol>
         )}
       </div>
+
+      <AlertDialog open={deleteContactOpen} onOpenChange={setDeleteContactOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir contato?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O lead vinculado a este número será removido do funil (exclusão
+              lógica). A conversa no WhatsApp não é apagada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              type="button"
+              className="bg-red-700 hover:bg-red-800"
+              disabled={deleteCrmContact.isPending}
+              onClick={() => {
+                void deleteCrmContact
+                  .mutateAsync(phone)
+                  .then(() => {
+                    toast.success("Contato excluído.");
+                    setDeleteContactOpen(false);
+                  })
+                  .catch(() =>
+                    toast.error("Não foi possível excluir o contato."),
+                  );
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
