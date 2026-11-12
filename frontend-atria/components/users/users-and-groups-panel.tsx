@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddGroupMembersDialog } from "@/components/users/add-group-members-dialog";
-import { CreateUserGroupDialog } from "@/components/users/create-user-group-dialog";
 import { DeactivateUserButton } from "@/components/users/deactivate-user-button";
 import { EditUserButton } from "@/components/users/edit-user-dialog";
 import { ProvisionUserDialog } from "@/components/users/provision-user-dialog";
@@ -103,9 +102,6 @@ export function UsersAndGroupsPanel() {
         <div className="flex flex-wrap gap-2">
           {tab === "members" && (
             <ProvisionUserDialog mode="member" onSuccess={handleRefreshAll} />
-          )}
-          {tab === "groups" && (
-            <CreateUserGroupDialog onSuccess={handleRefreshAll} />
           )}
         </div>
       </div>

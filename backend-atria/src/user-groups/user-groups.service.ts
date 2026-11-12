@@ -6,10 +6,7 @@ import {
 } from '@nestjs/common';
 import { UserCategory } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  CreateUserGroupDto,
-  UpdateUserGroupDto,
-} from '../users/dto/user.dto';
+import { UpdateUserGroupDto } from '../users/dto/user.dto';
 
 const memberInclude = {
   members: {
@@ -46,31 +43,6 @@ export class UserGroupsService {
   async findOne(id: string) {
     const group = await this.ensureExists(id);
     return this.toResponse(group);
-  }
-
-  async create(dto: CreateUserGroupDto) {
-    try {
-      const group = await this.prisma.userGroup.create({
-        data: {
-          name: dto.name.trim(),
-          description: dto.description?.trim(),
-          color: dto.color ?? '#E8C39E',
-        },
-        include: memberInclude,
-      });
-
-      if (dto.memberIds?.length) {
-        await this.addMembers(group.id, dto.memberIds);
-        return this.findOne(group.id);
-      }
-
-      return this.toResponse(group);
-    } catch (error) {
-      if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException('User group name already exists');
-      }
-      throw error;
-    }
   }
 
   async update(id: string, dto: UpdateUserGroupDto) {
@@ -181,7 +153,8 @@ export class UserGroupsService {
       name: group.name,
       description: group.description,
       color: group.color,
-      userCount: members.length || group._count?.members || group._count?.users || 0,
+      userCount:
+        members.length || group._count?.members || group._count?.users || 0,
       members,
       createdAt: group.createdAt.toISOString(),
       updatedAt: group.updatedAt.toISOString(),
