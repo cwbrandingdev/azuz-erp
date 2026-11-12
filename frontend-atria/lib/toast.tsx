@@ -1,7 +1,61 @@
+import type { ReactNode } from "react";
 import { toast as sonnerToast } from "sonner";
+import {
+  AppToast,
+  type AppToastAction,
+  type AppToastVariant,
+} from "@/components/ui/app-toast";
 import { ApiError } from "@/services/api";
 
-export const toast = sonnerToast;
+interface AppToastOptions {
+  id?: string | number;
+  description?: ReactNode;
+  action?: AppToastAction;
+  duration?: number;
+}
+
+// Todo aviso do sistema passa por aqui e usa o mesmo cartão do toast do financeiro.
+function show(
+  variant: AppToastVariant,
+  title: ReactNode,
+  options: AppToastOptions = {},
+) {
+  const { id, description, action, duration } = options;
+
+  return sonnerToast.custom(
+    (toastId) => (
+      <AppToast
+        variant={variant}
+        title={title}
+        description={description}
+        action={
+          action && {
+            label: action.label,
+            onClick: () => {
+              sonnerToast.dismiss(toastId);
+              action.onClick();
+            },
+          }
+        }
+        onClose={() => sonnerToast.dismiss(toastId)}
+      />
+    ),
+    { id, duration },
+  );
+}
+
+export const toast = {
+  success: (title: ReactNode, options?: AppToastOptions) =>
+    show("success", title, options),
+  error: (title: ReactNode, options?: AppToastOptions) =>
+    show("error", title, options),
+  info: (title: ReactNode, options?: AppToastOptions) =>
+    show("info", title, options),
+  warning: (title: ReactNode, options?: AppToastOptions) =>
+    show("warning", title, options),
+  custom: sonnerToast.custom,
+  dismiss: sonnerToast.dismiss,
+};
 
 const SILENT_ENDPOINTS = ["/auth/refresh"];
 

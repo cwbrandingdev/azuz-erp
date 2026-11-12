@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { BankAccountsDialog } from "@/components/financial/bank-accounts-dialog";
 import { FinanceSubnav } from "@/components/financial/finance-subnav";
 import { Button } from "@/components/ui/button";
