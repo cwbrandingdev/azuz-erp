@@ -305,8 +305,14 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     useState<WhatsappAutomationTab>("bot");
   const [detailPanelOpen, setDetailPanelOpen] = useState(true);
   const [deleteConvoOpen, setDeleteConvoOpen] = useState(false);
+  const [composeLocked, setComposeLocked] = useState(false);
+  const composeSubmitLock = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const mutationSending =
+    sendMessage.isPending || sendMedia.isPending || addNote.isPending;
+  const isComposingSending = composeLocked || mutationSending;
 
   const { data: conversations = [], isLoading } = useWhatsappConversations({
     tab,
@@ -407,28 +413,41 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!selectedPhone) return;
+    if (!selectedPhone || composeSubmitLock.current) return;
     const text = draft.trim();
+    const file = attachFile;
+
     if (mode === "note") {
       if (!text) return;
+      composeSubmitLock.current = true;
+      setComposeLocked(true);
+      setDraft("");
       try {
         const created = await addNote.mutateAsync({
           phone: selectedPhone,
           message: text,
         });
         setMessages((current) => [...current, created]);
-        setDraft("");
       } catch {
-        return;
+        setDraft(text);
+      } finally {
+        composeSubmitLock.current = false;
+        setComposeLocked(false);
       }
       return;
     }
-    if (!attachFile && !text) return;
+    if (!file && !text) return;
+
+    composeSubmitLock.current = true;
+    setComposeLocked(true);
+    setDraft("");
+    if (file) setAttachFile(null);
+
     try {
-      const created = attachFile
+      const created = file
         ? await sendMedia.mutateAsync({
             to: selectedPhone,
-            file: attachFile,
+            file,
             caption: text || undefined,
           })
         : await sendMessage.mutateAsync({ to: selectedPhone, message: text });
@@ -437,10 +456,12 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
         setSelectedPhone(canonicalTo);
       }
       setMessages((current) => [...current, created]);
-      setDraft("");
-      setAttachFile(null);
     } catch {
-      return;
+      setDraft(text);
+      if (file) setAttachFile(file);
+    } finally {
+      composeSubmitLock.current = false;
+      setComposeLocked(false);
     }
   }
 
@@ -962,9 +983,11 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && !event.shiftKey) {
                       event.preventDefault();
+                      if (isComposingSending) return;
                       event.currentTarget.form?.requestSubmit();
                     }
                   }}
+                  disabled={isComposingSending}
                   rows={2}
                   placeholder={
                     mode === "note"
@@ -977,10 +1000,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   type="submit"
                   size="icon"
                   disabled={
-                    (!draft.trim() && !attachFile) ||
-                    sendMessage.isPending ||
-                    sendMedia.isPending ||
-                    addNote.isPending
+                    isComposingSending || (!draft.trim() && !attachFile)
                   }
                   className="size-10 rounded-full"
                 >
