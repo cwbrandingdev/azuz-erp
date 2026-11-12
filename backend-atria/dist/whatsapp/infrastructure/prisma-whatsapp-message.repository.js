@@ -154,50 +154,56 @@ let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository exte
         const lastMessageStatus = input.inbound
             ? null
             : client_1.WhatsAppMessageStatus.SENT;
-        const row = await this.prisma.whatsAppConversation.upsert({
-            where: { phone: input.phone },
-            create: {
-                phone: input.phone,
-                name: input.name?.trim() || null,
-                lastMessageAt: now,
-                lastMessagePreview: input.preview.slice(0, 180),
-                lastMessageDirection,
-                lastMessageStatus,
-                unreadCount: input.inbound ? 1 : 0,
-                status: input.agentReply
-                    ? client_1.WhatsAppConversationStatus.PENDING
-                    : client_1.WhatsAppConversationStatus.OPEN,
-                queuedAt: input.inbound ? now : null,
-                lastCustomerMessageAt: input.inbound ? now : null,
-                lastAgentReplyAt: input.agentReply ? now : null,
-            },
-            update: {
-                lastMessageAt: now,
-                lastMessagePreview: input.preview.slice(0, 180),
-                lastMessageDirection,
-                lastMessageStatus,
-                ...(input.name?.trim() ? { name: input.name.trim() } : {}),
-                ...(input.inbound
-                    ? {
-                        unreadCount: { increment: 1 },
-                        lastCustomerMessageAt: now,
-                        queuedAt: stillWaiting ? queuedAt : now,
-                    }
-                    : {}),
-                ...(input.agentReply
-                    ? {
-                        lastAgentReplyAt: now,
-                        queuedAt: null,
-                        status: existing?.status === client_1.WhatsAppConversationStatus.RESOLVED ||
-                            existing?.status === client_1.WhatsAppConversationStatus.SNOOZED
-                            ? existing.status
-                            : client_1.WhatsAppConversationStatus.PENDING,
-                    }
-                    : {}),
-                ...(input.reopen ? { status: client_1.WhatsAppConversationStatus.OPEN } : {}),
-            },
-            include: { assignedUser: { select: assignedUserSelect } },
-        });
+        let row;
+        try {
+            row = await this.prisma.whatsAppConversation.upsert({
+                where: { phone: input.phone },
+                create: {
+                    phone: input.phone,
+                    name: input.name?.trim() || null,
+                    lastMessageAt: now,
+                    lastMessagePreview: input.preview.slice(0, 180),
+                    lastMessageDirection,
+                    lastMessageStatus,
+                    unreadCount: input.inbound ? 1 : 0,
+                    status: input.agentReply
+                        ? client_1.WhatsAppConversationStatus.PENDING
+                        : client_1.WhatsAppConversationStatus.OPEN,
+                    queuedAt: input.inbound ? now : null,
+                    lastCustomerMessageAt: input.inbound ? now : null,
+                    lastAgentReplyAt: input.agentReply ? now : null,
+                },
+                update: {
+                    lastMessageAt: now,
+                    lastMessagePreview: input.preview.slice(0, 180),
+                    lastMessageDirection,
+                    lastMessageStatus,
+                    ...(input.name?.trim() ? { name: input.name.trim() } : {}),
+                    ...(input.inbound
+                        ? {
+                            unreadCount: { increment: 1 },
+                            lastCustomerMessageAt: now,
+                            queuedAt: stillWaiting ? queuedAt : now,
+                        }
+                        : {}),
+                    ...(input.agentReply
+                        ? {
+                            lastAgentReplyAt: now,
+                            queuedAt: null,
+                            status: existing?.status === client_1.WhatsAppConversationStatus.RESOLVED ||
+                                existing?.status === client_1.WhatsAppConversationStatus.SNOOZED
+                                ? existing.status
+                                : client_1.WhatsAppConversationStatus.PENDING,
+                        }
+                        : {}),
+                    ...(input.reopen ? { status: client_1.WhatsAppConversationStatus.OPEN } : {}),
+                },
+                include: { assignedUser: { select: assignedUserSelect } },
+            });
+        }
+        catch (error) {
+            throw error;
+        }
         return this.toConversation(row);
     }
     async updateConversation(phone, patch) {

@@ -102,7 +102,9 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
     }
     async send(to, message, userId, agentReply = true) {
         const recipient = (0, whatsapp_phone_1.normalizeWhatsAppPhone)(to);
+        this.logger.log(`WhatsApp outbound send requested normalizedLen=${recipient.length}`);
         const result = await this.graph.sendText(recipient, message);
+        this.logger.log(`WhatsApp outbound send ok normalizedLen=${result.to.length} wamid=${result.whatsappMessageId ?? 'none'}`);
         return this.persistOutbound({
             to: result.to,
             body: message,

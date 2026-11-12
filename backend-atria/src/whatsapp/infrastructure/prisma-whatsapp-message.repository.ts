@@ -193,7 +193,9 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
       ? null
       : WhatsAppMessageStatus.SENT;
 
-    const row = await this.prisma.whatsAppConversation.upsert({
+    let row;
+    try {
+      row = await this.prisma.whatsAppConversation.upsert({
       where: { phone: input.phone },
       create: {
         phone: input.phone,
@@ -238,6 +240,9 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
       },
       include: { assignedUser: { select: assignedUserSelect } },
     });
+    } catch (error) {
+      throw error;
+    }
     return this.toConversation(row);
   }
 

@@ -63,6 +63,10 @@ import {
 import { LEAD_STATUS_LABELS } from "@/lib/leads-kanban-utils";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import {
+  normalizeWhatsAppPhone,
+  validateNormalizedWhatsAppPhone,
+} from "@/lib/whatsapp-phone";
 import * as whatsappService from "@/services/whatsapp.service";
 import { leadsService, usersService } from "@/services";
 import type {
@@ -372,7 +376,12 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   }, [mentionQuery, membersQuery.data]);
 
   function openChat(phone: string) {
-    setSelectedPhone(phone.replace(/\D/g, ""));
+    const invalid = validateNormalizedWhatsAppPhone(phone);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
+    setSelectedPhone(normalizeWhatsAppPhone(phone));
     setNewOpen(false);
     setNewPhone("");
     setDetailPanelOpen(true);
@@ -420,6 +429,10 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
             caption: text || undefined,
           })
         : await sendMessage.mutateAsync({ to: selectedPhone, message: text });
+      const canonicalTo = created.toPhone?.trim();
+      if (canonicalTo && canonicalTo !== selectedPhone) {
+        setSelectedPhone(canonicalTo);
+      }
       setMessages((current) => [...current, created]);
       setDraft("");
       setAttachFile(null);
@@ -1198,7 +1211,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
             <Input
               value={newPhone}
               onChange={(event) => setNewPhone(event.target.value)}
-              placeholder="5511999999999"
+              placeholder="4192534028"
             />
             <Button
               type="button"

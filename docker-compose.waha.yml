@@ -1,10 +1,11 @@
 # Self-hosted WhatsApp HTTP API. The Nest backend talks to this service only.
 # Host port 3010 avoids the frontend, which already uses 3000.
 # Start: docker compose -f docker-compose.waha.yml up -d
+# Boot autostart (Linux): sudo ./scripts/waha/install-waha-autostart.sh --keep-awake-on-lid-close
 services:
   waha:
     image: devlikeapro/waha:latest
-    restart: unless-stopped
+    restart: always
     ports:
       - "3010:3000"
     extra_hosts:

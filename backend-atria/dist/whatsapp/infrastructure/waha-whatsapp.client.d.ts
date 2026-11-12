@@ -24,6 +24,8 @@ export declare class WahaWhatsAppClient extends WhatsAppGraphGateway {
     restartSession(): Promise<WhatsAppSessionInfo>;
     logoutSession(): Promise<WhatsAppSessionInfo>;
     ensureSession(): Promise<void>;
+    private ensureSessionRunning;
+    private startSessionIfNeeded;
     private sessionExists;
     private createSession;
     private putSessionConfig;
@@ -31,6 +33,8 @@ export declare class WahaWhatsAppClient extends WhatsAppGraphGateway {
     private fetchSession;
     private toInfo;
     private resolveMediaUrl;
+    private pickCheckExistsResult;
+    private resolveOutboundChatId;
     private chatId;
     private sendResult;
     private post;
@@ -39,4 +43,5 @@ export declare class WahaWhatsAppClient extends WhatsAppGraphGateway {
     private assertConfigured;
     private statusOf;
     private readError;
+    private isRecipientWhatsAppError;
 }

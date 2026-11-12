@@ -1,0 +1,17 @@
+[Unit]
+Description=Cloudflare tunnel to local WAHA (port 3010) for production Fly backend
+After=network-online.target docker.service atria-waha.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+WorkingDirectory=REPO_ROOT
+ExecStart=REPO_ROOT/scripts/waha/start-waha-tunnel.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
