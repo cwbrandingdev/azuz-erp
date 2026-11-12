@@ -27,14 +27,12 @@ import {
   ApiError,
   calendarService,
   clientsService,
-  userGroupsService,
 } from "@/services";
 import type {
   Client,
   KanbanTask,
   KanbanTaskContentType,
   TeamMember,
-  UserGroup,
 } from "@/services/types";
 
 interface CreateTaskDialogProps {
@@ -47,7 +45,6 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [groups, setGroups] = useState<UserGroup[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -56,7 +53,6 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
     DEFAULT_TASK_CONTENT_TYPE,
   );
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
-  const [assignedGroupId, setAssignedGroupId] = useState("");
   const [clientId, setClientId] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [publicationDate, setPublicationDate] = useState("");
@@ -72,13 +68,11 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
       clientsService
         .getClients({ activeOnly: true })
         .catch(() => [] as Client[]),
-      userGroupsService.getUserGroups().catch(() => [] as UserGroup[]),
     ])
-      .then(([nextMembers, nextClients, nextGroups]) => {
+      .then(([nextMembers, nextClients]) => {
         if (cancelled) return;
         setMembers(nextMembers);
         setClients(nextClients);
-        setGroups(nextGroups);
       })
       .finally(() => {
         if (!cancelled) setOptionsLoading(false);
@@ -94,7 +88,6 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
     setDescription("");
     setContentType(DEFAULT_TASK_CONTENT_TYPE);
     setAssigneeIds([]);
-    setAssignedGroupId("");
     setClientId("");
     setDeliveryDate("");
     setPublicationDate("");
@@ -119,7 +112,6 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
         contentType,
         productionPhase: defaultProductionPhaseForContentType(contentType),
         assigneeIds,
-        assignedGroupId: assignedGroupId || undefined,
         clientId: clientId || undefined,
         deliveryDate: fromDateTimeLocalValue(deliveryDate),
         publicationDate: fromDateTimeLocalValue(publicationDate),
@@ -246,25 +238,6 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
                 />
               </Field>
             </div>
-
-            <Field>
-              <FieldLabel htmlFor="task-group">Grupo / Equipe</FieldLabel>
-              <SearchableSelect
-                id="task-group"
-                value={assignedGroupId}
-                onValueChange={setAssignedGroupId}
-                loading={optionsLoading}
-                allowEmpty
-                emptyOptionLabel="Sem grupo"
-                placeholder="Selecione um grupo"
-                searchPlaceholder="Buscar grupo..."
-                emptyLabel="Nenhum grupo encontrado"
-                options={groups.map((group) => ({
-                  value: group.id,
-                  label: group.name,
-                }))}
-              />
-            </Field>
 
             <Field>
               <FieldLabel>Responsáveis</FieldLabel>
