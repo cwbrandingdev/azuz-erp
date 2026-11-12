@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   AtSign,
   Mail,
@@ -30,26 +30,10 @@ import {
 } from "@/components/ui/table";
 import { toWhatsAppUrl } from "@/lib/lead-phone";
 import { cn } from "@/lib/utils";
-
-type SiteLead = {
-  id: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  instagram?: string;
-  revenue?: string;
-  traffic?: string;
-  objective?: string;
-  createdAt?: string;
-};
-
-const REVENUE_LABELS: Record<string, string> = {
-  "ate-10k": "Até R$ 10 mil",
-  "10k-50k": "R$ 10 a 50 mil",
-  "50k-100k": "R$ 50 a 100 mil",
-  "100k-500k": "R$ 100 a 500 mil",
-  "acima-500k": "Acima de R$ 500 mil",
-};
+import { useSiteLeads } from "@/hooks/use-site-leads";
+import { REVENUE_LABELS, labelFor } from "@/lib/site-leads";
+import { getApiErrorMessage } from "@/lib/toast";
+import type { SiteLead } from "@/services/types";
 
 const REVENUE_ORDER = [
   "ate-10k",
@@ -69,11 +53,6 @@ const TRAFFIC_LABELS: Record<string, string> = {
 const TRAFFIC_ORDER = ["sim-atualmente", "sim-parou", "nao", "nunca"];
 
 const HIGH_REVENUE = new Set(["100k-500k", "acima-500k"]);
-
-function labelFor(map: Record<string, string>, value?: string) {
-  if (!value?.trim()) return "Não informado";
-  return map[value] ?? value.replaceAll("-", " ");
-}
 
 function formatWhen(value?: string) {
   if (!value) return "—";
@@ -156,38 +135,23 @@ function matchesQuery(lead: SiteLead, query: string) {
 }
 
 export default function Forms() {
-  const [leads, setLeads] = useState<SiteLead[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [traffic, setTraffic] = useState("all");
   const [revenue, setRevenue] = useState("all");
   const [selected, setSelected] = useState<SiteLead | null>(null);
 
-  const load = useCallback(async () => {
-    setRefreshing(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/leads", { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error ?? "Erro ao buscar os formulários");
-      }
-      setLeads(Array.isArray(data?.leads) ? data.leads : []);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Erro ao buscar os formulários",
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const {
+    data,
+    error: queryError,
+    isLoading: loading,
+    isFetching: refreshing,
+    refetch,
+  } = useSiteLeads();
+  const leads = useMemo(() => data?.leads ?? [], [data]);
+  const error = queryError
+    ? getApiErrorMessage(queryError, "Erro ao buscar os formulários")
+    : null;
+  const load = useCallback(() => refetch(), [refetch]);
 
   const trafficOptions = useMemo(
     () =>

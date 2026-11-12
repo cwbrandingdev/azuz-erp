@@ -43,6 +43,7 @@ export * as performanceService from "./insights.service";
 export * as dashboardService from "./dashboard.service";
 export * as productivityService from "./productivity.service";
 export * as whatsappService from "./whatsapp.service";
+export * as siteLeadsService from "./site-leads.service";
 /** @deprecated Use calendarService */
 export * as agendaService from "./calendar.service";
 
