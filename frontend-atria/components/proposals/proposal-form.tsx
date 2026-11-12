@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { Plus, Save, Send, Trash2 } from "lucide-react";
 import { ShareLinkModal } from "@/components/proposals/share-link-modal";
 import { Button } from "@/components/ui/button";
@@ -390,7 +390,18 @@ export function ProposalForm({ proposal }: ProposalFormProps) {
 
             <Field>
               <FieldLabel>Validade</FieldLabel>
-              <Input type="date" {...register("validUntil")} />
+              <Controller
+                control={control}
+                name="validUntil"
+                render={({ field }) => (
+                  <Input
+                    type="date"
+                    value={field.value}
+                    onChange={(event) => field.onChange(event.target.value)}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
             </Field>
 
             <Field>
