@@ -17,7 +17,10 @@ import {
   type WhatsAppSessionInfo,
 } from '../domain/whatsapp-graph.gateway';
 import { WhatsAppMessageKind } from '../domain/whatsapp-message';
-import { normalizeWhatsAppPhone } from '../domain/whatsapp-phone';
+import {
+  brazilWhatsAppPhoneCandidates,
+  normalizeWhatsAppPhone,
+} from '../domain/whatsapp-phone';
 import { WhatsAppConfig } from './whatsapp.config';
 
 type WahaSendResponse = {
@@ -42,6 +45,12 @@ type WahaSession = {
   config?: {
     webhooks?: WahaWebhookConfig[];
   };
+};
+
+type WahaCheckExists = {
+  numberExists?: boolean;
+  chatId?: string;
+  pn?: string;
 };
 
 type PendingMedia = {
@@ -71,12 +80,14 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
   }
 
   async sendText(to: string, body: string): Promise<WhatsAppSendResult> {
+    await this.ensureSessionRunning();
+    const target = await this.resolveOutboundChatId(to);
     const data = await this.post<WahaSendResponse>('/api/sendText', {
       session: this.config.session,
-      chatId: this.chatId(to),
+      chatId: target.chatId,
       text: body,
     });
-    return this.sendResult(to, data);
+    return this.sendResult(target.canonicalPhone, data);
   }
 
   async sendInteractiveMenu(
@@ -115,9 +126,10 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
 
     const endpoint = mediaEndpoint(kind);
     const caption = options?.caption?.trim();
+    const target = await this.resolveOutboundChatId(to);
     const data = await this.post<WahaSendResponse>(endpoint, {
       session: this.config.session,
-      chatId: this.chatId(to),
+      chatId: target.chatId,
       file: {
         mimetype: pending.mimeType,
         filename: options?.filename || pending.filename,
@@ -125,7 +137,7 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
       },
       ...(caption && kind !== WhatsAppMessageKind.AUDIO ? { caption } : {}),
     });
-    return this.sendResult(to, data);
+    return this.sendResult(target.canonicalPhone, data);
   }
 
   async sendLocation(
@@ -136,14 +148,15 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
     address?: string,
   ): Promise<WhatsAppSendResult> {
     const title = name?.trim() || address?.trim() || undefined;
+    const target = await this.resolveOutboundChatId(to);
     const data = await this.post<WahaSendResponse>('/api/sendLocation', {
       session: this.config.session,
-      chatId: this.chatId(to),
+      chatId: target.chatId,
       latitude,
       longitude,
       ...(title ? { title } : {}),
     });
-    return this.sendResult(to, data);
+    return this.sendResult(target.canonicalPhone, data);
   }
 
   async downloadMedia(mediaId: string): Promise<WhatsAppDownloadedMedia> {
@@ -265,26 +278,26 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
       return;
     }
 
+    const skipWebhookSync =
+      (process.env.WAHA_SKIP_WEBHOOK_SYNC ?? '').trim() === '1' ||
+      (process.env.WAHA_SKIP_WEBHOOK_SYNC ?? '').trim().toLowerCase() === 'true';
+
     try {
-      const session = await this.fetchSession();
-      const hooks = session.config?.webhooks ?? [];
-      const webhookReady =
-        !this.config.webhookUrl ||
-        hooks.some((hook) => hook.url === this.config.webhookUrl);
-      if (!webhookReady) {
-        await this.putSessionConfig();
-        this.logger.log(
-          `WAHA session "${this.config.session}" webhook updated`,
-        );
-        return;
+      let session = await this.fetchSession();
+      if (!skipWebhookSync) {
+        const hooks = session.config?.webhooks ?? [];
+        const webhookReady =
+          !this.config.webhookUrl ||
+          hooks.some((hook) => hook.url === this.config.webhookUrl);
+        if (!webhookReady) {
+          await this.putSessionConfig();
+          this.logger.log(
+            `WAHA session "${this.config.session}" webhook updated`,
+          );
+          session = await this.fetchSession();
+        }
       }
-      if (session.status === 'STOPPED' || session.status === 'FAILED') {
-        await this.post(
-          `/api/sessions/${encodeURIComponent(this.config.session)}/start`,
-          {},
-        );
-        this.logger.log(`WAHA session "${this.config.session}" started`);
-      }
+      await this.startSessionIfNeeded(session.status);
     } catch (error) {
       if (this.statusOf(error) === 404) {
         await this.createSession();
@@ -295,6 +308,21 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
         `WAHA session bootstrap failed: ${this.readError(error)}`,
       );
     }
+  }
+
+  private async ensureSessionRunning(): Promise<void> {
+    const session = await this.fetchSession();
+    await this.startSessionIfNeeded(session.status);
+  }
+
+  private async startSessionIfNeeded(
+    status: string | undefined,
+  ): Promise<void> {
+    if (status !== 'STOPPED' && status !== 'FAILED') return;
+    await this.post(
+      `/api/sessions/${encodeURIComponent(this.config.session)}/start`,
+      {},
+    );
   }
 
   private async sessionExists(): Promise<boolean> {
@@ -375,6 +403,43 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
     return mediaId;
   }
 
+  private pickCheckExistsResult(
+    result: WahaCheckExists,
+    fallbackPhone: string,
+  ): { chatId: string; canonicalPhone: string } {
+    const chatId = result.chatId?.trim() || this.chatId(fallbackPhone);
+    const pnDigits = result.pn?.replace(/@c\.us$/i, '').trim();
+    const canonicalPhone = pnDigits
+      ? normalizeWhatsAppPhone(pnDigits)
+      : fallbackPhone;
+    return { chatId, canonicalPhone };
+  }
+
+  private async resolveOutboundChatId(
+    to: string,
+  ): Promise<{ chatId: string; canonicalPhone: string }> {
+    const candidates = brazilWhatsAppPhoneCandidates(to);
+    let last: WahaCheckExists | null = null;
+    for (const phone of candidates) {
+      const result = await this.request<WahaCheckExists>(
+        'get',
+        `/api/contacts/check-exists?phone=${encodeURIComponent(phone)}&session=${encodeURIComponent(this.config.session)}`,
+      );
+      last = result;
+      if (result.numberExists) {
+        return this.pickCheckExistsResult(result, phone);
+      }
+    }
+    this.logger.warn(
+      `check-exists failed after ${candidates.length} candidate(s) for outbound send`,
+    );
+    throw new BadRequestException(
+      last?.numberExists === false
+        ? 'Este número não está no WhatsApp ou está incorreto. Confira o DDD e o 9 do celular (ex.: 4192534028).'
+        : 'Não foi possível validar o número no WhatsApp.',
+    );
+  }
+
   private chatId(to: string): string {
     return `${normalizeWhatsAppPhone(to)}@c.us`;
   }
@@ -416,7 +481,18 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
       if (this.statusOf(error) === 404) {
         throw error;
       }
-      throw new BadGatewayException(this.readError(error));
+      const detail = this.readError(error);
+      if (this.isRecipientWhatsAppError(detail)) {
+        throw new BadRequestException(
+          'Este número não está no WhatsApp ou está incorreto. Confira o DDD e o 9 do celular.',
+        );
+      }
+      if (this.statusOf(error) === 401 || this.statusOf(error) === 403) {
+        throw new BadGatewayException(
+          'Falha de autenticação com o WAHA. Confira WAHA_API_KEY.',
+        );
+      }
+      throw new BadGatewayException(detail);
     }
   }
 
@@ -440,8 +516,17 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
   private readError(error: unknown): string {
     if (isAxiosError(error)) {
       const data = error.response?.data as
-        | { message?: string | string[]; error?: string }
+        | {
+            message?: string | string[];
+            error?: string;
+            exception?: { message?: string; details?: string };
+          }
         | undefined;
+      const fromException =
+        data?.exception?.details?.trim() ||
+        data?.exception?.message?.trim() ||
+        '';
+      if (fromException) return fromException;
       if (Array.isArray(data?.message)) return data.message.join(', ');
       if (typeof data?.message === 'string' && data.message) return data.message;
       if (typeof data?.error === 'string' && data.error) return data.error;
@@ -449,6 +534,10 @@ export class WahaWhatsAppClient extends WhatsAppGraphGateway {
     }
     if (error instanceof Error) return error.message;
     return 'WAHA request failed';
+  }
+
+  private isRecipientWhatsAppError(message: string): boolean {
+    return /recipient is not on whatsapp|no lid found/i.test(message);
   }
 }
 

@@ -38,12 +38,14 @@ let WahaWhatsAppClient = WahaWhatsAppClient_1 = class WahaWhatsAppClient extends
         this.config = config;
     }
     async sendText(to, body) {
+        await this.ensureSessionRunning();
+        const target = await this.resolveOutboundChatId(to);
         const data = await this.post('/api/sendText', {
             session: this.config.session,
-            chatId: this.chatId(to),
+            chatId: target.chatId,
             text: body,
         });
-        return this.sendResult(to, data);
+        return this.sendResult(target.canonicalPhone, data);
     }
     async sendInteractiveMenu(to, bodyText, options) {
         const lines = options
@@ -65,9 +67,10 @@ let WahaWhatsAppClient = WahaWhatsAppClient_1 = class WahaWhatsAppClient extends
         }
         const endpoint = mediaEndpoint(kind);
         const caption = options?.caption?.trim();
+        const target = await this.resolveOutboundChatId(to);
         const data = await this.post(endpoint, {
             session: this.config.session,
-            chatId: this.chatId(to),
+            chatId: target.chatId,
             file: {
                 mimetype: pending.mimeType,
                 filename: options?.filename || pending.filename,
@@ -75,18 +78,19 @@ let WahaWhatsAppClient = WahaWhatsAppClient_1 = class WahaWhatsAppClient extends
             },
             ...(caption && kind !== whatsapp_message_1.WhatsAppMessageKind.AUDIO ? { caption } : {}),
         });
-        return this.sendResult(to, data);
+        return this.sendResult(target.canonicalPhone, data);
     }
     async sendLocation(to, latitude, longitude, name, address) {
         const title = name?.trim() || address?.trim() || undefined;
+        const target = await this.resolveOutboundChatId(to);
         const data = await this.post('/api/sendLocation', {
             session: this.config.session,
-            chatId: this.chatId(to),
+            chatId: target.chatId,
             latitude,
             longitude,
             ...(title ? { title } : {}),
         });
-        return this.sendResult(to, data);
+        return this.sendResult(target.canonicalPhone, data);
     }
     async downloadMedia(mediaId) {
         this.assertConfigured();
@@ -187,20 +191,21 @@ let WahaWhatsAppClient = WahaWhatsAppClient_1 = class WahaWhatsAppClient extends
             this.logger.warn('WAHA is not configured (WAHA_BASE_URL / WAHA_API_KEY). WhatsApp sends are disabled.');
             return;
         }
+        const skipWebhookSync = (process.env.WAHA_SKIP_WEBHOOK_SYNC ?? '').trim() === '1' ||
+            (process.env.WAHA_SKIP_WEBHOOK_SYNC ?? '').trim().toLowerCase() === 'true';
         try {
-            const session = await this.fetchSession();
-            const hooks = session.config?.webhooks ?? [];
-            const webhookReady = !this.config.webhookUrl ||
-                hooks.some((hook) => hook.url === this.config.webhookUrl);
-            if (!webhookReady) {
-                await this.putSessionConfig();
-                this.logger.log(`WAHA session "${this.config.session}" webhook updated`);
-                return;
+            let session = await this.fetchSession();
+            if (!skipWebhookSync) {
+                const hooks = session.config?.webhooks ?? [];
+                const webhookReady = !this.config.webhookUrl ||
+                    hooks.some((hook) => hook.url === this.config.webhookUrl);
+                if (!webhookReady) {
+                    await this.putSessionConfig();
+                    this.logger.log(`WAHA session "${this.config.session}" webhook updated`);
+                    session = await this.fetchSession();
+                }
             }
-            if (session.status === 'STOPPED' || session.status === 'FAILED') {
-                await this.post(`/api/sessions/${encodeURIComponent(this.config.session)}/start`, {});
-                this.logger.log(`WAHA session "${this.config.session}" started`);
-            }
+            await this.startSessionIfNeeded(session.status);
         }
         catch (error) {
             if (this.statusOf(error) === 404) {
@@ -210,6 +215,15 @@ let WahaWhatsAppClient = WahaWhatsAppClient_1 = class WahaWhatsAppClient extends
             }
             this.logger.warn(`WAHA session bootstrap failed: ${this.readError(error)}`);
         }
+    }
+    async ensureSessionRunning() {
+        const session = await this.fetchSession();
+        await this.startSessionIfNeeded(session.status);
+    }
+    async startSessionIfNeeded(status) {
+        if (status !== 'STOPPED' && status !== 'FAILED')
+            return;
+        await this.post(`/api/sessions/${encodeURIComponent(this.config.session)}/start`, {});
     }
     async sessionExists() {
         try {
@@ -282,6 +296,29 @@ let WahaWhatsAppClient = WahaWhatsAppClient_1 = class WahaWhatsAppClient extends
         }
         return mediaId;
     }
+    pickCheckExistsResult(result, fallbackPhone) {
+        const chatId = result.chatId?.trim() || this.chatId(fallbackPhone);
+        const pnDigits = result.pn?.replace(/@c\.us$/i, '').trim();
+        const canonicalPhone = pnDigits
+            ? (0, whatsapp_phone_1.normalizeWhatsAppPhone)(pnDigits)
+            : fallbackPhone;
+        return { chatId, canonicalPhone };
+    }
+    async resolveOutboundChatId(to) {
+        const candidates = (0, whatsapp_phone_1.brazilWhatsAppPhoneCandidates)(to);
+        let last = null;
+        for (const phone of candidates) {
+            const result = await this.request('get', `/api/contacts/check-exists?phone=${encodeURIComponent(phone)}&session=${encodeURIComponent(this.config.session)}`);
+            last = result;
+            if (result.numberExists) {
+                return this.pickCheckExistsResult(result, phone);
+            }
+        }
+        this.logger.warn(`check-exists failed after ${candidates.length} candidate(s) for outbound send`);
+        throw new common_1.BadRequestException(last?.numberExists === false
+            ? 'Este número não está no WhatsApp ou está incorreto. Confira o DDD e o 9 do celular (ex.: 4192534028).'
+            : 'Não foi possível validar o número no WhatsApp.');
+    }
     chatId(to) {
         return `${(0, whatsapp_phone_1.normalizeWhatsAppPhone)(to)}@c.us`;
     }
@@ -315,7 +352,14 @@ let WahaWhatsAppClient = WahaWhatsAppClient_1 = class WahaWhatsAppClient extends
             if (this.statusOf(error) === 404) {
                 throw error;
             }
-            throw new common_1.BadGatewayException(this.readError(error));
+            const detail = this.readError(error);
+            if (this.isRecipientWhatsAppError(detail)) {
+                throw new common_1.BadRequestException('Este número não está no WhatsApp ou está incorreto. Confira o DDD e o 9 do celular.');
+            }
+            if (this.statusOf(error) === 401 || this.statusOf(error) === 403) {
+                throw new common_1.BadGatewayException('Falha de autenticação com o WAHA. Confira WAHA_API_KEY.');
+            }
+            throw new common_1.BadGatewayException(detail);
         }
     }
     authHeaders() {
@@ -334,6 +378,11 @@ let WahaWhatsAppClient = WahaWhatsAppClient_1 = class WahaWhatsAppClient extends
     readError(error) {
         if ((0, axios_2.isAxiosError)(error)) {
             const data = error.response?.data;
+            const fromException = data?.exception?.details?.trim() ||
+                data?.exception?.message?.trim() ||
+                '';
+            if (fromException)
+                return fromException;
             if (Array.isArray(data?.message))
                 return data.message.join(', ');
             if (typeof data?.message === 'string' && data.message)
@@ -346,6 +395,9 @@ let WahaWhatsAppClient = WahaWhatsAppClient_1 = class WahaWhatsAppClient extends
         if (error instanceof Error)
             return error.message;
         return 'WAHA request failed';
+    }
+    isRecipientWhatsAppError(message) {
+        return /recipient is not on whatsapp|no lid found/i.test(message);
     }
 };
 exports.WahaWhatsAppClient = WahaWhatsAppClient;

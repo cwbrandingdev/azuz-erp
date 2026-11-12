@@ -135,7 +135,13 @@ export class WhatsAppService {
     agentReply = true,
   ): Promise<WhatsAppMessageRecord> {
     const recipient = normalizeWhatsAppPhone(to);
+    this.logger.log(
+      `WhatsApp outbound send requested normalizedLen=${recipient.length}`,
+    );
     const result = await this.graph.sendText(recipient, message);
+    this.logger.log(
+      `WhatsApp outbound send ok normalizedLen=${result.to.length} wamid=${result.whatsappMessageId ?? 'none'}`,
+    );
     return this.persistOutbound({
       to: result.to,
       body: message,

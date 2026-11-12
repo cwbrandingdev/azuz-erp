@@ -1,0 +1,20 @@
+[Unit]
+Description=Atria WAHA (WhatsApp) via Docker Compose
+Documentation=file://REPO_ROOT/docker-compose.waha.yml
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=REPO_ROOT
+# Load WAHA_API_KEY from a .env in the repo root if present (optional).
+EnvironmentFile=-REPO_ROOT/.env.waha
+ExecStart=/usr/bin/docker compose -f docker-compose.waha.yml up -d --remove-orphans
+ExecStop=/usr/bin/docker compose -f docker-compose.waha.yml stop
+ExecReload=/usr/bin/docker compose -f docker-compose.waha.yml up -d --remove-orphans
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
