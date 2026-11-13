@@ -9,6 +9,7 @@ import {
   Trash2,
   Video,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ import {
 } from "@/lib/lead-pipeline-zones";
 import { toast } from "@/lib/toast";
 import { isMasterOrAdmin } from "@/lib/permissions";
+import { normalizeWhatsAppPhone } from "@/lib/whatsapp-phone";
 import { leadsService } from "@/services";
 import {
   isDialablePhone,
@@ -425,11 +427,17 @@ export function LeadKanbanCard({
                 size="sm"
                 className="w-full"
                 render={
-                  <a
-                    href={toWhatsAppUrl(lead.phone)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  />
+                  portalClientView ? (
+                    <a
+                      href={toWhatsAppUrl(lead.phone)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  ) : (
+                    <Link
+                      href={`/whatsapp?phone=${encodeURIComponent(normalizeWhatsAppPhone(lead.phone))}`}
+                    />
+                  )
                 }
               >
                 <MessageCircle className="size-3.5" />

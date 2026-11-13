@@ -15,9 +15,9 @@ import {
   KanbanSquareIcon,
   MessageSquarePlus,
   Megaphone,
-  MessageCircle,
   UserCheckIcon,
 } from "lucide-react";
+import { WhatsAppNavIcon } from "@/components/layout/whatsapp-nav-icon";
 
 export interface NavChild {
   name: string;
@@ -76,7 +76,7 @@ export const navSections: NavSection[] = [
     items: [
       { name: "Prospecção de Leads", href: "/leads", icon: Layers },
       { name: "Leads Kanban", href: "/leads/kanban", icon: KanbanSquareIcon },
-      { name: "WhatsApp", href: "/whatsapp", icon: MessageCircle },
+      { name: "WhatsApp", href: "/whatsapp", icon: WhatsAppNavIcon },
     ],
   },
 
