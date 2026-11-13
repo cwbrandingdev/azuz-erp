@@ -260,27 +260,21 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         if (input.assignedUserId) {
             recipientIds = [input.assignedUserId];
         }
-        else if (input.agentUserIds.length > 0) {
-            recipientIds = input.agentUserIds;
-        }
         else {
-            const crmUsers = await this.prisma.user.findMany({
+            const members = await this.prisma.user.findMany({
                 where: {
                     companyId: input.companyId,
                     isActive: true,
                     category: client_1.UserCategory.MEMBER,
-                    role: { name: client_1.RoleName.CRM },
                 },
                 select: { id: true },
             });
-            recipientIds = crmUsers.map((user) => user.id);
+            recipientIds = members.map((user) => user.id);
         }
         const label = input.contactName?.trim() || input.phone;
         const title = 'Nova mensagem no WhatsApp';
-        const message = `${label}: ${input.preview}`;
-        await this.createMany(recipientIds, client_1.NotificationType.SYSTEM, title, message, {
-            companyId: input.companyId,
-        });
+        const message = `${input.phone} · ${label}: ${input.preview}`;
+        await this.createMany(recipientIds, client_1.NotificationType.WHATSAPP_INBOUND, title, message, { companyId: input.companyId });
         const users = await this.prisma.user.findMany({
             where: {
                 id: { in: recipientIds },
