@@ -20,6 +20,7 @@ import { fromDateTimeLocalValue } from "@/lib/datetime-local";
 import {
   DEFAULT_TASK_CONTENT_TYPE,
   defaultProductionPhaseForContentType,
+  isSocialContentType,
 } from "@/lib/task-content-type";
 import { TaskContentTypePicker } from "@/components/kanban/task-content-type-picker";
 import { toast } from "@/lib/toast";
@@ -106,15 +107,19 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
     setError(null);
 
     try {
+      const social = isSocialContentType(contentType);
       const created = await createTaskMutation.mutateAsync({
         title,
         description: description || undefined,
         contentType,
-        productionPhase: defaultProductionPhaseForContentType(contentType),
+        productionPhase:
+          defaultProductionPhaseForContentType(contentType) ?? undefined,
         assigneeIds,
         clientId: clientId || undefined,
         deliveryDate: fromDateTimeLocalValue(deliveryDate),
-        publicationDate: fromDateTimeLocalValue(publicationDate),
+        publicationDate: social
+          ? fromDateTimeLocalValue(publicationDate)
+          : undefined,
         referenceUrl: referenceUrl.trim() || undefined,
       });
 
@@ -183,7 +188,7 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
             </Field>
 
             <Field>
-              <FieldLabel>Tipo de conteúdo</FieldLabel>
+              <FieldLabel>Tipo de entrega</FieldLabel>
               <TaskContentTypePicker
                 value={contentType}
                 onChange={setContentType}
@@ -215,7 +220,13 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
               />
             </Field>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div
+              className={
+                isSocialContentType(contentType)
+                  ? "grid grid-cols-1 gap-3 sm:grid-cols-2"
+                  : "grid grid-cols-1 gap-3"
+              }
+            >
               <Field>
                 <FieldLabel htmlFor="task-delivery">Data de Entrega</FieldLabel>
                 <Input
@@ -226,17 +237,19 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
                 />
               </Field>
 
-              <Field>
-                <FieldLabel htmlFor="task-publication">
-                  Data de Publicação
-                </FieldLabel>
-                <Input
-                  id="task-publication"
-                  type="datetime-local"
-                  value={publicationDate}
-                  onChange={(e) => setPublicationDate(e.target.value)}
-                />
-              </Field>
+              {isSocialContentType(contentType) ? (
+                <Field>
+                  <FieldLabel htmlFor="task-publication">
+                    Data de Publicação
+                  </FieldLabel>
+                  <Input
+                    id="task-publication"
+                    type="datetime-local"
+                    value={publicationDate}
+                    onChange={(e) => setPublicationDate(e.target.value)}
+                  />
+                </Field>
+              ) : null}
             </div>
 
             <Field>

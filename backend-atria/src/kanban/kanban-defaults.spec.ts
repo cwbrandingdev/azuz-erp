@@ -1,4 +1,8 @@
-import { KanbanTaskStatus, ProductionPhase } from '@prisma/client';
+import {
+  KanbanTaskContentType,
+  KanbanTaskStatus,
+  ProductionPhase,
+} from '@prisma/client';
 import { DEFAULT_TASK_STATUS } from './kanban-defaults';
 import {
   DEFAULT_TASK_CONTENT_TYPE,
@@ -15,6 +19,7 @@ import {
   DEFAULT_PRODUCTION_PHASE,
   PRODUCTION_PHASE_COLORS,
   PRODUCTION_PHASE_LABELS,
+  resolveProductionPhaseForStatus,
 } from './production-phase';
 
 describe('Kanban defaults & status', () => {
@@ -61,5 +66,26 @@ describe('Kanban task mapper', () => {
     expect(core.statusLabel).toBe('Em gravação');
     expect(core.dueDate).toBeNull();
     expect(core.client).toBeNull();
+  });
+});
+
+describe('Non-social deliverable types', () => {
+  it('does not assign a recording phase to presentations and other deliverables', () => {
+    expect(
+      resolveProductionPhaseForStatus(
+        KanbanTaskStatus.FALTA_GRAVAR,
+        null,
+        undefined,
+        KanbanTaskContentType.PRESENTATION,
+      ),
+    ).toBeNull();
+    expect(
+      resolveProductionPhaseForStatus(
+        KanbanTaskStatus.FALTA_GRAVAR,
+        ProductionPhase.ROTEIRO,
+        undefined,
+        KanbanTaskContentType.DOCUMENT,
+      ),
+    ).toBeNull();
   });
 });

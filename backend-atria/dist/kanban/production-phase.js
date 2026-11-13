@@ -10,6 +10,7 @@ exports.resolveProductionPhaseForStatus = resolveProductionPhaseForStatus;
 exports.resolveTaskDisplayColor = resolveTaskDisplayColor;
 exports.resolveTaskDisplayLabel = resolveTaskDisplayLabel;
 const client_1 = require("@prisma/client");
+const kanban_content_type_1 = require("./kanban-content-type");
 exports.PRODUCTION_PHASE_DEFINITIONS = [
     {
         phase: client_1.ProductionPhase.ROTEIRO,
@@ -32,6 +33,8 @@ function contentTypeRequiresScript(contentType) {
         contentType === client_1.KanbanTaskContentType.VIDEO_WITH_SCRIPT);
 }
 function defaultProductionPhaseForContentType(contentType) {
+    if (!(0, kanban_content_type_1.isSocialTaskContentType)(contentType))
+        return null;
     return contentTypeRequiresScript(contentType)
         ? client_1.ProductionPhase.ROTEIRO
         : client_1.ProductionPhase.EM_GRAVACAO;
@@ -47,6 +50,9 @@ function isProductionPhase(value) {
 }
 function resolveProductionPhaseForStatus(status, currentPhase, requestedPhase, contentType) {
     if (status !== client_1.KanbanTaskStatus.FALTA_GRAVAR) {
+        return null;
+    }
+    if (!(0, kanban_content_type_1.isSocialTaskContentType)(contentType)) {
         return null;
     }
     if (isProductionPhase(requestedPhase)) {

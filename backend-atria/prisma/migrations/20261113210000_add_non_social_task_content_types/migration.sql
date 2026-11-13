@@ -1,0 +1,4 @@
+ALTER TYPE "KanbanTaskContentType" ADD VALUE 'PRESENTATION';
+ALTER TYPE "KanbanTaskContentType" ADD VALUE 'DOCUMENT';
+ALTER TYPE "KanbanTaskContentType" ADD VALUE 'MOCKUP';
+ALTER TYPE "KanbanTaskContentType" ADD VALUE 'PRINT';

@@ -1543,6 +1543,10 @@ enum KanbanTaskContentType {
   STATIC
   CAROUSEL
   STORIES_NO_SCRIPT
+  PRESENTATION
+  DOCUMENT
+  MOCKUP
+  PRINT
 }
 
 enum InternalReviewStatus {

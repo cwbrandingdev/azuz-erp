@@ -40,7 +40,10 @@ import {
   DEFAULT_TASK_STATUS,
   STATUS_LABELS,
 } from "@/lib/kanban-utils";
-import { DEFAULT_TASK_CONTENT_TYPE } from "@/lib/task-content-type";
+import {
+  DEFAULT_TASK_CONTENT_TYPE,
+  isSocialContentType,
+} from "@/lib/task-content-type";
 import { TaskContentTypePicker } from "@/components/kanban/task-content-type-picker";
 import {
   TaskStatusBadge,
@@ -314,7 +317,9 @@ export function TaskDetailDialog({
           assignedGroupId: assignedGroupId || null,
           clientId: clientId || undefined,
           deliveryDate: fromDateTimeLocalValue(deliveryDate),
-          publicationDate: fromDateTimeLocalValue(publicationDate),
+          publicationDate: isSocialContentType(contentType)
+            ? fromDateTimeLocalValue(publicationDate)
+            : null,
           referenceUrl: referenceUrl.trim() ? referenceUrl.trim() : null,
         },
       });
@@ -640,12 +645,14 @@ export function TaskDetailDialog({
               </span>
               {formatSlaDue(task.deliveryDate ?? task.dueDate)}
             </p>
-            <p>
-              <span className="font-medium text-[var(--atria-primary)]/55">
-                Data de Publicação:{" "}
-              </span>
-              {formatSlaDue(task.publicationDate ?? null)}
-            </p>
+            {isSocialContentType(contentType) ? (
+              <p>
+                <span className="font-medium text-[var(--atria-primary)]/55">
+                  Data de Publicação:{" "}
+                </span>
+                {formatSlaDue(task.publicationDate ?? null)}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -717,7 +724,7 @@ export function TaskDetailDialog({
                   />
 
                   <Field>
-                    <FieldLabel>Tipo de conteúdo</FieldLabel>
+                    <FieldLabel>Tipo de entrega</FieldLabel>
                     <TaskContentTypePicker
                       value={contentType}
                       onChange={setContentType}
@@ -734,7 +741,13 @@ export function TaskDetailDialog({
                     />
                   </Field>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div
+                    className={
+                      isSocialContentType(contentType)
+                        ? "grid grid-cols-1 gap-3 sm:grid-cols-2"
+                        : "grid grid-cols-1 gap-3"
+                    }
+                  >
                     <Field>
                       <FieldLabel htmlFor="detail-delivery">
                         Data de Entrega
@@ -746,17 +759,19 @@ export function TaskDetailDialog({
                         onChange={(e) => setDeliveryDate(e.target.value)}
                       />
                     </Field>
-                    <Field>
-                      <FieldLabel htmlFor="detail-publication">
-                        Data de Publicação
-                      </FieldLabel>
-                      <Input
-                        id="detail-publication"
-                        type="datetime-local"
-                        value={publicationDate}
-                        onChange={(e) => setPublicationDate(e.target.value)}
-                      />
-                    </Field>
+                    {isSocialContentType(contentType) ? (
+                      <Field>
+                        <FieldLabel htmlFor="detail-publication">
+                          Data de Publicação
+                        </FieldLabel>
+                        <Input
+                          id="detail-publication"
+                          type="datetime-local"
+                          value={publicationDate}
+                          onChange={(e) => setPublicationDate(e.target.value)}
+                        />
+                      </Field>
+                    ) : null}
                   </div>
 
                   <Field>
@@ -869,34 +884,36 @@ export function TaskDetailDialog({
                 </div>
               )}
 
-              <Field>
-                <FieldLabel htmlFor="post-caption">Legenda do post</FieldLabel>
-                <textarea
-                  id="post-caption"
-                  value={postCaption}
-                  onChange={(e) => setPostCaption(e.target.value)}
-                  rows={5}
-                  disabled={!canEdit}
-                  placeholder="Escreva a legenda que será publicada com este conteúdo..."
-                  className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm"
-                />
-                <p className="mt-1.5 text-xs text-[var(--atria-primary)]/50">
-                  Esta legenda será exibida para o cliente na aprovação do
-                  conteúdo.
-                </p>
-                {canEdit && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 bg-green-800 text-white"
-                    disabled={savingPostCaption}
-                    onClick={() => void handleSavePostCaption()}
-                  >
-                    {savingPostCaption ? "Salvando..." : "Salvar legenda"}
-                  </Button>
-                )}
-              </Field>
+              {isSocialContentType(contentType) ? (
+                <Field>
+                  <FieldLabel htmlFor="post-caption">Legenda do post</FieldLabel>
+                  <textarea
+                    id="post-caption"
+                    value={postCaption}
+                    onChange={(e) => setPostCaption(e.target.value)}
+                    rows={5}
+                    disabled={!canEdit}
+                    placeholder="Escreva a legenda que será publicada com este conteúdo..."
+                    className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm"
+                  />
+                  <p className="mt-1.5 text-xs text-[var(--atria-primary)]/50">
+                    Esta legenda será exibida para o cliente na aprovação do
+                    conteúdo.
+                  </p>
+                  {canEdit && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 bg-green-800 text-white"
+                      disabled={savingPostCaption}
+                      onClick={() => void handleSavePostCaption()}
+                    >
+                      {savingPostCaption ? "Salvando..." : "Salvar legenda"}
+                    </Button>
+                  )}
+                </Field>
+              ) : null}
 
               {canEdit && (
                 <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">

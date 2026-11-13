@@ -291,7 +291,11 @@ export type KanbanTaskContentType =
   | "video_with_script"
   | "static"
   | "carousel"
-  | "stories_no_script";
+  | "stories_no_script"
+  | "presentation"
+  | "document"
+  | "mockup"
+  | "print";
 
 export interface KanbanColumn {
   id: string;
@@ -396,11 +400,11 @@ export interface CreateTaskInput {
   columnId?: string;
   contentType?: KanbanTaskContentType;
   status?: KanbanTaskStatus;
-  productionPhase?: ProductionPhase;
+  productionPhase?: ProductionPhase | null;
   priority?: KanbanPriority;
   dueDate?: string;
   deliveryDate?: string;
-  publicationDate?: string;
+  publicationDate?: string | null;
   assigneeIds?: string[];
   assignedGroupId?: string | null;
   clientId?: string;
