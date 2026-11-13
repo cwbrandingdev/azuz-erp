@@ -77,8 +77,8 @@ export declare class WhatsAppController {
             recipients: number;
         };
     } & {
-        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         id: string;
+        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
@@ -101,8 +101,8 @@ export declare class WhatsAppController {
         failedCount: number;
     })[]>;
     createBroadcast(user: AuthenticatedUser, dto: UpsertBroadcastDto): Promise<{
-        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         id: string;
+        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
@@ -125,8 +125,8 @@ export declare class WhatsAppController {
         failedCount: number;
     }>;
     updateBroadcast(user: AuthenticatedUser, id: string, dto: UpsertBroadcastDto): Promise<{
-        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         id: string;
+        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
@@ -153,8 +153,8 @@ export declare class WhatsAppController {
         sample: string[];
     }>;
     startBroadcast(user: AuthenticatedUser, id: string): Promise<{
-        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         id: string;
+        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
@@ -177,8 +177,8 @@ export declare class WhatsAppController {
         failedCount: number;
     }>;
     pauseBroadcast(user: AuthenticatedUser, id: string): Promise<{
-        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         id: string;
+        status: import("@prisma/client").$Enums.WhatsAppBroadcastStatus;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
@@ -202,8 +202,8 @@ export declare class WhatsAppController {
     }>;
     deleteBroadcast(user: AuthenticatedUser, id: string): Promise<void>;
     listTriggers(user: AuthenticatedUser): Promise<{
-        eventType: import("@prisma/client").$Enums.WhatsAppTriggerEvent;
         id: string;
+        eventType: import("@prisma/client").$Enums.WhatsAppTriggerEvent;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
@@ -217,8 +217,8 @@ export declare class WhatsAppController {
         delayMinutes: number;
     }[]>;
     createTrigger(user: AuthenticatedUser, dto: UpsertTriggerDto): Promise<{
-        eventType: import("@prisma/client").$Enums.WhatsAppTriggerEvent;
         id: string;
+        eventType: import("@prisma/client").$Enums.WhatsAppTriggerEvent;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;
@@ -232,8 +232,8 @@ export declare class WhatsAppController {
         delayMinutes: number;
     }>;
     updateTrigger(user: AuthenticatedUser, id: string, dto: UpsertTriggerDto): Promise<{
-        eventType: import("@prisma/client").$Enums.WhatsAppTriggerEvent;
         id: string;
+        eventType: import("@prisma/client").$Enums.WhatsAppTriggerEvent;
         createdAt: Date;
         updatedAt: Date;
         companyId: string;

@@ -1467,6 +1467,7 @@ enum NotificationType {
   APP_UPDATE
   WHATSAPP_MENTION
   WHATSAPP_TRANSFER
+  WHATSAPP_INBOUND
 }
 
 enum TransactionType {

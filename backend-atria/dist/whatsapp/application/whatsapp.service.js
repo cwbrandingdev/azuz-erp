@@ -393,16 +393,14 @@ let WhatsAppService = WhatsAppService_1 = class WhatsAppService {
         })
             .catch((error) => this.logger.warn(`Automation inbound failed: ${error instanceof Error ? error.message : error}`));
         const companyId = '00000000-0000-4000-8000-000000000001';
-        void this.routing
-            .getSettings(companyId)
-            .then((settings) => this.notifications.notifyWhatsAppInbound({
+        void this.notifications
+            .notifyWhatsAppInbound({
             companyId,
             phone: from,
             contactName: withLead.name ?? input.contactName,
             preview: parsed.body.slice(0, 200),
             assignedUserId: withLead.assignedUser?.id ?? null,
-            agentUserIds: settings.agentUserIds,
-        }))
+        })
             .catch((error) => this.logger.warn(`WhatsApp inbound notify failed: ${error instanceof Error ? error.message : error}`));
     }
     async transcribeLater(messageId, buffer, mimeType) {

@@ -29,6 +29,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   app_update: "Atualização",
   whatsapp_mention: "WhatsApp",
   whatsapp_transfer: "WhatsApp",
+  whatsapp_inbound: "WhatsApp",
 };
 
 const DUE_DATE_TYPES = new Set<string>(["due_date_warning"]);
@@ -59,7 +60,8 @@ export function getNotificationHref(notification: AppNotification): string {
     case "app_update":
       return "/app-updates";
     case "whatsapp_mention":
-    case "whatsapp_transfer": {
+    case "whatsapp_transfer":
+    case "whatsapp_inbound": {
       const phone = notification.message.match(/\d{10,}/)?.[0];
       return phone ? `/whatsapp?phone=${encodeURIComponent(phone)}` : "/whatsapp";
     }

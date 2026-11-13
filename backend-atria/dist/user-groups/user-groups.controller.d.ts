@@ -1,4 +1,4 @@
-import { CreateUserGroupDto, UpdateUserGroupDto, AddUserGroupMembersDto } from '../users/dto/user.dto';
+import { UpdateUserGroupDto, AddUserGroupMembersDto } from '../users/dto/user.dto';
 import { UserGroupsService } from './user-groups.service';
 export declare class UserGroupsController {
     private readonly userGroupsService;
@@ -22,24 +22,6 @@ export declare class UserGroupsController {
         updatedAt: string;
     }[]>;
     findOne(id: string): Promise<{
-        id: string;
-        name: string;
-        description: string | null;
-        color: string;
-        userCount: number;
-        members: {
-            id: string;
-            name: string;
-            email: string;
-            avatarUrl: string | null;
-            role: string;
-            category: string;
-            assignedAt: string;
-        }[];
-        createdAt: string;
-        updatedAt: string;
-    }>;
-    create(dto: CreateUserGroupDto): Promise<{
         id: string;
         name: string;
         description: string | null;

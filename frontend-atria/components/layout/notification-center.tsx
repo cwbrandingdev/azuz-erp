@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, Wallet } from "lucide-react";
@@ -25,6 +25,28 @@ import { cn } from "@/lib/utils";
 
 const FINANCE_POLL_MS = 60_000;
 
+type DesktopPermission = NotificationPermission | "unsupported";
+
+function useDesktopNotificationPermission() {
+  const [permission, setPermission] = useState<DesktopPermission>("default");
+
+  useEffect(() => {
+    if (typeof Notification === "undefined") {
+      setPermission("unsupported");
+      return;
+    }
+    setPermission(Notification.permission);
+  }, []);
+
+  async function enable() {
+    if (typeof Notification === "undefined") return;
+    const result = await Notification.requestPermission();
+    setPermission(result);
+  }
+
+  return { permission, enable };
+}
+
 interface NotificationCenterProps {
   tone?: "light" | "dark";
 }
@@ -37,6 +59,7 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
     useNotifications();
   const markNotificationAsRead = useMarkNotificationAsRead();
   const [open, setOpen] = useState(false);
+  const desktop = useDesktopNotificationPermission();
   const { data: financeAlerts = null, refetch: refetchFinanceAlerts } =
     useDueTodayAlerts({
       enabled: showFinanceAlerts,
@@ -115,6 +138,25 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
           )}
         </div>
         <DropdownMenuSeparator />
+
+        {desktop.permission === "default" ? (
+          <div className="px-3 py-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full justify-center text-[var(--atria-primary)]"
+              onClick={() => void desktop.enable()}
+            >
+              Ativar notificações do Windows
+            </Button>
+          </div>
+        ) : desktop.permission === "denied" ? (
+          <p className="px-3 py-2 text-xs text-muted-foreground">
+            As notificações do Windows estão bloqueadas. Permita este site nas
+            configurações do navegador.
+          </p>
+        ) : null}
 
         {showFinanceAlerts && financeDueCount > 0 && financeAlerts ? (
           <>

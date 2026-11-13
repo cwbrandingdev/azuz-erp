@@ -31,7 +31,11 @@ function NotificationIcon({ type }: { type: AppNotification["type"] }) {
   if (type === "contract_signed") return <FileSignature className="size-4" />;
   if (type === "task_assigned") return <ClipboardList className="size-4" />;
   if (type === "app_update") return <Megaphone className="size-4" />;
-  if (type === "whatsapp_mention" || type === "whatsapp_transfer") {
+  if (
+    type === "whatsapp_mention" ||
+    type === "whatsapp_transfer" ||
+    type === "whatsapp_inbound"
+  ) {
     return <MessageCircle className="size-4" />;
   }
   return <Megaphone className="size-4" />;

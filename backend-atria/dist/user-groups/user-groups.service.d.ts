@@ -1,5 +1,5 @@
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateUserGroupDto, UpdateUserGroupDto } from '../users/dto/user.dto';
+import { UpdateUserGroupDto } from '../users/dto/user.dto';
 export declare class UserGroupsService {
     private readonly prisma;
     constructor(prisma: PrismaService);
@@ -22,24 +22,6 @@ export declare class UserGroupsService {
         updatedAt: string;
     }[]>;
     findOne(id: string): Promise<{
-        id: string;
-        name: string;
-        description: string | null;
-        color: string;
-        userCount: number;
-        members: {
-            id: string;
-            name: string;
-            email: string;
-            avatarUrl: string | null;
-            role: string;
-            category: string;
-            assignedAt: string;
-        }[];
-        createdAt: string;
-        updatedAt: string;
-    }>;
-    create(dto: CreateUserGroupDto): Promise<{
         id: string;
         name: string;
         description: string | null;

@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { getNotificationHref } from "@/lib/notification-utils";
 import { notificationsService } from "@/services";
 import type { AppNotification } from "@/services/types";
 
@@ -26,6 +27,31 @@ interface NotificationsContextValue {
 const NotificationsContext = createContext<NotificationsContextValue | null>(
   null,
 );
+
+function showInboundToasts(
+  list: AppNotification[],
+  knownIds: Set<string> | null,
+) {
+  if (!knownIds) return;
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission !== "granted") return;
+  if (document.visibilityState !== "hidden") return;
+
+  for (const item of list) {
+    if (knownIds.has(item.id) || item.isRead || item.type !== "whatsapp_inbound") {
+      continue;
+    }
+    const toast = new Notification(item.title, {
+      body: item.message,
+      tag: item.id,
+    });
+    toast.onclick = () => {
+      window.focus();
+      window.location.assign(getNotificationHref(item));
+      toast.close();
+    };
+  }
+}
 
 function normalizeCount(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -50,6 +76,7 @@ export function NotificationsProvider({
   const [loading, setLoading] = useState(true);
   const notificationsRef = useRef(notifications);
   notificationsRef.current = notifications;
+  const knownIdsRef = useRef<Set<string> | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -57,6 +84,8 @@ export function NotificationsProvider({
         notificationsService.getNotifications(),
         notificationsService.getUnreadCount(),
       ]);
+      showInboundToasts(list, knownIdsRef.current);
+      knownIdsRef.current = new Set(list.map((item) => item.id));
       setNotifications(list);
       setUnreadCount(normalizeCount(count));
     } catch {
@@ -70,9 +99,7 @@ export function NotificationsProvider({
   useEffect(() => {
     void refresh();
     const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        void refresh();
-      }
+      void refresh();
     }, POLL_INTERVAL_MS);
 
     function onVisibility() {

@@ -2188,7 +2188,8 @@ export type NotificationType =
   | "system"
   | "app_update"
   | "whatsapp_mention"
-  | "whatsapp_transfer";
+  | "whatsapp_transfer"
+  | "whatsapp_inbound";
 
 export interface AppNotification {
   id: string;
