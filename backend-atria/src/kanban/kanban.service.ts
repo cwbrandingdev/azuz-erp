@@ -37,7 +37,10 @@ import {
 import { PrismaService, PRISMA_TRANSACTION_OPTIONS } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SlaService } from '../sla/sla.service';
-import { resolveTaskContentType } from './kanban-content-type';
+import {
+  isSocialTaskContentType,
+  resolveTaskContentType,
+} from './kanban-content-type';
 import { DEFAULT_TASK_STATUS } from './kanban-defaults';
 import {
   KANBAN_STATUS_DEFINITIONS,
@@ -301,7 +304,7 @@ export class KanbanService {
       dto.productionPhase,
       contentType,
     );
-    this.assertValidProductionColumnTarget(status, productionPhase);
+    this.assertValidProductionColumnTarget(status, productionPhase, contentType);
     const priority = dto.priority ?? KanbanTaskPriority.MEDIUM;
     const slaDueDates = await this.slaService.computeDueDatesForPriority(
       priority,
@@ -514,9 +517,8 @@ export class KanbanService {
       contentTypeRequiresScript(dto.contentType) !==
         contentTypeRequiresScript(existing.contentType)
     ) {
-      requestedProductionPhase = defaultProductionPhaseForContentType(
-        dto.contentType,
-      );
+      requestedProductionPhase =
+        defaultProductionPhaseForContentType(dto.contentType) ?? undefined;
     }
 
     const resolvedProductionPhase = resolveProductionPhaseForStatus(
@@ -528,6 +530,7 @@ export class KanbanService {
     this.assertValidProductionColumnTarget(
       resolvedStatus,
       resolvedProductionPhase,
+      nextContentType,
     );
 
     await this.prisma.$transaction(async (tx) => {
@@ -675,6 +678,7 @@ export class KanbanService {
     this.assertValidProductionColumnTarget(
       dto.status,
       resolvedProductionPhase,
+      existing.contentType,
     );
 
     let resolvedAt: Date | null | undefined;
@@ -739,7 +743,11 @@ export class KanbanService {
       undefined,
       task.contentType,
     );
-    this.assertValidProductionColumnTarget(newStatus, resolvedProductionPhase);
+    this.assertValidProductionColumnTarget(
+      newStatus,
+      resolvedProductionPhase,
+      task.contentType,
+    );
 
     await this.prisma.$transaction(async (tx) => {
       if (sourceColumnId === dto.columnId) {
@@ -1802,8 +1810,13 @@ export class KanbanService {
   private assertValidProductionColumnTarget(
     status: KanbanTaskStatus,
     productionPhase: ProductionPhase | null,
+    contentType?: KanbanTaskContentType | null,
   ) {
     if (status !== KanbanTaskStatus.FALTA_GRAVAR) {
+      return;
+    }
+
+    if (!isSocialTaskContentType(contentType)) {
       return;
     }
 

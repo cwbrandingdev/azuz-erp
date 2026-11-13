@@ -2,12 +2,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCompanyId } from "@/hooks/use-company-id";
 import { DEFAULT_TASK_STATUS, STATUS_COLORS, STATUS_LABELS } from "@/lib/kanban-utils";
 import {
+  resolveProductionPhaseForStatus,
   resolveTaskDisplayColor,
   resolveTaskDisplayLabel,
 } from "@/lib/production-phase";
 import {
   contentTypeRequiresScript,
   defaultProductionPhaseForContentType,
+  isSocialContentType,
 } from "@/lib/task-content-type";
 import {
   applyTaskStatusInCache,
@@ -120,24 +122,26 @@ export function useUpdateTaskMutation() {
         if (current) {
           const nextStatus = data.status ?? current.status;
           const nextContentType = data.contentType ?? current.contentType;
-          let nextPhase =
-            data.productionPhase !== undefined
-              ? data.productionPhase
-              : current.productionPhase;
+          let requestedPhase = data.productionPhase;
           if (
             nextStatus === "falta_gravar" &&
             data.contentType &&
             data.productionPhase === undefined &&
-            contentTypeRequiresScript(data.contentType) !==
-              contentTypeRequiresScript(current.contentType)
+            (contentTypeRequiresScript(data.contentType) !==
+              contentTypeRequiresScript(current.contentType) ||
+              isSocialContentType(data.contentType) !==
+                isSocialContentType(current.contentType))
           ) {
-            nextPhase = defaultProductionPhaseForContentType(data.contentType);
+            requestedPhase =
+              defaultProductionPhaseForContentType(data.contentType) ??
+              undefined;
           }
-          const resolvedPhase =
-            nextStatus === "falta_gravar"
-              ? (nextPhase ??
-                defaultProductionPhaseForContentType(nextContentType))
-              : null;
+          const resolvedPhase = resolveProductionPhaseForStatus(
+            nextStatus,
+            current.productionPhase,
+            requestedPhase,
+            nextContentType,
+          );
 
           upsertTaskInCache(queryClient, companyId, {
             ...current,

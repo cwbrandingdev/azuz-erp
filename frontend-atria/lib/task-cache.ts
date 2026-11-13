@@ -7,6 +7,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/kanban-utils";
 import {
+  resolveProductionPhaseForStatus,
   resolveTaskDisplayColor,
   resolveTaskDisplayLabel,
 } from "@/lib/production-phase";
@@ -19,7 +20,7 @@ import type {
   ProductionPhase,
 } from "@/services/types";
 import { calendarEventFromTask } from "@/lib/calendar-utils";
-import { DEFAULT_TASK_CONTENT_TYPE, defaultProductionPhaseForContentType } from "@/lib/task-content-type";
+import { DEFAULT_TASK_CONTENT_TYPE } from "@/lib/task-content-type";
 
 export function getTasksCache(
   queryClient: QueryClient,
@@ -75,11 +76,12 @@ export function applyTaskStatusInCache(
   const current = getTasksCache(queryClient, companyId)?.find(
     (task) => task.id === taskId,
   );
-  const resolvedPhase =
-    status === "falta_gravar"
-      ? (productionPhase ??
-        defaultProductionPhaseForContentType(current?.contentType))
-      : null;
+  const resolvedPhase = resolveProductionPhaseForStatus(
+    status,
+    current?.productionPhase,
+    productionPhase,
+    current?.contentType,
+  );
   const statusColor = resolveTaskDisplayColor(
     status,
     resolvedPhase,
@@ -208,11 +210,12 @@ export function reorderTaskInCache(
   const currentTask = getTasksCache(queryClient, companyId)?.find(
     (task) => task.id === taskId,
   );
-  const resolvedPhase =
-    status === "falta_gravar"
-      ? (productionPhase ??
-        defaultProductionPhaseForContentType(currentTask?.contentType))
-      : null;
+  const resolvedPhase = resolveProductionPhaseForStatus(
+    status,
+    currentTask?.productionPhase,
+    productionPhase,
+    currentTask?.contentType,
+  );
   const statusColor = resolveTaskDisplayColor(
     status,
     resolvedPhase,
@@ -272,7 +275,7 @@ export function buildOptimisticTask(
     columnId?: string;
     contentType?: KanbanTaskContentType;
     status?: KanbanTaskStatus;
-    productionPhase?: ProductionPhase;
+    productionPhase?: ProductionPhase | null;
     priority?: KanbanTask["priority"];
     dueDate?: string | null;
     deliveryDate?: string | null;
@@ -283,11 +286,12 @@ export function buildOptimisticTask(
   optimisticId: string,
 ): KanbanTask {
   const status = data.status ?? DEFAULT_TASK_STATUS;
-  const productionPhase =
-    status === "falta_gravar"
-      ? (data.productionPhase ??
-        defaultProductionPhaseForContentType(data.contentType))
-      : null;
+  const productionPhase = resolveProductionPhaseForStatus(
+    status,
+    null,
+    data.productionPhase,
+    data.contentType,
+  );
   const statusColor = resolveTaskDisplayColor(
     status,
     productionPhase,

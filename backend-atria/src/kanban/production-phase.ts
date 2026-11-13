@@ -1,4 +1,5 @@
 import { KanbanTaskContentType, KanbanTaskStatus, ProductionPhase } from '@prisma/client';
+import { isSocialTaskContentType } from './kanban-content-type';
 
 export const PRODUCTION_PHASE_DEFINITIONS: ReadonlyArray<{
   phase: ProductionPhase;
@@ -43,7 +44,8 @@ export function contentTypeRequiresScript(
 
 export function defaultProductionPhaseForContentType(
   contentType?: KanbanTaskContentType | null,
-): ProductionPhase {
+): ProductionPhase | null {
+  if (!isSocialTaskContentType(contentType)) return null;
   return contentTypeRequiresScript(contentType)
     ? ProductionPhase.ROTEIRO
     : ProductionPhase.EM_GRAVACAO;
@@ -72,6 +74,10 @@ export function resolveProductionPhaseForStatus(
   contentType?: KanbanTaskContentType | null,
 ): ProductionPhase | null {
   if (status !== KanbanTaskStatus.FALTA_GRAVAR) {
+    return null;
+  }
+
+  if (!isSocialTaskContentType(contentType)) {
     return null;
   }
 

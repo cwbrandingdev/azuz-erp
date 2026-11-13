@@ -1,6 +1,6 @@
 "use client";
 
-import { TASK_CONTENT_TYPE_OPTIONS } from "@/lib/task-content-type";
+import { SOCIAL_TASK_CONTENT_TYPE_OPTIONS } from "@/lib/task-content-type";
 import type { InstagramContentType } from "@/services/types";
 
 const FILTERS: Array<{
@@ -8,7 +8,7 @@ const FILTERS: Array<{
   label: string;
 }> = [
   { value: "all", label: "Todos" },
-  ...TASK_CONTENT_TYPE_OPTIONS.map((option) => ({
+  ...SOCIAL_TASK_CONTENT_TYPE_OPTIONS.map((option) => ({
     value: option.value.toUpperCase() as InstagramContentType,
     label: option.label,
   })),
@@ -46,7 +46,7 @@ export function ContentTypeFilter({ value, onChange }: ContentTypeFilterProps) {
 export function toKanbanContentTypeLabel(
   contentType: InstagramContentType,
 ): string {
-  const match = TASK_CONTENT_TYPE_OPTIONS.find(
+  const match = SOCIAL_TASK_CONTENT_TYPE_OPTIONS.find(
     (option) =>
       (option.value.toUpperCase() as InstagramContentType) === contentType,
   );

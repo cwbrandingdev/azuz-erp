@@ -1,5 +1,8 @@
 import type { KanbanTaskContentType, KanbanTaskStatus, ProductionPhase } from "@/services/types";
-import { defaultProductionPhaseForContentType } from "@/lib/task-content-type";
+import {
+  defaultProductionPhaseForContentType,
+  isSocialContentType,
+} from "@/lib/task-content-type";
 
 export const PRODUCTION_PHASE_DEFINITIONS: ReadonlyArray<{
   phase: ProductionPhase;
@@ -50,7 +53,9 @@ export const RECORDING_FILTER_OPTIONS: ReadonlyArray<{
 export function isTaskRecorded(task: {
   status: KanbanTaskStatus;
   productionPhase?: ProductionPhase | null;
+  contentType?: KanbanTaskContentType | null;
 }): boolean {
+  if (task.contentType && !isSocialContentType(task.contentType)) return true;
   if (task.status !== "falta_gravar") return true;
   return task.productionPhase === "em_gravacao";
 }
@@ -59,10 +64,12 @@ export function matchesRecordingFilter(
   task: {
     status: KanbanTaskStatus;
     productionPhase?: ProductionPhase | null;
+    contentType?: KanbanTaskContentType | null;
   },
   filter: RecordingFilter,
 ): boolean {
   if (!filter) return true;
+  if (task.contentType && !isSocialContentType(task.contentType)) return false;
   const recorded = isTaskRecorded(task);
   return filter === "gravado" ? recorded : !recorded;
 }
@@ -72,7 +79,11 @@ export function matchesEventRecordingFilter(
     kanbanTaskId: string | null;
     taskStatus: KanbanTaskStatus | null;
     productionPhase?: ProductionPhase | null;
-    task?: { status: KanbanTaskStatus; productionPhase?: ProductionPhase | null } | null;
+    task?: {
+      status: KanbanTaskStatus;
+      productionPhase?: ProductionPhase | null;
+      contentType?: KanbanTaskContentType | null;
+    } | null;
   },
   filter: RecordingFilter,
 ): boolean {
@@ -86,7 +97,10 @@ export function matchesEventRecordingFilter(
 
   if (!status) return false;
 
-  return matchesRecordingFilter({ status, productionPhase }, filter);
+  return matchesRecordingFilter(
+    { status, productionPhase, contentType: event.task?.contentType },
+    filter,
+  );
 }
 
 export function isProductionPhase(value: unknown): value is ProductionPhase {
@@ -100,6 +114,10 @@ export function resolveProductionPhaseForStatus(
   contentType?: KanbanTaskContentType | null,
 ): ProductionPhase | null {
   if (status !== "falta_gravar") {
+    return null;
+  }
+
+  if (!isSocialContentType(contentType)) {
     return null;
   }
 
