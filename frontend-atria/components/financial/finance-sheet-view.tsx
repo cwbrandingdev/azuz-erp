@@ -152,8 +152,8 @@ function SheetColumnTable({
 }) {
   return (
     <Table className="w-full min-w-[36rem] text-sm">
-      <TableHeader className="sticky top-0 z-10 bg-[#f8fafc]">
-        <TableRow className="bg-[#f8fafc] hover:bg-[#f8fafc]">
+      <TableHeader className="sticky top-0 z-10 bg-[#f8fafc] dark:bg-muted">
+        <TableRow className="bg-[#f8fafc] hover:bg-[#f8fafc] dark:bg-muted dark:hover:bg-muted">
           <TableHead className="h-8 min-w-[14rem] px-2 text-xs text-[var(--atria-primary)]/50">
             Descrição
           </TableHead>
@@ -197,14 +197,14 @@ function SheetColumnTable({
                 key={transaction.id}
                 className={cn(
                   isPaid
-                    ? "bg-emerald-100 hover:bg-emerald-200/80"
-                    : "hover:bg-violet-50/40",
+                    ? "bg-emerald-100 hover:bg-emerald-200/80 dark:bg-emerald-400/10 dark:hover:bg-emerald-400/15"
+                    : "hover:bg-violet-50/40 dark:hover:bg-white/5",
                 )}
               >
                 <TableCell
                   className={cn(
                     "min-w-[14rem] px-2 py-1.5 font-medium",
-                    isPaid ? "text-emerald-900" : "text-[var(--atria-primary)]",
+                    isPaid ? "text-emerald-900 dark:text-emerald-200" : "text-[var(--atria-primary)]",
                   )}
                 >
                   <p className="break-words whitespace-normal">
@@ -222,10 +222,10 @@ function SheetColumnTable({
                     className={cn(
                       "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
                       isPaid
-                        ? "bg-emerald-200 text-emerald-900"
+                        ? "bg-emerald-200 text-emerald-900 dark:bg-emerald-400/20 dark:text-emerald-200"
                         : focus === "due"
-                          ? "bg-amber-50 text-amber-800"
-                          : "bg-violet-50 text-violet-800",
+                          ? "bg-amber-50 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200"
+                          : "bg-violet-50 text-violet-800 dark:bg-violet-400/15",
                     )}
                   >
                     <ArrowRight className="size-3" />
@@ -245,11 +245,11 @@ function SheetColumnTable({
                     "px-2 py-1.5 text-right font-bold",
                     isPaid
                       ? transaction.type === "expense"
-                        ? "text-red-600"
+                        ? "text-red-600 dark:text-red-400"
                         : "text-emerald-800"
                       : transaction.type === "income"
-                        ? "text-emerald-600"
-                        : "text-red-600",
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-red-600 dark:text-red-400",
                   )}
                 >
                   {transaction.type === "expense" ? "−" : "+"}
@@ -466,7 +466,7 @@ export function FinanceSheetView({
                   "rounded-lg",
                   sort === item.id
                     ? "bg-violet-600 text-white hover:bg-violet-600"
-                    : "border-violet-200 text-violet-800 hover:bg-violet-50",
+                    : "border-violet-200 text-violet-800 hover:bg-violet-50 dark:border-violet-400/30 dark:hover:bg-violet-400/10",
                 )}
                 onClick={() => setSort(item.id)}
                 aria-pressed={sort === item.id}
@@ -486,18 +486,18 @@ export function FinanceSheetView({
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
-          <section className="overflow-x-auto rounded-xl border border-red-100 bg-white">
-            <header className="flex items-center justify-between gap-2 border-b border-red-100 bg-red-50/70 px-3 py-2">
+          <section className="overflow-x-auto rounded-xl border border-red-100 bg-white dark:border-red-400/25">
+            <header className="flex items-center justify-between gap-2 border-b border-red-100 bg-red-50/70 px-3 py-2 dark:border-red-400/25 dark:bg-red-400/10">
               <div>
-                <h2 className="text-base font-semibold text-red-800">Saídas</h2>
-                <p className="text-xs text-red-700/70">
+                <h2 className="text-base font-semibold text-red-800 dark:text-red-300">Saídas</h2>
+                <p className="text-xs text-red-700/70 dark:text-red-300/70">
                   {expenseRows.length} {expenseRows.length === 1 ? "lançamento" : "lançamentos"}
                 </p>
               </div>
               <div className="text-right text-xs font-semibold">
-                <p className="text-red-700">A pagar {formatCurrency(totals.expense)}</p>
+                <p className="text-red-700 dark:text-red-300">A pagar {formatCurrency(totals.expense)}</p>
                 {focus === "all" ? (
-                  <p className="text-red-600/70">Pago {formatCurrency(totals.expensePaid)}</p>
+                  <p className="text-red-600/70 dark:text-red-400/70">Pago {formatCurrency(totals.expensePaid)}</p>
                 ) : null}
               </div>
             </header>
@@ -512,18 +512,18 @@ export function FinanceSheetView({
             />
           </section>
 
-          <section className="overflow-x-auto rounded-xl border border-emerald-100 bg-white">
-            <header className="flex items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/70 px-3 py-2">
+          <section className="overflow-x-auto rounded-xl border border-emerald-100 bg-white dark:border-emerald-400/25">
+            <header className="flex items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/70 px-3 py-2 dark:border-emerald-400/25 dark:bg-emerald-400/10">
               <div>
                 <h2 className="text-base font-semibold text-emerald-800">Entradas</h2>
-                <p className="text-xs text-emerald-700/70">
+                <p className="text-xs text-emerald-700/70 dark:text-emerald-300/70">
                   {incomeRows.length} {incomeRows.length === 1 ? "lançamento" : "lançamentos"}
                 </p>
               </div>
               <div className="text-right text-xs font-semibold">
-                <p className="text-emerald-700">A receber {formatCurrency(totals.income)}</p>
+                <p className="text-emerald-700 dark:text-emerald-300">A receber {formatCurrency(totals.income)}</p>
                 {focus === "all" ? (
-                  <p className="text-emerald-600/70">Recebido {formatCurrency(totals.incomePaid)}</p>
+                  <p className="text-emerald-600/70 dark:text-emerald-400/70">Recebido {formatCurrency(totals.incomePaid)}</p>
                 ) : null}
               </div>
             </header>
@@ -584,7 +584,7 @@ export function FinanceSheetView({
             &quot;? Esta ação não pode ser desfeita.
           </p>
           {actionError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-400/10 dark:text-red-300">
               {actionError}
             </p>
           )}
