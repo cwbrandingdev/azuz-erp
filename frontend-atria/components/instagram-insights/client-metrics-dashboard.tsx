@@ -43,7 +43,7 @@ export function ClientMetricsDashboard() {
         <p className="text-sm text-[var(--atria-primary)]/70">
           Nenhum cliente com Instagram conectado neste tenant.
         </p>
-        <p className="mt-2 text-sm text-[var(--atria-primary)]/50">
+        <p className="mt-2 text-sm text-[var(--atria-primary)]/50 dark:text-white/70">
           Informe o Instagram User ID e o token Meta no cadastro do cliente.
         </p>
         <Link
@@ -71,7 +71,7 @@ export function ClientMetricsDashboard() {
       </div>
 
       {expired ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <p>
             Token de acesso Meta expirado. Atualize as credenciais deste
@@ -85,26 +85,26 @@ export function ClientMetricsDashboard() {
       ) : metricsQuery.data ? (
         <>
           {metricsQuery.data.period.accountMetricsAvailable === false ? (
-            <p className="text-xs text-[var(--atria-primary)]/50">
+            <p className="text-xs text-[var(--atria-primary)]/50 dark:text-white/70">
               O Instagram não entrega métricas de conta para meses com mais de
               30 dias. As publicações desse mês continuam listadas abaixo.
             </p>
           ) : metricsQuery.data.period.partial ? (
-            <p className="text-xs text-[var(--atria-primary)]/50">
+            <p className="text-xs text-[var(--atria-primary)]/50 dark:text-white/70">
               O Instagram libera métricas de conta dos últimos 30 dias. Os
               números deste mês podem estar parciais. As publicações seguem o
               mês inteiro.
             </p>
           ) : null}
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/55">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/55 dark:text-white/70">
               Crescimento de audiência
               {periodLabel ? ` · ${periodLabel}` : ""}
             </h2>
             <AudienceMetricCards data={metricsQuery.data.audience} />
           </section>
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/55">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/55 dark:text-white/70">
               Conversas iniciadas
               {periodLabel ? ` · ${periodLabel}` : ""}
             </h2>
@@ -119,7 +119,7 @@ export function ClientMetricsDashboard() {
             )}
           </section>
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/55">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--atria-primary)]/55 dark:text-white/70">
               Performance de conteúdo
               {periodLabel ? ` · ${periodLabel}` : ""}
             </h2>
@@ -127,7 +127,7 @@ export function ClientMetricsDashboard() {
           </section>
         </>
       ) : !expired && selectedClientId ? (
-        <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 bg-white px-6 py-12 text-center text-sm text-[var(--atria-primary)]/55">
+        <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 bg-white px-6 py-12 text-center text-sm text-[var(--atria-primary)]/55 dark:text-white/70">
           Não foi possível carregar as métricas deste cliente.
         </div>
       ) : null}

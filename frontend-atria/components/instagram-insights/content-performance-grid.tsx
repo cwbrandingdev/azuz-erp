@@ -15,7 +15,7 @@ interface ContentPerformanceGridProps {
 export function ContentPerformanceGrid({ items }: ContentPerformanceGridProps) {
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 bg-white px-6 py-12 text-center text-sm text-[var(--atria-primary)]/55">
+      <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 bg-white px-6 py-12 text-center text-sm text-[var(--atria-primary)]/55 dark:text-white/70">
         Nenhum conteúdo encontrado para este filtro.
       </div>
     );
@@ -37,16 +37,16 @@ export function ContentPerformanceGrid({ items }: ContentPerformanceGridProps) {
                 className="size-full object-cover"
               />
             ) : (
-              <div className="flex size-full items-center justify-center text-xs text-[var(--atria-primary)]/40">
+              <div className="flex size-full items-center justify-center text-xs text-[var(--atria-primary)]/40 dark:text-white/60">
                 Sem preview
               </div>
             )}
-            <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--atria-primary)]">
+            <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--atria-primary)] dark:bg-black/70 dark:text-white">
               {toKanbanContentTypeLabel(item.contentType)}
             </span>
           </div>
           <div className="space-y-3 p-4">
-            <p className="line-clamp-2 min-h-10 text-sm text-[var(--atria-primary)]/80">
+            <p className="line-clamp-2 min-h-10 text-sm text-[var(--atria-primary)]/80 dark:text-white/85">
               {item.caption || "Sem legenda"}
             </p>
             <div className="grid grid-cols-4 gap-2 text-center">
@@ -60,7 +60,7 @@ export function ContentPerformanceGrid({ items }: ContentPerformanceGridProps) {
                 href={item.permalink}
                 target="_blank"
                 rel="noreferrer"
-                className="block text-xs font-medium text-[var(--atria-primary)]/55 hover:text-[var(--atria-primary)]"
+                className="block text-xs font-medium text-[var(--atria-primary)]/55 hover:text-[var(--atria-primary)] dark:text-white/70 dark:hover:text-white"
               >
                 Ver no Instagram
               </a>
@@ -83,11 +83,11 @@ function Metric({
 }) {
   return (
     <div className="flex flex-col items-center gap-1">
-      <Icon className="size-3.5 text-[var(--atria-primary)]/50" />
+      <Icon className="size-3.5 text-[var(--atria-primary)]/50 dark:text-white/65" />
       <span className="text-sm font-semibold text-[var(--atria-primary)]">
         {formatNumber(value)}
       </span>
-      <span className="text-[10px] text-[var(--atria-primary)]/45">{label}</span>
+      <span className="text-[10px] text-[var(--atria-primary)]/45 dark:text-white/60">{label}</span>
     </div>
   );
 }
