@@ -84,11 +84,11 @@ export function AudienceMetricCards({ data }: AudienceMetricCardsProps) {
             <p className="text-2xl font-bold text-[var(--atria-primary)]">
               {card.value}
             </p>
-            <p className="text-xs text-[var(--atria-primary)]/60">
+            <p className="text-xs text-[var(--atria-primary)]/60 dark:text-white/75">
               {card.label}
             </p>
             {card.subtitle ? (
-              <p className="mt-1 text-[10px] text-[var(--atria-primary)]/45">
+              <p className="mt-1 text-[10px] text-[var(--atria-primary)]/45 dark:text-white/60">
                 {card.subtitle}
               </p>
             ) : null}
