@@ -34,7 +34,7 @@ const ROUTE_PERMISSIONS: Record<string, PermissionKey[]> = {
   "/leads/kanban": [Permission.CRM_ALL, Permission.CRM_ORG_LEADS],
   "/financial": [Permission.FINANCE_ACCESS],
   "/contracts": [Permission.FINANCE_ACCESS],
-  "/proposals": [Permission.FINANCE_ACCESS],
+  "/proposals": [Permission.FINANCE_ACCESS, Permission.CRM_ALL],
   "/settings/branding": [Permission.SETTINGS_MANAGE],
   "/settings/appearance": [Permission.SETTINGS_MANAGE],
   "/settings/api-integrations": [Permission.SETTINGS_MANAGE],
@@ -64,6 +64,9 @@ function resolveAccessRouteKey(href: string): string {
   }
   if (href === "/clients" || href.startsWith("/clients/")) {
     return "/clients";
+  }
+  if (href === "/proposals" || href.startsWith("/proposals/")) {
+    return "/proposals";
   }
   if (href === "/produtividade" || href.startsWith("/produtividade/")) {
     return "/produtividade";

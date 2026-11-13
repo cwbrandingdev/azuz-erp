@@ -11,11 +11,11 @@ import {
 } from '@nestjs/common';
 import { RoleName } from '@prisma/client';
 import { Permission } from '../auth/constants/permissions';
+import { AnyPermissions } from '../auth/decorators/any-permissions.decorator';
 import {
   CurrentUser,
   type AuthenticatedUser,
 } from '../auth/decorators/current-user.decorator';
-import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -29,8 +29,8 @@ import { ProposalsService } from './proposals.service';
 
 @Controller('proposals')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@Roles(RoleName.MASTER, RoleName.ADMIN)
-@Permissions(Permission.FINANCE_ACCESS)
+@Roles(RoleName.MASTER, RoleName.ADMIN, RoleName.CRM)
+@AnyPermissions(Permission.FINANCE_ACCESS, Permission.CRM_ALL)
 export class ProposalsController {
   constructor(private readonly proposalsService: ProposalsService) {}
 
