@@ -267,9 +267,11 @@ export declare class UsersController {
     }>;
     getMyWhatsappColor(user: AuthenticatedUser): Promise<{
         color: string | null;
+        takenColors: string[];
     }>;
     setMyWhatsappColor(user: AuthenticatedUser, dto: UpdateWhatsappColorDto): Promise<{
         color: string | null;
+        takenColors: string[];
     }>;
     uploadUserAvatar(id: string, file: Express.Multer.File): Promise<{
         createdAt: string;

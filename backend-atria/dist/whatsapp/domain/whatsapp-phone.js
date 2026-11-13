@@ -4,8 +4,11 @@ exports.normalizeWhatsAppPhone = normalizeWhatsAppPhone;
 exports.isSameWhatsAppPhone = isSameWhatsAppPhone;
 exports.brazilWhatsAppPhoneCandidates = brazilWhatsAppPhoneCandidates;
 exports.validateNormalizedWhatsAppPhone = validateNormalizedWhatsAppPhone;
+function stripWhatsAppDeviceSuffix(input) {
+    return input.trim().replace(/(\d):\d+(?=@|$)/, '$1');
+}
 function normalizeWhatsAppPhone(input) {
-    let digits = input.replace(/\D/g, '');
+    let digits = stripWhatsAppDeviceSuffix(input).replace(/\D/g, '');
     if (digits.startsWith('00')) {
         digits = digits.slice(2);
     }

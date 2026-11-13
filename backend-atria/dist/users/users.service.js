@@ -532,15 +532,58 @@ let UsersService = class UsersService {
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
-        return { color: user.whatsappColor };
+        return {
+            color: user.whatsappColor,
+            takenColors: await this.listTakenWhatsappColors(userId),
+        };
     }
     async setWhatsappColor(userId, color) {
+        const normalized = color.trim().toUpperCase();
+        const existing = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true },
+        });
+        if (!existing) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const conflict = await this.prisma.user.findFirst({
+            where: {
+                id: { not: userId },
+                whatsappColor: { equals: normalized, mode: 'insensitive' },
+            },
+            select: { id: true },
+        });
+        if (conflict) {
+            throw new common_1.ConflictException('Essa cor já está em uso por outro SDR.');
+        }
         const user = await this.prisma.user.update({
             where: { id: userId },
-            data: { whatsappColor: color.toUpperCase() },
+            data: { whatsappColor: normalized },
             select: { whatsappColor: true },
         });
-        return { color: user.whatsappColor };
+        return {
+            color: user.whatsappColor,
+            takenColors: await this.listTakenWhatsappColors(userId),
+        };
+    }
+    async listTakenWhatsappColors(userId) {
+        const rows = await this.prisma.user.findMany({
+            where: {
+                id: { not: userId },
+                whatsappColor: { not: null },
+            },
+            select: { whatsappColor: true },
+        });
+        const seen = new Set();
+        const takenColors = [];
+        for (const row of rows) {
+            const value = row.whatsappColor?.trim().toUpperCase();
+            if (!value || seen.has(value))
+                continue;
+            seen.add(value);
+            takenColors.push(value);
+        }
+        return takenColors;
     }
     async deactivate(id, actorUserId) {
         if (actorUserId && actorUserId === id) {

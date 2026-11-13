@@ -351,10 +351,13 @@ export declare class UsersService {
     }>;
     getWhatsappColor(userId: string): Promise<{
         color: string | null;
+        takenColors: string[];
     }>;
     setWhatsappColor(userId: string, color: string): Promise<{
         color: string | null;
+        takenColors: string[];
     }>;
+    private listTakenWhatsappColors;
     deactivate(id: string, actorUserId?: string): Promise<{
         createdAt: string;
         crmIncludeInternal: boolean;

@@ -17,7 +17,12 @@ const PORTAL_CLIENT_ALLOWED_PREFIXES = [
   '/deliverables',
 ];
 
-const EXTERNAL_CRM_ALLOWED_PREFIXES = ['/auth', '/leads', '/users/me'];
+const EXTERNAL_CRM_ALLOWED_PREFIXES = [
+  '/auth',
+  '/leads',
+  '/users/me',
+  '/jhonatan-calendar',
+];
 
 @Injectable()
 export class ClientAccessInterceptor implements NestInterceptor {

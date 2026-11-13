@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Kanban,
   Calendar,
+  CalendarClock,
   ClipboardCheck,
   Layers,
   Users,
@@ -76,6 +77,11 @@ export const navSections: NavSection[] = [
     items: [
       { name: "Prospecção de Leads", href: "/leads", icon: Layers },
       { name: "Leads Kanban", href: "/leads/kanban", icon: KanbanSquareIcon },
+      {
+        name: "Agenda do Jhonatan",
+        href: "/jhonatan-calendar",
+        icon: CalendarClock,
+      },
       { name: "WhatsApp", href: "/whatsapp", icon: WhatsAppNavIcon },
     ],
   },

@@ -52,6 +52,7 @@ import { VoiceModule } from './voice/voice.module';
 import { LeadMinerModule } from './leadminer/leadminer.module';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { MediaModule } from './common/media/media.module';
+import { JhonatanCalendarModule } from './jhonatan-calendar/jhonatan-calendar.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { MediaModule } from './common/media/media.module';
     AuthModule,
     AssetsModule,
     CalendarModule,
+    JhonatanCalendarModule,
     CalendarEntriesModule,
     ClientsModule,
     ClientGroupsModule,
