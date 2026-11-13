@@ -1,5 +1,5 @@
 import { type AuthenticatedUser } from '../auth/decorators/current-user.decorator';
-import { ProvisionUserDto, UpdateUserDto } from './dto/user.dto';
+import { ProvisionUserDto, UpdateUserDto, UpdateWhatsappColorDto } from './dto/user.dto';
 import { UsersService } from './users.service';
 export declare class UsersController {
     private readonly usersService;
@@ -264,6 +264,12 @@ export declare class UsersController {
             description: string | null;
             color: string;
         }[];
+    }>;
+    getMyWhatsappColor(user: AuthenticatedUser): Promise<{
+        color: string | null;
+    }>;
+    setMyWhatsappColor(user: AuthenticatedUser, dto: UpdateWhatsappColorDto): Promise<{
+        color: string | null;
     }>;
     uploadUserAvatar(id: string, file: Express.Multer.File): Promise<{
         createdAt: string;

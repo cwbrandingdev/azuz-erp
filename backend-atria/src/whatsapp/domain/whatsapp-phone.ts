@@ -1,5 +1,10 @@
+/** Drop a WhatsApp device suffix such as `:17` in `5541…:17@s.whatsapp.net`. */
+function stripWhatsAppDeviceSuffix(input: string): string {
+  return input.trim().replace(/(\d):\d+(?=@|$)/, '$1');
+}
+
 export function normalizeWhatsAppPhone(input: string): string {
-  let digits = input.replace(/\D/g, '');
+  let digits = stripWhatsAppDeviceSuffix(input).replace(/\D/g, '');
   if (digits.startsWith('00')) {
     digits = digits.slice(2);
   }

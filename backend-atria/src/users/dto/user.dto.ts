@@ -16,6 +16,11 @@ import {
 import { RoleName } from '@prisma/client';
 import { IsEntityId } from '../../common/validation/entity-id';
 
+export class UpdateWhatsappColorDto {
+  @IsHexColor()
+  color: string;
+}
+
 export class CreateUserGroupDto {
   @IsString()
   @IsNotEmpty()

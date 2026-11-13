@@ -28,7 +28,11 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { ProvisionUserDto, UpdateUserDto } from './dto/user.dto';
+import {
+  ProvisionUserDto,
+  UpdateUserDto,
+  UpdateWhatsappColorDto,
+} from './dto/user.dto';
 import { UsersService } from './users.service';
 
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -114,6 +118,21 @@ export class UsersController {
   @Post('me/avatar/remove')
   removeMyAvatar(@CurrentUser() user: AuthenticatedUser) {
     return this.usersService.removeAvatar(user.userId);
+  }
+
+  @AllowAuthenticated()
+  @Get('me/whatsapp-color')
+  getMyWhatsappColor(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.getWhatsappColor(user.userId);
+  }
+
+  @AllowAuthenticated()
+  @Patch('me/whatsapp-color')
+  setMyWhatsappColor(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateWhatsappColorDto,
+  ) {
+    return this.usersService.setWhatsappColor(user.userId, dto.color);
   }
 
   @Post(':id/avatar')

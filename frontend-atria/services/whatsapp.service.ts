@@ -29,6 +29,7 @@ export interface WhatsAppAssignedUser {
   id: string;
   name: string;
   avatarUrl: string | null;
+  whatsappColor: string | null;
 }
 
 export interface WhatsAppLinkedLead {

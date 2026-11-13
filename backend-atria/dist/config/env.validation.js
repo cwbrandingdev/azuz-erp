@@ -61,6 +61,7 @@ const envSchema = zod_1.z
     GOOGLE_CLIENT_SECRET: zod_1.z.string().optional().or(zod_1.z.literal('')),
     GOOGLE_REFRESH_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
     GOOGLE_CALENDAR_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    CWBRANDING_API_KEY: zod_1.z.string().optional().or(zod_1.z.literal('')),
 })
     .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);

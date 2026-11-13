@@ -9,10 +9,18 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AddUserGroupMembersDto = exports.UpdateUserDto = exports.ProvisionUserDto = exports.UpdateUserGroupDto = exports.CreateUserGroupDto = void 0;
+exports.AddUserGroupMembersDto = exports.UpdateUserDto = exports.ProvisionUserDto = exports.UpdateUserGroupDto = exports.CreateUserGroupDto = exports.UpdateWhatsappColorDto = void 0;
 const class_validator_1 = require("class-validator");
 const client_1 = require("@prisma/client");
 const entity_id_1 = require("../../common/validation/entity-id");
+class UpdateWhatsappColorDto {
+    color;
+}
+exports.UpdateWhatsappColorDto = UpdateWhatsappColorDto;
+__decorate([
+    (0, class_validator_1.IsHexColor)(),
+    __metadata("design:type", String)
+], UpdateWhatsappColorDto.prototype, "color", void 0);
 class CreateUserGroupDto {
     name;
     description;

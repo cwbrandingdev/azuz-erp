@@ -65,6 +65,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     GOOGLE_CLIENT_SECRET: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     GOOGLE_REFRESH_TOKEN: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     GOOGLE_CALENDAR_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    CWBRANDING_API_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
 }, z.core.$strip>, z.ZodTransform<{
     DIRECT_URL: string;
     SUPABASE_URL: string | undefined;
@@ -121,6 +122,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     GOOGLE_CLIENT_SECRET?: string | undefined;
     GOOGLE_REFRESH_TOKEN?: string | undefined;
     GOOGLE_CALENDAR_ID?: string | undefined;
+    CWBRANDING_API_KEY?: string | undefined;
 }, {
     NODE_ENV: "production" | "development" | "test";
     PORT: number;
@@ -177,6 +179,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     GOOGLE_CLIENT_SECRET?: string | undefined;
     GOOGLE_REFRESH_TOKEN?: string | undefined;
     GOOGLE_CALENDAR_ID?: string | undefined;
+    CWBRANDING_API_KEY?: string | undefined;
 }>>;
 export type AppEnv = z.infer<typeof envSchema>;
 export declare function validateEnv(config: Record<string, unknown>): AppEnv;

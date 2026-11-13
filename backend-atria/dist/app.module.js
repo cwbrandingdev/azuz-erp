@@ -51,6 +51,7 @@ const prisma_module_1 = require("./prisma/prisma.module");
 const proposals_module_1 = require("./proposals/proposals.module");
 const reports_module_1 = require("./reports/reports.module");
 const settings_module_1 = require("./settings/settings.module");
+const site_leads_module_1 = require("./site-leads/site-leads.module");
 const sla_module_1 = require("./sla/sla.module");
 const suggestions_module_1 = require("./suggestions/suggestions.module");
 const supabase_module_1 = require("./supabase/supabase.module");
@@ -118,6 +119,7 @@ exports.AppModule = AppModule = __decorate([
             proposals_module_1.ProposalsModule,
             reports_module_1.ReportsModule,
             settings_module_1.SettingsModule,
+            site_leads_module_1.SiteLeadsModule,
             suggestions_module_1.SuggestionsModule,
             user_groups_module_1.UserGroupsModule,
             users_module_1.UsersModule,

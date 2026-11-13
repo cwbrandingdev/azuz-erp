@@ -35,6 +35,7 @@ export type WhatsAppAssignedUser = {
     id: string;
     name: string;
     avatarUrl: string | null;
+    whatsappColor: string | null;
 };
 export type WhatsAppMessageRecord = {
     id: string;

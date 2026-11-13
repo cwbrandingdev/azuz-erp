@@ -32,9 +32,6 @@ let UserGroupsController = class UserGroupsController {
     findOne(id) {
         return this.userGroupsService.findOne(id);
     }
-    create(dto) {
-        return this.userGroupsService.create(dto);
-    }
     update(id, dto) {
         return this.userGroupsService.update(id, dto);
     }
@@ -59,14 +56,6 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], UserGroupsController.prototype, "findOne", null);
-__decorate([
-    (0, common_1.Post)(),
-    (0, roles_decorator_1.Roles)(...roles_1.USER_MANAGEMENT_ROLES),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [user_dto_1.CreateUserGroupDto]),
-    __metadata("design:returntype", void 0)
-], UserGroupsController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     (0, roles_decorator_1.Roles)(...roles_1.USER_MANAGEMENT_ROLES),

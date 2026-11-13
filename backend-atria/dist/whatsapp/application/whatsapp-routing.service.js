@@ -216,7 +216,12 @@ let WhatsAppRoutingService = WhatsAppRoutingService_1 = class WhatsAppRoutingSer
                     direction: null,
                     lastMessageStatus: null,
                     assignedUser: row.assignedUserId
-                        ? { id: row.assignedUserId, name: '', avatarUrl: null }
+                        ? {
+                            id: row.assignedUserId,
+                            name: '',
+                            avatarUrl: null,
+                            whatsappColor: null,
+                        }
                         : null,
                     queuedAt: row.queuedAt,
                     assignedAt: row.assignedAt,

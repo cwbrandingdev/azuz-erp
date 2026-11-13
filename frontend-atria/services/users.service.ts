@@ -78,6 +78,17 @@ export async function uploadMyAvatar(file: File) {
   return uploadFile<ManagedUser>("/users/me/avatar", formData);
 }
 
+export async function getMyWhatsappColor(): Promise<{ color: string | null }> {
+  return apiRequest<{ color: string | null }>("/users/me/whatsapp-color");
+}
+
+export async function setMyWhatsappColor(color: string) {
+  return apiRequest<{ color: string | null }>("/users/me/whatsapp-color", {
+    method: "PATCH",
+    body: { color },
+  });
+}
+
 export async function removeMyAvatar() {
   return apiRequest<ManagedUser>("/users/me/avatar/remove", {
     method: "POST",

@@ -1,4 +1,7 @@
 import { RoleName } from '@prisma/client';
+export declare class UpdateWhatsappColorDto {
+    color: string;
+}
 export declare class CreateUserGroupDto {
     name: string;
     description?: string;

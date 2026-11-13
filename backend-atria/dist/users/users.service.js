@@ -524,6 +524,24 @@ let UsersService = class UsersService {
     async removeAvatar(id) {
         return this.updateAvatar(id, null);
     }
+    async getWhatsappColor(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { whatsappColor: true },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        return { color: user.whatsappColor };
+    }
+    async setWhatsappColor(userId, color) {
+        const user = await this.prisma.user.update({
+            where: { id: userId },
+            data: { whatsappColor: color.toUpperCase() },
+            select: { whatsappColor: true },
+        });
+        return { color: user.whatsappColor };
+    }
     async deactivate(id, actorUserId) {
         if (actorUserId && actorUserId === id) {
             throw new common_1.BadRequestException('Você não pode revogar o próprio acesso.');

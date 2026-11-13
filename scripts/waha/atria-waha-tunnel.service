@@ -6,9 +6,14 @@ Requires=docker.service
 
 [Service]
 Type=simple
+User=REPO_OWNER
+Group=REPO_GROUP
 Restart=always
 RestartSec=5
 WorkingDirectory=REPO_ROOT
+Environment=HOME=REPO_HOME
+Environment=PATH=REPO_HOME/.fly/bin:REPO_HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# start-waha-tunnel.sh publishes the quick-tunnel URL and pushes it to Fly.
 ExecStart=REPO_ROOT/scripts/waha/start-waha-tunnel.sh
 StandardOutput=journal
 StandardError=journal
