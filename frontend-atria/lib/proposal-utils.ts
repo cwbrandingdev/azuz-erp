@@ -3,31 +3,31 @@ import type { ProposalStatus } from "@/services/types";
 export const PROPOSAL_TEAL = "#004A4A";
 export const PROPOSAL_GOLD = "#D4BA97";
 
-export const CW_BASE_URL = "https://cwbranding.com.br";
+export const CW_BASE_URL = "https://www.cwbranding.com.br";
 
-export const CW_LOGO_URL = `${CW_BASE_URL}/cwbranding/cwbrandinglogo.png`;
-export const CW_LOCAL_LOGO_URL = `${CW_BASE_URL}/cwbranding/cwbnossolocal.png`;
-export const CW_PINHAO_URL = `${CW_BASE_URL}/cwbranding/pinhao.png`;
-export const CW_MAIN_SERVICES_IMAGE_URL = `${CW_BASE_URL}/cwbranding/mainservicesimagept.png`;
+export const CW_LOGO_URL = `${CW_BASE_URL}/cwbranding/cwbrandinglogo.webp`;
+export const CW_LOCAL_LOGO_URL = `${CW_BASE_URL}/cwbranding/cwbnossolocal.webp`;
+export const CW_PINHAO_URL = `${CW_BASE_URL}/cwbranding/pinhao.webp`;
+export const CW_MAIN_SERVICES_IMAGE_URL = `${CW_BASE_URL}/cwbranding/mainservicesimagept.webp`;
 
-export const DEFAULT_COVER_VIDEO_URL = `${CW_BASE_URL}/cwbranding/videofundo.mp4`;
-export const DEFAULT_COVER_IMAGE_URL = `${CW_BASE_URL}/cwbranding/cwbrandinglogo.png`;
+export const DEFAULT_COVER_VIDEO_URL = `${CW_BASE_URL}/cwbranding/hero/hero-desktop.mp4`;
+export const DEFAULT_COVER_IMAGE_URL = `${CW_BASE_URL}/cwbranding/cwbrandinglogo.webp`;
 
 export const LOCAL_SPACE_IMAGES = Array.from({ length: 10 }, (_, index) => ({
   id: `space-${index + 1}`,
-  src: `${CW_BASE_URL}/fotos-espaco/${index + 1}.png`,
+  src: `${CW_BASE_URL}/fotos-espaco/${index + 1}.webp`,
   alt: `Espaço CWBranding ${index + 1}`,
 }));
 
 export const CW_PARTNER_LOGOS = Array.from({ length: 10 }, (_, index) => ({
   id: `partner-${index + 1}`,
-  src: `https://cwbranding.com.br/parceiros-cwbranding/${index + 1}.png`,
+  src: `${CW_BASE_URL}/parceiros-cwbranding/${index + 1}.webp`,
   alt: `Parceiro ${index + 1}`,
 }));
 
 export const DEFAULT_STRUCTURE_CONTENT = `Confiança se constrói com solidez e transparência. Nossa sede, em frente ao Palácio Avenida, no coração de Curitiba, é a prova de que somos uma empresa real e consolidada — um espaço onde estratégias ganham vida e parcerias duradouras se fortalecem.`;
 
-export const DEFAULT_SCHEDULING_URL = "https://cwbranding.com.br/";
+export const DEFAULT_SCHEDULING_URL = "https://www.cwbranding.com.br/";
 
 export const ABOUT_AGENCY_COPY = {
   title: "Quem Somos",
@@ -49,56 +49,56 @@ export const PROPOSAL_SERVICES = [
     title: "Social Media",
     description:
       "Criação e gestão de conteúdo para redes sociais, incluindo estratégias de engajamento e crescimento de audiência.",
-    imageUrl: `${CW_BASE_URL}/fotos-servicos/SOCIAL%20MEDIA.png`,
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/SOCIAL%20MEDIA.webp`,
   },
   {
     id: "branding",
     title: "Identidade Visual",
     description:
       "Conjunto de elementos gráficos que representam visualmente uma marca — logo, cores, tipografia e padrões visuais.",
-    imageUrl: `${CW_BASE_URL}/fotos-servicos/IDENTIDADE%20VISUAL.png`,
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/IDENTIDADE%20VISUAL.webp`,
   },
   {
     id: "traffic",
     title: "Gestão de Tráfego",
     description:
       "Planejamento e execução de campanhas de mídia paga para direcionar visitantes qualificados para a empresa.",
-    imageUrl: `${CW_BASE_URL}/fotos-servicos/TR%C3%81FEGO.png`,
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/TR%C3%81FEGO.webp`,
   },
   {
     id: "landing-pages",
     title: "Landing Pages",
     description:
       "Páginas web específicas criadas para converter visitantes em leads ou clientes através de uma experiência focada.",
-    imageUrl: `${CW_BASE_URL}/fotos-servicos/LANDING%20PAGES.png`,
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/LANDING%20PAGES.webp`,
   },
   {
     id: "marketing-advisory",
     title: "Assessoria de Marketing",
     description:
       "Consultoria estratégica para empresas desenvolverem e implementarem planos de marketing eficazes.",
-    imageUrl: `${CW_BASE_URL}/fotos-servicos/ASSESSORIA.png`,
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/ASSESSORIA.webp`,
   },
   {
     id: "photo-shoots",
     title: "Ensaios Fotográficos",
     description:
       "Produção de fotografias profissionais para materiais de marketing, redes sociais e comunicação da marca.",
-    imageUrl: `${CW_BASE_URL}/fotos-servicos/ENSAIOS%20FOTOGRAFICOS.png`,
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/ENSAIOS%20FOTOGRAFICOS.webp`,
   },
   {
     id: "graphic-materials",
     title: "Materiais Gráficos",
     description:
       "Peças visuais impressas ou digitais — folders, banners, cartões, apresentações e demais materiais.",
-    imageUrl: `${CW_BASE_URL}/fotos-servicos/MATERIAIS%20GR%C3%81FICOS.png`,
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/MATERIAIS%20GR%C3%81FICOS.webp`,
   },
   {
     id: "events",
     title: "Cobertura de Eventos",
     description:
       "Planejamento e execução da cobertura de eventos institucionais ou promocionais da marca.",
-    imageUrl: `${CW_BASE_URL}/fotos-servicos/EVENTOS.png`,
+    imageUrl: `${CW_BASE_URL}/fotos-servicos/EVENTOS.webp`,
   },
 ] as const;
 

@@ -114,6 +114,12 @@ export const DEFAULT_UI_THEME: { mode: ThemeMode; palette: ThemePalette } = {
   palette: "emerald",
 };
 
+const PUBLIC_LIGHT_PATH_PREFIX = "/p/";
+
+export function isPublicLightPath(pathname: string | null | undefined) {
+  return Boolean(pathname?.startsWith(PUBLIC_LIGHT_PATH_PREFIX));
+}
+
 export function isThemePalette(value: unknown): value is ThemePalette {
   return (
     typeof value === "string" &&
@@ -141,6 +147,7 @@ export function parseStoredUiTheme(raw: string | null): {
 
 export function readStoredUiTheme(): { mode: ThemeMode; palette: ThemePalette } {
   if (typeof window === "undefined") return DEFAULT_UI_THEME;
+  if (isPublicLightPath(window.location.pathname)) return DEFAULT_UI_THEME;
   return parseStoredUiTheme(window.localStorage.getItem(THEME_STORAGE_KEY));
 }
 
@@ -184,7 +191,7 @@ export function applyUiTheme(theme: {
   }
 }
 
-export const THEME_BOOTSTRAP_SCRIPT = `(function(){try{var raw=localStorage.getItem("${THEME_STORAGE_KEY}");var parsed=raw?JSON.parse(raw):{};var mode=parsed.mode==="dark"?"dark":"light";var palette=parsed.palette;var allowed={slate:1,indigo:1,emerald:1,amber:1};if(!allowed[palette])palette="${DEFAULT_UI_THEME.palette}";var root=document.documentElement;root.classList.toggle("dark",mode==="dark");root.setAttribute("data-theme",palette);root.style.colorScheme=mode;}catch(e){}})();`;
+export const THEME_BOOTSTRAP_SCRIPT = `(function(){try{var pub=location.pathname.indexOf("${PUBLIC_LIGHT_PATH_PREFIX}")===0;var raw=localStorage.getItem("${THEME_STORAGE_KEY}");var parsed=raw?JSON.parse(raw):{};var mode=!pub&&parsed.mode==="dark"?"dark":"light";var palette=parsed.palette;var allowed={slate:1,indigo:1,emerald:1,amber:1};if(pub||!allowed[palette])palette="${DEFAULT_UI_THEME.palette}";var root=document.documentElement;root.classList.toggle("dark",mode==="dark");root.setAttribute("data-theme",palette);root.style.colorScheme=mode;}catch(e){}})();`;
 
 export function applyAppearanceToDocument(
   settings: AppearanceSettings,

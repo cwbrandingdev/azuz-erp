@@ -8,10 +8,13 @@ import {
   useMemo,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 import {
   applyUiTheme,
   persistUiTheme,
   readStoredUiTheme,
+  DEFAULT_UI_THEME,
+  isPublicLightPath,
   type ThemeMode,
   type ThemePalette,
 } from "@/lib/theme-utils";
@@ -30,12 +33,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("light");
   const [palette, setPaletteState] = useState<ThemePalette>("emerald");
 
+  const pathname = usePathname();
+  const forceLight = isPublicLightPath(pathname);
+
   useEffect(() => {
-    const stored = readStoredUiTheme();
+    const stored = forceLight ? DEFAULT_UI_THEME : readStoredUiTheme();
     setModeState(stored.mode);
     setPaletteState(stored.palette);
     applyUiTheme(stored);
-  }, []);
+  }, [forceLight]);
 
   const setMode = useCallback(
     (nextMode: ThemeMode) => {
