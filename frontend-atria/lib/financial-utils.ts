@@ -294,11 +294,11 @@ export const STATUS_LABELS = {
 } as const;
 
 export const STATUS_STYLES = {
-  paid: "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)]",
+  paid: "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)] dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300",
   pending:
-    "border-amber-200 bg-amber-50 text-amber-700 shadow-[0_0_12px_rgba(245,158,11,0.2)]",
+    "border-amber-200 bg-amber-50 text-amber-700 shadow-[0_0_12px_rgba(245,158,11,0.2)] dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300",
   overdue:
-    "border-amber-200 bg-amber-50 text-amber-700 shadow-[0_0_12px_rgba(245,158,11,0.2)]",
+    "border-amber-200 bg-amber-50 text-amber-700 shadow-[0_0_12px_rgba(245,158,11,0.2)] dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300",
 } as const;
 
 export const TYPE_LABELS = {
