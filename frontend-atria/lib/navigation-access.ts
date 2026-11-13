@@ -32,6 +32,7 @@ const ROUTE_PERMISSIONS: Record<string, PermissionKey[]> = {
   "/calendar": [Permission.CALENDAR_ALL_EDIT, Permission.CALENDAR_OWN_EDIT],
   "/leads": [Permission.CRM_ALL, Permission.CRM_ORG_LEADS],
   "/leads/kanban": [Permission.CRM_ALL, Permission.CRM_ORG_LEADS],
+  "/jhonatan-calendar": [Permission.CRM_ALL, Permission.CRM_ORG_LEADS],
   "/financial": [Permission.FINANCE_ACCESS],
   "/contracts": [Permission.FINANCE_ACCESS],
   "/proposals": [Permission.FINANCE_ACCESS, Permission.CRM_ALL],

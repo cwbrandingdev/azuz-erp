@@ -69,6 +69,7 @@ model Company {
   whatsappBotSessions        WhatsAppBotSession[]
   whatsappBroadcasts         WhatsAppBroadcast[]
   whatsappTriggers           WhatsAppTrigger[]
+  jhonatanCalendar           JhonatanCalendar[]
 }
 
 model Role {
@@ -144,6 +145,7 @@ model User {
   whatsappAssignedConversations WhatsAppConversation[]
   whatsappMessagesSent          WhatsAppMessage[]
   whatsappCrmEvents             WhatsAppCrmEvent[]
+  jhonatanCalendarsCreated     JhonatanCalendar[]      @relation("JhonatanCalendarCreator")
 
   @@unique([companyId, email])
   @@index([clientId])
@@ -1285,6 +1287,7 @@ model Lead {
   calls                 LeadCall[]
   meetings              LeadMeeting[]
   whatsappCrmEvents     WhatsAppCrmEvent[]
+  jhonatanCalendar JhonatanCalendar[]
   company               Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   deletedBy      User?             @relation("LeadDeletedBy", fields: [deletedById], references: [id])
   owner          User?             @relation("LeadOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
@@ -2091,4 +2094,25 @@ model AppUpdate {
   @@index([createdById])
   @@index([isPublished])
   @@map("app_updates")
+}
+
+model JhonatanCalendar {
+  id          String   @id @default(uuid())
+  companyId   String   @map("company_id")
+  leadId      String?  @map("lead_id")
+  title       String
+  contactName String   @map("contact_name")
+  briefing    String?  @db.Text
+  startAt     DateTime @map("start_at")
+  endAt       DateTime @map("end_at")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("JhonatanCalendarCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, startAt])
+  @@index([leadId])
+  @@map("jhonatan_calendar")
 }

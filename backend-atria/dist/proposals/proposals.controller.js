@@ -16,8 +16,8 @@ exports.ProposalsController = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const permissions_1 = require("../auth/constants/permissions");
+const any_permissions_decorator_1 = require("../auth/decorators/any-permissions.decorator");
 const current_user_decorator_1 = require("../auth/decorators/current-user.decorator");
-const permissions_decorator_1 = require("../auth/decorators/permissions.decorator");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const permissions_guard_1 = require("../auth/guards/permissions.guard");
@@ -96,8 +96,8 @@ __decorate([
 exports.ProposalsController = ProposalsController = __decorate([
     (0, common_1.Controller)('proposals'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard, permissions_guard_1.PermissionsGuard),
-    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN),
-    (0, permissions_decorator_1.Permissions)(permissions_1.Permission.FINANCE_ACCESS),
+    (0, roles_decorator_1.Roles)(client_1.RoleName.MASTER, client_1.RoleName.ADMIN, client_1.RoleName.CRM),
+    (0, any_permissions_decorator_1.AnyPermissions)(permissions_1.Permission.FINANCE_ACCESS, permissions_1.Permission.CRM_ALL),
     __metadata("design:paramtypes", [proposals_service_1.ProposalsService])
 ], ProposalsController);
 //# sourceMappingURL=proposals.controller.js.map

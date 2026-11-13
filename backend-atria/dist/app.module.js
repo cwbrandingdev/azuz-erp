@@ -61,6 +61,7 @@ const voice_module_1 = require("./voice/voice.module");
 const leadminer_module_1 = require("./leadminer/leadminer.module");
 const whatsapp_module_1 = require("./whatsapp/whatsapp.module");
 const media_module_1 = require("./common/media/media.module");
+const jhonatan_calendar_module_1 = require("./jhonatan-calendar/jhonatan-calendar.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -89,6 +90,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             assets_module_1.AssetsModule,
             calendar_module_1.CalendarModule,
+            jhonatan_calendar_module_1.JhonatanCalendarModule,
             calendar_entries_module_1.CalendarEntriesModule,
             clients_module_1.ClientsModule,
             client_groups_module_1.ClientGroupsModule,

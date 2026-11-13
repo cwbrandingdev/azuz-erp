@@ -20,6 +20,15 @@ function isNavigationSettingsPath(pathname: string | null) {
   );
 }
 
+function isExternalCrmAllowedPath(pathname: string | null) {
+  if (!pathname) return false;
+  return (
+    pathname.startsWith("/leads") ||
+    pathname === "/jhonatan-calendar" ||
+    pathname.startsWith("/jhonatan-calendar/")
+  );
+}
+
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
@@ -38,12 +47,12 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
     if (isExternalCrmRole(user?.role)) {
       if (shouldBlockCrmRoutes(user?.role, user?.hasCrmEnabled)) {
-        if (pathname.startsWith("/leads")) {
+        if (isExternalCrmAllowedPath(pathname)) {
           router.replace("/client-portal");
         }
         return;
       }
-      if (!pathname.startsWith("/leads") && !allowNavigationSettings) {
+      if (!isExternalCrmAllowedPath(pathname) && !allowNavigationSettings) {
         router.replace("/leads/kanban");
       }
       return;
@@ -79,7 +88,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (shouldBlockCrmRoutes(user?.role, user?.hasCrmEnabled)) {
       return null;
     }
-    if (!pathname.startsWith("/leads") && !allowNavigationSettings) {
+    if (!isExternalCrmAllowedPath(pathname) && !allowNavigationSettings) {
       return null;
     }
     return <>{children}</>;
