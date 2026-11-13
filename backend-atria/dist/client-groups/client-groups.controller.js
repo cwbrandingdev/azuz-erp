@@ -19,7 +19,6 @@ const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
 const client_group_dto_1 = require("./dto/client-group.dto");
-const bulk_import_dto_1 = require("./dto/bulk-import.dto");
 const client_groups_service_1 = require("./client-groups.service");
 let ClientGroupsController = class ClientGroupsController {
     clientGroupsService;
@@ -31,12 +30,6 @@ let ClientGroupsController = class ClientGroupsController {
     }
     findOne(id) {
         return this.clientGroupsService.findOne(id);
-    }
-    bulkImport(dto) {
-        return this.clientGroupsService.bulkImport(dto);
-    }
-    create(dto) {
-        return this.clientGroupsService.create(dto);
     }
     update(id, dto) {
         return this.clientGroupsService.update(id, dto);
@@ -61,20 +54,6 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ClientGroupsController.prototype, "findOne", null);
-__decorate([
-    (0, common_1.Post)('bulk'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [bulk_import_dto_1.BulkImportClientGroupsDto]),
-    __metadata("design:returntype", void 0)
-], ClientGroupsController.prototype, "bulkImport", null);
-__decorate([
-    (0, common_1.Post)(),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [client_group_dto_1.CreateClientGroupDto]),
-    __metadata("design:returntype", void 0)
-], ClientGroupsController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id')),

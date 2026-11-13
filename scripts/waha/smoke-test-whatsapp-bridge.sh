@@ -40,7 +40,7 @@ if [[ -f "$TUNNEL_FILE" ]]; then
   if curl -sS -o /dev/null -w "%{http_code}" -H "X-Api-Key: $API_KEY" "$TUNNEL/api/sessions" | grep -q 200; then
     pass "Tunnel $TUNNEL → 200"
   else
-    fail "Tunnel down or URL stale — restart cloudflared and run sync-fly-waha-tunnel.sh"
+    fail "Tunnel down or URL stale — check atria-waha-tunnel.service (it syncs Fly on start)"
   fi
 else
   fail "Missing $TUNNEL_FILE — start tunnel"

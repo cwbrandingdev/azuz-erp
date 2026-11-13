@@ -18,8 +18,9 @@ Options:
   -h, --help                  Show this help
 
 After install (production Fly):
-  Run as your user (not root): ./scripts/waha/sync-fly-waha-tunnel.sh
-  Quick tunnel URLs change when the tunnel restarts — re-run sync after reboot.
+  The tunnel service pushes the new quick-tunnel URL to Fly on its own
+  after boot or whenever cloudflared restarts. To push once by hand:
+  ./scripts/waha/sync-fly-waha-tunnel.sh
 
 After install:
   systemctl status atria-waha
@@ -78,13 +79,19 @@ fi
 
 if [[ "$INSTALL_TUNNEL" == true ]]; then
   chmod +x "$SCRIPT_DIR/start-waha-tunnel.sh" "$SCRIPT_DIR/sync-fly-waha-tunnel.sh"
-  sed "s|REPO_ROOT|$REPO_ROOT|g" "$SCRIPT_DIR/atria-waha-tunnel.service" \
+  REPO_OWNER="$(stat -c '%U' "$REPO_ROOT")"
+  REPO_GROUP="$(id -gn "$REPO_OWNER")"
+  REPO_HOME="$(getent passwd "$REPO_OWNER" | cut -d: -f6)"
+  sed -e "s|REPO_ROOT|$REPO_ROOT|g" \
+      -e "s|REPO_OWNER|$REPO_OWNER|g" \
+      -e "s|REPO_GROUP|$REPO_GROUP|g" \
+      -e "s|REPO_HOME|$REPO_HOME|g" \
+    "$SCRIPT_DIR/atria-waha-tunnel.service" \
     >"/etc/systemd/system/$TUNNEL_SERVICE"
   systemctl daemon-reload
   systemctl enable "$TUNNEL_SERVICE"
-  systemctl start "$TUNNEL_SERVICE" || true
-  echo "==> Installed $TUNNEL_SERVICE (cloudflared → :3010)"
-  echo "    After the tunnel is up, run: $SCRIPT_DIR/sync-fly-waha-tunnel.sh"
+  systemctl restart "$TUNNEL_SERVICE" || true
+  echo "==> Installed $TUNNEL_SERVICE (cloudflared → :3010, Fly URL sync on start)"
 fi
 
 echo ""

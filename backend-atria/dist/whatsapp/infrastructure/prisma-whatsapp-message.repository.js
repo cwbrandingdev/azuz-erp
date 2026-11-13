@@ -19,6 +19,7 @@ const assignedUserSelect = {
     id: true,
     name: true,
     avatarUrl: true,
+    whatsappColor: true,
 };
 let PrismaWhatsAppMessageRepository = class PrismaWhatsAppMessageRepository extends whatsapp_message_repository_1.WhatsAppMessageRepository {
     prisma;

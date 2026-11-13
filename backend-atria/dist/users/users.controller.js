@@ -74,6 +74,12 @@ let UsersController = class UsersController {
     removeMyAvatar(user) {
         return this.usersService.removeAvatar(user.userId);
     }
+    getMyWhatsappColor(user) {
+        return this.usersService.getWhatsappColor(user.userId);
+    }
+    setMyWhatsappColor(user, dto) {
+        return this.usersService.setWhatsappColor(user.userId, dto.color);
+    }
     async uploadUserAvatar(id, file) {
         if (!file) {
             throw new common_1.BadRequestException('Arquivo obrigatório');
@@ -145,6 +151,23 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "removeMyAvatar", null);
+__decorate([
+    (0, allow_authenticated_decorator_1.AllowAuthenticated)(),
+    (0, common_1.Get)('me/whatsapp-color'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "getMyWhatsappColor", null);
+__decorate([
+    (0, allow_authenticated_decorator_1.AllowAuthenticated)(),
+    (0, common_1.Patch)('me/whatsapp-color'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, user_dto_1.UpdateWhatsappColorDto]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "setMyWhatsappColor", null);
 __decorate([
     (0, common_1.Post)(':id/avatar'),
     (0, roles_decorator_1.Roles)(...roles_1.USER_MANAGEMENT_ROLES),

@@ -585,6 +585,26 @@ export class UsersService {
     return this.updateAvatar(id, null);
   }
 
+  async getWhatsappColor(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { whatsappColor: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return { color: user.whatsappColor };
+  }
+
+  async setWhatsappColor(userId: string, color: string) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { whatsappColor: color.toUpperCase() },
+      select: { whatsappColor: true },
+    });
+    return { color: user.whatsappColor };
+  }
+
   async deactivate(id: string, actorUserId?: string) {
     if (actorUserId && actorUserId === id) {
       throw new BadRequestException(

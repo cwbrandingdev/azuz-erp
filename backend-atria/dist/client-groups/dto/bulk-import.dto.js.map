@@ -1,1 +1,0 @@
-{"version":3,"file":"bulk-import.dto.js","sourceRoot":"","sources":["../../../src/client-groups/dto/bulk-import.dto.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,yDAAyC;AACzC,qDAA0D;AAC1D,yDAA0D;AAE1D,MAAa,yBAAyB;IAIpC,MAAM,CAAyB;CAChC;AALD,8DAKC;AADC;IAHC,IAAA,yBAAO,GAAE;IACT,IAAA,gCAAc,EAAC,EAAE,IAAI,EAAE,IAAI,EAAE,CAAC;IAC9B,IAAA,wBAAI,EAAC,GAAG,EAAE,CAAC,uCAAoB,CAAC;;yDACF"}

@@ -20,7 +20,7 @@ import {
   StickyNote,
   Trash2,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -60,6 +60,7 @@ import {
   mentionTokenFor,
 } from "@/components/whatsapp/whatsapp-mention";
 import { WhatsappRoutingSettings } from "@/components/whatsapp/whatsapp-routing-settings";
+import { WhatsappSdrColorDialog } from "@/components/whatsapp/whatsapp-sdr-color-dialog";
 import { WhatsappSessionPanel } from "@/components/whatsapp/whatsapp-session-panel";
 import { WhatsappTransferDialog } from "@/components/whatsapp/whatsapp-transfer-dialog";
 import {
@@ -70,6 +71,7 @@ import {
   useWhatsappSession,
 } from "@/hooks/use-whatsapp";
 import { LEAD_STATUS_LABELS } from "@/lib/leads-kanban-utils";
+import { whatsappKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import {
@@ -256,8 +258,14 @@ function StatusTicks({ status }: { status: string }) {
   return <Check className="size-3.5 text-black/40 dark:text-white/40" />;
 }
 
+function contactAvatarStyle(color: string | null | undefined) {
+  if (!color) return undefined;
+  return { backgroundColor: color, color: "#ffffff" };
+}
+
 export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const {
     sendMessage,
     sendMedia,
@@ -277,6 +285,11 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const stagesQuery = useQuery({
     queryKey: ["whatsapp-stages"],
     queryFn: () => leadsService.listLeadStages(),
+  });
+  const colorQuery = useQuery({
+    queryKey: ["whatsapp-sdr-color", user?.id ?? ""],
+    queryFn: () => usersService.getMyWhatsappColor(),
+    enabled: Boolean(user?.id),
   });
 
   const [tab, setTab] = useState<WhatsAppInboxTab>("OPEN");
@@ -305,6 +318,11 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     useState<WhatsappAutomationTab>("bot");
   const [detailPanelOpen, setDetailPanelOpen] = useState(true);
   const [deleteConvoOpen, setDeleteConvoOpen] = useState(false);
+  const [colorOpen, setColorOpen] = useState(false);
+  const [savingColor, setSavingColor] = useState(false);
+  const [pendingAssumePhone, setPendingAssumePhone] = useState<string | null>(
+    null,
+  );
   const [composeLocked, setComposeLocked] = useState(false);
   const composeSubmitLock = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -330,6 +348,52 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   useEffect(() => {
     if (initialPhone) setSelectedPhone(initialPhone);
   }, [initialPhone]);
+
+  useEffect(() => {
+    if (colorQuery.isSuccess && !colorQuery.data.color) {
+      setColorOpen(true);
+    }
+  }, [colorQuery.isSuccess, colorQuery.data?.color]);
+
+  function assumeConversation(phone: string) {
+    if (!colorQuery.data?.color) {
+      setPendingAssumePhone(phone);
+      setColorOpen(true);
+      return;
+    }
+    void updateConversation.mutateAsync({
+      phone,
+      assignedUserId: user?.id ?? null,
+    });
+  }
+
+  async function saveSdrColor(color: string) {
+    setSavingColor(true);
+    try {
+      await usersService.setMyWhatsappColor(color);
+      await queryClient.invalidateQueries({
+        queryKey: ["whatsapp-sdr-color", user?.id ?? ""],
+      });
+      await queryClient.invalidateQueries({ queryKey: whatsappKeys.root });
+      setColorOpen(false);
+      const phone = pendingAssumePhone;
+      setPendingAssumePhone(null);
+      if (phone && user?.id) {
+        await updateConversation.mutateAsync({
+          phone,
+          assignedUserId: user.id,
+        });
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar a cor.",
+      );
+    } finally {
+      setSavingColor(false);
+    }
+  }
 
   useEffect(() => {
     setNameDraft(selected?.name ?? "");
@@ -661,7 +725,17 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                       "bg-white shadow-[inset_3px_0_0_var(--atria-primary)] dark:bg-white/10!",
                   )}
                 >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-white/15 text-xs font-semibold text-slate-700 dark:text-foreground/85">
+                  <span
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                      conversation.assignedUser?.whatsappColor
+                        ? "text-white"
+                        : "bg-slate-200 text-slate-700 dark:bg-white/15 dark:text-foreground/85",
+                    )}
+                    style={contactAvatarStyle(
+                      conversation.assignedUser?.whatsappColor,
+                    )}
+                  >
                     {displayName(conversation).slice(0, 2).toUpperCase()}
                   </span>
                   <span className="min-w-0 flex-1">
@@ -1075,12 +1149,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   type="button"
                   size="default"
                   className="min-h-10 flex-1 bg-green-900 text-base font-medium text-white hover:bg-green-950"
-                  onClick={() =>
-                    void updateConversation.mutateAsync({
-                      phone: selectedPhone,
-                      assignedUserId: user?.id ?? null,
-                    })
-                  }
+                  onClick={() => assumeConversation(selectedPhone)}
                 >
                   Assumir
                 </Button>
@@ -1179,6 +1248,15 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
         </button>
       ) : null}
 
+      <WhatsappSdrColorDialog
+        open={colorOpen}
+        saving={savingColor}
+        onOpenChange={(open) => {
+          setColorOpen(open);
+          if (!open) setPendingAssumePhone(null);
+        }}
+        onSave={(color) => void saveSdrColor(color)}
+      />
       <WhatsappAutomationDialog
         open={automationOpen}
         onOpenChange={setAutomationOpen}

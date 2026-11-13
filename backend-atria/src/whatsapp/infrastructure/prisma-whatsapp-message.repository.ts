@@ -29,6 +29,7 @@ const assignedUserSelect = {
   id: true,
   name: true,
   avatarUrl: true,
+  whatsappColor: true,
 } as const;
 
 @Injectable()

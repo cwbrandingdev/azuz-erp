@@ -28,25 +28,6 @@ let ClientGroupsService = class ClientGroupsService {
         const group = await this.ensureExists(id);
         return this.toResponse(group);
     }
-    async create(dto) {
-        try {
-            const group = await this.prisma.clientGroup.create({
-                data: {
-                    name: dto.name.trim(),
-                    description: dto.description?.trim(),
-                    color: dto.color ?? '#E8C39E',
-                },
-                include: { _count: { select: { clients: true } } },
-            });
-            return this.toResponse(group);
-        }
-        catch (error) {
-            if (this.isUniqueConstraintError(error)) {
-                throw new common_1.ConflictException('Client group name already exists');
-            }
-            throw error;
-        }
-    }
     async update(id, dto) {
         await this.ensureExists(id);
         try {
@@ -71,23 +52,6 @@ let ClientGroupsService = class ClientGroupsService {
     async remove(id) {
         await this.ensureExists(id);
         await this.prisma.clientGroup.delete({ where: { id } });
-    }
-    async bulkImport(dto) {
-        const created = [];
-        const errors = [];
-        for (let i = 0; i < dto.groups.length; i++) {
-            try {
-                const group = await this.create(dto.groups[i]);
-                created.push(group);
-            }
-            catch (err) {
-                errors.push({
-                    index: i,
-                    message: err instanceof Error ? err.message : 'Import failed',
-                });
-            }
-        }
-        return { created: created.length, errors };
     }
     async ensureExists(id) {
         const group = await this.prisma.clientGroup.findUnique({

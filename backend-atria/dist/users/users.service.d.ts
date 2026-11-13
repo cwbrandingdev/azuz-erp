@@ -349,6 +349,12 @@ export declare class UsersService {
             color: string;
         }[];
     }>;
+    getWhatsappColor(userId: string): Promise<{
+        color: string | null;
+    }>;
+    setWhatsappColor(userId: string, color: string): Promise<{
+        color: string | null;
+    }>;
     deactivate(id: string, actorUserId?: string): Promise<{
         createdAt: string;
         crmIncludeInternal: boolean;

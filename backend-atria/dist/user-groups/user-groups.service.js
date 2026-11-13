@@ -47,29 +47,6 @@ let UserGroupsService = class UserGroupsService {
         const group = await this.ensureExists(id);
         return this.toResponse(group);
     }
-    async create(dto) {
-        try {
-            const group = await this.prisma.userGroup.create({
-                data: {
-                    name: dto.name.trim(),
-                    description: dto.description?.trim(),
-                    color: dto.color ?? '#E8C39E',
-                },
-                include: memberInclude,
-            });
-            if (dto.memberIds?.length) {
-                await this.addMembers(group.id, dto.memberIds);
-                return this.findOne(group.id);
-            }
-            return this.toResponse(group);
-        }
-        catch (error) {
-            if (this.isUniqueConstraintError(error)) {
-                throw new common_1.ConflictException('User group name already exists');
-            }
-            throw error;
-        }
-    }
     async update(id, dto) {
         await this.ensureExists(id);
         try {
