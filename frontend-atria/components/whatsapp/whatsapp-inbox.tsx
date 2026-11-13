@@ -739,12 +739,19 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                     {displayName(conversation).slice(0, 2).toUpperCase()}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
+                    <span className="flex items-start justify-between gap-2">
                       <span className="truncate text-sm font-medium text-slate-800 dark:text-foreground">
                         {displayName(conversation)}
                       </span>
-                      <span className="text-[11px] text-slate-400 dark:text-white/40">
-                        {formatTime(conversation.lastMessageAt)}
+                      <span className="flex max-w-[45%] shrink-0 flex-col items-end text-right">
+                        <span className="text-[11px] text-slate-400 dark:text-white/40">
+                          {formatTime(conversation.lastMessageAt)}
+                        </span>
+                        {conversation.assignedUser?.name ? (
+                          <span className="max-w-full truncate text-[10px] leading-tight text-slate-500 dark:text-muted-foreground">
+                            {conversation.assignedUser.name}
+                          </span>
+                        ) : null}
                       </span>
                     </span>
                     <span className="mt-0.5 flex items-center justify-between gap-2">
@@ -1251,6 +1258,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
       <WhatsappSdrColorDialog
         open={colorOpen}
         saving={savingColor}
+        takenColors={colorQuery.data?.takenColors ?? []}
         onOpenChange={(open) => {
           setColorOpen(open);
           if (!open) setPendingAssumePhone(null);

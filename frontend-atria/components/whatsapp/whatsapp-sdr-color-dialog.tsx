@@ -27,18 +27,30 @@ export const SDR_INBOX_COLORS = [
   "#65A30D",
 ] as const;
 
+function isColorTaken(color: string, takenColors: string[]) {
+  const normalized = color.trim().toUpperCase();
+  return takenColors.some(
+    (taken) => taken.trim().toUpperCase() === normalized,
+  );
+}
+
 export function WhatsappSdrColorDialog({
   open,
   onOpenChange,
   saving,
+  takenColors = [],
   onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   saving: boolean;
+  takenColors?: string[];
   onSave: (color: string) => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const selectedTaken = selected
+    ? isColorTaken(selected, takenColors)
+    : false;
 
   return (
     <Dialog
@@ -58,31 +70,44 @@ export function WhatsappSdrColorDialog({
         </DialogHeader>
         <div className="grid grid-cols-6 gap-3">
           {SDR_INBOX_COLORS.map((color) => {
-            const active = selected === color;
+            const taken = isColorTaken(color, takenColors);
+            const active = selected === color && !taken;
             return (
               <button
                 key={color}
                 type="button"
-                aria-label={`Cor ${color}`}
+                aria-label={taken ? `Cor ${color} já em uso` : `Cor ${color}`}
                 aria-pressed={active}
-                onClick={() => setSelected(color)}
+                aria-disabled={taken}
+                disabled={taken}
+                title={taken ? "Já em uso" : undefined}
+                onClick={() => {
+                  if (!taken) setSelected(color);
+                }}
                 className={cn(
                   "mx-auto size-10 rounded-full ring-offset-2 transition",
-                  active
-                    ? "ring-2 ring-slate-900 dark:ring-white"
-                    : "hover:scale-105",
+                  taken
+                    ? "cursor-not-allowed opacity-30"
+                    : active
+                      ? "ring-2 ring-slate-900 dark:ring-white"
+                      : "hover:scale-105",
                 )}
                 style={{ backgroundColor: color }}
               />
             );
           })}
         </div>
+        <p className="text-xs text-slate-500 dark:text-muted-foreground">
+          Cores já escolhidas por outros SDRs ficam indisponíveis.
+        </p>
         <DialogFooter>
           <Button
             type="button"
-            disabled={!selected || saving}
+            disabled={!selected || selectedTaken || saving}
             onClick={() => {
-              if (selected) onSave(selected);
+              if (selected && !isColorTaken(selected, takenColors)) {
+                onSave(selected);
+              }
             }}
           >
             {saving ? "Salvando..." : "Salvar cor"}

@@ -78,12 +78,19 @@ export async function uploadMyAvatar(file: File) {
   return uploadFile<ManagedUser>("/users/me/avatar", formData);
 }
 
-export async function getMyWhatsappColor(): Promise<{ color: string | null }> {
-  return apiRequest<{ color: string | null }>("/users/me/whatsapp-color");
+export interface WhatsappColorResult {
+  color: string | null;
+  takenColors: string[];
 }
 
-export async function setMyWhatsappColor(color: string) {
-  return apiRequest<{ color: string | null }>("/users/me/whatsapp-color", {
+export async function getMyWhatsappColor(): Promise<WhatsappColorResult> {
+  return apiRequest<WhatsappColorResult>("/users/me/whatsapp-color");
+}
+
+export async function setMyWhatsappColor(
+  color: string,
+): Promise<WhatsappColorResult> {
+  return apiRequest<WhatsappColorResult>("/users/me/whatsapp-color", {
     method: "PATCH",
     body: { color },
   });
