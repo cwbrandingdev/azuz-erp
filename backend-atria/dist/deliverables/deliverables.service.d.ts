@@ -20,14 +20,14 @@ export declare class DeliverablesService {
         } | null;
         items: {
             id: string;
-            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             createdAt: Date;
             updatedAt: Date;
+            status: import("@prisma/client").$Enums.DeliverableItemStatus;
             fileName: string | null;
+            previewUrl: string | null;
             fileSize: number | null;
             deliverableId: string;
             mediaUrl: string;
-            previewUrl: string | null;
             mediaType: import("@prisma/client").$Enums.DeliverableMediaType;
             adjustmentNotes: string | null;
             storageBucket: string | null;

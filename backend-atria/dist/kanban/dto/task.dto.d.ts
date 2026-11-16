@@ -53,3 +53,16 @@ export declare class QueryTasksDto {
     startDate?: string;
     endDate?: string;
 }
+export declare class QueryKanbanBoardDto {
+    search?: string;
+    assigneeId?: string;
+    clientId?: string;
+    recordingFilter?: 'gravado' | 'pendente';
+    dateField?: 'delivery' | 'publication';
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+}
+export declare class QueryKanbanColumnTasksDto extends QueryKanbanBoardDto {
+    offset?: number;
+}

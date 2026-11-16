@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   DragDropContext,
@@ -9,72 +9,74 @@ import {
   type DropResult,
 } from "@hello-pangea/dnd";
 import { useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/contexts/confirm-context";
 import { calendarService, clientsService, kanbanService } from "@/services";
 import { toast } from "@/lib/toast";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useMoveTaskMutation, useUpdateTaskStatusMutation } from "@/hooks/use-task-mutations";
-import { useTasks } from "@/hooks/use-tasks";
 import { PermissionGate } from "@/components/auth/permission-gate";
 import { Permission } from "@/lib/permissions";
 import { DEFAULT_TASK_STATUS } from "@/lib/kanban-utils";
 import { moveColumn } from "@/lib/kanban-columns";
-import { matchesRecordingFilter } from "@/lib/production-phase";
 import { invalidateTasksCache } from "@/lib/task-cache";
-import type { Client, KanbanColumn, KanbanTask, TeamMember } from "@/services/types";
+import type {
+  Client,
+  KanbanBoardColumn,
+  KanbanBoardFilters,
+  KanbanTask,
+  TeamMember,
+} from "@/services/types";
 import { ColumnHeader } from "./column-header";
 import { DragHandleStrip } from "./drag-handle-strip";
 import { CreateTaskDialog } from "./create-task-dialog";
 import { DeletionHistoryDrawer } from "./deletion-history-drawer";
-import {
-  EMPTY_KANBAN_FILTERS,
-  KanbanFilters,
-  matchesNameSearch,
-  matchesTaskDateFilter,
-} from "./kanban-filters";
+import { EMPTY_KANBAN_FILTERS, KanbanFilters } from "./kanban-filters";
+import { KanbanLoadMore } from "./kanban-load-more";
 import { TaskCard } from "./task-card";
 import { KanbanHorizontalScroll } from "./kanban-horizontal-scroll";
 import { useTaskDetail } from "./task-detail-provider";
 
 export function KanbanBoard() {
-  const { openTask, openTaskById } = useTaskDetail();
+  const { openTask, openTaskById, subscribeTaskUpdates } = useTaskDetail();
   const searchParams = useSearchParams();
   const taskIdFromQuery = searchParams.get("taskId");
   const confirm = useConfirm();
   const queryClient = useQueryClient();
   const { canEditKanbanTask, canEditAllKanban } = usePermissions();
   const canReorderColumns = canEditAllKanban();
-  const { data: tasks = [], isLoading: tasksLoading } = useTasks();
   const moveTaskMutation = useMoveTaskMutation();
   const updateTaskStatusMutation = useUpdateTaskStatusMutation();
-  const [columns, setColumns] = useState<KanbanColumn[]>([]);
+  const [columns, setColumns] = useState<KanbanBoardColumn[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [filters, setFilters] = useState(EMPTY_KANBAN_FILTERS);
-  const [metaLoading, setMetaLoading] = useState(true);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [boardLoading, setBoardLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState<Record<string, boolean>>({});
   const [clearing, setClearing] = useState(false);
+  const boardRequest = useRef(0);
+  const hasLoadedRef = useRef(false);
+  const columnsRef = useRef(columns);
+  const loadingMoreRef = useRef(loadingMore);
+  const refreshingRef = useRef(refreshing);
+  columnsRef.current = columns;
+  loadingMoreRef.current = loadingMore;
+  refreshingRef.current = refreshing;
 
   const loadBoardMeta = useCallback(async () => {
-    setMetaLoading(true);
     try {
-      const [cols, team, clientList] = await Promise.all([
-        kanbanService.getColumns(),
+      const [team, clientList] = await Promise.all([
         calendarService.getTeamMembers().catch(() => [] as TeamMember[]),
-        clientsService
-          .getClients()
-          .catch(() => [] as Client[]),
+        clientsService.getClients().catch(() => [] as Client[]),
       ]);
-      setColumns(cols.sort((a, b) => a.order - b.order));
       setMembers(team);
       setClients(clientList);
     } catch {
-      setColumns([]);
       setMembers([]);
       setClients([]);
-    } finally {
-      setMetaLoading(false);
     }
   }, []);
 
@@ -83,34 +85,120 @@ export function KanbanBoard() {
   }, [loadBoardMeta]);
 
   useEffect(() => {
+    const timer = window.setTimeout(
+      () => setDebouncedSearch(filters.search.trim()),
+      400,
+    );
+    return () => window.clearTimeout(timer);
+  }, [filters.search]);
+
+  useEffect(() => {
     if (!taskIdFromQuery) return;
     void openTaskById(taskIdFromQuery).catch(() => {
       toast.error("Não foi possível abrir a tarefa.");
     });
   }, [taskIdFromQuery, openTaskById]);
 
-  const loading = metaLoading || tasksLoading;
+  const boardFilters = useMemo<KanbanBoardFilters>(
+    () => ({
+      search: debouncedSearch || undefined,
+      assigneeId: filters.assigneeId || undefined,
+      clientId: filters.clientId || undefined,
+      recordingFilter: filters.recordingFilter || undefined,
+      dateField: filters.dateField || undefined,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+    }),
+    [
+      debouncedSearch,
+      filters.assigneeId,
+      filters.clientId,
+      filters.dateField,
+      filters.endDate,
+      filters.recordingFilter,
+      filters.startDate,
+    ],
+  );
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      if (!matchesNameSearch(task.title, filters.search)) return false;
-      if (
-        filters.assigneeId &&
-        !task.assignees.some((assignee) => assignee.id === filters.assigneeId)
-      ) {
-        return false;
+  const loadBoard = useCallback(
+    async (options?: { silent?: boolean; limit?: number }) => {
+      const requestId = ++boardRequest.current;
+      const silent = Boolean(options?.silent);
+      if (!silent) {
+        if (hasLoadedRef.current) setRefreshing(true);
+        else setBoardLoading(true);
       }
-      if (filters.clientId && task.clientId !== filters.clientId) return false;
-      if (!matchesRecordingFilter(task, filters.recordingFilter)) return false;
-      if (!matchesTaskDateFilter(task, filters)) return false;
-      return true;
+
+      try {
+        const board = await kanbanService.getBoard({
+          ...boardFilters,
+          ...(options?.limit && options.limit > 20
+            ? { limit: options.limit }
+            : {}),
+        });
+        if (requestId !== boardRequest.current) return;
+        setColumns(board.columns);
+        hasLoadedRef.current = true;
+      } catch {
+        if (requestId !== boardRequest.current) return;
+        if (!silent && !hasLoadedRef.current) setColumns([]);
+      } finally {
+        if (requestId === boardRequest.current) {
+          setBoardLoading(false);
+          setRefreshing(false);
+        }
+      }
+    },
+    [boardFilters],
+  );
+
+  const refreshLoaded = useCallback(() => {
+    if (
+      refreshingRef.current ||
+      Object.values(loadingMoreRef.current).some(Boolean)
+    ) {
+      return;
+    }
+    const loaded = columnsRef.current.reduce(
+      (max, column) => Math.max(max, column.tasks.length),
+      20,
+    );
+    return loadBoard({ silent: true, limit: Math.min(loaded, 200) });
+  }, [loadBoard]);
+
+  useEffect(() => {
+    void loadBoard();
+  }, [loadBoard]);
+
+  useEffect(() => {
+    return subscribeTaskUpdates(() => {
+      void refreshLoaded();
     });
-  }, [tasks, filters]);
+  }, [refreshLoaded, subscribeTaskUpdates]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      void refreshLoaded();
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [refreshLoaded]);
+
+  const searchPending = filters.search.trim() !== debouncedSearch;
+  const hasActiveFilters = Boolean(
+    filters.search.trim() ||
+      filters.assigneeId ||
+      filters.clientId ||
+      filters.recordingFilter ||
+      filters.startDate ||
+      filters.endDate,
+  );
+  const totalTasks = columns.reduce((sum, column) => sum + column.total, 0);
 
   const filterClients = useMemo(() => {
     if (clients.length > 0) return clients;
     const byId = new Map<string, Client>();
-    for (const task of tasks) {
+    for (const task of columns.flatMap((column) => column.tasks)) {
       if (task.client) {
         byId.set(task.client.id, {
           id: task.client.id,
@@ -120,17 +208,81 @@ export function KanbanBoard() {
       }
     }
     return Array.from(byId.values());
-  }, [clients, tasks]);
+  }, [clients, columns]);
 
-  function getColumnTasks(columnId: string) {
-    return filteredTasks
-      .filter((task) => task.columnId === columnId)
-      .sort((a, b) => a.order - b.order);
+  async function loadMoreColumn(column: KanbanBoardColumn) {
+    if (!column.hasMore || loadingMore[column.id]) return;
+
+    const request = boardRequest.current;
+    setLoadingMore((current) => ({ ...current, [column.id]: true }));
+    try {
+      const page = await kanbanService.getColumnTasks(
+        column.id,
+        column.tasks.length,
+        boardFilters,
+      );
+      if (request !== boardRequest.current) return;
+      setColumns((current) =>
+        current.map((item) => {
+          if (item.id !== column.id) return item;
+          const known = new Set(item.tasks.map((task) => task.id));
+          const fresh = page.tasks.filter((task) => !known.has(task.id));
+          return {
+            ...item,
+            tasks: [...item.tasks, ...fresh],
+            total: page.total,
+            hasMore: fresh.length > 0 && page.hasMore,
+          };
+        }),
+      );
+    } catch {
+      toast.error("Não foi possível carregar mais tarefas.");
+    } finally {
+      setLoadingMore((current) => ({ ...current, [column.id]: false }));
+    }
+  }
+
+  function applyOptimisticMove(
+    taskId: string,
+    toColumnId: string,
+    toIndex: number,
+  ) {
+    setColumns((current) => {
+      const moving = current
+        .flatMap((column) => column.tasks)
+        .find((task) => task.id === taskId);
+      if (!moving) return current;
+
+      const target = current.find((column) => column.id === toColumnId);
+      return current.map((column) => {
+        const isSource = column.tasks.some((task) => task.id === taskId);
+        const isTarget = column.id === toColumnId;
+        if (!isSource && !isTarget) return column;
+
+        const nextTasks = column.tasks.filter((task) => task.id !== taskId);
+        if (isTarget) {
+          nextTasks.splice(toIndex, 0, {
+            ...moving,
+            columnId: toColumnId,
+            order: toIndex,
+            status: target?.statusKey ?? moving.status,
+          });
+        }
+
+        const delta =
+          isTarget && !isSource ? 1 : isSource && !isTarget ? -1 : 0;
+        return {
+          ...column,
+          tasks: nextTasks,
+          total: Math.max(0, column.total + delta),
+        };
+      });
+    });
   }
 
   async function handleColumnDragEnd(fromIndex: number, toIndex: number) {
     const previous = columns;
-    const reordered = moveColumn(columns, fromIndex, toIndex);
+    const reordered = moveColumn(columns, fromIndex, toIndex) as KanbanBoardColumn[];
     setColumns(reordered);
 
     try {
@@ -161,13 +313,17 @@ export function KanbanBoard() {
     const newColumnId = destination.droppableId;
     const newOrder = destination.index;
     const targetColumn = columns.find((column) => column.id === newColumnId);
-    const movingTask = tasks.find((task) => task.id === draggableId);
+    const movingTask = columns
+      .flatMap((column) => column.tasks)
+      .find((task) => task.id === draggableId);
     if (movingTask && !canEditKanbanTask(movingTask)) {
       toast.error("Você só pode mover tarefas atribuídas a você.");
       return;
     }
     const newStatus =
       targetColumn?.statusKey ?? movingTask?.status ?? DEFAULT_TASK_STATUS;
+
+    applyOptimisticMove(draggableId, newColumnId, newOrder);
 
     try {
       if (movingTask && newStatus !== movingTask.status) {
@@ -186,11 +342,13 @@ export function KanbanBoard() {
       });
       toast.success("Tarefa atualizada");
     } catch {
+      await loadBoard();
       toast.error("Não foi possível mover a tarefa");
     }
   }
 
   function handleTaskCreated(task: KanbanTask) {
+    void loadBoard();
     openTask(task, columns);
   }
 
@@ -208,6 +366,7 @@ export function KanbanBoard() {
     try {
       const result = await kanbanService.clearTasksBoard();
       await invalidateTasksCache(queryClient);
+      await loadBoard();
       toast.success(
         result.deletedCount === 0
           ? "O quadro já estava vazio."
@@ -220,7 +379,7 @@ export function KanbanBoard() {
     }
   }
 
-  if (loading) {
+  if (boardLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
@@ -246,7 +405,7 @@ export function KanbanBoard() {
               type="button"
               variant="outline"
               className="gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
-              disabled={clearing || tasks.length === 0}
+              disabled={clearing || totalTasks === 0}
               onClick={() => void handleClearBoard()}
             >
               <Trash2 className="size-4" />
@@ -265,17 +424,26 @@ export function KanbanBoard() {
         members={members}
         clients={filterClients}
         showDateFilters
+        searching={
+          searchPending || (refreshing && filters.search.trim().length > 0)
+        }
       />
 
       <DragDropContext onDragEnd={handleDragEnd}>
         {columns.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/20 p-12 text-center">
             <p className="text-sm text-[var(--atria-primary)]/50">
-              Carregando colunas do quadro...
+              Nenhuma coluna no quadro.
             </p>
           </div>
         ) : (
-                    <KanbanHorizontalScroll>
+          <div className="relative">
+            {refreshing && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/55">
+                <Loader2 className="size-6 animate-spin text-[var(--atria-primary)]" />
+              </div>
+            )}
+            <KanbanHorizontalScroll>
             <Droppable
               droppableId="kanban-board"
               type="COLUMN"
@@ -288,7 +456,7 @@ export function KanbanBoard() {
                   className="flex"
                 >
                   {columns.map((column, columnIndex) => {
-                    const columnTasks = getColumnTasks(column.id);
+                    const columnTasks = column.tasks;
 
                     return (
                       <Draggable
@@ -307,8 +475,8 @@ export function KanbanBoard() {
                           >
                             <ColumnHeader
                               column={column}
-                              taskCount={columnTasks.length}
-                              onUpdate={() => void loadBoardMeta()}
+                              taskCount={column.total}
+                              onUpdate={() => void loadBoard()}
                               dragHandleProps={
                                 canReorderColumns
                                   ? columnProvided.dragHandleProps
@@ -333,7 +501,9 @@ export function KanbanBoard() {
                                 >
                                   {columnTasks.length === 0 && (
                                     <p className="py-8 text-center text-xs text-[var(--atria-primary)]/40">
-                                      Arraste tarefas para cá
+                                      {hasActiveFilters
+                                        ? "Nenhuma tarefa corresponde aos filtros"
+                                        : "Arraste tarefas para cá"}
                                     </p>
                                   )}
 
@@ -380,6 +550,12 @@ export function KanbanBoard() {
                                     </Draggable>
                                   ))}
                                   {provided.placeholder}
+                                  {column.hasMore && (
+                                    <KanbanLoadMore
+                                      loading={Boolean(loadingMore[column.id])}
+                                      onLoadMore={() => void loadMoreColumn(column)}
+                                    />
+                                  )}
                                 </div>
                               )}
                             </Droppable>
@@ -392,7 +568,8 @@ export function KanbanBoard() {
                 </div>
               )}
             </Droppable>
-          </KanbanHorizontalScroll>
+            </KanbanHorizontalScroll>
+          </div>
         )}
       </DragDropContext>
     </div>

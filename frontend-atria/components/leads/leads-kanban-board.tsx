@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DragDropContext,
   Draggable,
   Droppable,
   type DropResult,
 } from "@hello-pangea/dnd";
-import { Bell, Phone, Search } from "lucide-react";
+import { Bell, Loader2, Phone, Search } from "lucide-react";
 import { CrmDisabledEmptyState } from "@/components/leads/crm-disabled-empty-state";
 import { CrmReminderKanban } from "@/components/leads/crm-reminder-kanban";
 import { LeadDetailDialog } from "@/components/leads/lead-detail-dialog";
@@ -141,6 +141,8 @@ export function LeadsKanbanBoard({
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loadingMore, setLoadingMore] = useState<Record<string, boolean>>({});
+  const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   const allClientsLabel = isMasterOrAdmin()
     ? "Todas as Empresas"
@@ -242,11 +244,14 @@ export function LeadsKanbanBoard({
   const loadBoard = useCallback(async () => {
     if (!portalClientView && crmDisabled) {
       setLoading(false);
+      setRefreshing(false);
       return;
     }
 
-    // Sem ligar o "loading" aqui: ao buscar ou filtrar, o quadro continua na
-    // tela e a caixa de busca não perde o foco. A rodinha só aparece na 1ª carga.
+    // A 1ª carga troca a tela inteira. Nas buscas seguintes o quadro permanece
+    // e a rodinha aparece por cima, para a caixa de busca não perder o foco.
+    if (hasLoadedRef.current) setRefreshing(true);
+    else setLoading(true);
     try {
       const board = portalClientView
         ? await clientPortalService.getCrmKanbanBoard()
@@ -257,6 +262,7 @@ export function LeadsKanbanBoard({
       setCrmMoveZone(portalClientView ? "all" : (board.crmMoveZone ?? "all"));
       setShowOrcamento(board.showOrcamento !== false);
       setCrmDisabled(false);
+      hasLoadedRef.current = true;
 
       if (portalClientView) {
         const lastSeenAt = getPortalCrmLastSeenAt(user?.id);
@@ -277,6 +283,7 @@ export function LeadsKanbanBoard({
       setNewSdrLeadCount(0);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [crmDisabled, kanbanFilters, portalClientView, user?.id]);
 
@@ -851,8 +858,12 @@ export function LeadsKanbanBoard({
                     onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder="Buscar por nome, telefone, cidade, endereço..."
                     maxLength={200}
-                    className="pl-9"
+                    className="pr-9 pl-9"
                   />
+                  {(searchQuery.trim() !== debouncedSearch ||
+                    (refreshing && searchQuery.trim().length > 0)) && (
+                    <Loader2 className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-[var(--atria-primary)]/50" />
+                  )}
                 </div>
                 <Select
                   value={categoryFilter}
@@ -914,9 +925,14 @@ export function LeadsKanbanBoard({
 
           <DragDropContext onDragEnd={(result) => void handleDragEnd(result)}>
             <div
-              className="min-w-0"
+              className="relative min-w-0"
               data-tour={portalClientView ? "portal-crm-board" : undefined}
             >
+              {refreshing && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/55">
+                  <Loader2 className="size-6 animate-spin text-[var(--atria-primary)]" />
+                </div>
+              )}
               <KanbanHorizontalScroll>
                 {filteredColumns.map((column) => {
                   const columnKey = leadColumnKey(column);

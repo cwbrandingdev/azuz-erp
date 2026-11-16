@@ -3,11 +3,13 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
+  Max,
   MaxLength,
   Min,
   ValidateIf,
@@ -217,4 +219,48 @@ export class QueryTasksDto {
   @IsDateString()
   @IsOptional()
   endDate?: string;
+}
+
+export class QueryKanbanBoardDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
+
+  @IsEntityId({ optional: true })
+  assigneeId?: string;
+
+  @IsEntityId({ optional: true })
+  clientId?: string;
+
+  @IsOptional()
+  @IsIn(['gravado', 'pendente'])
+  recordingFilter?: 'gravado' | 'pendente';
+
+  @IsOptional()
+  @IsIn(['delivery', 'publication'])
+  dateField?: 'delivery' | 'publication';
+
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  limit?: number;
+}
+
+export class QueryKanbanColumnTasksDto extends QueryKanbanBoardDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  offset?: number;
 }

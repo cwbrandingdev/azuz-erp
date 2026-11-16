@@ -23,13 +23,17 @@ export function KanbanLoadMore({ loading, onLoadMore }: KanbanLoadMoreProps) {
     const element = sentinelRef.current;
     if (!element || loading) return;
 
+    const pageScroll = element.closest("main");
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
           onLoadMoreRef.current();
         }
       },
-      { rootMargin: "200px" },
+      {
+        root: pageScroll instanceof HTMLElement ? pageScroll : null,
+        rootMargin: "200px",
+      },
     );
     observer.observe(element);
     return () => observer.disconnect();

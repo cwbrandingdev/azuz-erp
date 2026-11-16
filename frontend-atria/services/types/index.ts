@@ -306,6 +306,33 @@ export interface KanbanColumn {
   statusKey: KanbanTaskStatus | null;
 }
 
+export interface KanbanBoardFilters {
+  search?: string;
+  assigneeId?: string;
+  clientId?: string;
+  recordingFilter?: "gravado" | "pendente";
+  dateField?: "delivery" | "publication";
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}
+
+export interface KanbanColumnTaskPage {
+  tasks: KanbanTask[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface KanbanBoardColumn extends KanbanColumn {
+  tasks: KanbanTask[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface TaskKanbanBoard {
+  columns: KanbanBoardColumn[];
+}
+
 export type InternalReviewStatus =
   | "not_required"
   | "pending"

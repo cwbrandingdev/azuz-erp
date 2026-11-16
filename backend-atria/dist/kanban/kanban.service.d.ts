@@ -8,7 +8,7 @@ import { SlaService } from '../sla/sla.service';
 import { CreateCommentDto } from './dto/comment.dto';
 import { CreateColumnDto, ReorderColumnsDto, UpdateColumnDto } from './dto/column.dto';
 import { QueryDeletionHistoryDto } from './dto/deletion-history.dto';
-import { CreateTaskDto, MoveTaskDto, QueryTasksDto, UpdateTaskDto, UpdateTaskStatusDto } from './dto/task.dto';
+import { CreateTaskDto, MoveTaskDto, QueryKanbanBoardDto, QueryKanbanColumnTasksDto, QueryTasksDto, UpdateTaskDto, UpdateTaskStatusDto } from './dto/task.dto';
 import { InternalReviewDto } from './dto/internal-review.dto';
 type PreparedTaskCreate = {
     title: string;
@@ -145,6 +145,166 @@ export declare class KanbanService {
         client: import("./kanban-task.mapper").UnifiedTaskClient | null;
         createdAt: string;
     }[]>;
+    getBoard(query: QueryKanbanBoardDto): Promise<{
+        columns: {
+            tasks: {
+                postCaption: string | null;
+                referenceUrl: string | null;
+                columnId: string;
+                column: {
+                    id: string;
+                    title: string;
+                    order: number;
+                    color: string;
+                    type: "to_do" | "in_progress" | "done" | "custom" | null;
+                    statusKey: import("./kanban-status").KanbanTaskStatusApi | null;
+                } | null;
+                contentPostId: string | null;
+                calendarEventId: string | null;
+                internalReviewStatus: "not_required" | "pending" | "approved" | "rejected";
+                internalReviewNote: string | null;
+                isBypassingInternalReview: boolean;
+                priority: "critical" | "high" | "medium" | "low" | "planned";
+                order: number;
+                slaResponseDueAt: string | null;
+                slaResolutionDueAt: string | null;
+                firstResponseAt: string | null;
+                resolvedAt: string | null;
+                slaStatus: import("../sla/sla.utils").SlaUiStatus;
+                assignedGroupId: string | null;
+                assignedGroup: {
+                    id: string;
+                    name: string;
+                    color: string;
+                } | null;
+                assignees: {
+                    id: string;
+                    name: string;
+                    avatarUrl: string | null;
+                }[];
+                createdBy: {
+                    id: string;
+                    name: string;
+                    avatarUrl: string | null;
+                };
+                assets: {
+                    id: string;
+                    fileName: string;
+                    fileUrl: string;
+                    previewUrl: string | null;
+                    fileType: string;
+                    fileSize: number | null;
+                    caption: string | null;
+                    uploadedAt: string;
+                    uploadedBy: {
+                        id: string;
+                        name: string;
+                        avatarUrl: string | null;
+                    };
+                }[];
+                updatedAt: string;
+                id: string;
+                title: string;
+                description: string | null;
+                status: import("./kanban-status").KanbanTaskStatusApi;
+                productionPhase: import("./production-phase").ProductionPhaseApi | null;
+                contentType: import("./kanban-content-type").KanbanTaskContentTypeApi;
+                statusColor: string;
+                statusLabel: string;
+                dueDate: string | null;
+                publicationDate: string | null;
+                deliveryDate: string | null;
+                clientId: string | null;
+                companyId: string;
+                client: import("./kanban-task.mapper").UnifiedTaskClient | null;
+                createdAt: string;
+            }[];
+            total: number;
+            hasMore: boolean;
+            id: string;
+            title: string;
+            order: number;
+            color: string;
+            type: "to_do" | "in_progress" | "done" | "custom" | null;
+            statusKey: import("./kanban-status").KanbanTaskStatusApi | null;
+        }[];
+    }>;
+    getColumnTasks(columnId: string, query: QueryKanbanColumnTasksDto): Promise<{
+        tasks: {
+            postCaption: string | null;
+            referenceUrl: string | null;
+            columnId: string;
+            column: {
+                id: string;
+                title: string;
+                order: number;
+                color: string;
+                type: "to_do" | "in_progress" | "done" | "custom" | null;
+                statusKey: import("./kanban-status").KanbanTaskStatusApi | null;
+            } | null;
+            contentPostId: string | null;
+            calendarEventId: string | null;
+            internalReviewStatus: "not_required" | "pending" | "approved" | "rejected";
+            internalReviewNote: string | null;
+            isBypassingInternalReview: boolean;
+            priority: "critical" | "high" | "medium" | "low" | "planned";
+            order: number;
+            slaResponseDueAt: string | null;
+            slaResolutionDueAt: string | null;
+            firstResponseAt: string | null;
+            resolvedAt: string | null;
+            slaStatus: import("../sla/sla.utils").SlaUiStatus;
+            assignedGroupId: string | null;
+            assignedGroup: {
+                id: string;
+                name: string;
+                color: string;
+            } | null;
+            assignees: {
+                id: string;
+                name: string;
+                avatarUrl: string | null;
+            }[];
+            createdBy: {
+                id: string;
+                name: string;
+                avatarUrl: string | null;
+            };
+            assets: {
+                id: string;
+                fileName: string;
+                fileUrl: string;
+                previewUrl: string | null;
+                fileType: string;
+                fileSize: number | null;
+                caption: string | null;
+                uploadedAt: string;
+                uploadedBy: {
+                    id: string;
+                    name: string;
+                    avatarUrl: string | null;
+                };
+            }[];
+            updatedAt: string;
+            id: string;
+            title: string;
+            description: string | null;
+            status: import("./kanban-status").KanbanTaskStatusApi;
+            productionPhase: import("./production-phase").ProductionPhaseApi | null;
+            contentType: import("./kanban-content-type").KanbanTaskContentTypeApi;
+            statusColor: string;
+            statusLabel: string;
+            dueDate: string | null;
+            publicationDate: string | null;
+            deliveryDate: string | null;
+            clientId: string | null;
+            companyId: string;
+            client: import("./kanban-task.mapper").UnifiedTaskClient | null;
+            createdAt: string;
+        }[];
+        total: number;
+        hasMore: boolean;
+    }>;
     getTask(id: string): Promise<{
         postCaption: string | null;
         referenceUrl: string | null;
@@ -783,6 +943,10 @@ export declare class KanbanService {
     private resolvePostCopy;
     private syncContentPostCopy;
     private resolveTaskSchedule;
+    private buildTaskBoardWhere;
+    private buildTaskDateFilter;
+    private dateBounds;
+    private loadTaskColumnPage;
     private parseTaskRangeStart;
     private parseTaskRangeEnd;
 }
