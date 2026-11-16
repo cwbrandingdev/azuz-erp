@@ -40,6 +40,7 @@ import { SlaService } from '../sla/sla.service';
 import {
   isSocialTaskContentType,
   resolveTaskContentType,
+  SOCIAL_TASK_CONTENT_TYPES,
 } from './kanban-content-type';
 import { DEFAULT_TASK_STATUS } from './kanban-defaults';
 import {
@@ -66,6 +67,8 @@ import { QueryDeletionHistoryDto } from './dto/deletion-history.dto';
 import {
   CreateTaskDto,
   MoveTaskDto,
+  QueryKanbanBoardDto,
+  QueryKanbanColumnTasksDto,
   QueryTasksDto,
   UpdateTaskDto,
   UpdateTaskStatusDto,
@@ -74,6 +77,8 @@ import {
   InternalReviewAction,
   InternalReviewDto,
 } from './dto/internal-review.dto';
+
+const KANBAN_PAGE_SIZE = 20;
 
 const userSelect = { id: true, name: true, avatarUrl: true } as const;
 
@@ -244,6 +249,43 @@ export class KanbanService {
     });
 
     return tasks.map((task) => this.toTaskResponse(task));
+  }
+
+  async getBoard(query: QueryKanbanBoardDto) {
+    await this.ensureStatusColumns();
+
+    const columns = await this.prisma.kanbanColumn.findMany({
+      where: { statusKey: { not: null } },
+      orderBy: { order: 'asc' },
+    });
+    const where = this.buildTaskBoardWhere(query);
+    const limit = Math.min(query.limit ?? KANBAN_PAGE_SIZE, 200);
+
+    const pages = await Promise.all(
+      columns.map(async (column) => {
+        const page = await this.loadTaskColumnPage(
+          { AND: [where, { columnId: column.id }] },
+          0,
+          limit,
+        );
+        return {
+          ...this.toColumnResponse(column),
+          ...page,
+        };
+      }),
+    );
+
+    return { columns: pages };
+  }
+
+  async getColumnTasks(columnId: string, query: QueryKanbanColumnTasksDto) {
+    await this.ensureColumnExists(columnId);
+
+    return this.loadTaskColumnPage(
+      { AND: [this.buildTaskBoardWhere(query), { columnId }] },
+      query.offset ?? 0,
+      KANBAN_PAGE_SIZE,
+    );
   }
 
   async getTask(id: string) {
@@ -2303,6 +2345,101 @@ export class KanbanService {
     const dueDate = deliveryDate ?? (dto.dueDate ? new Date(dto.dueDate) : null);
 
     return { publicationDate, deliveryDate, dueDate };
+  }
+
+  private buildTaskBoardWhere(
+    query: QueryKanbanBoardDto,
+  ): Prisma.KanbanTaskWhereInput {
+    const conditions: Prisma.KanbanTaskWhereInput[] = [{ deletedAt: null }];
+
+    if (query.clientId) conditions.push({ clientId: query.clientId });
+    if (query.assigneeId) {
+      conditions.push({ assignees: { some: { userId: query.assigneeId } } });
+    }
+
+    const search = query.search?.trim();
+    if (search) {
+      conditions.push({
+        title: { contains: search, mode: 'insensitive' },
+      });
+    }
+
+    if (query.recordingFilter === 'gravado') {
+      conditions.push({
+        contentType: { in: [...SOCIAL_TASK_CONTENT_TYPES] },
+        OR: [
+          { status: { not: KanbanTaskStatus.FALTA_GRAVAR } },
+          { productionPhase: ProductionPhase.EM_GRAVACAO },
+        ],
+      });
+    } else if (query.recordingFilter === 'pendente') {
+      conditions.push({
+        contentType: { in: [...SOCIAL_TASK_CONTENT_TYPES] },
+        status: KanbanTaskStatus.FALTA_GRAVAR,
+        OR: [
+          { productionPhase: null },
+          { productionPhase: { not: ProductionPhase.EM_GRAVACAO } },
+        ],
+      });
+    }
+
+    if (query.startDate || query.endDate) {
+      conditions.push(this.buildTaskDateFilter(query));
+    }
+
+    return { AND: conditions };
+  }
+
+  private buildTaskDateFilter(
+    query: QueryKanbanBoardDto,
+  ): Prisma.KanbanTaskWhereInput {
+    const bounds = this.dateBounds(query.startDate, query.endDate);
+    const delivery: Prisma.KanbanTaskWhereInput = {
+      OR: [
+        { deliveryDate: bounds },
+        { AND: [{ deliveryDate: null }, { dueDate: bounds }] },
+      ],
+    };
+    const publication: Prisma.KanbanTaskWhereInput = {
+      publicationDate: bounds,
+    };
+
+    if (query.dateField === 'delivery') return delivery;
+    if (query.dateField === 'publication') return publication;
+    return { OR: [delivery, publication] };
+  }
+
+  private dateBounds(
+    start?: string,
+    end?: string,
+  ): Prisma.DateTimeNullableFilter {
+    const filter: Prisma.DateTimeNullableFilter = {};
+    if (start) filter.gte = this.parseTaskRangeStart(start);
+    if (end) filter.lte = this.parseTaskRangeEnd(end);
+    return filter;
+  }
+
+  private async loadTaskColumnPage(
+    where: Prisma.KanbanTaskWhereInput,
+    offset: number,
+    limit: number,
+  ) {
+    const [tasks, total] = await Promise.all([
+      this.prisma.kanbanTask.findMany({
+        where,
+        include: this.taskInclude(),
+        orderBy: [{ order: 'asc' }, { id: 'asc' }],
+        skip: offset,
+        take: limit,
+      }),
+      this.prisma.kanbanTask.count({ where }),
+    ]);
+
+    return {
+      tasks: tasks.map((task) => this.toTaskResponse(task)),
+      total,
+      hasMore: offset + tasks.length < total,
+    };
   }
 
   private parseTaskRangeStart(value: string): Date {

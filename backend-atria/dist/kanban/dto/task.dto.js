@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QueryTasksDto = exports.BulkDeleteTaskAssetsDto = exports.UpdateTaskStatusDto = exports.MoveTaskDto = exports.UpdateTaskDto = exports.CreateTaskDto = void 0;
+exports.QueryKanbanColumnTasksDto = exports.QueryKanbanBoardDto = exports.QueryTasksDto = exports.BulkDeleteTaskAssetsDto = exports.UpdateTaskStatusDto = exports.MoveTaskDto = exports.UpdateTaskDto = exports.CreateTaskDto = void 0;
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 const client_1 = require("@prisma/client");
@@ -302,4 +302,68 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], QueryTasksDto.prototype, "endDate", void 0);
+class QueryKanbanBoardDto {
+    search;
+    assigneeId;
+    clientId;
+    recordingFilter;
+    dateField;
+    startDate;
+    endDate;
+    limit;
+}
+exports.QueryKanbanBoardDto = QueryKanbanBoardDto;
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(200),
+    __metadata("design:type", String)
+], QueryKanbanBoardDto.prototype, "search", void 0);
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], QueryKanbanBoardDto.prototype, "assigneeId", void 0);
+__decorate([
+    (0, entity_id_1.IsEntityId)({ optional: true }),
+    __metadata("design:type", String)
+], QueryKanbanBoardDto.prototype, "clientId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)(['gravado', 'pendente']),
+    __metadata("design:type", String)
+], QueryKanbanBoardDto.prototype, "recordingFilter", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)(['delivery', 'publication']),
+    __metadata("design:type", String)
+], QueryKanbanBoardDto.prototype, "dateField", void 0);
+__decorate([
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], QueryKanbanBoardDto.prototype, "startDate", void 0);
+__decorate([
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], QueryKanbanBoardDto.prototype, "endDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(200),
+    __metadata("design:type", Number)
+], QueryKanbanBoardDto.prototype, "limit", void 0);
+class QueryKanbanColumnTasksDto extends QueryKanbanBoardDto {
+    offset;
+}
+exports.QueryKanbanColumnTasksDto = QueryKanbanColumnTasksDto;
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], QueryKanbanColumnTasksDto.prototype, "offset", void 0);
 //# sourceMappingURL=task.dto.js.map

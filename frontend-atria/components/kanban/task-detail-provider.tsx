@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { TaskDetailDialog } from "@/components/kanban/task-detail-dialog";
 import { invalidateTasksCache } from "@/lib/task-cache";
@@ -10,6 +10,7 @@ import type { KanbanColumn, KanbanTask } from "@/services/types";
 interface TaskDetailContextValue {
   openTaskById: (taskId: string) => Promise<void>;
   openTask: (task: KanbanTask, columns?: KanbanColumn[]) => void;
+  subscribeTaskUpdates: (listener: () => void) => () => void;
 }
 
 const TaskDetailContext = createContext<TaskDetailContextValue | null>(null);
@@ -20,6 +21,18 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
   const [open, setOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const listenersRef = useRef(new Set<() => void>());
+
+  const subscribeTaskUpdates = useCallback((listener: () => void) => {
+    listenersRef.current.add(listener);
+    return () => {
+      listenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const notifyTaskUpdates = useCallback(() => {
+    listenersRef.current.forEach((listener) => listener());
+  }, []);
 
   const loadColumns = useCallback(async () => {
     try {
@@ -52,6 +65,7 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
 
   const handleUpdate = useCallback(() => {
     setRefreshKey((k) => k + 1);
+    notifyTaskUpdates();
     void invalidateTasksCache(queryClient);
     if (selectedTask && open) {
       void kanbanService.getTask(selectedTask.id).then(setSelectedTask).catch(() => {
@@ -59,11 +73,11 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
         setOpen(false);
       });
     }
-  }, [selectedTask, queryClient, open]);
+  }, [selectedTask, queryClient, open, notifyTaskUpdates]);
 
   const value = useMemo(
-    () => ({ openTaskById, openTask }),
-    [openTaskById, openTask],
+    () => ({ openTaskById, openTask, subscribeTaskUpdates }),
+    [openTaskById, openTask, subscribeTaskUpdates],
   );
 
   return (

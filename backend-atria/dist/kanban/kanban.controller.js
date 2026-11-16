@@ -46,8 +46,14 @@ let KanbanController = class KanbanController {
     clearTasks(user) {
         return this.kanbanService.clearAllTasks(user.userId, user.role);
     }
+    getBoard(query) {
+        return this.kanbanService.getBoard(query);
+    }
     getColumns() {
         return this.kanbanService.getColumns();
+    }
+    getColumnTasks(id, query) {
+        return this.kanbanService.getColumnTasks(id, query);
     }
     createColumn(dto) {
         return this.kanbanService.createColumn(dto);
@@ -123,11 +129,26 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], KanbanController.prototype, "clearTasks", null);
 __decorate([
+    (0, common_1.Get)('board'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [task_dto_1.QueryKanbanBoardDto]),
+    __metadata("design:returntype", void 0)
+], KanbanController.prototype, "getBoard", null);
+__decorate([
     (0, common_1.Get)('columns'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], KanbanController.prototype, "getColumns", null);
+__decorate([
+    (0, common_1.Get)('columns/:id/tasks'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, task_dto_1.QueryKanbanColumnTasksDto]),
+    __metadata("design:returntype", void 0)
+], KanbanController.prototype, "getColumnTasks", null);
 __decorate([
     (0, common_1.Post)('columns'),
     __param(0, (0, common_1.Body)()),

@@ -32,7 +32,7 @@ export declare class CreationController {
             clientAvatarUrl: string | null;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             assignee: {
                 id: string;
                 name: string;
@@ -56,7 +56,7 @@ export declare class CreationController {
             clientName: string;
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "static" | "carousel" | "reels" | "story";
-            status: "approved" | "rejected" | "draft" | "pending_approval" | "scheduled" | "published";
+            status: "approved" | "rejected" | "draft" | "scheduled" | "published" | "pending_approval";
             scheduledAt: string;
             color: string;
         } | {
@@ -365,9 +365,9 @@ export declare class CreationController {
             clientId: string;
             client: {
                 id: string;
-                avatarUrl: string | null;
                 companyName: string;
                 instagram: string | null;
+                avatarUrl: string | null;
             };
             platform: "instagram" | "tiktok" | "youtube" | "linkedin";
             format: "carousel" | "reels" | "static" | "story";
@@ -378,12 +378,12 @@ export declare class CreationController {
             copy: string;
             referenceUrl: string | null;
             attachments: {
-                url: string;
                 id: string;
                 createdAt: Date;
                 name: string;
                 previewUrl: string | null;
                 postId: string;
+                url: string;
                 mimeType: string | null;
             }[];
             author: {

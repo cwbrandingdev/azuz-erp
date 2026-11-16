@@ -42,6 +42,8 @@ import {
   BulkDeleteTaskAssetsDto,
   CreateTaskDto,
   MoveTaskDto,
+  QueryKanbanBoardDto,
+  QueryKanbanColumnTasksDto,
   QueryTasksDto,
   UpdateTaskDto,
   UpdateTaskStatusDto,
@@ -64,9 +66,22 @@ export class KanbanController {
     return this.kanbanService.clearAllTasks(user.userId, user.role);
   }
 
+  @Get('board')
+  getBoard(@Query() query: QueryKanbanBoardDto) {
+    return this.kanbanService.getBoard(query);
+  }
+
   @Get('columns')
   getColumns() {
     return this.kanbanService.getColumns();
+  }
+
+  @Get('columns/:id/tasks')
+  getColumnTasks(
+    @Param('id') id: string,
+    @Query() query: QueryKanbanColumnTasksDto,
+  ) {
+    return this.kanbanService.getColumnTasks(id, query);
   }
 
   @Post('columns')

@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -50,6 +50,7 @@ interface KanbanFiltersProps {
   members: TeamMember[];
   clients: Client[];
   showDateFilters?: boolean;
+  searching?: boolean;
 }
 
 function toLocalDateKey(value?: string | null): string | null {
@@ -106,6 +107,7 @@ export function KanbanFilters({
   members,
   clients,
   showDateFilters = false,
+  searching = false,
 }: KanbanFiltersProps) {
   return (
     <div
@@ -126,8 +128,11 @@ export function KanbanFilters({
             }
             placeholder="Buscar por nome..."
             aria-label="Buscar por nome"
-            className="pl-9"
+            className="pr-9 pl-9"
           />
+          {searching && (
+            <Loader2 className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-[var(--atria-primary)]/50" />
+          )}
         </div>
       </div>
 

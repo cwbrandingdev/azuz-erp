@@ -63,7 +63,7 @@ const latestMeetingInclude = {
     },
 };
 const MEETING_DURATION_MS = 60 * 60 * 1000;
-const KANBAN_PAGE_SIZE = 30;
+const KANBAN_PAGE_SIZE = 20;
 const kanbanLeadInclude = {
     stage: { select: { id: true, key: true, name: true } },
     ...leadOwnerInclude,

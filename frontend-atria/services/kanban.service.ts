@@ -4,11 +4,15 @@ import type {
   CreateColumnInput,
   CreateTaskInput,
   DeletionHistoryPage,
+  KanbanBoardColumn,
+  KanbanBoardFilters,
   KanbanColumn,
+  KanbanColumnTaskPage,
   KanbanTask,
   KanbanTaskStatus,
   TaskComment,
   TaskHistoryEntry,
+  TaskKanbanBoard,
   UpdateColumnInput,
 } from "./types";
 
@@ -46,6 +50,34 @@ export async function reorderColumns(
     method: "PATCH",
     body: { items },
   });
+}
+
+function boardFilterParams(filters: KanbanBoardFilters = {}) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value === undefined || value === null || value === "") continue;
+    search.set(key, String(value));
+  }
+  return search;
+}
+
+export async function getBoard(
+  filters: KanbanBoardFilters = {},
+): Promise<TaskKanbanBoard> {
+  const query = boardFilterParams(filters).toString();
+  return apiRequest<TaskKanbanBoard>(`/kanban/board${query ? `?${query}` : ""}`);
+}
+
+export async function getColumnTasks(
+  columnId: string,
+  offset: number,
+  filters: KanbanBoardFilters = {},
+): Promise<KanbanColumnTaskPage> {
+  const search = boardFilterParams(filters);
+  search.set("offset", String(offset));
+  return apiRequest<KanbanColumnTaskPage>(
+    `/kanban/columns/${columnId}/tasks?${search.toString()}`,
+  );
 }
 
 export async function getTasks(params?: {
