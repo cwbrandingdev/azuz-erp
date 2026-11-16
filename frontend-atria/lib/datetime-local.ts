@@ -13,3 +13,11 @@ export function fromDateTimeLocalValue(value: string): string | undefined {
   if (Number.isNaN(date.getTime())) return undefined;
   return date.toISOString();
 }
+
+export function fromDateInputValue(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const date = new Date(`${trimmed}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+}
