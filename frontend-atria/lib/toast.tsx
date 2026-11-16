@@ -14,13 +14,16 @@ interface AppToastOptions {
   duration?: number;
 }
 
+let toastSequence = 0;
 // Todo aviso do sistema passa por aqui e usa o mesmo cartão do toast do financeiro.
 function show(
   variant: AppToastVariant,
   title: ReactNode,
   options: AppToastOptions = {},
 ) {
-  const { id, description, action, duration } = options;
+  const { description, action, duration } = options;
+
+  const id = options.id ?? `app-toast-${++toastSequence}`;
 
   return sonnerToast.custom(
     (toastId) => (
@@ -40,7 +43,7 @@ function show(
         onClose={() => sonnerToast.dismiss(toastId)}
       />
     ),
-    { id, duration },
+    duration === undefined ? { id } : { id, duration },
   );
 }
 
