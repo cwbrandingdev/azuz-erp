@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { ReferenceUrlField } from "@/components/ui/reference-url-field";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useCreateTaskMutation } from "@/hooks/use-task-mutations";
-import { fromDateTimeLocalValue } from "@/lib/datetime-local";
+import { fromDateInputValue } from "@/lib/datetime-local";
 import {
   DEFAULT_TASK_CONTENT_TYPE,
   defaultProductionPhaseForContentType,
@@ -116,9 +116,9 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
           defaultProductionPhaseForContentType(contentType) ?? undefined,
         assigneeIds,
         clientId: clientId || undefined,
-        deliveryDate: fromDateTimeLocalValue(deliveryDate),
+        deliveryDate: fromDateInputValue(deliveryDate),
         publicationDate: social
-          ? fromDateTimeLocalValue(publicationDate)
+          ? fromDateInputValue(publicationDate)
           : undefined,
         referenceUrl: referenceUrl.trim() || undefined,
       });
@@ -231,7 +231,7 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
                 <FieldLabel htmlFor="task-delivery">Data de Entrega</FieldLabel>
                 <Input
                   id="task-delivery"
-                  type="datetime-local"
+                  type="date"
                   value={deliveryDate}
                   onChange={(e) => setDeliveryDate(e.target.value)}
                 />
@@ -244,7 +244,7 @@ export function CreateTaskDialog({ onSuccess }: CreateTaskDialogProps) {
                   </FieldLabel>
                   <Input
                     id="task-publication"
-                    type="datetime-local"
+                    type="date"
                     value={publicationDate}
                     onChange={(e) => setPublicationDate(e.target.value)}
                   />
