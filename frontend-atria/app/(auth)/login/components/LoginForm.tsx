@@ -344,7 +344,7 @@ export function LoginForm({
 
       <p
         className={cn(
-          "mt-6 text-center text-xs",
+          "mt-11 text-center text-xs",
           !centered && "lg:text-left",
           tone.footer,
         )}
