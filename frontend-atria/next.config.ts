@@ -68,6 +68,11 @@ const nextConfig: NextConfig = {
         hostname: "sktjeijgyvulpzuzbmff.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "pub-1b35d92415fc4e6fbfe0af7fbd5a7ea4.r2.dev",
+        pathname: "/**",
+      },
     ],
   },
   async redirects() {

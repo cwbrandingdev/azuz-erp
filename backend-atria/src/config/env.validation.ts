@@ -14,6 +14,12 @@ const envSchema = z
     SUPABASE_DB_SCHEMA: z.enum(['dev', 'public']).default('public'),
     SUPABASE_STORAGE_BUCKET: z.string().optional(),
     SUPABASE_DELIVERABLES_BUCKET: z.string().optional(),
+    STORAGE_PROVIDER: z.enum(['supabase', 'r2']).default('supabase'),
+    R2_ACCOUNT_ID: z.string().optional().or(z.literal('')),
+    R2_ACCESS_KEY_ID: z.string().optional().or(z.literal('')),
+    R2_SECRET_ACCESS_KEY: z.string().optional().or(z.literal('')),
+    R2_BUCKET: z.string().optional().or(z.literal('')),
+    R2_PUBLIC_BASE_URL: z.string().optional().or(z.literal('')),
     JWT_ACCESS_SECRET: z.string().min(1),
     JWT_REFRESH_SECRET: z.string().min(1),
     JWT_ACCESS_EXPIRATION: z.string().default('15m'),
@@ -60,6 +66,25 @@ const envSchema = z
     GOOGLE_REFRESH_TOKEN: z.string().optional().or(z.literal('')),
     GOOGLE_CALENDAR_ID: z.string().optional().or(z.literal('')),
     CWBRANDING_API_KEY: z.string().optional().or(z.literal('')),
+  })
+  .superRefine((data, ctx) => {
+    if (data.STORAGE_PROVIDER !== 'r2') return;
+    const required = [
+      'R2_ACCOUNT_ID',
+      'R2_ACCESS_KEY_ID',
+      'R2_SECRET_ACCESS_KEY',
+      'R2_BUCKET',
+      'R2_PUBLIC_BASE_URL',
+    ] as const;
+    for (const key of required) {
+      if (!data[key]?.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          message: 'Required when STORAGE_PROVIDER=r2',
+        });
+      }
+    }
   })
   .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);

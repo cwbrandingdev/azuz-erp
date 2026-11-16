@@ -28,6 +28,8 @@
     "seed:master": "ts-node prisma/scripts/create-master-user.ts",
     "ingest:cnpj": "ts-node prisma/scripts/ingest-receita-cnpj.ts",
     "copy:client-logins": "node scripts/copy-client-logins-from-public.mjs",
+    "copy:storage-to-r2": "node scripts/copy-supabase-storage-to-r2.mjs",
+    "probe:r2": "node scripts/r2-probe.mjs",
     "deploy:fly": "fly deploy --local-only",
     "deploy:fly:remote": "FLY_DEPOT=false fly deploy --depot=false",
     "test:client-portal-live": "node scripts/test-client-portal-live.mjs",
@@ -39,6 +41,8 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1169.0",
+    "@aws-sdk/s3-request-presigner": "^3.1169.0",
     "@nestjs/axios": "^12.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
