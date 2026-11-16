@@ -269,6 +269,7 @@ export class AuthService {
       user.category,
       user.clientId,
       user.companyId,
+      dto.rememberMe ?? true,
     );
     await this.prisma.authToken.deleteMany({ where: { userId: user.id } });
     await this.storeRefreshToken(user.id, tokens.refreshToken);
@@ -318,6 +319,8 @@ export class AuthService {
 
     await this.assertUserIsActive(user);
 
+    const rememberMe = this.readRememberMe(refreshToken);
+
     const tokens = await this.generateTokens(
       user.id,
       user.email,
@@ -325,12 +328,14 @@ export class AuthService {
       user.category,
       user.clientId,
       user.companyId,
+      rememberMe,
     );
     await this.storeRefreshToken(user.id, tokens.refreshToken);
 
     return {
       user: this.toUserResponse(user),
       ...tokens,
+      rememberMe,
     };
   }
 
@@ -397,6 +402,7 @@ export class AuthService {
     category: 'MEMBER' | 'CLIENT' = 'MEMBER',
     clientId: string | null = null,
     companyId: string | null = null,
+    rememberMe = true,
   ): Promise<AuthTokens> {
     const payload: JwtPayload = {
       sub: userId,
@@ -413,7 +419,7 @@ export class AuthService {
         expiresIn: this.configService.get('JWT_ACCESS_EXPIRATION', '15m'),
       }),
       this.jwtService.signAsync(
-        { ...payload, jti: randomBytes(16).toString('hex') },
+        { ...payload, jti: randomBytes(16).toString('hex'), rem: rememberMe },
         {
           secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
           expiresIn: this.configService.get('JWT_REFRESH_EXPIRATION', '7d'),
@@ -422,6 +428,14 @@ export class AuthService {
     ]);
 
     return { accessToken, refreshToken };
+  }
+
+  // Tokens emitidos antes desta mudança não têm o campo: seguem como "lembrado" (7 dias).
+  private readRememberMe(refreshToken: string): boolean {
+    const payload = this.jwtService.decode<{ rem?: boolean } | null>(
+      refreshToken,
+    );
+    return payload?.rem !== false;
   }
 
   private async storeRefreshToken(userId: string, refreshToken: string) {
