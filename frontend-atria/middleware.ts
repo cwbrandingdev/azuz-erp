@@ -3,6 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  if (pathname !== "/manutencao" && !pathname.startsWith("/api")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/manutencao";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname === "/manutencao") {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request,
   });
