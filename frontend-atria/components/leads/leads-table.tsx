@@ -226,10 +226,18 @@ export function LeadsTable({
     }
   }
 
+  const resultSetKey = useMemo(
+    () => leads.map((lead) => lead.placeId ?? lead.id).join("|"),
+    [leads],
+  );
+
   useEffect(() => {
-    setPage(1);
     setSelectedIds(new Set());
   }, [leads]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [resultSetKey]);
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
