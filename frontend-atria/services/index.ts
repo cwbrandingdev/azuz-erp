@@ -17,6 +17,7 @@ export * as agendaEventsService from "./agenda-events.service";
 export * as clientRequestsService from "./client-requests.service";
 export * as clientReportFilesService from "./client-report-files.service";
 export * as contractsService from "./contracts.service";
+export * as pushService from "./push.service";
 
 export * as proposalsService from "./proposals.service";
 export * as reportsService from "./reports.service";
