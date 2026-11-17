@@ -53,7 +53,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.signupWithToken(dto);
-    this.setRefreshTokenCookie(res, result.refreshToken);
+    this.setRefreshTokenCookie(res, result.refreshToken, true);
 
     return {
       user: result.user,
@@ -95,7 +95,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(dto);
-    this.setRefreshTokenCookie(res, result.refreshToken);
+    this.setRefreshTokenCookie(res, result.refreshToken, dto.rememberMe ?? true);
 
     return {
       user: result.user,
@@ -121,7 +121,7 @@ export class AuthController {
     }
 
     const result = await this.authService.refresh(refreshToken);
-    this.setRefreshTokenCookie(res, result.refreshToken);
+    this.setRefreshTokenCookie(res, result.refreshToken, result.rememberMe);
 
     return {
       user: result.user,
@@ -166,7 +166,7 @@ export class AuthController {
     return this.authService.changePassword(user.userId, dto);
   }
 
-  private getRefreshCookieOptions() {
+  private getRefreshCookieOptions(rememberMe: boolean) {
     const isProduction = process.env.NODE_ENV === 'production';
     const domain = this.configService.get<string>('COOKIE_DOMAIN')?.trim();
 
@@ -174,17 +174,29 @@ export class AuthController {
       httpOnly: true,
       secure: isProduction,
       sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      
+      // Sem maxAge o cookie é de sessão: o navegador o apaga ao ser fechado.
+      ...(rememberMe ? { maxAge: 7 * 24 * 60 * 60 * 1000 } : {}),
       path: '/',
       ...(domain ? { domain } : {}),
     };
   }
 
-  private setRefreshTokenCookie(res: Response, refreshToken: string) {
-    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, this.getRefreshCookieOptions());
+  private setRefreshTokenCookie(
+    res: Response,
+    refreshToken: string,
+    rememberMe: boolean,
+  ) {
+    res.cookie(
+      REFRESH_TOKEN_COOKIE,
+      refreshToken,
+      this.getRefreshCookieOptions(rememberMe),
+    );
   }
 
   private clearRefreshTokenCookie(res: Response) {
-    res.clearCookie(REFRESH_TOKEN_COOKIE, this.getRefreshCookieOptions());
+    res.clearCookie(REFRESH_TOKEN_COOKIE, this.getRefreshCookieOptions(false));
+
   }
 }
+ 

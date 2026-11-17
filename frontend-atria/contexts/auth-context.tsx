@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (credentials: LoginCredentials, rememberMe = false) => {
       const response = await apiRequest<AuthResponse>("/auth/login", {
         method: "POST",
-        body: credentials,
+        body: { ...credentials, rememberMe },
         skipAuth: true,
         skipToast: true,
       });
