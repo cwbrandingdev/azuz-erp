@@ -42,6 +42,11 @@ const OUTCOMES: Array<{
   { value: "SKIPPED", label: "Pular" },
 ];
 
+const NATIVE_OUTCOMES: typeof OUTCOMES = [
+  { value: "COMPLETED", label: "Atendeu" },
+  { value: "NO_ANSWER", label: "Não atendeu" },
+];
+
 const NATIVE_HINT: Record<string, string> = {
   windows:
     "O número vai no Phone Link pelo tel:. Se pedir um app, escolha Phone Link (não o Chrome). Ctrl+V cola o número se o campo vier vazio.",
@@ -80,6 +85,8 @@ export function DialerPanel() {
   const lead = currentLead ?? queue[queue.length - 1];
   const done =
     status === "idle" && currentIndex >= queue.length && queue.length > 0;
+
+  const outcomes = mode === "native" ? NATIVE_OUTCOMES : OUTCOMES;
 
   function handleOutcome(outcome: LeadCallOutcome, openWhatsApp?: boolean) {
     if (openWhatsApp && lead?.phone) {
@@ -202,7 +209,7 @@ export function DialerPanel() {
 
         {status === "wrap-up" && lead && (
           <div className="grid grid-cols-2 gap-2">
-            {OUTCOMES.map((item) => (
+            {outcomes.map((item) => (
               <Button
                 key={item.value}
                 type="button"
