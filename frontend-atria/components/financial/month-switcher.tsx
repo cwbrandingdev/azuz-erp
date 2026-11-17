@@ -36,14 +36,14 @@ export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps)
           type="button"
           variant="outline"
           size="icon-sm"
-          className="rounded-lg border-violet-200 text-violet-700 hover:bg-violet-50"
+          className="rounded-lg border-violet-200 text-violet-700 hover:bg-violet-50 dark:border-violet-400/30 dark:text-violet-300 dark:hover:bg-violet-400/10"
           onClick={() => onChange(shiftPeriod(period, -1))}
           aria-label="Mês anterior"
         >
           <ChevronLeft className="size-4" />
         </Button>
-        <div className="min-w-[140px] rounded-lg border border-violet-200/60 bg-violet-50/70 px-2 py-1 text-center">
-          <p className="text-xs font-bold capitalize text-violet-900">
+        <div className="min-w-[140px] rounded-lg border border-violet-200/60 bg-violet-50/70 px-2 py-1 text-center dark:border-violet-400/30 dark:bg-violet-400/10">
+          <p className="text-xs font-bold capitalize text-violet-900 dark:text-violet-200">
             {formatPeriodLabel(period)}
           </p>
         </div>
@@ -51,7 +51,7 @@ export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps)
           type="button"
           variant="outline"
           size="icon-sm"
-          className="rounded-lg border-violet-200 text-violet-700 hover:bg-violet-50"
+          className="rounded-lg border-violet-200 text-violet-700 hover:bg-violet-50 dark:border-violet-400/30 dark:text-violet-300 dark:hover:bg-violet-400/10"
           onClick={() => onChange(shiftPeriod(period, 1))}
           aria-label="Próximo mês"
         >
@@ -62,7 +62,7 @@ export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps)
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-lg border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+            className="rounded-lg border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-300 dark:hover:bg-emerald-400/10"
             onClick={() => onChange(getCurrentPeriod())}
           >
             Hoje
@@ -73,7 +73,7 @@ export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps)
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--atria-primary)]/10 bg-gradient-to-br from-white via-white to-[#f7fafa] p-4 shadow-sm">
+    <div className="rounded-2xl border border-[var(--atria-primary)]/10 bg-gradient-to-br from-white via-white to-[#f7fafa] p-4 shadow-sm dark:from-card dark:via-card dark:to-card">
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -81,18 +81,18 @@ export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps)
               type="button"
               variant="outline"
               size="icon-sm"
-              className="rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50"
+              className="rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 dark:border-violet-400/30 dark:text-violet-300 dark:hover:bg-violet-400/10"
               onClick={() => onChange(shiftPeriod(period, -1))}
               aria-label="Mês anterior"
             >
               <ChevronLeft className="size-4" />
             </Button>
 
-            <div className="min-w-[180px] rounded-xl border border-violet-200/60 bg-violet-50/60 px-4 py-2 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">
+            <div className="min-w-[180px] rounded-xl border border-violet-200/60 bg-violet-50/60 px-4 py-2 text-center dark:border-violet-400/30 dark:bg-violet-400/10">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-300">
                 {isCurrentMonth ? "Mês atual" : "Período"}
               </p>
-              <p className="text-sm font-bold capitalize text-violet-900">
+              <p className="text-sm font-bold capitalize text-violet-900 dark:text-violet-200">
                 {formatPeriodLabel(period)}
               </p>
             </div>
@@ -101,7 +101,7 @@ export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps)
               type="button"
               variant="outline"
               size="icon-sm"
-              className="rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50"
+              className="rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 dark:border-violet-400/30 dark:text-violet-300 dark:hover:bg-violet-400/10"
               onClick={() => onChange(shiftPeriod(period, 1))}
               aria-label="Próximo mês"
             >
@@ -115,7 +115,7 @@ export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps)
                 type="button"
                 variant="outline"
                 size="sm"
-                className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-300 dark:hover:bg-emerald-400/10"
                 onClick={() => onChange(getCurrentPeriod())}
               >
                 Ir para hoje
@@ -129,7 +129,7 @@ export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps)
                 onChange={(e) =>
                   onChange({ ...period, year: Number(e.target.value) })
                 }
-                className="h-9 rounded-xl border border-[var(--atria-primary)]/15 bg-white px-3 text-sm font-semibold text-[var(--atria-primary)] shadow-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                className="h-9 rounded-xl border border-[var(--atria-primary)]/15 bg-white px-3 text-sm font-semibold text-[var(--atria-primary)] shadow-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-400/30"
               >
                 {YEAR_OPTIONS.map((year) => (
                   <option key={year} value={year}>
@@ -155,7 +155,7 @@ export function MonthSwitcher({ period, onChange, compact }: MonthSwitcherProps)
                   "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-all",
                   pill.isCenter
                     ? "border-violet-300 bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-[0_8px_24px_rgba(139,92,246,0.35)]"
-                    : "border-[var(--atria-primary)]/10 bg-white text-[var(--atria-primary)]/70 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700",
+                    : "border-[var(--atria-primary)]/10 bg-white text-[var(--atria-primary)]/70 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-400/10 dark:hover:text-violet-300",
                 )}
               >
                 <span>{label}</span>
