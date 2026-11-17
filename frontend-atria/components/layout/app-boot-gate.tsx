@@ -1,10 +1,16 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/auth-context";
 
 export function AppBootGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { isLoading: authLoading } = useAuth();
+
+  if (pathname === "/manutencao") {
+    return <>{children}</>;
+  }
 
   if (!authLoading) {
     return <>{children}</>;
