@@ -38,6 +38,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { MetaInsightsModule } from './meta-insights/meta-insights.module';
 import { MessageModule } from './message/message.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PushModule } from './push/push.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProposalsModule } from './proposals/proposals.module';
 import { ReportsModule } from './reports/reports.module';
@@ -105,6 +106,7 @@ import { JhonatanCalendarModule } from './jhonatan-calendar/jhonatan-calendar.mo
     MetaInsightsModule,
     MessageModule,
     NotificationsModule,
+    PushModule,
     PortalModule,
     ProductivityModule,
     ProposalsModule,

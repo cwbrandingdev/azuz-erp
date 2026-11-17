@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import { TASK_CONTENT_TYPE_DEFINITIONS } from '../kanban/kanban-content-type';
 import { STATUS_LABELS } from '../kanban/kanban-status';
+import { PushService } from '../push/push.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -60,6 +61,7 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly mail: MailService,
+    private readonly push: PushService,
   ) {}
 
   async findAll(userId: string, unreadOnly = false) {
@@ -117,7 +119,7 @@ export class NotificationsService {
       NotificationType.TASK_ASSIGNED,
       'Nova tarefa atribuída',
       `Você foi atribuído à tarefa "${taskTitle}"`,
-      options,
+      { ...options, push: true },
     );
 
     if (!options?.taskId) {
@@ -179,7 +181,7 @@ export class NotificationsService {
       NotificationType.SYSTEM,
       'Aprovação interna pendente',
       `A tarefa "${input.taskTitle}" aguarda aprovação interna`,
-      { companyId: input.companyId, taskId: input.taskId },
+      { companyId: input.companyId, taskId: input.taskId, push: true },
     );
 
     const approvalLink = this.buildAppLink('/internal-approvals');
@@ -249,7 +251,7 @@ export class NotificationsService {
       NotificationType.SYSTEM,
       'Tarefa reprovada',
       message,
-      { companyId: input.companyId, taskId: input.taskId },
+      { companyId: input.companyId, taskId: input.taskId, push: true },
     );
 
     const taskLink = this.buildTaskLink(input.taskId);
@@ -305,6 +307,7 @@ export class NotificationsService {
       NotificationType.POST_PENDING,
       'Post aguardando aprovação',
       `"${postTitle}" de ${clientName} está pendente de aprovação`,
+      { push: true },
     );
   }
 
@@ -319,6 +322,7 @@ export class NotificationsService {
       NotificationType.POST_REJECTED,
       'Post rejeitado',
       `"${postTitle}" de ${clientName} foi rejeitado: ${reason.slice(0, 200)}`,
+      { push: true },
     );
   }
 
@@ -333,7 +337,7 @@ export class NotificationsService {
       NotificationType.NEW_REQUEST,
       'Nova solicitação',
       `${clientName} enviou a solicitação "${requestTitle}"`,
-      options,
+      { ...options, push: true },
     );
   }
 
@@ -353,7 +357,7 @@ export class NotificationsService {
       NotificationType.DUE_DATE_WARNING,
       title,
       message,
-      options,
+      { ...options, push: true },
     );
   }
 
@@ -491,7 +495,12 @@ export class NotificationsService {
     type: NotificationType,
     title: string,
     message: string,
-    extra?: { companyId?: string; taskId?: string; appUpdateId?: string },
+    extra?: {
+      companyId?: string;
+      taskId?: string;
+      appUpdateId?: string;
+      push?: boolean;
+    },
   ) {
     const uniqueIds = [...new Set(userIds)].filter(Boolean);
     if (uniqueIds.length === 0) return;
@@ -507,6 +516,50 @@ export class NotificationsService {
         ...(extra?.appUpdateId ? { appUpdateId: extra.appUpdateId } : {}),
       })),
     });
+
+    if (extra?.push) {
+      void this.push
+        .sendToUsers(uniqueIds, {
+          title,
+          body: message,
+          url: this.buildPushUrl(type, title, extra.taskId),
+          tag: `${type}:${extra.taskId ?? ''}`,
+        })
+        .catch((error: unknown) => {
+          const detail = error instanceof Error ? error.message : String(error);
+          this.logger.warn(`Falha ao disparar push: ${detail}`);
+        });
+    }
+  }
+
+  private buildPushUrl(
+    type: NotificationType,
+    title: string,
+    taskId?: string,
+  ): string {
+    const taskUrl = taskId
+      ? `/kanban?taskId=${encodeURIComponent(taskId)}`
+      : '/kanban'
+
+      switch (type) {
+        case NotificationType.DUE_DATE_WARNING:
+        case NotificationType.TASK_ASSIGNED:
+          return taskUrl;
+        case NotificationType.NEW_REQUEST:
+          return '/clients';
+        case NotificationType.CONTRACT_SIGNED:
+          return '/contracts';
+        case NotificationType.POST_PENDING:
+        case NotificationType.POST_REJECTED:
+          return '/content/management';
+        case NotificationType.SYSTEM:
+          if (title.toLowerCase().includes('aprovação interna')) {
+            return '/internal-approvals';
+          }
+          return taskId ? taskUrl : '/dashboard?tab=notifications';
+        default:
+          return '/dashboard?tab=notifications';
+      }
   }
 
   private async findDesignerRecipients(userIds: string[]) {

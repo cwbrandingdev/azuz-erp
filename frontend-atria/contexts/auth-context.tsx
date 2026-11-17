@@ -23,6 +23,7 @@ import { onSessionExpired } from "@/lib/auth-session-events";
 import { clearAppQueryCache } from "@/lib/query-client";
 import { apiRequest, refreshAuthSession } from "@/services/api";
 import { toast } from "@/lib/toast";
+import { disablePush, resyncPush } from "@/lib/push-notifications";
 import type { AuthResponse, LoginCredentials, User } from "@/services/types";
 
 interface AuthContextValue {
@@ -135,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         skipToast: true,
       });
       applySession(response, rememberMe);
+      void resyncPush().catch(() => undefined);
       return response.user;
     },
     [applySession],
@@ -148,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    await disablePush().catch(() => undefined);
     try {
       await apiRequest<void>("/auth/logout", { method: "POST" });
     } finally {

@@ -102,6 +102,7 @@ model User {
   isActive                     Boolean                 @default(true)
   assetsUploaded               Asset[]                 @relation("AssetUploader")
   authTokens                   AuthToken[]
+  pushSubscriptions            PushSubscription[]
   eventsAssigned               CalendarEvent[]         @relation("EventAssignee")
   eventsCreated                CalendarEvent[]         @relation("EventCreator")
   clientBriefsAssigned         ClientBrief[]           @relation("BriefAssignee")
@@ -891,6 +892,21 @@ model Notification {
   @@index([type, taskId, createdAt])
   @@index([appUpdateId])
   @@map("notifications")
+}
+
+model PushSubscription {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 model UserSettings {
