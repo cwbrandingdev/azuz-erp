@@ -63,6 +63,7 @@ import {
   markPortalCrmSeenNow,
 } from "@/lib/portal-crm-notifications";
 import { toast } from "@/lib/toast";
+import { onLeadCallLogged } from "@/lib/lead-call-events";
 import { isDialablePhone } from "@/lib/lead-phone";
 import {
   clientPortalService,
@@ -303,6 +304,7 @@ export function LeadsKanbanBoard({
     void loadBoard();
     void loadReminders();
   }, [loadBoard, loadReminders]);
+  useEffect(() => onLeadCallLogged(() => void loadBoard()), [loadBoard]);
 
   useEffect(() => {
     if (portalClientView || !initialOrganizationId) {

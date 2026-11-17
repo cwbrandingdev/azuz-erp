@@ -2513,6 +2513,7 @@ export interface Lead {
   source: string;
   rawData?: unknown;
   meeting?: LeadMeeting | null;
+  lastCall?: LeadLastCall | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2725,6 +2726,13 @@ export type LeadCallOutcome =
   | "WHATSAPP"
   | "MEETING"
   | "SKIPPED";
+
+export interface LeadLastCall {
+  id: string;
+  outcome: LeadCallOutcome | string;
+  createdAt: string;
+  user: { id: string; name: string } | null;
+}
 
 export interface LeadCall {
   id: string;

@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Call, Device } from "@twilio/voice-sdk";
+import { emitLeadCallLogged } from "@/lib/lead-call-events";
 import { isDialablePhone } from "@/lib/lead-phone";
 import { detectNativeDialerPlatform } from "@/lib/native-dialer";
 import { toast } from "@/lib/toast";
@@ -300,6 +301,7 @@ export function DialerProvider({ children }: { children: ReactNode }) {
       if (callId) {
         try {
           await voiceService.updateLeadCall(callId, { outcome, notes });
+          emitLeadCallLogged();
         } catch {
           toast.error("Não foi possível salvar o resultado da ligação.");
         }

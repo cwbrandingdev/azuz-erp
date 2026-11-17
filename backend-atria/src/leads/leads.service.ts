@@ -102,6 +102,21 @@ const latestMeetingInclude = {
   },
 } satisfies Prisma.LeadInclude;
 
+const latestCallInclude = {
+  calls: {
+    // "Pular" só passa para o próximo lead da fila, não é uma ligação feita.
+    where: { outcome: { not: 'SKIPPED' } },
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
+    select: {
+      id: true,
+      outcome: true,
+      createdAt: true,
+      user: { select: { id: true, name: true } },
+    },
+  },
+} satisfies Prisma.LeadInclude;
+
 const MEETING_DURATION_MS = 60 * 60 * 1000;
 
 const KANBAN_PAGE_SIZE = 20;
@@ -110,6 +125,7 @@ const kanbanLeadInclude = {
   stage: { select: { id: true, key: true, name: true } },
   ...leadOwnerInclude,
   ...latestMeetingInclude,
+  ...latestCallInclude,
 } satisfies Prisma.LeadInclude;
 
 type KanbanStageRef = { id: string; key: string | null; name: string };
@@ -1524,7 +1540,11 @@ export class LeadsService {
 
     const lead = await this.prisma.lead.findUniqueOrThrow({
       where: { id: leadId },
-      include: { ...leadOwnerInclude, ...latestMeetingInclude },
+      include: {
+        ...leadOwnerInclude,
+        ...latestMeetingInclude,
+        ...latestCallInclude,
+      },
     });
     return this.toLeadResponse(lead);
   }
@@ -1888,9 +1908,16 @@ export class LeadsService {
         meetUrl: string | null;
         createdById: string;
       }[];
+      calls?: {
+        id: string;
+        outcome: string;
+        createdAt: Date;
+        user: { id: string; name: string };
+      }[];
     },
   ) {
     const meeting = lead.meetings?.[0];
+    const lastCall = lead.calls?.[0];
     return {
       id: lead.id,
       companyId: lead.companyId,
@@ -1938,6 +1965,14 @@ export class LeadsService {
             endAt: meeting.endAt.toISOString(),
             meetUrl: meeting.meetUrl,
             createdById: meeting.createdById,
+          }
+        : null,
+      lastCall: lastCall
+        ? {
+            id: lastCall.id,
+            outcome: lastCall.outcome,
+            createdAt: lastCall.createdAt.toISOString(),
+            user: lastCall.user,
           }
         : null,
       createdAt: lead.createdAt.toISOString(),
