@@ -22,6 +22,7 @@ import {
   getLeadCnpjLabel,
 } from "@/lib/lead-cnpj";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
+import { LeadLastCallLine } from "@/components/leads/lead-last-call-line";
 import { DragHandleStrip } from "@/components/kanban/drag-handle-strip";
 import { LeadMeetingDialog } from "@/components/leads/lead-meeting-dialog";
 import { LeadOrcamentoInput } from "@/components/leads/lead-orcamento-input";
@@ -259,6 +260,8 @@ export function LeadKanbanCard({
           <LeadCallButton lead={lead} className="w-full" />
         </div>
       )}
+
+      {!portalClientView && <LeadLastCallLine call={lead.lastCall} />}
 
       {!collapsed && (
         <>
