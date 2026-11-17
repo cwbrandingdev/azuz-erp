@@ -13,7 +13,7 @@ export default function InsightsPage() {
           <h1 className="text-2xl font-bold text-[var(--atria-primary)]">
             Meta Insights
           </h1>
-          <p className="text-sm text-[var(--atria-primary)]/50">
+          <p className="text-sm text-[var(--atria-primary)]/50 dark:text-white/70">
             Crescimento de audiência e performance de conteúdo por cliente
           </p>
         </div>

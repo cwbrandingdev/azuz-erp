@@ -179,10 +179,10 @@ export const PROPOSAL_STATUS_LABELS: Record<ProposalStatus, string> = {
 };
 
 export const PROPOSAL_STATUS_STYLES: Record<ProposalStatus, string> = {
-  draft: "bg-amber-100 text-amber-800",
-  published: "bg-emerald-100 text-emerald-800",
-  expired: "bg-red-100 text-red-800",
-  archived: "bg-gray-100 text-gray-600",
+  draft: "bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300",
+  published: "bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300",
+  expired: "bg-red-100 text-red-800 dark:bg-red-400/15 dark:text-red-300",
+  archived: "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-white/70",
 };
 
 export function formatProposalCurrency(value: number) {

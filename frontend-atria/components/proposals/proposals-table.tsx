@@ -46,7 +46,7 @@ export function ProposalsTable({
         <p className="font-semibold text-[var(--atria-primary)]">
           Nenhuma proposta ainda
         </p>
-        <p className="mt-1 text-sm text-[var(--atria-primary)]/50">
+        <p className="mt-1 text-sm text-[var(--atria-primary)]/50 dark:text-white/70">
           Crie a primeira proposta comercial.
         </p>
       </Card>
@@ -57,7 +57,7 @@ export function ProposalsTable({
     <Card className="overflow-hidden rounded-2xl border border-[var(--atria-primary)]/10 bg-white">
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="bg-[var(--atria-primary)]/5 text-left text-[var(--atria-primary)]/60">
+          <thead className="bg-[var(--atria-primary)]/5 text-left text-[var(--atria-primary)]/60 dark:text-white/75">
             <tr>
               <th className="px-4 py-3 font-medium">Proposta</th>
               <th className="px-4 py-3 font-medium">Empresa</th>
@@ -76,7 +76,7 @@ export function ProposalsTable({
                 <td className="px-4 py-3 font-medium text-[var(--atria-primary)]">
                   {proposal.title}
                 </td>
-                <td className="px-4 py-3 text-[var(--atria-primary)]/70">
+                <td className="px-4 py-3 text-[var(--atria-primary)]/70 dark:text-white/85">
                   {proposal.companyName}
                 </td>
                 <td className="px-4 py-3">
@@ -86,7 +86,7 @@ export function ProposalsTable({
                     {PROPOSAL_STATUS_LABELS[proposal.status]}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[var(--atria-primary)]/70">
+                <td className="px-4 py-3 text-[var(--atria-primary)]/70 dark:text-white/85">
                   {formatProposalDate(proposal.validUntil)}
                 </td>
                 <td className="px-4 py-3 text-[var(--atria-primary)]">
@@ -127,7 +127,7 @@ export function ProposalsTable({
                       title="Excluir"
                       onClick={() => void handleDelete(proposal)}
                     >
-                      <Trash2 className="size-4 text-red-600" />
+                      <Trash2 className="size-4 text-red-600 dark:text-red-400" />
                     </Button>
                   </div>
                 </td>

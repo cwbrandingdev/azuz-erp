@@ -33,7 +33,7 @@ export function ConversationsRanking({
 
   if (clients.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 bg-white px-6 py-10 text-center text-sm text-[var(--atria-primary)]/55">
+      <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 bg-white px-6 py-10 text-center text-sm text-[var(--atria-primary)]/55 dark:text-white/70">
         Nenhuma empresa conectada para este mês.
       </div>
     );
@@ -46,7 +46,7 @@ export function ConversationsRanking({
           <MessageCircle className="size-4" />
           <p className="text-sm font-semibold">Conversas por empresa</p>
         </div>
-        <p className="text-xs text-[var(--atria-primary)]/50">
+        <p className="text-xs text-[var(--atria-primary)]/50 dark:text-white/70">
           {formatNumber(totalConversations)} conversas no mês
         </p>
       </div>
@@ -70,7 +70,7 @@ export function ConversationsRanking({
                 }`}
                 onClick={() => onSelect(client.id)}
               >
-                <TableCell className="text-[var(--atria-primary)]/45">
+                <TableCell className="text-[var(--atria-primary)]/45 dark:text-white/60">
                   {index + 1}
                 </TableCell>
                 <TableCell>
@@ -78,7 +78,7 @@ export function ConversationsRanking({
                     {client.companyName}
                   </p>
                   {client.instagram ? (
-                    <p className="text-xs text-[var(--atria-primary)]/45">
+                    <p className="text-xs text-[var(--atria-primary)]/45 dark:text-white/60">
                       {client.instagram}
                     </p>
                   ) : null}
@@ -86,7 +86,7 @@ export function ConversationsRanking({
                 <TableCell className="text-right text-base font-semibold text-[var(--atria-primary)]">
                   {formatNumber(client.conversationsStarted)}
                 </TableCell>
-                <TableCell className="text-right text-[var(--atria-primary)]/70">
+                <TableCell className="text-right text-[var(--atria-primary)]/70 dark:text-white/85">
                   {formatNumber(client.comments)}
                 </TableCell>
               </TableRow>

@@ -27,7 +27,7 @@ export default function ProposalsPage() {
           <h1 className="text-2xl font-bold text-[var(--atria-primary)]">
             Propostas
           </h1>
-          <p className="text-sm text-[var(--atria-primary)]/50">
+          <p className="text-sm text-[var(--atria-primary)]/50 dark:text-white/70">
             Propostas comerciais com link público compartilhável
           </p>
         </div>
