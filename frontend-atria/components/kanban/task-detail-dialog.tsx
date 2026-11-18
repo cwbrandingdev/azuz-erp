@@ -120,6 +120,34 @@ interface TaskDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate: () => void;
+  initialMembers?: TeamMember[];
+  initialClients?: Client[];
+}
+
+const UPLOAD_CONCURRENCY = 3;
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function runWorker() {
+    while (nextIndex < items.length) {
+      const current = nextIndex;
+      nextIndex += 1;
+      results[current] = await worker(items[current], current);
+    }
+  }
+
+  const pool = Array.from(
+    { length: Math.min(concurrency, Math.max(items.length, 1)) },
+    () => runWorker(),
+  );
+  await Promise.all(pool);
+  return results;
 }
 
 export function TaskDetailDialog({
@@ -128,6 +156,8 @@ export function TaskDetailDialog({
   open,
   onOpenChange,
   onUpdate,
+  initialMembers,
+  initialClients,
 }: TaskDetailDialogProps) {
   const confirm = useConfirm();
   const updateTaskMutation = useUpdateTaskMutation();
@@ -200,30 +230,58 @@ export function TaskDetailDialog({
     setDeliverableItems([]);
     setDeliverableView(null);
     setBulkDeliverableActions(null);
+    setHistory([]);
     setTab("deliverables");
     setError(null);
 
-    calendarService
-      .getTeamMembers()
-      .then(setMembers)
-      .catch(() => setMembers([]));
-    clientsService
-      .getClients()
-      .then(setClients)
-      .catch(() => setClients([]));
+    if (initialMembers?.length) {
+      setMembers(initialMembers);
+    } else {
+      calendarService
+        .getTeamMembers()
+        .then(setMembers)
+        .catch(() => setMembers([]));
+    }
+
+    if (initialClients?.length) {
+      setClients(initialClients);
+    } else {
+      clientsService
+        .getClients()
+        .then(setClients)
+        .catch(() => setClients([]));
+    }
+
+    // Groups are only needed on the Details tab — load lazily there.
+    void loadDeliverableMedia(task.id);
+
+    // Board list no longer embeds assets; hydrate once when missing.
+    if (!task.assets?.length) {
+      void kanbanService
+        .getTask(task.id)
+        .then((fresh) => {
+          setAssets(fresh.assets ?? []);
+          if (fresh.postCaption != null) setPostCaption(fresh.postCaption ?? "");
+        })
+        .catch(() => {
+          /* deliverables view still covers media */
+        });
+    }
+  }, [open, task, initialMembers, initialClients]);
+
+  useEffect(() => {
+    if (!open || !task || tab !== "history") return;
+    void loadHistory(task.id);
+  }, [open, task, tab]);
+
+  useEffect(() => {
+    if (!open || !task || tab !== "details") return;
+    if (groups.length > 0) return;
     userGroupsService
       .getUserGroups()
       .then(setGroups)
       .catch(() => setGroups([]));
-    void loadHistory(task.id);
-    void loadDeliverableMedia(task.id);
-  }, [open, task]);
-
-  useEffect(() => {
-    if (!open || !task || tab !== "deliverables") return;
-    void loadDeliverableMedia(task.id);
-  }, [open, task, tab]);
-
+  }, [open, task, tab, groups.length]);
   async function loadHistory(taskId: string) {
     try {
       const data = await kanbanService.getHistory(taskId);
@@ -439,10 +497,9 @@ export function TaskDetailDialog({
     setUploadProgress(items);
     const uploaded: KanbanTaskAsset[] = [];
     try {
-      for (let index = 0; index < fileList.length; index += 1) {
-        const file = fileList[index];
+      await mapWithConcurrency(fileList, UPLOAD_CONCURRENCY, async (file, index) => {
         const itemId = items[index]?.id;
-        if (!file || !itemId) continue;
+        if (!file || !itemId) return;
         setUploadProgress((prev) =>
           prev.map((item) =>
             item.id === itemId
@@ -476,12 +533,10 @@ export function TaskDetailDialog({
           ),
         );
         uploaded.push(asset as KanbanTaskAsset);
-      }
+        setAssets((prev) => [...prev, asset as KanbanTaskAsset]);
+      });
 
-      setAssets((prev) => [...prev, ...uploaded]);
       setAssetCaption("");
-      onUpdate();
-      await Promise.all([loadHistory(task.id), loadDeliverableMedia(task.id)]);
       const count = uploaded.length;
       toast.success(
         isBypassingInternalReview
@@ -493,6 +548,9 @@ export function TaskDetailDialog({
             : `${count} entregas enviadas`,
       );
       setUploadProgress([]);
+      // Refresh media for this dialog; board refresh is non-blocking.
+      void loadDeliverableMedia(task.id);
+      onUpdate();
     } catch (err) {
       setUploadProgress((prev) =>
         prev.map((item) =>
@@ -509,12 +567,8 @@ export function TaskDetailDialog({
             : "Não foi possível enviar os arquivos.",
       );
       if (uploaded.length > 0) {
-        setAssets((prev) => [...prev, ...uploaded]);
+        void loadDeliverableMedia(task.id);
         onUpdate();
-        await Promise.all([
-          loadHistory(task.id),
-          loadDeliverableMedia(task.id),
-        ]);
       }
     } finally {
       setAssetUploading(false);

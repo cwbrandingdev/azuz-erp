@@ -106,6 +106,16 @@ const taskInclude = {
   },
 } satisfies Prisma.KanbanTaskInclude;
 
+/** Board/list queries omit full assets to keep payloads small for designers. */
+const boardTaskInclude = {
+  column: true,
+  client: { select: clientSelect },
+  createdBy: { select: userSelect },
+  assignedGroup: { select: groupSelect },
+  assignees: { include: { user: { select: userSelect } } },
+  _count: { select: { assets: true } },
+} satisfies Prisma.KanbanTaskInclude;
+
 type DbClient = Prisma.TransactionClient | PrismaService;
 
 type TaskWithRelations = Prisma.KanbanTaskGetPayload<{
@@ -267,6 +277,7 @@ export class KanbanService {
           { AND: [where, { columnId: column.id }] },
           0,
           limit,
+          { includeAssets: false },
         );
         return {
           ...this.toColumnResponse(column),
@@ -285,6 +296,7 @@ export class KanbanService {
       { AND: [this.buildTaskBoardWhere(query), { columnId }] },
       query.offset ?? 0,
       KANBAN_PAGE_SIZE,
+      { includeAssets: false },
     );
   }
 
@@ -2423,11 +2435,13 @@ export class KanbanService {
     where: Prisma.KanbanTaskWhereInput,
     offset: number,
     limit: number,
+    options?: { includeAssets?: boolean },
   ) {
+    const includeAssets = options?.includeAssets !== false;
     const [tasks, total] = await Promise.all([
       this.prisma.kanbanTask.findMany({
         where,
-        include: this.taskInclude(),
+        include: includeAssets ? this.taskInclude() : boardTaskInclude,
         orderBy: [{ order: 'asc' }, { id: 'asc' }],
         skip: offset,
         take: limit,
@@ -2436,7 +2450,9 @@ export class KanbanService {
     ]);
 
     return {
-      tasks: tasks.map((task) => this.toTaskResponse(task)),
+      tasks: tasks.map((task) =>
+        this.toTaskResponse(task as TaskWithRelations),
+      ),
       total,
       hasMore: offset + tasks.length < total,
     };

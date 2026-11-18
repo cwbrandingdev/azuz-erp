@@ -176,14 +176,6 @@ export function KanbanBoard() {
     });
   }, [refreshLoaded, subscribeTaskUpdates]);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      if (document.hidden) return;
-      void refreshLoaded();
-    }, 8000);
-    return () => window.clearInterval(timer);
-  }, [refreshLoaded]);
-
   const searchPending = filters.search.trim() !== debouncedSearch;
   const hasActiveFilters = Boolean(
     filters.search.trim() ||
@@ -349,7 +341,7 @@ export function KanbanBoard() {
 
   function handleTaskCreated(task: KanbanTask) {
     void loadBoard();
-    openTask(task, columns);
+    openTask(task, columns, { members, clients });
   }
 
   async function handleClearBoard() {
@@ -541,7 +533,12 @@ export function KanbanBoard() {
                                               <TaskCard
                                                 task={task}
                                                 column={column}
-                                                onClick={() => openTask(task, columns)}
+                                                onClick={() =>
+                                                  openTask(task, columns, {
+                                                    members,
+                                                    clients,
+                                                  })
+                                                }
                                               />
                                             </div>
                                           </div>

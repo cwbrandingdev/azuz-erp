@@ -17,6 +17,15 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     }>>;
     SUPABASE_STORAGE_BUCKET: z.ZodOptional<z.ZodString>;
     SUPABASE_DELIVERABLES_BUCKET: z.ZodOptional<z.ZodString>;
+    STORAGE_PROVIDER: z.ZodDefault<z.ZodEnum<{
+        r2: "r2";
+        supabase: "supabase";
+    }>>;
+    R2_ACCOUNT_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    R2_ACCESS_KEY_ID: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    R2_SECRET_ACCESS_KEY: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    R2_BUCKET: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
+    R2_PUBLIC_BASE_URL: z.ZodUnion<[z.ZodOptional<z.ZodString>, z.ZodLiteral<"">]>;
     JWT_ACCESS_SECRET: z.ZodString;
     JWT_REFRESH_SECRET: z.ZodString;
     JWT_ACCESS_EXPIRATION: z.ZodDefault<z.ZodString>;
@@ -75,12 +84,18 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     NODE_ENV: "production" | "development" | "test";
     PORT: number;
     DATABASE_URL: string;
+    STORAGE_PROVIDER: "r2" | "supabase";
     JWT_ACCESS_SECRET: string;
     JWT_REFRESH_SECRET: string;
     JWT_ACCESS_EXPIRATION: string;
     JWT_REFRESH_EXPIRATION: string;
     SUPABASE_STORAGE_BUCKET?: string | undefined;
     SUPABASE_DELIVERABLES_BUCKET?: string | undefined;
+    R2_ACCOUNT_ID?: string | undefined;
+    R2_ACCESS_KEY_ID?: string | undefined;
+    R2_SECRET_ACCESS_KEY?: string | undefined;
+    R2_BUCKET?: string | undefined;
+    R2_PUBLIC_BASE_URL?: string | undefined;
     CORS_ORIGIN?: string | undefined;
     COMPANY_EMAIL_DOMAIN?: string | undefined;
     COOKIE_DOMAIN?: string | undefined;
@@ -128,6 +143,7 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     PORT: number;
     DATABASE_URL: string;
     SUPABASE_DB_SCHEMA: "public" | "dev";
+    STORAGE_PROVIDER: "r2" | "supabase";
     JWT_ACCESS_SECRET: string;
     JWT_REFRESH_SECRET: string;
     JWT_ACCESS_EXPIRATION: string;
@@ -138,6 +154,11 @@ declare const envSchema: z.ZodPipe<z.ZodObject<{
     SUPABASE_SERVICE_ROLE_KEY?: string | undefined;
     SUPABASE_STORAGE_BUCKET?: string | undefined;
     SUPABASE_DELIVERABLES_BUCKET?: string | undefined;
+    R2_ACCOUNT_ID?: string | undefined;
+    R2_ACCESS_KEY_ID?: string | undefined;
+    R2_SECRET_ACCESS_KEY?: string | undefined;
+    R2_BUCKET?: string | undefined;
+    R2_PUBLIC_BASE_URL?: string | undefined;
     CORS_ORIGIN?: string | undefined;
     COMPANY_EMAIL_DOMAIN?: string | undefined;
     COOKIE_DOMAIN?: string | undefined;
