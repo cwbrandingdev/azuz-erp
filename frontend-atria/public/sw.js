@@ -52,6 +52,7 @@ self.addEventListener("push", (event) => {
       await self.registration.showNotification(title || "Atria", {
         body: body || "",
         tag,
+        renotify: true,
         icon: "/icons/icon-192.png",
         badge: "/icons/icon-192.png",
         data: { url: url || "/" },
