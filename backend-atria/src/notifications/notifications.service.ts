@@ -429,25 +429,14 @@ export class NotificationsService {
     phone: string;
     contactName: string | null;
     preview: string;
-    assignedUserId: string | null;
   }) {
-    let recipientIds: string[] = [];
-    if (input.assignedUserId) {
-      recipientIds = [input.assignedUserId];
-    } else {
-      const members = await this.prisma.user.findMany({
-        where: {
-          companyId: input.companyId,
-          isActive: true,
-          category: UserCategory.MEMBER,
-        },
-        select: { id: true },
-      });
-      recipientIds = members.map((user) => user.id);
-    }
+    const recipientIds = await this.resolveWhatsAppRecipients(
+      input.companyId,
+      input.phone,
+    );
 
     const label = input.contactName?.trim() || input.phone;
-    const title = 'Nova mensagem no WhatsApp';
+    const title = `Nova mensagem de ${label}`;
     const message = `${input.phone} · ${label}: ${input.preview}`;
 
     await this.createMany(
@@ -455,7 +444,16 @@ export class NotificationsService {
       NotificationType.WHATSAPP_INBOUND,
       title,
       message,
-      { companyId: input.companyId },
+      {
+        companyId: input.companyId,
+        push: true,
+        pushTarget: {
+          body: input.preview,
+          url: `/whatsapp?phone=${encodeURIComponent(input.phone)}`,
+          tag: `${NotificationType.WHATSAPP_INBOUND}:${input.phone}`,
+          phone: input.phone,
+        },
+      },
     );
 
     const users = await this.prisma.user.findMany({
@@ -490,6 +488,30 @@ export class NotificationsService {
     });
   }
 
+  private async resolveWhatsAppRecipients(
+    companyId: string,
+    phone: string,
+  ): Promise<string[]> {
+    const conversation = await this.prisma.whatsAppConversation.findFirst({
+      where: { phone },
+      select: { assignedUserId: true },
+    });
+    if (conversation?.assignedUserId) {
+      return [conversation.assignedUserId];
+    }
+
+    const sdrs = await this.prisma.user.findMany({
+      where: {
+        companyId,
+        isActive: true,
+        category: UserCategory.MEMBER,
+        role: { name: RoleName.CRM },
+      },
+      select: { id: true },
+    });
+    return sdrs.map((user) => user.id);
+  }
+
   async createMany(
     userIds: string[],
     type: NotificationType,
@@ -500,6 +522,7 @@ export class NotificationsService {
       taskId?: string;
       appUpdateId?: string;
       push?: boolean;
+      pushTarget?: { url: string; tag: string; body?: string; phone?: string };
     },
   ) {
     const uniqueIds = [...new Set(userIds)].filter(Boolean);
@@ -521,9 +544,12 @@ export class NotificationsService {
       void this.push
         .sendToUsers(uniqueIds, {
           title,
-          body: message,
-          url: this.buildPushUrl(type, title, extra.taskId),
-          tag: `${type}:${extra.taskId ?? ''}`,
+          body: extra.pushTarget?.body ?? message,
+          url:
+            extra.pushTarget?.url ??
+            this.buildPushUrl(type, title, extra.taskId),
+          tag: extra.pushTarget?.tag ?? `${type}:${extra.taskId ?? ''}`,
+          ...(extra.pushTarget?.phone ? { phone: extra.pushTarget.phone } : {}),
         })
         .catch((error: unknown) => {
           const detail = error instanceof Error ? error.message : String(error);
