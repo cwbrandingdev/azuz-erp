@@ -12,16 +12,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseStorageService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const client_s3_1 = require("@aws-sdk/client-s3");
+const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 const upload_limits_1 = require("../common/upload/upload-limits");
+const storage_url_1 = require("./storage-url");
 const supabase_service_1 = require("./supabase.service");
 let SupabaseStorageService = class SupabaseStorageService {
     supabase;
     configService;
+    r2Client = null;
     constructor(supabase, configService) {
         this.supabase = supabase;
         this.configService = configService;
     }
     get isConfigured() {
+        if (this.storageProvider === 'r2')
+            return this.r2Config !== null;
         return this.supabase.isConfigured;
     }
     getAvatarBucket() {
@@ -29,6 +35,8 @@ let SupabaseStorageService = class SupabaseStorageService {
             'avatars');
     }
     async ensurePublicBucket(bucket) {
+        if (this.storageProvider === 'r2')
+            return;
         if (!this.supabase.isConfigured) {
             throw new common_1.ServiceUnavailableException('Supabase Storage is not configured');
         }
@@ -57,6 +65,8 @@ let SupabaseStorageService = class SupabaseStorageService {
         }
     }
     async uploadPublicObject(input) {
+        if (this.storageProvider === 'r2')
+            return this.uploadToR2(input);
         if (!this.supabase.isConfigured) {
             throw new common_1.ServiceUnavailableException('Supabase Storage is not configured');
         }
@@ -80,8 +90,18 @@ let SupabaseStorageService = class SupabaseStorageService {
         return data.publicUrl;
     }
     async downloadObject(bucket, path) {
-        if (!this.supabase.isConfigured || !path)
+        if (!path)
             return null;
+        if (this.storageProvider === 'r2') {
+            const fromR2 = await this.downloadFromR2(bucket, path);
+            if (fromR2)
+                return fromR2;
+            if (!this.supabase.isConfigured)
+                return null;
+        }
+        else if (!this.supabase.isConfigured) {
+            return null;
+        }
         const { data, error } = await this.supabase.admin.storage
             .from(bucket)
             .download(path);
@@ -91,7 +111,13 @@ let SupabaseStorageService = class SupabaseStorageService {
         return Buffer.from(await data.arrayBuffer());
     }
     async removeObject(bucket, path) {
-        if (!this.supabase.isConfigured || !path)
+        if (!path)
+            return;
+        if (this.storageProvider === 'r2') {
+            await this.removeFromR2(bucket, path);
+            return;
+        }
+        if (!this.supabase.isConfigured)
             return;
         const { error } = await this.supabase.admin.storage
             .from(bucket)
@@ -101,44 +127,15 @@ let SupabaseStorageService = class SupabaseStorageService {
         }
     }
     extractObjectPathFromPublicUrl(publicUrl, bucket) {
-        try {
-            const url = new URL(publicUrl);
-            const marker = `/storage/v1/object/public/${bucket}/`;
-            const index = url.pathname.indexOf(marker);
-            if (index === -1)
-                return null;
-            return decodeURIComponent(url.pathname.slice(index + marker.length));
-        }
-        catch {
-            return null;
-        }
+        return (0, storage_url_1.extractObjectPathFromPublicUrl)(publicUrl, bucket, this.r2PublicBaseUrl);
     }
     extractStorageLocation(mediaUrl) {
-        try {
-            const url = new URL(mediaUrl);
-            const publicMarker = '/storage/v1/object/public/';
-            const signMarker = '/storage/v1/object/sign/';
-            const pathname = url.pathname;
-            for (const marker of [publicMarker, signMarker]) {
-                const index = pathname.indexOf(marker);
-                if (index === -1)
-                    continue;
-                const remainder = decodeURIComponent(pathname.slice(index + marker.length));
-                const slash = remainder.indexOf('/');
-                if (slash <= 0)
-                    return null;
-                return {
-                    bucket: remainder.slice(0, slash),
-                    path: remainder.slice(slash + 1).split('?')[0] ?? '',
-                };
-            }
-            return null;
-        }
-        catch {
-            return null;
-        }
+        return (0, storage_url_1.extractStorageLocation)(mediaUrl, this.r2PublicBaseUrl);
     }
     async createSignedDownloadUrl(input) {
+        if (this.storageProvider === 'r2') {
+            return this.createR2SignedDownloadUrl(input);
+        }
         if (!this.supabase.isConfigured) {
             throw new common_1.ServiceUnavailableException('Supabase Storage is not configured');
         }
@@ -165,6 +162,8 @@ let SupabaseStorageService = class SupabaseStorageService {
             'financial-attachments');
     }
     async ensureFinancialBucket(bucket) {
+        if (this.storageProvider === 'r2')
+            return;
         if (!this.supabase.isConfigured) {
             throw new common_1.ServiceUnavailableException('Supabase Storage is not configured');
         }
@@ -202,6 +201,8 @@ let SupabaseStorageService = class SupabaseStorageService {
         }
     }
     async uploadFinancialObject(input) {
+        if (this.storageProvider === 'r2')
+            return this.uploadToR2(input);
         if (!this.supabase.isConfigured) {
             throw new common_1.ServiceUnavailableException('Supabase Storage is not configured');
         }
@@ -225,6 +226,8 @@ let SupabaseStorageService = class SupabaseStorageService {
         return data.publicUrl;
     }
     async ensureDeliverablesBucket(bucket) {
+        if (this.storageProvider === 'r2')
+            return;
         if (!this.supabase.isConfigured) {
             throw new common_1.ServiceUnavailableException('Supabase Storage is not configured');
         }
@@ -262,6 +265,8 @@ let SupabaseStorageService = class SupabaseStorageService {
         }
     }
     async uploadDeliverableObject(input) {
+        if (this.storageProvider === 'r2')
+            return this.uploadToR2(input);
         if (!this.supabase.isConfigured) {
             throw new common_1.ServiceUnavailableException('Supabase Storage is not configured');
         }
@@ -283,6 +288,128 @@ let SupabaseStorageService = class SupabaseStorageService {
             throw new common_1.BadRequestException('Failed to resolve public storage URL');
         }
         return data.publicUrl;
+    }
+    get storageProvider() {
+        return this.configService.get('STORAGE_PROVIDER')?.trim() === 'r2'
+            ? 'r2'
+            : 'supabase';
+    }
+    get r2PublicBaseUrl() {
+        return this.r2Config?.publicBaseUrl ?? null;
+    }
+    get r2Config() {
+        const accountId = this.configService.get('R2_ACCOUNT_ID')?.trim();
+        const accessKeyId = this.configService
+            .get('R2_ACCESS_KEY_ID')
+            ?.trim();
+        const secretAccessKey = this.configService
+            .get('R2_SECRET_ACCESS_KEY')
+            ?.trim();
+        const bucket = this.configService.get('R2_BUCKET')?.trim();
+        const publicBaseUrl = this.configService
+            .get('R2_PUBLIC_BASE_URL')
+            ?.trim()
+            .replace(/\/+$/, '');
+        if (!accountId ||
+            !accessKeyId ||
+            !secretAccessKey ||
+            !bucket ||
+            !publicBaseUrl) {
+            return null;
+        }
+        return { accountId, accessKeyId, secretAccessKey, bucket, publicBaseUrl };
+    }
+    getR2Client() {
+        const config = this.r2Config;
+        if (!config) {
+            throw new common_1.ServiceUnavailableException('R2 storage is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, and R2_PUBLIC_BASE_URL.');
+        }
+        if (!this.r2Client) {
+            this.r2Client = new client_s3_1.S3Client({
+                region: 'auto',
+                endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+                credentials: {
+                    accessKeyId: config.accessKeyId,
+                    secretAccessKey: config.secretAccessKey,
+                },
+                requestChecksumCalculation: 'WHEN_REQUIRED',
+                responseChecksumValidation: 'WHEN_REQUIRED',
+            });
+        }
+        return { client: this.r2Client, config };
+    }
+    async uploadToR2(input) {
+        const { client, config } = this.getR2Client();
+        try {
+            await client.send(new client_s3_1.PutObjectCommand({
+                Bucket: config.bucket,
+                Key: (0, storage_url_1.r2ObjectKey)(input.bucket, input.path),
+                Body: input.body,
+                ContentType: input.contentType,
+                CacheControl: '3600',
+            }));
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'unknown error';
+            throw new common_1.BadRequestException(`Failed to upload file to R2: ${message}`);
+        }
+        return (0, storage_url_1.publicObjectUrl)(config.publicBaseUrl, input.bucket, input.path);
+    }
+    async downloadFromR2(bucket, path) {
+        const { client, config } = this.getR2Client();
+        try {
+            const result = await client.send(new client_s3_1.GetObjectCommand({
+                Bucket: config.bucket,
+                Key: (0, storage_url_1.r2ObjectKey)(bucket, path),
+            }));
+            if (!result.Body)
+                return null;
+            return Buffer.from(await result.Body.transformToByteArray());
+        }
+        catch (error) {
+            const status = error
+                ?.$metadata?.httpStatusCode;
+            const name = error.name;
+            if (status === 404 || name === 'NoSuchKey' || name === 'NotFound') {
+                return null;
+            }
+            return null;
+        }
+    }
+    async removeFromR2(bucket, path) {
+        const { client, config } = this.getR2Client();
+        try {
+            await client.send(new client_s3_1.DeleteObjectCommand({
+                Bucket: config.bucket,
+                Key: (0, storage_url_1.r2ObjectKey)(bucket, path),
+            }));
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'unknown error';
+            throw new common_1.BadRequestException(`Failed to remove file from R2: ${message}`);
+        }
+    }
+    async createR2SignedDownloadUrl(input) {
+        const { client, config } = this.getR2Client();
+        const expiresIn = input.expiresInSeconds ?? 60 * 15;
+        const filename = (input.downloadFileName?.trim() ||
+            input.path.split('/').pop() ||
+            'download').replace(/["\r\n]/g, '');
+        try {
+            const signedUrl = await (0, s3_request_presigner_1.getSignedUrl)(client, new client_s3_1.GetObjectCommand({
+                Bucket: config.bucket,
+                Key: (0, storage_url_1.r2ObjectKey)(input.bucket, input.path),
+                ResponseContentDisposition: `attachment; filename="${filename}"`,
+            }), { expiresIn });
+            return {
+                signedUrl,
+                expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+            };
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : 'unknown error';
+            throw new common_1.BadRequestException(`Failed to create signed download URL: ${message}`);
+        }
     }
 };
 exports.SupabaseStorageService = SupabaseStorageService;

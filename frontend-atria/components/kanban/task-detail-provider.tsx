@@ -5,11 +5,20 @@ import { useQueryClient } from "@tanstack/react-query";
 import { TaskDetailDialog } from "@/components/kanban/task-detail-dialog";
 import { invalidateTasksCache } from "@/lib/task-cache";
 import { kanbanService } from "@/services";
-import type { KanbanColumn, KanbanTask } from "@/services/types";
+import type { Client, KanbanColumn, KanbanTask, TeamMember } from "@/services/types";
+
+export type TaskDetailOpenMeta = {
+  members?: TeamMember[];
+  clients?: Client[];
+};
 
 interface TaskDetailContextValue {
   openTaskById: (taskId: string) => Promise<void>;
-  openTask: (task: KanbanTask, columns?: KanbanColumn[]) => void;
+  openTask: (
+    task: KanbanTask,
+    columns?: KanbanColumn[],
+    meta?: TaskDetailOpenMeta,
+  ) => void;
   subscribeTaskUpdates: (listener: () => void) => () => void;
 }
 
@@ -21,6 +30,8 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
   const [open, setOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [seedMembers, setSeedMembers] = useState<TeamMember[] | undefined>();
+  const [seedClients, setSeedClients] = useState<Client[] | undefined>();
   const listenersRef = useRef(new Set<() => void>());
 
   const subscribeTaskUpdates = useCallback((listener: () => void) => {
@@ -44,9 +55,11 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const openTask = useCallback(
-    (task: KanbanTask, cols?: KanbanColumn[]) => {
+    (task: KanbanTask, cols?: KanbanColumn[], meta?: TaskDetailOpenMeta) => {
       if (cols?.length) setColumns(cols);
       else void loadColumns();
+      setSeedMembers(meta?.members);
+      setSeedClients(meta?.clients);
       setSelectedTask(task);
       setOpen(true);
     },
@@ -57,6 +70,8 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
     async (taskId: string) => {
       await loadColumns();
       const task = await kanbanService.getTask(taskId);
+      setSeedMembers(undefined);
+      setSeedClients(undefined);
       setSelectedTask(task);
       setOpen(true);
     },
@@ -90,6 +105,8 @@ export function TaskDetailProvider({ children }: { children: React.ReactNode }) 
         open={open}
         onOpenChange={setOpen}
         onUpdate={handleUpdate}
+        initialMembers={seedMembers}
+        initialClients={seedClients}
       />
     </TaskDetailContext.Provider>
   );

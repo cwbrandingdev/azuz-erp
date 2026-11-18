@@ -54,6 +54,14 @@ const taskInclude = {
         orderBy: { uploadedAt: 'desc' },
     },
 };
+const boardTaskInclude = {
+    column: true,
+    client: { select: clientSelect },
+    createdBy: { select: userSelect },
+    assignedGroup: { select: groupSelect },
+    assignees: { include: { user: { select: userSelect } } },
+    _count: { select: { assets: true } },
+};
 const PRIORITY_LABELS = {
     CRITICAL: 'Crítica',
     HIGH: 'Alta',
@@ -159,7 +167,7 @@ let KanbanService = class KanbanService {
         const where = this.buildTaskBoardWhere(query);
         const limit = Math.min(query.limit ?? KANBAN_PAGE_SIZE, 200);
         const pages = await Promise.all(columns.map(async (column) => {
-            const page = await this.loadTaskColumnPage({ AND: [where, { columnId: column.id }] }, 0, limit);
+            const page = await this.loadTaskColumnPage({ AND: [where, { columnId: column.id }] }, 0, limit, { includeAssets: false });
             return {
                 ...this.toColumnResponse(column),
                 ...page,
@@ -169,7 +177,7 @@ let KanbanService = class KanbanService {
     }
     async getColumnTasks(columnId, query) {
         await this.ensureColumnExists(columnId);
-        return this.loadTaskColumnPage({ AND: [this.buildTaskBoardWhere(query), { columnId }] }, query.offset ?? 0, KANBAN_PAGE_SIZE);
+        return this.loadTaskColumnPage({ AND: [this.buildTaskBoardWhere(query), { columnId }] }, query.offset ?? 0, KANBAN_PAGE_SIZE, { includeAssets: false });
     }
     async getTask(id) {
         const task = await this.ensureTaskExists(id);
@@ -1776,11 +1784,12 @@ let KanbanService = class KanbanService {
             filter.lte = this.parseTaskRangeEnd(end);
         return filter;
     }
-    async loadTaskColumnPage(where, offset, limit) {
+    async loadTaskColumnPage(where, offset, limit, options) {
+        const includeAssets = options?.includeAssets !== false;
         const [tasks, total] = await Promise.all([
             this.prisma.kanbanTask.findMany({
                 where,
-                include: this.taskInclude(),
+                include: includeAssets ? this.taskInclude() : boardTaskInclude,
                 orderBy: [{ order: 'asc' }, { id: 'asc' }],
                 skip: offset,
                 take: limit,

@@ -3,6 +3,7 @@ import { SupabaseService } from './supabase.service';
 export declare class SupabaseStorageService {
     private readonly supabase;
     private readonly configService;
+    private r2Client;
     constructor(supabase: SupabaseService, configService: ConfigService);
     get isConfigured(): boolean;
     getAvatarBucket(): string;
@@ -48,4 +49,12 @@ export declare class SupabaseStorageService {
         contentType: string;
         upsert?: boolean;
     }): Promise<string>;
+    private get storageProvider();
+    private get r2PublicBaseUrl();
+    private get r2Config();
+    private getR2Client;
+    private uploadToR2;
+    private downloadFromR2;
+    private removeFromR2;
+    private createR2SignedDownloadUrl;
 }
