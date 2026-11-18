@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useReportOpenWhatsappConversation } from "@/hooks/use-report-open-whatsapp-conversation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -344,6 +345,8 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
 
   const selected =
     conversations.find((item) => item.phone === selectedPhone) ?? null;
+
+  useReportOpenWhatsappConversation(selectedPhone);
 
   useEffect(() => {
     if (initialPhone) setSelectedPhone(initialPhone);
