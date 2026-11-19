@@ -38,7 +38,7 @@ RUN npx prisma generate
 
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 
-RUN mkdir -p uploads && chmod +x docker-entrypoint.sh
+RUN sed -i 's/\r$//' docker-entrypoint.sh && mkdir -p uploads && chmod +x docker-entrypoint.sh
 
 EXPOSE 8080
 

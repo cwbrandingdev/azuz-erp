@@ -3,3 +3,7 @@ node_modules
 .env
 
 uploads/
+
+# Build output must be generated inside the image; a stale dist/.tsbuildinfo makes tsc skip new files
+dist
+*.tsbuildinfo
