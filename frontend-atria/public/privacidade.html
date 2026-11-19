@@ -84,22 +84,24 @@
   <h2>4. Integração com o Google (Calendar e Meet)</h2>
   <div class="box">
     <p><strong>Resumo:</strong> o sistema usa <strong>uma única conta Google da empresa</strong>, autorizada por quem administra o
-    sistema, apenas para <strong>criar reuniões</strong>. Ele não acessa os e-mails, contatos, arquivos ou agendas pessoais
+    sistema, apenas para <strong>criar, alterar e cancelar reuniões</strong>. Ele não acessa os e-mails, contatos, arquivos ou agendas pessoais
     dos nossos usuários ou clientes.</p>
   </div>
   <p>As permissões (escopos) solicitadas ao Google são:</p>
   <ul>
-    <li><code>https://www.googleapis.com/auth/calendar.events</code>: criar o evento da reunião na agenda da conta da empresa e convidar os participantes.</li>
+    <li><code>https://www.googleapis.com/auth/calendar.events</code>: criar, alterar e cancelar o evento da reunião na agenda da conta da empresa e convidar os participantes.</li>
     <li><code>https://www.googleapis.com/auth/meetings.space.created</code>: criar a sala do Google Meet e adicionar os participantes como membros da sala.</li>
   </ul>
   <p><strong>O que fazemos com esses acessos:</strong></p>
   <ul>
     <li>Criamos a sala do Meet e o evento no Calendar, e adicionamos os e-mails dos convidados informados pela equipe.</li>
+    <li>Quando a equipe edita ou apaga uma reunião, atualizamos ou cancelamos o evento e a sala correspondentes, e os convidados recebem o aviso do Google.</li>
     <li>Guardamos no sistema apenas o necessário para a reunião: título, data, link da sala e os e-mails dos convidados.</li>
     <li>Usamos o e-mail dos convidados para o convite do Google e para enviar um lembrete próprio, uma hora antes da reunião.</li>
   </ul>
-  <p><strong>O que não fazemos:</strong> não lemos nem copiamos outros eventos da agenda, não acessamos mensagens, contatos ou
-  arquivos do Google, não compartilhamos dados do Google com terceiros para outros fins e não os usamos para publicidade ou
+  <p><strong>O que não fazemos:</strong> não copiamos nem guardamos eventos da agenda que não sejam reuniões criadas pelo sistema (ao localizar
+  uma reunião para editá-la ou cancelá-la, o sistema consulta apenas os eventos de um dia em torno da data da reunião e usa só
+  aquele que corresponde ao link da sala), não acessamos mensagens, contatos ou arquivos do Google, não compartilhamos dados do Google com terceiros para outros fins e não os usamos para publicidade ou
   para treinar modelos de inteligência artificial.</p>
   <p>
     <strong>Armazenamento da autorização:</strong> a credencial que permite ao sistema falar com o Google (token de atualização)
