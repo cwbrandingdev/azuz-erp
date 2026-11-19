@@ -545,6 +545,9 @@ export class WhatsAppService {
       parsed.transcription ??
       parsed.body;
 
+    const companyId = '00000000-0000-4000-8000-000000000001';
+
+    // Notifica só depois da automação: ela pode atribuir a conversa a um SDR.
     void this.automation
       .handleInbound({
         phone: from,
@@ -557,17 +560,15 @@ export class WhatsAppService {
             error instanceof Error ? error.message : error
           }`,
         ),
-      );
-
-    const companyId = '00000000-0000-4000-8000-000000000001';
-    void this.notifications
-      .notifyWhatsAppInbound({
-        companyId,
-        phone: from,
-        contactName: withLead.name ?? input.contactName,
-        preview: parsed.body.slice(0, 200),
-        assignedUserId: withLead.assignedUser?.id ?? null,
-      })
+      )
+      .then(() =>
+        this.notifications.notifyWhatsAppInbound({
+          companyId,
+          phone: from,
+          contactName: withLead.name ?? input.contactName,
+          preview: parsed.body.slice(0, 200),
+        }),
+      )
       .catch((error) =>
         this.logger.warn(
           `WhatsApp inbound notify failed: ${

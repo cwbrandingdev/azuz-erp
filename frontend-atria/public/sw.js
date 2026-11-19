@@ -12,17 +12,52 @@ function readPayload(event) {
   }
 }
 
+const OPEN_CONVERSATION_QUERY = "whatsapp:open-conversation";
+const OPEN_CONVERSATION_TIMEOUT_MS = 800;
+
+// Pergunta à aba qual conversa do WhatsApp está aberta. Sem resposta a tempo,
+// considera que não há conversa aberta e o aviso é mostrado.
+function askOpenConversation(client) {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => resolve(null), OPEN_CONVERSATION_TIMEOUT_MS);
+
+    channel.port1.onmessage = (message) => {
+      clearTimeout(timer);
+      resolve(message.data?.phone ?? null);
+    };
+    client.postMessage({ type: OPEN_CONVERSATION_QUERY }, [channel.port2]);
+  });
+}
+
+async function isConversationOpen(phone) {
+  const windows = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  const visible = windows.filter(
+    (client) => client.visibilityState === "visible",
+  );
+  const openPhones = await Promise.all(visible.map(askOpenConversation));
+  return openPhones.includes(phone);
+}
+
 self.addEventListener("push", (event) => {
-  const { title, body, url, tag } = readPayload(event);
+  const { title, body, url, tag, phone } = readPayload(event);
 
   event.waitUntil(
-    self.registration.showNotification(title || "Atria", {
-      body: body || "",
-      tag,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      data: { url: url || "/" },
-    }),
+    (async () => {
+      if (phone && (await isConversationOpen(phone))) return;
+
+      await self.registration.showNotification(title || "Atria", {
+        body: body || "",
+        tag,
+        renotify: true,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        data: { url: url || "/" },
+      });
+    })(),
   );
 });
 

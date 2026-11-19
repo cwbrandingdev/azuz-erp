@@ -16,6 +16,12 @@ const envSchema = zod_1.z
     SUPABASE_DB_SCHEMA: zod_1.z.enum(['dev', 'public']).default('public'),
     SUPABASE_STORAGE_BUCKET: zod_1.z.string().optional(),
     SUPABASE_DELIVERABLES_BUCKET: zod_1.z.string().optional(),
+    STORAGE_PROVIDER: zod_1.z.enum(['supabase', 'r2']).default('supabase'),
+    R2_ACCOUNT_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    R2_ACCESS_KEY_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    R2_SECRET_ACCESS_KEY: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    R2_BUCKET: zod_1.z.string().optional().or(zod_1.z.literal('')),
+    R2_PUBLIC_BASE_URL: zod_1.z.string().optional().or(zod_1.z.literal('')),
     JWT_ACCESS_SECRET: zod_1.z.string().min(1),
     JWT_REFRESH_SECRET: zod_1.z.string().min(1),
     JWT_ACCESS_EXPIRATION: zod_1.z.string().default('15m'),
@@ -62,6 +68,26 @@ const envSchema = zod_1.z
     GOOGLE_REFRESH_TOKEN: zod_1.z.string().optional().or(zod_1.z.literal('')),
     GOOGLE_CALENDAR_ID: zod_1.z.string().optional().or(zod_1.z.literal('')),
     CWBRANDING_API_KEY: zod_1.z.string().optional().or(zod_1.z.literal('')),
+})
+    .superRefine((data, ctx) => {
+    if (data.STORAGE_PROVIDER !== 'r2')
+        return;
+    const required = [
+        'R2_ACCOUNT_ID',
+        'R2_ACCESS_KEY_ID',
+        'R2_SECRET_ACCESS_KEY',
+        'R2_BUCKET',
+        'R2_PUBLIC_BASE_URL',
+    ];
+    for (const key of required) {
+        if (!data[key]?.trim()) {
+            ctx.addIssue({
+                code: 'custom',
+                path: [key],
+                message: 'Required when STORAGE_PROVIDER=r2',
+            });
+        }
+    }
 })
     .transform((data) => {
     const schemaFromUrl = extractSchema(data.DATABASE_URL);

@@ -8,7 +8,9 @@ export interface PushPayload {
   body: string;
   url: string;
   tag?: string;
+  phone?: string;
 }
+
 
 interface SubscriptionInput {
   endpoint: string;
