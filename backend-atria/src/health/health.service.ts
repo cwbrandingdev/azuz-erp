@@ -7,6 +7,8 @@ export type HealthStatus = 'ok' | 'degraded' | 'error';
 
 export interface HealthCheckResult {
   status: HealthStatus;
+  // Commit publicado (definido no build). "unknown" fora do deploy oficial.
+  version: string;
   timestamp: string;
   database: {
     status: 'up' | 'down';
@@ -42,6 +44,10 @@ export class HealthService {
 
     return {
       status,
+      version:
+        this.configService.get<string>('GIT_SHA') ??
+        process.env.GIT_SHA ??
+        'unknown',
       timestamp: new Date().toISOString(),
       database: {
         ...database,

@@ -1,5 +1,10 @@
 FROM node:22 AS build
 
+# Trava: o deploy oficial é o do GitHub (aba Actions > Deploy backend), que informa o commit.
+# Um "fly deploy" direto da pasta de alguém não informa e falha aqui, em vez de publicar código velho.
+ARG GIT_SHA
+RUN test -n "$GIT_SHA" || (echo "ERRO: publique pelo GitHub (Actions > Deploy backend). Em emergencia: fly deploy --build-arg GIT_SHA=manual-seunome" >&2 && exit 1)
+
 WORKDIR /usr/src/app
 
 COPY package*.json tsconfig*.json ./
@@ -21,6 +26,8 @@ RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists
 WORKDIR /usr/src/app
 RUN chown node:node /usr/src/app
 
+ARG GIT_SHA
+ENV GIT_SHA=$GIT_SHA
 ENV NODE_ENV=production
 ENV PORT=8080
 

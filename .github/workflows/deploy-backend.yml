@@ -1,0 +1,98 @@
+name: Deploy backend
+
+# Publicação manual: só dispara pelo botão "Run workflow" (aba Actions).
+# O merge de um PR não publica nada sozinho.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+env:
+  FLY_APP: atria-backend-broken-night-9242
+  # Única pessoa autorizada a publicar. Para trocar, edite esta linha por PR.
+  DEPLOY_USER: daks-2k25
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Conferir quem e de onde
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Só a branch master pode ser publicada (selecionada: ${GITHUB_REF})."
+            exit 1
+          fi
+          if [ "${GITHUB_ACTOR}" != "${DEPLOY_USER}" ]; then
+            echo "::error::${GITHUB_ACTOR} não está autorizado a publicar. Apenas ${DEPLOY_USER}."
+            exit 1
+          fi
+          if [ -z "${FLY_API_TOKEN}" ]; then
+            echo "::error::O secret FLY_API_TOKEN não está cadastrado no repositório."
+            exit 1
+          fi
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # Guarda a imagem que está no ar para voltar a ela se o teste falhar.
+      - name: Guardar a imagem atual
+        id: previous
+        run: |
+          image="$(flyctl machine list --app "${FLY_APP}" --json | jq -r '.[0].config.image // empty')"
+          echo "image=${image}" >> "${GITHUB_OUTPUT}"
+          echo "Imagem atual: ${image:-<nenhuma>}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Publicar
+        id: deploy
+        working-directory: backend-atria
+        run: flyctl deploy --app "${FLY_APP}" --remote-only --build-arg "GIT_SHA=${GITHUB_SHA}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Teste automático (versão e login)
+        id: smoke
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+
+          for i in $(seq 1 30); do
+            code="$(curl -s -o health.json -w '%{http_code}' "${base}/health" || true)"
+            [ "${code}" = "200" ] && break
+            sleep 5
+          done
+          if [ "${code}" != "200" ]; then
+            echo "::error::/health não respondeu 200 (último: ${code})."
+            exit 1
+          fi
+
+          version="$(jq -r '.version // empty' health.json)"
+          if [ "${version}" != "${GITHUB_SHA}" ]; then
+            echo "::error::A versão no ar (${version:-vazia}) não é a publicada (${GITHUB_SHA})."
+            exit 1
+          fi
+
+          # O formulário de login envia rememberMe. Um backend velho responde 400 (property should not exist).
+          status="$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"teste-automatico@example.invalid","password":"senha-falsa-123","rememberMe":true}' \
+            "${base}/auth/login")"
+          if [ "${status}" != "401" ]; then
+            echo "::error::Login de teste respondeu ${status}; o esperado era 401."
+            exit 1
+          fi
+          echo "Versão ${version} no ar e login respondendo 401, como esperado."
+
+      - name: Voltar para a imagem anterior
+        if: failure() && steps.deploy.outcome == 'success' && steps.previous.outputs.image != ''
+        run: |
+          echo "::warning::O teste falhou. Voltando para ${{ steps.previous.outputs.image }}."
+          flyctl deploy --app "${FLY_APP}" --image "${{ steps.previous.outputs.image }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
