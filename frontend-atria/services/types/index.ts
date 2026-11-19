@@ -2532,6 +2532,7 @@ export interface CreateLeadMeetingInput {
   title: string;
   guestName: string;
   startAt: string;
+  guestEmails?: string[];
 }
 
 export interface CreateLeadMeetingResult {

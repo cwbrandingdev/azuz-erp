@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Copy, Loader2, Video } from "lucide-react";
+import { Copy, Loader2, Plus, Trash2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,6 +16,8 @@ import { formatEventDateTime } from "@/lib/calendar-utils";
 import { toast } from "@/lib/toast";
 import { leadsService } from "@/services";
 import type { Lead, LeadMeeting } from "@/services/types";
+
+const MAX_GUEST_EMAILS = 10;
 
 interface LeadMeetingDialogProps {
   lead: Lead;
@@ -32,22 +34,42 @@ export function LeadMeetingDialog({
 }: LeadMeetingDialogProps) {
   const [title, setTitle] = useState("");
   const [guestName, setGuestName] = useState("");
+  const [guestEmails, setGuestEmails] = useState<string[]>([""]);
   const [startAt, setStartAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState<LeadMeeting | null>(null);
   const [googleConnected, setGoogleConnected] = useState(true);
   const wasOpen = useRef(false);
 
+  const filledEmails = guestEmails
+    .map((email) => email.trim())
+    .filter(Boolean);
+
+  function updateEmail(index: number, value: string) {
+    setGuestEmails((current) =>
+      current.map((email, i) => (i === index ? value : email)),
+    );
+  }
+
+  function addEmail() {
+    setGuestEmails((current) => [...current, ""]);
+  }
+
+  function removeEmail(index: number) {
+    setGuestEmails((current) => current.filter((_, i) => i !== index));
+  }
+
   useEffect(() => {
     if (open && !wasOpen.current) {
       setTitle("");
       setGuestName(lead.contactName?.trim() || "");
+      setGuestEmails([lead.email?.trim() || ""]);
       setStartAt(defaultMeetingStart());
       setCreated(null);
       setGoogleConnected(true);
     }
     wasOpen.current = open;
-  }, [open, lead.contactName]);
+  }, [open, lead.contactName, lead.email]);
 
   function handleOpenChange(next: boolean) {
     onOpenChange(next);
@@ -67,6 +89,7 @@ export function LeadMeetingDialog({
       const result = await leadsService.createLeadMeeting(lead.id, {
         title: trimmedTitle,
         guestName: trimmedGuest,
+        guestEmails: filledEmails,
         startAt: toSaoPauloIso(startAt),
       });
       setCreated(result.lead.meeting ?? null);
@@ -172,6 +195,47 @@ export function LeadMeetingDialog({
                 />
               </Field>
               <Field>
+                <FieldLabel>E-mails dos participantes</FieldLabel>
+                <div className="space-y-2">
+                  {guestEmails.map((email, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(event) =>
+                          updateEmail(index, event.target.value)
+                        }
+                        placeholder="cliente@empresa.com"
+                        maxLength={255}
+                        aria-label={`E-mail ${index + 1}`}
+                      />
+                      {guestEmails.length > 1 ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeEmail(index)}
+                          aria-label="Remover e-mail"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      ) : null}
+                    </div>
+                  ))}
+                  {guestEmails.length < MAX_GUEST_EMAILS ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addEmail}
+                    >
+                      <Plus className="size-3.5" />
+                      Adicionar e-mail
+                    </Button>
+                  ) : null}
+                </div>
+              </Field>
+              <Field>
                 <FieldLabel htmlFor={`meeting-start-${lead.id}`}>
                   Data e hora
                 </FieldLabel>
@@ -185,7 +249,10 @@ export function LeadMeetingDialog({
               </Field>
               <p className="text-xs text-[var(--atria-primary)]/55">
                 A reunião dura 1 hora
-                {lead.email ? ` e o convite vai para ${lead.email}` : ""}.
+                {filledEmails.length > 0
+                  ? ` e o convite vai para ${filledEmails.join(", ")}. Só quem usa esses e-mails entra direto; os demais precisam pedir para entrar`
+                  : ""}
+                .
               </p>
             </FieldGroup>
             <DialogFooter className="mt-4">
