@@ -11,8 +11,8 @@ concurrency:
 
 env:
   FLY_APP: atria-backend-broken-night-9242
-  # Única pessoa autorizada a publicar. Para trocar, edite esta linha por PR.
-  DEPLOY_USER: daks-2k25
+  # Pessoas autorizadas a publicar, separadas por espaço (login do GitHub). Para mudar, edite esta linha por PR.
+  DEPLOY_USERS: daks-2k25 arthursmarinho cwbrandingdev
 
 jobs:
   deploy:
@@ -25,10 +25,16 @@ jobs:
             echo "::error::Só a branch master pode ser publicada (selecionada: ${GITHUB_REF})."
             exit 1
           fi
-          if [ "${GITHUB_ACTOR}" != "${DEPLOY_USER}" ]; then
-            echo "::error::${GITHUB_ACTOR} não está autorizado a publicar. Apenas ${DEPLOY_USER}."
-            exit 1
-          fi
+          # Logins do GitHub não diferenciam maiúsculas de minúsculas; os espaços evitam casar só um pedaço do nome.
+          actor="$(printf '%s' "${GITHUB_ACTOR}" | tr '[:upper:]' '[:lower:]')"
+          allowed=" $(printf '%s' "${DEPLOY_USERS}" | tr '[:upper:]' '[:lower:]') "
+          case "${allowed}" in
+            *" ${actor} "*) ;;
+            *)
+              echo "::error::${GITHUB_ACTOR} não está autorizado a publicar. Autorizados: ${DEPLOY_USERS}."
+              exit 1
+              ;;
+          esac
           if [ -z "${FLY_API_TOKEN}" ]; then
             echo "::error::O secret FLY_API_TOKEN não está cadastrado no repositório."
             exit 1

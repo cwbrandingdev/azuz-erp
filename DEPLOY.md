@@ -10,8 +10,9 @@ pasta de alguém, para nunca subir código desatualizado.
 3. O workflow compila a `master` do zero, publica e testa (versão no `/health` e login com `rememberMe`).
    Se o teste falhar, ele volta para a imagem anterior.
 
-Só o usuário definido em `DEPLOY_USER` (em `.github/workflows/deploy-backend.yml`) consegue publicar. Qualquer outra pessoa
-vê o job falhar logo no primeiro passo.
+Só as pessoas listadas em `DEPLOY_USERS` (em `.github/workflows/deploy-backend.yml`, logins do GitHub separados por espaço)
+conseguem publicar. Qualquer outra pessoa vê o job falhar logo no primeiro passo. Para incluir ou tirar alguém, edite essa
+linha por PR.
 
 ## Configuração única
 
