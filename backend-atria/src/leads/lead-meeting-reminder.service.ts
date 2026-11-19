@@ -3,7 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-const REMINDER_LEAD_TIME_MS = 60 * 60 * 1000;
+export const REMINDER_LEAD_TIME_MS = 60 * 60 * 1000;
 const SAO_PAULO_TZ = 'America/Sao_Paulo';
 
 interface ReminderMeeting {
