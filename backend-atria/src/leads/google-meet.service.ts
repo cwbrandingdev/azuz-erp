@@ -15,7 +15,7 @@ export interface GoogleMeetInput {
   title: string;
   description: string;
   guestName: string;
-  guestEmail?: string;
+  guestEmails: string[];
   startAt: Date;
   endAt: Date;
 }
@@ -39,9 +39,14 @@ export class GoogleMeetService {
   async createMeeting(input: GoogleMeetInput): Promise<string> {
     const token = await this.getAccessToken();
     const calendarId = this.read('GOOGLE_CALENDAR_ID') || 'primary';
-    const email = normalizeEmail(input.guestEmail);
+    const emails = input.guestEmails
+      .map((value) => normalizeEmail(value))
+      .filter((value): value is string => Boolean(value));
     const timeZone = 'America/Sao_Paulo';
-    const meetUrl = await this.createOpenSpace(token);
+    const { meetUrl, spaceName } = await this.createPrivateSpace(token);
+    await Promise.all(
+      emails.map((email) => this.addMember(token, spaceName, email)),
+    );
 
     try {
       await axios.post(
@@ -58,10 +63,12 @@ export class GoogleMeetService {
             dateTime: input.endAt.toISOString(),
             timeZone,
           },
-          ...(email ? { attendees: [{ email, displayName: input.guestName }] } : {}),
+          ...(emails.length > 0
+            ? { attendees: emails.map((email) => ({ email })) }
+            : {}),
         },
         {
-          params: email ? { sendUpdates: 'all' } : undefined,
+          params: emails.length > 0 ? { sendUpdates: 'all' } : undefined,
           headers: { Authorization: `Bearer ${token}` },
           timeout: 20_000,
         },
@@ -77,34 +84,54 @@ export class GoogleMeetService {
     return meetUrl;
   }
 
-  private async createOpenSpace(token: string): Promise<string> {
+  private async createPrivateSpace(
+    token: string,
+  ): Promise<{ meetUrl: string; spaceName: string }> {
     try {
       const response = await axios.post(
         MEET_SPACES_URL,
-        { config: { accessType: 'OPEN' } },
+        { config: { accessType: 'TRUSTED' } },
         {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 20_000,
         },
       );
       const meetUrl = response.data?.meetingUri as string | undefined;
-      if (!meetUrl) {
+      const spaceName = response.data?.name as string | undefined;
+      if (!meetUrl || !spaceName) {
         throw new BadGatewayException(
           'O Google não devolveu o link da reunião.',
         );
       }
-      return meetUrl;
+      return { meetUrl, spaceName };
     } catch (error) {
       if (error instanceof BadGatewayException) throw error;
       const message = readGoogleError(error);
       this.logger.warn(`Falha ao criar a sala do Google Meet: ${message}`);
       if (isMissingMeetPermission(message)) {
         throw new BadGatewayException(
-          'Autorize o Google Meet de novo para criar reuniões abertas.',
+          'Autorize o Google Meet de novo para criar reuniões.',
         );
       }
       throw new BadGatewayException(
         message || 'Não foi possível criar a reunião no Google Meet.',
+      );
+    }
+  }
+
+  private async addMember(token: string, spaceName: string, email: string) {
+    try {
+      await axios.post(
+        `${MEET_SPACES_URL}/${spaceName.replace(/^spaces\//, '')}/members`,
+        { email },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 20_000,
+        },
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Falha ao adicionar ${email} como membro da sala: ${readGoogleError(error)}`,
       );
     }
   }

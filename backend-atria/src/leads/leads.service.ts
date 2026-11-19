@@ -1440,6 +1440,14 @@ export class LeadsService {
         'Informe o nome da reunião e o participante.',
       );
     }
+
+    const guestEmails = [
+      ...new Set(
+        (dto.guestEmails ?? [])
+          .map((email) => email.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ];
     const description = `Reunião com ${guestName}\nLead: ${lead.name}`;
     const googleConnected = this.googleMeet.isConfigured();
     const meetUrl = googleConnected
@@ -1447,7 +1455,7 @@ export class LeadsService {
           title,
           description,
           guestName,
-          guestEmail: lead.email ?? undefined,
+          guestEmails,
           startAt,
           endAt,
         })
@@ -1462,6 +1470,7 @@ export class LeadsService {
         startAt,
         endAt,
         meetUrl,
+        guestEmails,
         createdById: user.userId,
       },
     });

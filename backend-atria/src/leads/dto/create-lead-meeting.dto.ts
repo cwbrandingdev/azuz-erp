@@ -1,4 +1,15 @@
-import { IsDateString, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsDateString,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
+
+export const MAX_GUEST_EMAILS = 10;
 
 export class CreateLeadMeetingDto {
   @IsString()
@@ -13,4 +24,11 @@ export class CreateLeadMeetingDto {
 
   @IsDateString()
   startAt: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_GUEST_EMAILS)
+  @IsEmail({}, { each: true })
+  @MaxLength(255, { each: true })
+  guestEmails?: string[];
 }
