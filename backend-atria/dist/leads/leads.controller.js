@@ -27,6 +27,7 @@ const prospecting_leads_query_dto_1 = require("../crm/dto/prospecting-leads-quer
 const cnae_resolver_service_1 = require("./company-lookup/application/cnae-resolver.service");
 const b2b_lead_search_dto_1 = require("./company-lookup/dto/b2b-lead-search.dto");
 const cnae_search_query_dto_1 = require("./company-lookup/dto/cnae-search-query.dto");
+const lead_search_session_query_dto_1 = require("./company-lookup/dto/lead-search-session-query.dto");
 const lead_search_session_service_1 = require("./company-lookup/application/lead-search-session.service");
 const lead_search_dto_1 = require("./dto/lead-search.dto");
 const leads_service_1 = require("./leads.service");
@@ -57,8 +58,8 @@ let LeadsController = class LeadsController {
     enrichSearchSessionMaps(user, id) {
         return this.leadsService.enrichSearchSessionFromMaps(user, id);
     }
-    getSearchSessionLeads(user, id) {
-        return this.leadSearchSessionService.getSessionLeads(user.companyId, id);
+    getSearchSessionLeads(user, id, query) {
+        return this.leadSearchSessionService.getSessionLeads(user.companyId, id, query);
     }
     search(user, dto) {
         return this.leadSearchSessionService.search(user.companyId, dto);
@@ -155,8 +156,9 @@ __decorate([
     (0, common_1.Get)('sessions/:id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, String, lead_search_session_query_dto_1.LeadSearchSessionQueryDto]),
     __metadata("design:returntype", void 0)
 ], LeadsController.prototype, "getSearchSessionLeads", null);
 __decorate([

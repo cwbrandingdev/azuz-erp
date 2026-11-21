@@ -5,8 +5,7 @@ import type { DiscoveredCompanyCandidate } from '../domain/company-lookup.types'
 import { normalizeCatalogText } from '../domain/text-normalize';
 import { qualifyRegistryCompany } from '../../qualification/registry-company-qualifier';
 
-/** Page size when loading the full catalog (unlimited search). */
-export const CATALOG_FETCH_BATCH_SIZE = 500;
+export const CATALOG_DEFAULT_PAGE_SIZE = 25;
 
 export interface CatalogSearchParams {
   queryValue: string;
@@ -14,7 +13,20 @@ export interface CatalogSearchParams {
   uf: string;
   neighborhood?: string;
   cnaeCodes: string[];
+  page?: number;
+  pageSize?: number;
+  name?: string;
+  openedFrom?: string;
+  openedTo?: string;
+  /** Hard cap used only when page/pageSize are absent (legacy). */
   maxResults?: number;
+}
+
+export interface CatalogSearchPageResult {
+  items: CatalogCandidate[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface CatalogCandidate extends DiscoveredCompanyCandidate {
@@ -28,8 +40,12 @@ type CnaeMode = 'exact' | 'prefix';
 export class ProspectCompanyCatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async search(params: CatalogSearchParams): Promise<CatalogCandidate[]> {
-    const take = this.resolveOptionalLimit(params.maxResults);
+  async searchPage(params: CatalogSearchParams): Promise<CatalogSearchPageResult> {
+    const page = Math.max(1, Math.round(params.page ?? 1));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Math.round(params.pageSize ?? CATALOG_DEFAULT_PAGE_SIZE)),
+    );
     const uf = params.uf.trim().toUpperCase();
     const cityNormalized = normalizeCatalogText(params.city);
     const neighborhoodNormalized = params.neighborhood
@@ -37,9 +53,9 @@ export class ProspectCompanyCatalogService {
       : '';
     const exactCodes = this.uniqueCodes(params.cnaeCodes, 7);
     const prefixes = this.uniquePrefixes(params.cnaeCodes, params.queryValue);
-
-    const collected: ProspectCompany[] = [];
-    const seen = new Set<string>();
+    const name = params.name?.trim() ?? '';
+    const openedFrom = this.parseDayStart(params.openedFrom);
+    const openedTo = this.parseDayEnd(params.openedTo, params.openedFrom);
 
     const stages: Array<{
       useCity: boolean;
@@ -58,9 +74,6 @@ export class ProspectCompanyCatalogService {
     ];
 
     for (const stage of stages) {
-      if (take !== null && collected.length >= take) {
-        break;
-      }
       if (stage.useNeighborhood && !neighborhoodNormalized) {
         continue;
       }
@@ -75,57 +88,55 @@ export class ProspectCompanyCatalogService {
         continue;
       }
 
-      let skip = 0;
-      while (true) {
-        if (take !== null && collected.length >= take) {
-          break;
-        }
+      const where = this.buildWhere({
+        uf,
+        cityNormalized: stage.useCity ? cityNormalized : '',
+        neighborhoodNormalized: stage.useNeighborhood
+          ? neighborhoodNormalized
+          : '',
+        exactCodes,
+        prefixes,
+        cnaeMode: stage.cnaeMode,
+        name,
+        openedFrom,
+        openedTo,
+      });
 
-        const remaining =
-          take !== null ? take - collected.length : CATALOG_FETCH_BATCH_SIZE;
-        const batchTake = Math.min(CATALOG_FETCH_BATCH_SIZE, remaining);
-
-        const rows = await this.prisma.prospectCompany.findMany({
-          where: this.buildWhere({
-            uf,
-            cityNormalized: stage.useCity ? cityNormalized : '',
-            neighborhoodNormalized: stage.useNeighborhood
-              ? neighborhoodNormalized
-              : '',
-            exactCodes,
-            prefixes,
-            cnaeMode: stage.cnaeMode,
-            excludeCnpjs: [...seen],
-          }),
-          orderBy: { blendedScore: 'desc' },
-          take: batchTake,
-          skip,
-        });
-
-        if (rows.length === 0) {
-          break;
-        }
-
-        for (const row of rows) {
-          if (seen.has(row.cnpj)) {
-            continue;
-          }
-          seen.add(row.cnpj);
-          collected.push(row);
-          if (take !== null && collected.length >= take) {
-            break;
-          }
-        }
-
-        if (rows.length < batchTake) {
-          break;
-        }
-
-        skip += rows.length;
+      const totalCount = await this.prisma.prospectCompany.count({ where });
+      if (totalCount === 0) {
+        continue;
       }
+
+      const effectivePageSize =
+        params.maxResults != null && params.maxResults > 0
+          ? Math.min(pageSize, params.maxResults)
+          : pageSize;
+      const skip = (page - 1) * effectivePageSize;
+
+      const rows = await this.prisma.prospectCompany.findMany({
+        where,
+        orderBy: [{ blendedScore: 'desc' }, { cnpj: 'asc' }],
+        skip,
+        take: effectivePageSize,
+      });
+
+      return {
+        items: rows.map((row) => this.toCandidate(row)),
+        totalCount:
+          params.maxResults != null && params.maxResults > 0
+            ? Math.min(totalCount, params.maxResults)
+            : totalCount,
+        page,
+        pageSize: effectivePageSize,
+      };
     }
 
-    return collected.map((row) => this.toCandidate(row));
+    return {
+      items: [],
+      totalCount: 0,
+      page,
+      pageSize,
+    };
   }
 
   private buildWhere(input: {
@@ -135,13 +146,22 @@ export class ProspectCompanyCatalogService {
     exactCodes: string[];
     prefixes: string[];
     cnaeMode: CnaeMode;
-    excludeCnpjs: string[];
+    name: string;
+    openedFrom: Date | null;
+    openedTo: Date | null;
   }): Prisma.ProspectCompanyWhereInput {
+    const nameNormalized = normalizeCatalogText(input.name);
+
     return {
       uf: input.uf,
       verdict: { not: ProspectFitVerdict.do_not_prioritize },
-      ...(input.excludeCnpjs.length > 0
-        ? { cnpj: { notIn: input.excludeCnpjs } }
+      ...(input.openedFrom || input.openedTo
+        ? {
+            openedAt: {
+              ...(input.openedFrom ? { gte: input.openedFrom } : {}),
+              ...(input.openedTo ? { lte: input.openedTo } : {}),
+            },
+          }
         : {}),
       AND: [
         input.cityNormalized
@@ -157,6 +177,14 @@ export class ProspectCompanyCatalogService {
               neighborhoodNormalized: {
                 contains: input.neighborhoodNormalized,
               },
+            }
+          : {},
+        nameNormalized
+          ? {
+              OR: [
+                { legalName: { contains: input.name, mode: 'insensitive' } },
+                { tradeName: { contains: input.name, mode: 'insensitive' } },
+              ],
             }
           : {},
         this.buildCnaeFilter(
@@ -212,6 +240,29 @@ export class ProspectCompanyCatalogService {
     return Array.from(new Set(fromCodes.filter((code) => code.length >= 5)));
   }
 
+  private parseDayStart(value?: string): Date | null {
+    const day = value?.trim();
+    if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      return null;
+    }
+    const date = new Date(`${day}T00:00:00.000Z`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  /** If only `openedFrom` is set, upper bound is end of today (UTC). */
+  private parseDayEnd(openedTo?: string, openedFrom?: string): Date | null {
+    const to = openedTo?.trim();
+    if (to && /^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      const date = new Date(`${to}T23:59:59.999Z`);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    if (openedFrom?.trim()) {
+      const today = new Date().toISOString().slice(0, 10);
+      return new Date(`${today}T23:59:59.999Z`);
+    }
+    return null;
+  }
+
   private toCandidate(row: ProspectCompany): CatalogCandidate {
     const name = row.tradeName?.trim() || row.legalName;
     const qualification = qualifyRegistryCompany({
@@ -251,6 +302,8 @@ export class ProspectCompanyCatalogService {
         capital_social: row.shareCapital,
         razao_social: row.legalName,
         nome_fantasia: row.tradeName,
+        openedAt: row.openedAt?.toISOString() ?? null,
+        data_inicio_atividade: row.openedAt?.toISOString().slice(0, 10) ?? null,
         registryScore: row.registryScore,
         commercialScore: row.commercialScore,
         blendedScore: row.blendedScore,
@@ -264,13 +317,5 @@ export class ProspectCompanyCatalogService {
         },
       },
     };
-  }
-
-  /** `null` = no cap (return every catalog row matching the filters). */
-  private resolveOptionalLimit(maxResults?: number): number | null {
-    if (maxResults === undefined || maxResults === null || maxResults <= 0) {
-      return null;
-    }
-    return Math.round(maxResults);
   }
 }

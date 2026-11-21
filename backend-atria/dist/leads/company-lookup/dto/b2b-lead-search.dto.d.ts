@@ -9,4 +9,9 @@ export declare class B2bLeadSearchDto {
     uf: string;
     address?: string;
     maxResults?: number;
+    page?: number;
+    pageSize?: number;
+    name?: string;
+    openedFrom?: string;
+    openedTo?: string;
 }

@@ -9,20 +9,21 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProspectCompanyCatalogService = exports.CATALOG_FETCH_BATCH_SIZE = void 0;
+exports.ProspectCompanyCatalogService = exports.CATALOG_DEFAULT_PAGE_SIZE = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../../../prisma/prisma.service");
 const text_normalize_1 = require("../domain/text-normalize");
 const registry_company_qualifier_1 = require("../../qualification/registry-company-qualifier");
-exports.CATALOG_FETCH_BATCH_SIZE = 500;
+exports.CATALOG_DEFAULT_PAGE_SIZE = 25;
 let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async search(params) {
-        const take = this.resolveOptionalLimit(params.maxResults);
+    async searchPage(params) {
+        const page = Math.max(1, Math.round(params.page ?? 1));
+        const pageSize = Math.min(100, Math.max(1, Math.round(params.pageSize ?? exports.CATALOG_DEFAULT_PAGE_SIZE)));
         const uf = params.uf.trim().toUpperCase();
         const cityNormalized = (0, text_normalize_1.normalizeCatalogText)(params.city);
         const neighborhoodNormalized = params.neighborhood
@@ -30,8 +31,9 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
             : '';
         const exactCodes = this.uniqueCodes(params.cnaeCodes, 7);
         const prefixes = this.uniquePrefixes(params.cnaeCodes, params.queryValue);
-        const collected = [];
-        const seen = new Set();
+        const name = params.name?.trim() ?? '';
+        const openedFrom = this.parseDayStart(params.openedFrom);
+        const openedTo = this.parseDayEnd(params.openedTo, params.openedFrom);
         const stages = [
             {
                 useCity: true,
@@ -44,9 +46,6 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
             { useCity: false, useNeighborhood: false, cnaeMode: 'prefix' },
         ];
         for (const stage of stages) {
-            if (take !== null && collected.length >= take) {
-                break;
-            }
             if (stage.useNeighborhood && !neighborhoodNormalized) {
                 continue;
             }
@@ -58,56 +57,61 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
                 prefixes.length === 0) {
                 continue;
             }
-            let skip = 0;
-            while (true) {
-                if (take !== null && collected.length >= take) {
-                    break;
-                }
-                const remaining = take !== null ? take - collected.length : exports.CATALOG_FETCH_BATCH_SIZE;
-                const batchTake = Math.min(exports.CATALOG_FETCH_BATCH_SIZE, remaining);
-                const rows = await this.prisma.prospectCompany.findMany({
-                    where: this.buildWhere({
-                        uf,
-                        cityNormalized: stage.useCity ? cityNormalized : '',
-                        neighborhoodNormalized: stage.useNeighborhood
-                            ? neighborhoodNormalized
-                            : '',
-                        exactCodes,
-                        prefixes,
-                        cnaeMode: stage.cnaeMode,
-                        excludeCnpjs: [...seen],
-                    }),
-                    orderBy: { blendedScore: 'desc' },
-                    take: batchTake,
-                    skip,
-                });
-                if (rows.length === 0) {
-                    break;
-                }
-                for (const row of rows) {
-                    if (seen.has(row.cnpj)) {
-                        continue;
-                    }
-                    seen.add(row.cnpj);
-                    collected.push(row);
-                    if (take !== null && collected.length >= take) {
-                        break;
-                    }
-                }
-                if (rows.length < batchTake) {
-                    break;
-                }
-                skip += rows.length;
+            const where = this.buildWhere({
+                uf,
+                cityNormalized: stage.useCity ? cityNormalized : '',
+                neighborhoodNormalized: stage.useNeighborhood
+                    ? neighborhoodNormalized
+                    : '',
+                exactCodes,
+                prefixes,
+                cnaeMode: stage.cnaeMode,
+                name,
+                openedFrom,
+                openedTo,
+            });
+            const totalCount = await this.prisma.prospectCompany.count({ where });
+            if (totalCount === 0) {
+                continue;
             }
+            const effectivePageSize = params.maxResults != null && params.maxResults > 0
+                ? Math.min(pageSize, params.maxResults)
+                : pageSize;
+            const skip = (page - 1) * effectivePageSize;
+            const rows = await this.prisma.prospectCompany.findMany({
+                where,
+                orderBy: [{ blendedScore: 'desc' }, { cnpj: 'asc' }],
+                skip,
+                take: effectivePageSize,
+            });
+            return {
+                items: rows.map((row) => this.toCandidate(row)),
+                totalCount: params.maxResults != null && params.maxResults > 0
+                    ? Math.min(totalCount, params.maxResults)
+                    : totalCount,
+                page,
+                pageSize: effectivePageSize,
+            };
         }
-        return collected.map((row) => this.toCandidate(row));
+        return {
+            items: [],
+            totalCount: 0,
+            page,
+            pageSize,
+        };
     }
     buildWhere(input) {
+        const nameNormalized = (0, text_normalize_1.normalizeCatalogText)(input.name);
         return {
             uf: input.uf,
             verdict: { not: client_1.ProspectFitVerdict.do_not_prioritize },
-            ...(input.excludeCnpjs.length > 0
-                ? { cnpj: { notIn: input.excludeCnpjs } }
+            ...(input.openedFrom || input.openedTo
+                ? {
+                    openedAt: {
+                        ...(input.openedFrom ? { gte: input.openedFrom } : {}),
+                        ...(input.openedTo ? { lte: input.openedTo } : {}),
+                    },
+                }
                 : {}),
             AND: [
                 input.cityNormalized
@@ -123,6 +127,14 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
                         neighborhoodNormalized: {
                             contains: input.neighborhoodNormalized,
                         },
+                    }
+                    : {},
+                nameNormalized
+                    ? {
+                        OR: [
+                            { legalName: { contains: input.name, mode: 'insensitive' } },
+                            { tradeName: { contains: input.name, mode: 'insensitive' } },
+                        ],
                     }
                     : {},
                 this.buildCnaeFilter(input.cnaeMode === 'exact' ? input.exactCodes : [], input.cnaeMode === 'prefix' || input.exactCodes.length === 0
@@ -157,6 +169,26 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
             fromCodes.push(fromQuery.slice(0, 5));
         }
         return Array.from(new Set(fromCodes.filter((code) => code.length >= 5)));
+    }
+    parseDayStart(value) {
+        const day = value?.trim();
+        if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+            return null;
+        }
+        const date = new Date(`${day}T00:00:00.000Z`);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+    parseDayEnd(openedTo, openedFrom) {
+        const to = openedTo?.trim();
+        if (to && /^\d{4}-\d{2}-\d{2}$/.test(to)) {
+            const date = new Date(`${to}T23:59:59.999Z`);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+        if (openedFrom?.trim()) {
+            const today = new Date().toISOString().slice(0, 10);
+            return new Date(`${today}T23:59:59.999Z`);
+        }
+        return null;
     }
     toCandidate(row) {
         const name = row.tradeName?.trim() || row.legalName;
@@ -196,6 +228,8 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
                 capital_social: row.shareCapital,
                 razao_social: row.legalName,
                 nome_fantasia: row.tradeName,
+                openedAt: row.openedAt?.toISOString() ?? null,
+                data_inicio_atividade: row.openedAt?.toISOString().slice(0, 10) ?? null,
                 registryScore: row.registryScore,
                 commercialScore: row.commercialScore,
                 blendedScore: row.blendedScore,
@@ -209,12 +243,6 @@ let ProspectCompanyCatalogService = class ProspectCompanyCatalogService {
                 },
             },
         };
-    }
-    resolveOptionalLimit(maxResults) {
-        if (maxResults === undefined || maxResults === null || maxResults <= 0) {
-            return null;
-        }
-        return Math.round(maxResults);
     }
 };
 exports.ProspectCompanyCatalogService = ProspectCompanyCatalogService;

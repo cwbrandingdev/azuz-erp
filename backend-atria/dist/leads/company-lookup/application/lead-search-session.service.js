@@ -19,6 +19,7 @@ const cnae_resolver_service_1 = require("./cnae-resolver.service");
 const prospect_company_catalog_service_1 = require("./prospect-company-catalog.service");
 const prospect_catalog_constants_1 = require("../domain/prospect-catalog.constants");
 const registry_signals_util_1 = require("../../qualification/registry-signals.util");
+const prospect_company_catalog_service_2 = require("./prospect-company-catalog.service");
 exports.CATALOG_PREVIEW_ID_PREFIX = 'external:cnpj:';
 function catalogPreviewId(cnpj) {
     return `${exports.CATALOG_PREVIEW_ID_PREFIX}${cnpj}`;
@@ -47,13 +48,20 @@ let LeadSearchSessionService = class LeadSearchSessionService {
         if (!(0, prospect_catalog_constants_1.isProspectCatalogAllowedUf)(uf)) {
             throw new common_1.BadRequestException('A busca por CNAE está disponível apenas para São Paulo (SP) e Paraná (PR).');
         }
-        const discovered = await this.discoverCandidates({
+        const page = dto.page ?? 1;
+        const pageSize = dto.pageSize ?? prospect_company_catalog_service_2.CATALOG_DEFAULT_PAGE_SIZE;
+        const discovered = await this.discoverCandidatesPage({
             queryType,
             queryValue,
             city,
             uf,
-            maxResults: dto.maxResults,
             address: dto.address?.trim(),
+            page,
+            pageSize,
+            maxResults: dto.maxResults,
+            name: dto.name,
+            openedFrom: dto.openedFrom,
+            openedTo: dto.openedTo,
         });
         const session = await this.prisma.leadSearchSession.create({
             data: {
@@ -64,11 +72,13 @@ let LeadSearchSessionService = class LeadSearchSessionService {
                 uf,
             },
         });
-        const leads = await this.hydrateCandidates(resolvedTenantId, session.id, discovered);
+        const leads = await this.hydrateCandidates(resolvedTenantId, session.id, discovered.items);
         return {
-            session: this.toSessionResponse(session, leads.length),
+            session: this.toSessionResponse(session, discovered.totalCount),
             leads,
-            totalCount: leads.length,
+            totalCount: discovered.totalCount,
+            page: discovered.page,
+            pageSize: discovered.pageSize,
         };
     }
     async listSessions(tenantId) {
@@ -93,8 +103,10 @@ let LeadSearchSessionService = class LeadSearchSessionService {
             leadsCount: session._count.leads,
         }));
     }
-    async getSessionLeads(tenantId, sessionId) {
+    async getSessionLeads(tenantId, sessionId, query = {}) {
         const resolvedTenantId = tenantId?.trim() || company_constants_1.DEFAULT_COMPANY_ID;
+        const page = query.page ?? 1;
+        const pageSize = query.pageSize ?? prospect_company_catalog_service_2.CATALOG_DEFAULT_PAGE_SIZE;
         const session = await this.prisma.leadSearchSession.findFirst({
             where: {
                 id: sessionId,
@@ -104,43 +116,66 @@ let LeadSearchSessionService = class LeadSearchSessionService {
         if (!session) {
             throw new common_1.NotFoundException('Search session not found');
         }
-        const linked = await this.prisma.lead.findMany({
+        const linkedCount = await this.prisma.lead.count({
             where: {
                 searchSessionId: session.id,
                 companyId: resolvedTenantId,
                 deletedAt: null,
             },
-            orderBy: { createdAt: 'desc' },
         });
-        if (linked.length > 0) {
+        if (linkedCount > 0) {
+            const linked = await this.prisma.lead.findMany({
+                where: {
+                    searchSessionId: session.id,
+                    companyId: resolvedTenantId,
+                    deletedAt: null,
+                },
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+            });
             return {
-                session: this.toSessionResponse(session, linked.length),
+                session: this.toSessionResponse(session, linkedCount),
                 leads: linked.map((lead) => this.toLeadResponse(lead)),
-                totalCount: linked.length,
+                totalCount: linkedCount,
+                page,
+                pageSize,
             };
         }
-        const discovered = await this.discoverCandidates({
+        const discovered = await this.discoverCandidatesPage({
             queryType: session.queryType,
             queryValue: session.queryValue,
             city: session.city,
             uf: session.uf,
+            page,
+            pageSize,
+            name: query.name,
+            openedFrom: query.openedFrom,
+            openedTo: query.openedTo,
         });
-        const leads = await this.hydrateCandidates(resolvedTenantId, session.id, discovered);
+        const leads = await this.hydrateCandidates(resolvedTenantId, session.id, discovered.items);
         return {
-            session: this.toSessionResponse(session, leads.length),
+            session: this.toSessionResponse(session, discovered.totalCount),
             leads,
-            totalCount: leads.length,
+            totalCount: discovered.totalCount,
+            page: discovered.page,
+            pageSize: discovered.pageSize,
         };
     }
-    async discoverCandidates(params) {
+    async discoverCandidatesPage(params) {
         const cnaeClasses = await this.cnaeResolver.resolve(params.queryType, params.queryValue);
-        return this.prospectCatalog.search({
+        return this.prospectCatalog.searchPage({
             queryValue: params.queryValue,
             city: params.city,
             uf: params.uf,
             neighborhood: params.address,
             cnaeCodes: this.cnaeResolver.cnaeFilterCodes(cnaeClasses),
+            page: params.page,
+            pageSize: params.pageSize,
             maxResults: params.maxResults,
+            name: params.name,
+            openedFrom: params.openedFrom,
+            openedTo: params.openedTo,
         });
     }
     async hydrateCandidates(tenantId, sessionId, candidates) {

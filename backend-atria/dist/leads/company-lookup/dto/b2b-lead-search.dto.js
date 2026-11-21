@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.B2bLeadSearchDto = exports.B2bLeadSearchQueryType = void 0;
+const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 var B2bLeadSearchQueryType;
 (function (B2bLeadSearchQueryType) {
@@ -23,6 +24,11 @@ class B2bLeadSearchDto {
     uf;
     address;
     maxResults;
+    page;
+    pageSize;
+    name;
+    openedFrom;
+    openedTo;
 }
 exports.B2bLeadSearchDto = B2bLeadSearchDto;
 __decorate([
@@ -56,9 +62,43 @@ __decorate([
 ], B2bLeadSearchDto.prototype, "address", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
     (0, class_validator_1.IsInt)(),
     (0, class_validator_1.Min)(1),
     (0, class_validator_1.Max)(500_000),
     __metadata("design:type", Number)
 ], B2bLeadSearchDto.prototype, "maxResults", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], B2bLeadSearchDto.prototype, "page", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(100),
+    __metadata("design:type", Number)
+], B2bLeadSearchDto.prototype, "pageSize", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(255),
+    __metadata("design:type", String)
+], B2bLeadSearchDto.prototype, "name", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^\d{4}-\d{2}-\d{2}$/),
+    __metadata("design:type", String)
+], B2bLeadSearchDto.prototype, "openedFrom", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^\d{4}-\d{2}-\d{2}$/),
+    __metadata("design:type", String)
+], B2bLeadSearchDto.prototype, "openedTo", void 0);
 //# sourceMappingURL=b2b-lead-search.dto.js.map

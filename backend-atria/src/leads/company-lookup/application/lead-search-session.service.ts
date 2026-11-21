@@ -13,11 +13,13 @@ import {
   ProspectCompanyCatalogService,
 } from './prospect-company-catalog.service';
 import type { B2bLeadSearchDto } from '../dto/b2b-lead-search.dto';
+import type { LeadSearchSessionQueryDto } from '../dto/lead-search-session-query.dto';
 import { isProspectCatalogAllowedUf } from '../domain/prospect-catalog.constants';
 import {
   extractCnpjFromLead,
   materializeRegistrySnapshotFromRawData,
 } from '../../qualification/registry-signals.util';
+import { CATALOG_DEFAULT_PAGE_SIZE } from './prospect-company-catalog.service';
 
 export const CATALOG_PREVIEW_ID_PREFIX = 'external:cnpj:';
 
@@ -54,13 +56,21 @@ export class LeadSearchSessionService {
       );
     }
 
-    const discovered = await this.discoverCandidates({
+    const page = dto.page ?? 1;
+    const pageSize = dto.pageSize ?? CATALOG_DEFAULT_PAGE_SIZE;
+
+    const discovered = await this.discoverCandidatesPage({
       queryType,
       queryValue,
       city,
       uf,
-      maxResults: dto.maxResults,
       address: dto.address?.trim(),
+      page,
+      pageSize,
+      maxResults: dto.maxResults,
+      name: dto.name,
+      openedFrom: dto.openedFrom,
+      openedTo: dto.openedTo,
     });
 
     const session = await this.prisma.leadSearchSession.create({
@@ -76,13 +86,15 @@ export class LeadSearchSessionService {
     const leads = await this.hydrateCandidates(
       resolvedTenantId,
       session.id,
-      discovered,
+      discovered.items,
     );
 
     return {
-      session: this.toSessionResponse(session, leads.length),
+      session: this.toSessionResponse(session, discovered.totalCount),
       leads,
-      totalCount: leads.length,
+      totalCount: discovered.totalCount,
+      page: discovered.page,
+      pageSize: discovered.pageSize,
     };
   }
 
@@ -114,8 +126,11 @@ export class LeadSearchSessionService {
   async getSessionLeads(
     tenantId: string | null | undefined,
     sessionId: string,
+    query: LeadSearchSessionQueryDto = {},
   ) {
     const resolvedTenantId = tenantId?.trim() || DEFAULT_COMPANY_ID;
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? CATALOG_DEFAULT_PAGE_SIZE;
 
     const session = await this.prisma.leadSearchSession.findFirst({
       where: {
@@ -128,62 +143,91 @@ export class LeadSearchSessionService {
       throw new NotFoundException('Search session not found');
     }
 
-    const linked = await this.prisma.lead.findMany({
+    const linkedCount = await this.prisma.lead.count({
       where: {
         searchSessionId: session.id,
         companyId: resolvedTenantId,
         deletedAt: null,
       },
-      orderBy: { createdAt: 'desc' },
     });
 
-    if (linked.length > 0) {
+    if (linkedCount > 0) {
+      const linked = await this.prisma.lead.findMany({
+        where: {
+          searchSessionId: session.id,
+          companyId: resolvedTenantId,
+          deletedAt: null,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+
       return {
-        session: this.toSessionResponse(session, linked.length),
+        session: this.toSessionResponse(session, linkedCount),
         leads: linked.map((lead) => this.toLeadResponse(lead)),
-        totalCount: linked.length,
+        totalCount: linkedCount,
+        page,
+        pageSize,
       };
     }
 
-    const discovered = await this.discoverCandidates({
+    const discovered = await this.discoverCandidatesPage({
       queryType: session.queryType,
       queryValue: session.queryValue,
       city: session.city,
       uf: session.uf,
+      page,
+      pageSize,
+      name: query.name,
+      openedFrom: query.openedFrom,
+      openedTo: query.openedTo,
     });
     const leads = await this.hydrateCandidates(
       resolvedTenantId,
       session.id,
-      discovered,
+      discovered.items,
     );
 
     return {
-      session: this.toSessionResponse(session, leads.length),
+      session: this.toSessionResponse(session, discovered.totalCount),
       leads,
-      totalCount: leads.length,
+      totalCount: discovered.totalCount,
+      page: discovered.page,
+      pageSize: discovered.pageSize,
     };
   }
 
-  private async discoverCandidates(params: {
+  private async discoverCandidatesPage(params: {
     queryType: LeadSearchQueryType;
     queryValue: string;
     city: string;
     uf: string;
-    maxResults?: number;
     address?: string;
-  }): Promise<CatalogCandidate[]> {
+    page?: number;
+    pageSize?: number;
+    maxResults?: number;
+    name?: string;
+    openedFrom?: string;
+    openedTo?: string;
+  }) {
     const cnaeClasses = await this.cnaeResolver.resolve(
       params.queryType,
       params.queryValue,
     );
 
-    return this.prospectCatalog.search({
+    return this.prospectCatalog.searchPage({
       queryValue: params.queryValue,
       city: params.city,
       uf: params.uf,
       neighborhood: params.address,
       cnaeCodes: this.cnaeResolver.cnaeFilterCodes(cnaeClasses),
+      page: params.page,
+      pageSize: params.pageSize,
       maxResults: params.maxResults,
+      name: params.name,
+      openedFrom: params.openedFrom,
+      openedTo: params.openedTo,
     });
   }
 

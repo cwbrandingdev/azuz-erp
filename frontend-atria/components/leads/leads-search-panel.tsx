@@ -1,36 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   PROSPECTING_LEADS_KEY,
   useProspectingLeads,
 } from "@/hooks/use-company-search";
+import { useSimulatedSearchProgress } from "@/hooks/use-simulated-search-progress";
 import {
   readPersistedMapsProspectingState,
   writePersistedMapsProspectingState,
 } from "@/lib/lead-prospecting-persistence";
-import { Kanban, Loader2, MapPin } from "lucide-react";
 import { AddToKanbanOrganizationDialog } from "@/components/leads/add-to-kanban-organization-dialog";
-import { LeadDossierDialog } from "@/components/leads/lead-dossier-dialog";
-import { LeadsMapView } from "@/components/leads/leads-map-view";
-import { LeadsTable } from "@/components/leads/leads-table";
-import { SearchSessionFilter } from "@/components/leads/search-session-filter";
+import { ProspectingLeadsList } from "@/components/leads/prospecting-leads-list";
 import {
   MapsSearchForm,
   type MapsSearchFormValues,
 } from "@/components/leads/maps-search-form";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { useCrmUsers } from "@/hooks/use-crm-users";
 import { useSdrAssignedOrganizations } from "@/hooks/use-sdr-assigned-organizations";
@@ -46,11 +35,9 @@ import {
   type MapsSearchRecord,
 } from "@/lib/maps-search-history";
 import { isMasterOrAdmin, normalizeAppRole } from "@/lib/permissions";
-import { isLeadDossierReady } from "@/lib/lead-qualification-utils";
 import { toast } from "@/lib/toast";
 import { ApiError } from "@/services/api";
 import { leadsService } from "@/services";
-import type { LeadSearchSessionSummary } from "@/services/company-search.service";
 import type { Lead } from "@/services/types";
 import {
   MAPS_FETCH_TIMEOUT_MS,
@@ -71,10 +58,12 @@ const DEFAULT_FORM_VALUES: MapsSearchFormValues = {
   neighborhood: "",
 };
 
-const ALL_CATEGORIES = "Todas as categorias";
-const ALL_NEIGHBORHOODS = "Todos os bairros";
-const ORDER_SEARCH = "ordem-da-busca";
-const ORDER_MOST_REVIEWS = "mais-avaliacoes";
+const MAPS_PROSPECT_SOURCES = new Set([
+  "leadminer",
+  "serpapi",
+  "apify",
+  "outscraper",
+]);
 
 function normalizeFilterText(value: string) {
   return value
@@ -84,67 +73,34 @@ function normalizeFilterText(value: string) {
     .trim();
 }
 
-function matchesLeadField(
-  lead: Lead,
-  query: string,
-  field: "category" | "neighborhood",
-) {
+function matchesNameQuery(lead: Lead, query: string) {
   const normalized = normalizeFilterText(query);
   if (!normalized) return true;
-  const value = normalizeFilterText(lead[field] ?? "");
-  return value.includes(normalized);
+  return normalizeFilterText(lead.name ?? "").includes(normalized);
 }
-
-function collectDistinctValues(
-  leads: Lead[],
-  field: "category" | "neighborhood",
-) {
-  const values = new Set<string>();
-  for (const lead of leads) {
-    const value = lead[field]?.trim();
-    if (value) values.add(value);
-  }
-  return Array.from(values).sort((a, b) => a.localeCompare(b, "pt-BR"));
-}
-
-const MAPS_PROSPECT_SOURCES = new Set([
-  "leadminer",
-  "serpapi",
-  "apify",
-  "outscraper",
-]);
 
 function isMapsLead(lead: Lead) {
   const source = lead.source?.trim().toLowerCase();
   return Boolean(source && MAPS_PROSPECT_SOURCES.has(source));
 }
 
-function matchesQuery(lead: Lead, query: string) {
-  const normalized = normalizeFilterText(query);
-  if (!normalized) return true;
-  const haystack = normalizeFilterText(
-    [
-      lead.name,
-      lead.city,
-      lead.neighborhood,
-      lead.category,
-      lead.phone,
-      lead.email,
-      lead.address,
-      lead.website,
-      lead.instagram,
-    ]
-      .filter(Boolean)
-      .join(" "),
-  );
-  return haystack.includes(normalized);
-}
-
 function isCrmRole(role: string | null | undefined) {
   return normalizeAppRole(role) === "crm";
 }
 
-export function LeadsSearchPanel() {
+/** True when the niche field is only digits (CNAE-like), not a text niche. */
+export function isNumericOnlyNiche(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length > 0 && digits === trimmed.replace(/[\s./-]/g, "");
+}
+
+interface LeadsSearchPanelProps {
+  modeTabs?: ReactNode;
+}
+
+export function LeadsSearchPanel({ modeTabs }: LeadsSearchPanelProps) {
   const { user } = useAuth();
   const canAssignOwner = isMasterOrAdmin(user?.role);
   const { users: crmUsers } = useCrmUsers(canAssignOwner);
@@ -156,17 +112,11 @@ export function LeadsSearchPanel() {
   const [formValues, setFormValues] = useState<MapsSearchFormValues>(
     () => persistedMapsState?.formValues ?? DEFAULT_FORM_VALUES,
   );
-  const [filterQuery, setFilterQuery] = useState("");
-  const [filterCategory, setFilterCategory] = useState(ALL_CATEGORIES);
-  const [filterNeighborhood, setFilterNeighborhood] =
-    useState(ALL_NEIGHBORHOODS);
-  const [resultOrder, setResultOrder] = useState(ORDER_SEARCH);
+  const [nameFilter, setNameFilter] = useState("");
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [bulkAddingKanban, setBulkAddingKanban] = useState(false);
-  const [qualifyingId, setQualifyingId] = useState<string | null>(null);
-  const [dossierLead, setDossierLead] = useState<Lead | null>(null);
+  const searchProgress = useSimulatedSearchProgress(loading);
   const [addingKanbanId, setAddingKanbanId] = useState<string | null>(null);
-  const savedLeads = prospectingLeadsQuery.data ?? [];
   const [externalPreviewLeads, setExternalPreviewLeads] = useState<Lead[]>(
     () => persistedMapsState?.externalPreviewLeads ?? [],
   );
@@ -186,6 +136,7 @@ export function LeadsSearchPanel() {
   const [pendingKanbanLeads, setPendingKanbanLeads] = useState<Lead[]>([]);
   const [confirmingKanban, setConfirmingKanban] = useState(false);
 
+  const savedLeads = prospectingLeadsQuery.data ?? [];
   const savedMapsLeads = useMemo(
     () => savedLeads.filter(isMapsLead),
     [savedLeads],
@@ -214,25 +165,6 @@ export function LeadsSearchPanel() {
     : externalPreviewLeads.length > 0 || activeSearchEmpty
       ? externalPreviewLeads
       : historyLeads;
-
-  const sessionOptions = useMemo<LeadSearchSessionSummary[]>(
-    () =>
-      orderedRecords.map((record) => ({
-        id: record.id,
-        tenantId: "",
-        queryType: "MAPS",
-        queryValue: record.category,
-        city: record.city,
-        uf: record.uf,
-        address:
-          record.neighborhood && record.neighborhood !== record.city
-            ? record.neighborhood
-            : null,
-        createdAt: record.createdAt,
-        leadsCount: record.leadIds.length,
-      })),
-    [orderedRecords],
-  );
 
   const initialLoading =
     prospectingLeadsQuery.isLoading && !prospectingLeadsQuery.data;
@@ -294,54 +226,26 @@ export function LeadsSearchPanel() {
     selectedSearchId,
   ]);
 
+  useEffect(() => {
+    if (isNumericOnlyNiche(formValues.category)) {
+      setCategoryError(
+        "A pesquisa do Google Maps espera somente termos/nichos, não números.",
+      );
+    } else {
+      setCategoryError(null);
+    }
+  }, [formValues.category]);
+
   async function refreshSavedLeads() {
     await queryClient.invalidateQueries({ queryKey: PROSPECTING_LEADS_KEY });
     await queryClient.refetchQueries({ queryKey: PROSPECTING_LEADS_KEY });
   }
 
-  const categoryOptions = useMemo(
-    () => collectDistinctValues(leads, "category"),
-    [leads],
-  );
-  const neighborhoodOptions = useMemo(
-    () => collectDistinctValues(leads, "neighborhood"),
-    [leads],
+  const results = useMemo(
+    () => leads.filter((lead) => matchesNameQuery(lead, nameFilter)),
+    [leads, nameFilter],
   );
 
-  const results = useMemo(() => {
-    const filtered = leads.filter((lead) => {
-      if (
-        filterCategory !== ALL_CATEGORIES &&
-        !matchesLeadField(lead, filterCategory, "category")
-      ) {
-        return false;
-      }
-      if (
-        filterNeighborhood !== ALL_NEIGHBORHOODS &&
-        !matchesLeadField(lead, filterNeighborhood, "neighborhood")
-      ) {
-        return false;
-      }
-      return matchesQuery(lead, filterQuery);
-    });
-
-    if (resultOrder !== ORDER_MOST_REVIEWS) {
-      return filtered;
-    }
-
-    return [...filtered].sort((left, right) => {
-      const byReviews = (right.reviewsCount ?? -1) - (left.reviewsCount ?? -1);
-      if (byReviews !== 0) return byReviews;
-      return (right.rating ?? -1) - (left.rating ?? -1);
-    });
-  }, [leads, filterQuery, filterCategory, filterNeighborhood, resultOrder]);
-
-  const pendingKanbanCount = useMemo(
-    () => results.filter((lead) => !lead.kanbanTracked).length,
-    [results],
-  );
-
-  const canShowMap = Boolean(formValues.city.trim() && formValues.uf.trim());
   const loadingResults = loading || initialLoading;
 
   async function rememberMapsSearch(
@@ -417,7 +321,15 @@ export function LeadsSearchPanel() {
     const uf = formValues.uf.trim();
 
     if (!city || !category) {
-      toast.error("Preencha categoria e cidade para buscar leads.");
+      toast.error("Preencha nicho e cidade para buscar leads.");
+      return;
+    }
+
+    if (isNumericOnlyNiche(category)) {
+      const message =
+        "A pesquisa do Google Maps espera somente termos/nichos, não números.";
+      setCategoryError(message);
+      toast.error(message);
       return;
     }
 
@@ -434,9 +346,7 @@ export function LeadsSearchPanel() {
     setJobStatus("processing");
     setSearchContext(context);
     setExternalPreviewLeads([]);
-    setFilterCategory(ALL_CATEGORIES);
-    setFilterNeighborhood(ALL_NEIGHBORHOODS);
-    setFilterQuery("");
+    setNameFilter("");
 
     try {
       const saved = await fetchMapsLeads(
@@ -530,8 +440,6 @@ export function LeadsSearchPanel() {
   ) {
     if (leadsToAdd.length === 1) {
       setAddingKanbanId(leadsToAdd[0].id);
-    } else {
-      setBulkAddingKanban(true);
     }
 
     let added = 0;
@@ -585,7 +493,6 @@ export function LeadsSearchPanel() {
       }
     } finally {
       setAddingKanbanId(null);
-      setBulkAddingKanban(false);
     }
   }
 
@@ -624,17 +531,6 @@ export function LeadsSearchPanel() {
     }
   }
 
-  function rememberSavedLead(lead: Lead) {
-    queryClient.setQueryData<Lead[]>(PROSPECTING_LEADS_KEY, (current) => {
-      const list = current ?? [];
-      const exists = list.some((item) => item.id === lead.id);
-      if (exists) {
-        return list.map((item) => (item.id === lead.id ? lead : item));
-      }
-      return [lead, ...list];
-    });
-  }
-
   async function saveSearchLeads(
     items: LeadMinerLead[],
     context: ExternalLeadSearchContext,
@@ -666,127 +562,13 @@ export function LeadsSearchPanel() {
     }
   }
 
-  function selectMapsSearch(sessionId: string | null) {
-    const nextId = sessionId ?? orderedRecords[0]?.id ?? null;
-    const record = orderedRecords.find((item) => item.id === nextId);
-    setActiveSearchEmpty(false);
-    setExternalPreviewLeads([]);
-    setSelectedSearchId(nextId);
-    setFilterQuery("");
-    setFilterCategory(ALL_CATEGORIES);
-    setFilterNeighborhood(ALL_NEIGHBORHOODS);
-    if (!record) return;
-    setHasSearched(true);
-    setSearchContext({
-      city: record.city,
-      neighborhood: record.neighborhood || record.city,
-      category: record.category,
-    });
-    setFormValues((current) => ({
-      ...current,
-      category: record.category,
-      city: record.city,
-      neighborhood:
-        record.neighborhood && record.neighborhood !== record.city
-          ? record.neighborhood
-          : "",
-      uf: record.uf || current.uf,
-    }));
-  }
-
-  async function savePreviewLead(
-    lead: Lead,
-    context: ExternalLeadSearchContext,
-  ): Promise<Lead> {
-    const raw =
-      lead.rawData &&
-      typeof lead.rawData === "object" &&
-      !Array.isArray(lead.rawData)
-        ? (lead.rawData as LeadMinerLead)
-        : null;
-    const phone = raw?.phone?.trim() || lead.phone?.trim() || "";
-    if (!phone) {
-      throw new Error("Este lead não tem telefone para ser salvo.");
-    }
-
-    const [saved] = await importLeadMinerLeads({
-      city: lead.city ?? context.city,
-      neighborhood: lead.neighborhood ?? context.neighborhood,
-      category: lead.category ?? context.category,
-      leads: [
-        {
-          title: raw?.title ?? lead.name,
-          phone,
-          address: raw?.address ?? lead.address ?? undefined,
-          website: raw?.website ?? lead.website,
-          instagram: raw?.instagram ?? lead.instagram,
-          rating: raw?.rating ?? lead.rating ?? undefined,
-          reviews: raw?.reviews ?? lead.reviewsCount ?? undefined,
-          category: raw?.category ?? lead.category ?? undefined,
-        },
-      ],
-    });
-
-    if (!saved) {
-      throw new Error("Não foi possível salvar o lead.");
-    }
-    return saved;
-  }
-
-  async function handleQualify(lead: Lead) {
-    const context = searchContext ?? {
-      city: lead.city ?? formValues.city,
-      neighborhood:
-        lead.neighborhood ??
-        (formValues.neighborhood || lead.city || formValues.city),
-      category: lead.category ?? formValues.category,
-    };
-
-    setDossierLead(lead);
-    if (!isExternalLeadId(lead.id) && isLeadDossierReady(lead)) return;
-
-    setQualifyingId(lead.id);
-    try {
-      let current = lead;
-      if (isExternalLeadId(lead.id)) {
-        current = await savePreviewLead(lead, context);
-        setExternalPreviewLeads((items) =>
-          items.map((item) => (item.id === lead.id ? current : item)),
-        );
-        rememberSavedLead(current);
-        setDossierLead(current);
-        setQualifyingId(current.id);
-      }
-
-      if (isLeadDossierReady(current)) return;
-
-      const updated = await leadsService.loadLeadDossier(current.id);
-      rememberSavedLead(updated);
-      setDossierLead(updated);
-    } catch (error) {
-      if (!(error instanceof ApiError)) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Não foi possível qualificar o lead.",
-        );
-      }
-    } finally {
-      setQualifyingId(null);
-    }
-  }
+  const emptyMessage =
+    hasSearched || orderedRecords.length > 0
+      ? "Nenhuma empresa encontrada para esta busca ou filtro."
+      : "Faça uma busca no formulário para ver as empresas aqui.";
 
   return (
-    <div className="flex flex-col gap-6">
-      <LeadDossierDialog
-        lead={dossierLead}
-        open={dossierLead != null}
-        loading={dossierLead != null && qualifyingId === dossierLead.id}
-        onOpenChange={(open) => {
-          if (!open) setDossierLead(null);
-        }}
-      />
-
+    <div className="grid h-full min-h-0 gap-6 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
       <AddToKanbanOrganizationDialog
         open={kanbanModalOpen}
         onOpenChange={(open) => {
@@ -802,236 +584,50 @@ export function LeadsSearchPanel() {
         onConfirm={handleConfirmKanbanOrganization}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start lg:gap-6">
+      <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+        {modeTabs}
+
         <MapsSearchForm
           values={formValues}
           loading={loading}
+          searchProgress={loading ? searchProgress : null}
           jobStatus={jobStatus}
+          categoryError={categoryError}
           onChange={setFormValues}
           onSubmit={() => void handleSearch()}
         />
 
-        <Card className="flex flex-col rounded-2xl border border-[var(--atria-primary)]/10">
+        <Card className="rounded-2xl border border-[var(--atria-primary)]/10">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MapPin className="size-4 text-[var(--atria-primary)]" />
-              Mapa das empresas
-            </CardTitle>
-            <p className="text-sm text-[var(--atria-primary)]/50">
-              {canShowMap
-                ? "O mapa mostra a região da busca e os pinos das empresas encontradas."
-                : "Informe a cidade e o estado para visualizar o mapa."}
-            </p>
+            <CardTitle className="text-base">Filtros</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            {canShowMap ? (
-              <LeadsMapView
-                leads={results}
-                searchLocation={{
-                  city: formValues.city,
-                  uf: formValues.uf,
-                  address: formValues.neighborhood,
-                }}
-                addingKanbanId={addingKanbanId}
-                onAddToLeads={(lead) => {
-                  if (lead.kanbanTracked) return;
-                  requestAddToKanban([lead]);
-                }}
+          <CardContent className="flex flex-col gap-4">
+            <Field>
+              <FieldLabel htmlFor="maps-name-filter">Por nome</FieldLabel>
+              <Input
+                id="maps-name-filter"
+                value={nameFilter}
+                onChange={(event) => setNameFilter(event.target.value)}
+                placeholder="Filtrar por nome..."
               />
-            ) : (
-              <div className="flex items-center justify-center rounded-xl border border-dashed border-[var(--atria-primary)]/15 bg-[var(--atria-primary)]/[0.02] px-6 py-16 text-center text-sm text-[var(--atria-primary)]/50">
-                Preencha a cidade e o estado no formulário ao lado para ver o
-                mapa.
-              </div>
-            )}
+            </Field>
           </CardContent>
         </Card>
-      </div>
+      </aside>
 
-      <Card className="rounded-2xl border border-[var(--atria-primary)]/10">
-        <CardHeader className="space-y-3 pb-2">
-          <CardTitle className="text-base">Filtrar resultados</CardTitle>
-          <p className="text-sm text-[var(--atria-primary)]/50">
-            A lista e o mapa mostram só a busca selecionada. Escolha uma pesquisa
-            anterior para reabri-la.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="lg:col-span-2">
-              <SearchSessionFilter
-                sessions={sessionOptions}
-                selectedSessionId={
-                  externalPreviewLeads.length > 0
-                    ? null
-                    : (selectedRecord?.id ?? null)
-                }
-                loading={initialLoading}
-                inputId="maps-search-session-filter"
-                description="Escolha qual busca do Google Maps deseja ver."
-                onChange={selectMapsSearch}
-              />
-            </div>
-            <Field className="lg:col-span-2">
-              <FieldLabel htmlFor="maps-lead-filter">Texto livre</FieldLabel>
-              <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
-                Nome, telefone, endereço, site ou Instagram.
-              </p>
-              <Input
-                id="maps-lead-filter"
-                value={filterQuery}
-                onChange={(event) => setFilterQuery(event.target.value)}
-                placeholder="Nome, telefone, endereço..."
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="maps-order-filter">Ordenar</FieldLabel>
-              <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
-                Mais avaliações coloca no topo quem tem mais avaliações no Google.
-              </p>
-              <Select
-                value={resultOrder}
-                onValueChange={(value) => {
-                  if (value) setResultOrder(value);
-                }}
-              >
-                <SelectTrigger id="maps-order-filter">
-                  <SelectValue placeholder="Ordem da busca" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ORDER_SEARCH}>Ordem da busca</SelectItem>
-                  <SelectItem value={ORDER_MOST_REVIEWS}>
-                    Mais avaliações
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            {categoryOptions.length > 0 && (
-              <Field>
-                <FieldLabel htmlFor="maps-category-filter">
-                  Categoria
-                </FieldLabel>
-                <Select
-                  value={filterCategory}
-                  onValueChange={(value) => {
-                    if (value) setFilterCategory(value);
-                  }}
-                >
-                  <SelectTrigger id="maps-category-filter">
-                    <SelectValue placeholder={ALL_CATEGORIES} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL_CATEGORIES}>
-                      {ALL_CATEGORIES}
-                    </SelectItem>
-                    {categoryOptions.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-            {neighborhoodOptions.length > 0 && (
-              <Field>
-                <FieldLabel htmlFor="maps-neighborhood-filter">
-                  Bairro
-                </FieldLabel>
-                <Select
-                  value={filterNeighborhood}
-                  onValueChange={(value) => {
-                    if (value) setFilterNeighborhood(value);
-                  }}
-                >
-                  <SelectTrigger id="maps-neighborhood-filter">
-                    <SelectValue placeholder={ALL_NEIGHBORHOODS} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL_NEIGHBORHOODS}>
-                      {ALL_NEIGHBORHOODS}
-                    </SelectItem>
-                    {neighborhoodOptions.map((neighborhood) => (
-                      <SelectItem key={neighborhood} value={neighborhood}>
-                        {neighborhood}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-base font-semibold text-[var(--atria-primary)]">
-            Empresas encontradas
-            {results.length > 0 ? ` (${results.length})` : ""}
-          </h2>
-          {results.length > 0 && pendingKanbanCount > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={bulkAddingKanban || loadingResults}
-              onClick={() =>
-                requestAddToKanban(
-                  results.filter((lead) => !lead.kanbanTracked),
-                )
-              }
-              className="gap-2"
-            >
-              {bulkAddingKanban ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Kanban className="size-4" />
-              )}
-              Adicionar todas aos leads
-            </Button>
-          )}
-        </div>
-
-        {loadingResults && (
-          <div className="flex min-h-40 items-center justify-center rounded-2xl border border-[var(--atria-primary)]/10 bg-white/50">
-            <div className="flex items-center gap-3 text-sm text-[var(--atria-primary)]/60">
-              <Loader2 className="size-5 animate-spin" />
-              {loading ? "Buscando empresas..." : "Carregando empresas..."}
-            </div>
-          </div>
-        )}
-
-        {!loadingResults && results.length > 0 && (
-          <LeadsTable
-            leads={results}
-            qualifyingId={qualifyingId}
-            addingKanbanId={addingKanbanId}
-            dossierReview
-            onQualify={(lead) => void handleQualify(lead)}
-            onAddToKanban={(lead) => {
-              if (lead.kanbanTracked) return;
-              requestAddToKanban([lead]);
-            }}
-            organizationLabel="a empresa atual"
-          />
-        )}
-
-        {!loadingResults &&
-          hasSearched &&
-          (activeSearchEmpty || externalPreviewLeads.length > 0) &&
-          results.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
-            Nenhuma empresa encontrada para esta busca. Tente outra categoria ou
-            cidade.
-          </div>
-        )}
-
-        {!loadingResults && !hasSearched && orderedRecords.length === 0 && results.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
-            Faça uma busca no formulário acima para ver as empresas aqui.
-          </div>
-        )}
-      </div>
+      <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--atria-primary)]/10 bg-white/50">
+        <ProspectingLeadsList
+          leads={results}
+          loading={loadingResults}
+          searchProgress={loading ? searchProgress : null}
+          emptyMessage={emptyMessage}
+          addingKanbanId={addingKanbanId}
+          onAddToKanban={(lead) => {
+            if (lead.kanbanTracked) return;
+            requestAddToKanban([lead]);
+          }}
+        />
+      </section>
     </div>
   );
 }

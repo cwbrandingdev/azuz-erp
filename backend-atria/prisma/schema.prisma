@@ -1242,12 +1242,22 @@ model ProspectCompany {
   qualified              Boolean            @default(false)
   notes                  String?
   source                 String             @default("receita")
+  openedAt               DateTime?          @map("opened_at")
   ingestedAt             DateTime           @default(now()) @map("ingested_at")
   updatedAt              DateTime           @updatedAt @map("updated_at")
 
   @@index([uf, cityNormalized, primaryCnae])
   @@index([uf, primaryCnae, blendedScore(sort: Desc)])
   @@index([qualified, blendedScore(sort: Desc)])
+  @@index([uf, primaryCnae, openedAt])
+  /// Main CNAE+city page: filter + orderBy blendedScore/cnpj
+  @@index([uf, cityNormalized, primaryCnae, blendedScore(sort: Desc), cnpj], map: "prospect_companies_search_city_cnae_score_idx")
+  /// CNAE + opening-date range + score
+  @@index([uf, primaryCnae, openedAt, blendedScore(sort: Desc)], map: "prospect_companies_search_cnae_opened_score_idx")
+  /// City + neighborhood filter
+  @@index([uf, cityNormalized, neighborhoodNormalized], map: "prospect_companies_search_city_neighborhood_idx")
+  /// City + opening date without relying on CNAE first
+  @@index([uf, cityNormalized, openedAt], map: "prospect_companies_search_city_opened_idx")
   @@map("prospect_companies")
 }
 
@@ -1321,6 +1331,8 @@ model Lead {
   @@index([city])
   @@index([deletedAt])
   @@index([ownerUserId])
+  /// Hydrate catalog previews: companyId + placeId (+ soft-delete)
+  @@index([companyId, placeId, deletedAt], map: "leads_company_place_deleted_idx")
   @@map("leads")
 }
 
