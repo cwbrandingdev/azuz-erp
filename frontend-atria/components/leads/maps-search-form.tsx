@@ -3,7 +3,7 @@
 import { Loader2, Search } from "lucide-react";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,7 +24,9 @@ export interface MapsSearchFormValues {
 interface MapsSearchFormProps {
   values: MapsSearchFormValues;
   loading?: boolean;
+  searchProgress?: number | null;
   jobStatus?: string | null;
+  categoryError?: string | null;
   className?: string;
   onChange: (values: MapsSearchFormValues) => void;
   onSubmit: () => void;
@@ -33,34 +35,29 @@ interface MapsSearchFormProps {
 export function MapsSearchForm({
   values,
   loading,
+  searchProgress = null,
   jobStatus,
+  categoryError,
   className,
   onChange,
   onSubmit,
 }: MapsSearchFormProps) {
-  const loadingLabel =
+  const baseLoadingLabel =
     jobStatus === "processing"
-      ? "Buscando até 100 empresas (site e Instagram)..."
+      ? "Buscando empresas"
       : jobStatus === "pending"
-        ? "Aguardando busca alternativa..."
-        : "Procurando empresas...";
+        ? "Aguardando busca alternativa"
+        : "Procurando";
+  const loadingLabel =
+    typeof searchProgress === "number"
+      ? `${baseLoadingLabel}… ${Math.round(searchProgress)}%`
+      : `${baseLoadingLabel}...`;
 
   return (
     <Card
-      className={`flex h-full flex-col rounded-2xl border border-[var(--atria-primary)]/10 ${className ?? ""}`}
+      className={`flex flex-col rounded-2xl border border-[var(--atria-primary)]/10 ${className ?? ""}`}
     >
-      <CardHeader className="space-y-4 pb-3 sm:pb-6">
-        <div className="space-y-1">
-          <CardTitle className="text-base">
-            O que você está procurando?
-          </CardTitle>
-          <p className="text-sm text-[var(--atria-primary)]/50">
-            Informe a categoria, a cidade e o estado. Até 100 resultados do
-            Google Maps com telefone, site e Instagram (via SerpApi).
-          </p>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col">
+      <CardContent className="flex flex-1 flex-col pt-5">
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -71,21 +68,23 @@ export function MapsSearchForm({
           <FieldGroup className="flex-1">
             <div className="grid gap-4">
               <Field>
-                <FieldLabel htmlFor="maps-category">
-                  Qual categoria você quer buscar?
-                </FieldLabel>
+                <FieldLabel htmlFor="maps-category">Nicho</FieldLabel>
                 <Input
                   id="maps-category"
                   value={values.category}
                   onChange={(event) =>
                     onChange({ ...values, category: event.target.value })
                   }
-                  placeholder="Ex.: Restaurante, clínica, estética"
+                  placeholder="Ex.: restaurante, clínica, estética"
                   required
+                  aria-invalid={Boolean(categoryError)}
                 />
+                {categoryError ? (
+                  <p className="mt-1.5 text-xs text-destructive">{categoryError}</p>
+                ) : null}
               </Field>
               <Field>
-                <FieldLabel htmlFor="maps-uf">Em qual estado?</FieldLabel>
+                <FieldLabel htmlFor="maps-uf">Estado</FieldLabel>
                 <Select
                   value={values.uf}
                   onValueChange={(uf) => {
@@ -105,7 +104,7 @@ export function MapsSearchForm({
                 </Select>
               </Field>
               <Field>
-                <FieldLabel htmlFor="maps-city">Em qual cidade?</FieldLabel>
+                <FieldLabel htmlFor="maps-city">Cidade</FieldLabel>
                 <Input
                   id="maps-city"
                   value={values.city}
@@ -117,14 +116,16 @@ export function MapsSearchForm({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="maps-neighborhood">Bairro</FieldLabel>
+                <FieldLabel htmlFor="maps-neighborhood">
+                  Bairro (opcional)
+                </FieldLabel>
                 <Input
                   id="maps-neighborhood"
                   value={values.neighborhood}
                   onChange={(event) =>
                     onChange({ ...values, neighborhood: event.target.value })
                   }
-                  placeholder="Ex.: Pinheiros (opcional)"
+                  placeholder="Ex.: Pinheiros"
                 />
               </Field>
             </div>

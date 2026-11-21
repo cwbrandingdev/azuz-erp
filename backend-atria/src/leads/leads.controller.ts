@@ -28,6 +28,7 @@ import { ProspectingLeadsQueryDto } from '../crm/dto/prospecting-leads-query.dto
 import { CnaeResolverService } from './company-lookup/application/cnae-resolver.service';
 import { B2bLeadSearchDto } from './company-lookup/dto/b2b-lead-search.dto';
 import { CnaeSearchQueryDto } from './company-lookup/dto/cnae-search-query.dto';
+import { LeadSearchSessionQueryDto } from './company-lookup/dto/lead-search-session-query.dto';
 import { LeadSearchSessionService } from './company-lookup/application/lead-search-session.service';
 import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadsService } from './leads.service';
@@ -82,8 +83,13 @@ export class LeadsController {
   getSearchSessionLeads(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
+    @Query() query: LeadSearchSessionQueryDto,
   ) {
-    return this.leadSearchSessionService.getSessionLeads(user.companyId, id);
+    return this.leadSearchSessionService.getSessionLeads(
+      user.companyId,
+      id,
+      query,
+    );
   }
 
   @Post('search')

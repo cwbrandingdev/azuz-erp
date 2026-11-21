@@ -12,52 +12,34 @@ import {
   writePersistedProspectingMode,
 } from "@/lib/lead-prospecting-persistence";
 
-const PAGE_COPY: Record<
-  LeadsProspectingMode,
-  { title: string; description: string }
-> = {
-  b2b: {
-    title: "Buscar empresas",
-    description:
-      "Informe o CNAE, escolha a cidade e veja empresas da Receita já ranqueadas por fit comercial.",
-  },
-  maps: {
-    title: "Buscar empresas",
-    description:
-      "Informe a categoria, escolha a cidade e veja estabelecimentos do Google Maps para adicionar aos seus leads.",
-  },
-};
-
 export default function LeadsPage() {
   const [mode, setMode] = useState<LeadsProspectingMode>(
     () => readPersistedProspectingMode() ?? "b2b",
   );
-  const copy = PAGE_COPY[mode];
 
   useEffect(() => {
     writePersistedProspectingMode(mode);
   }, [mode]);
 
+  const tabs = (
+    <LeadsProspectingTabs activeMode={mode} onChange={setMode} />
+  );
+
   return (
-    <div className="flex flex-col gap-4 sm:gap-6">
-      <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-[var(--atria-primary)] sm:text-2xl">
-            {copy.title}
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-[var(--atria-primary)]/50">
-            {copy.description}
-          </p>
-        </div>
-
-        <LeadsProspectingTabs activeMode={mode} onChange={setMode} />
+    <div className="flex h-[calc(100dvh-6.5rem)] min-h-0 flex-col lg:h-[calc(100dvh-5.5rem)]">
+      <div
+        className={
+          mode === "b2b" ? "flex min-h-0 flex-1 flex-col" : "hidden"
+        }
+      >
+        <CompanySearchPanel modeTabs={tabs} />
       </div>
-
-      <div className={mode === "b2b" ? "contents" : "hidden"}>
-        <CompanySearchPanel />
-      </div>
-      <div className={mode === "maps" ? "contents" : "hidden"}>
-        <LeadsSearchPanel />
+      <div
+        className={
+          mode === "maps" ? "flex min-h-0 flex-1 flex-col" : "hidden"
+        }
+      >
+        <LeadsSearchPanel modeTabs={tabs} />
       </div>
     </div>
   );

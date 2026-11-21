@@ -7,6 +7,7 @@ import { ProspectingLeadsQueryDto } from '../crm/dto/prospecting-leads-query.dto
 import { CnaeResolverService } from './company-lookup/application/cnae-resolver.service';
 import { B2bLeadSearchDto } from './company-lookup/dto/b2b-lead-search.dto';
 import { CnaeSearchQueryDto } from './company-lookup/dto/cnae-search-query.dto';
+import { LeadSearchSessionQueryDto } from './company-lookup/dto/lead-search-session-query.dto';
 import { LeadSearchSessionService } from './company-lookup/application/lead-search-session.service';
 import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadsService } from './leads.service';
@@ -61,6 +62,15 @@ export declare class LeadsController {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -125,6 +135,15 @@ export declare class LeadsController {
                     endAt: string;
                     meetUrl: string | null;
                     createdById: string;
+                } | null;
+                lastCall: {
+                    id: string;
+                    outcome: string;
+                    createdAt: string;
+                    user: {
+                        id: string;
+                        name: string;
+                    };
                 } | null;
                 createdAt: string;
                 updatedAt: string;
@@ -239,7 +258,7 @@ export declare class LeadsController {
         matched: number;
         updated: number;
     }>;
-    getSearchSessionLeads(user: AuthenticatedUser, id: string): Promise<{
+    getSearchSessionLeads(user: AuthenticatedUser, id: string, query: LeadSearchSessionQueryDto): Promise<{
         session: {
             id: string;
             tenantId: string;
@@ -321,6 +340,8 @@ export declare class LeadsController {
             updatedAt: string;
         })[];
         totalCount: number;
+        page: number;
+        pageSize: number;
     }>;
     search(user: AuthenticatedUser, dto: B2bLeadSearchDto): Promise<{
         session: {
@@ -404,6 +425,8 @@ export declare class LeadsController {
             updatedAt: string;
         })[];
         totalCount: number;
+        page: number;
+        pageSize: number;
     }>;
     searchScraper(dto: LeadSearchDto): Promise<unknown>;
     fetchMaps(dto: FetchMapsLeadsDto): Promise<{
@@ -452,6 +475,15 @@ export declare class LeadsController {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -502,6 +534,15 @@ export declare class LeadsController {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -569,6 +610,15 @@ export declare class LeadsController {
                 meetUrl: string | null;
                 createdById: string;
             } | null;
+            lastCall: {
+                id: string;
+                outcome: string;
+                createdAt: string;
+                user: {
+                    id: string;
+                    name: string;
+                };
+            } | null;
             createdAt: string;
             updatedAt: string;
         };
@@ -620,6 +670,15 @@ export declare class LeadsController {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -696,6 +755,15 @@ export declare class LeadsController {
             meetUrl: string | null;
             createdById: string;
         } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -745,6 +813,15 @@ export declare class LeadsController {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -796,6 +873,15 @@ export declare class LeadsController {
             meetUrl: string | null;
             createdById: string;
         } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -845,6 +931,15 @@ export declare class LeadsController {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;

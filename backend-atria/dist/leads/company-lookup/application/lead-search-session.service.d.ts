@@ -2,6 +2,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CnaeResolverService } from './cnae-resolver.service';
 import { ProspectCompanyCatalogService } from './prospect-company-catalog.service';
 import type { B2bLeadSearchDto } from '../dto/b2b-lead-search.dto';
+import type { LeadSearchSessionQueryDto } from '../dto/lead-search-session-query.dto';
 export declare const CATALOG_PREVIEW_ID_PREFIX = "external:cnpj:";
 export declare function catalogPreviewId(cnpj: string): string;
 export declare function isCatalogPreviewId(id: string): boolean;
@@ -92,6 +93,8 @@ export declare class LeadSearchSessionService {
             updatedAt: string;
         })[];
         totalCount: number;
+        page: number;
+        pageSize: number;
     }>;
     listSessions(tenantId: string | null | undefined): Promise<{
         id: string;
@@ -103,7 +106,7 @@ export declare class LeadSearchSessionService {
         createdAt: string;
         leadsCount: number;
     }[]>;
-    getSessionLeads(tenantId: string | null | undefined, sessionId: string): Promise<{
+    getSessionLeads(tenantId: string | null | undefined, sessionId: string, query?: LeadSearchSessionQueryDto): Promise<{
         session: {
             id: string;
             tenantId: string;
@@ -185,8 +188,10 @@ export declare class LeadSearchSessionService {
             updatedAt: string;
         })[];
         totalCount: number;
+        page: number;
+        pageSize: number;
     }>;
-    private discoverCandidates;
+    private discoverCandidatesPage;
     private hydrateCandidates;
     private candidateScore;
     private candidateNotes;

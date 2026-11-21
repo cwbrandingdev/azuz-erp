@@ -74,3 +74,10 @@ export function getLeadCnpjLabel(
   const digits = extractCnpjFromLead(lead);
   return digits ? formatCnpjBr(digits) : null;
 }
+
+/** Public CNPJá company page (digits only, 14). */
+export function toCnpjaOfficeUrl(cnpj: string): string | null {
+  const digits = normalizeCnpjDigits(cnpj);
+  if (!digits) return null;
+  return `https://cnpja.com/en/office/${digits}`;
+}

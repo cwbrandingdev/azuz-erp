@@ -62,12 +62,26 @@ const latestMeetingInclude = {
         },
     },
 };
+const latestCallInclude = {
+    calls: {
+        where: { outcome: { not: 'SKIPPED' } },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: {
+            id: true,
+            outcome: true,
+            createdAt: true,
+            user: { select: { id: true, name: true } },
+        },
+    },
+};
 const MEETING_DURATION_MS = 60 * 60 * 1000;
 const KANBAN_PAGE_SIZE = 20;
 const kanbanLeadInclude = {
     stage: { select: { id: true, key: true, name: true } },
     ...leadOwnerInclude,
     ...latestMeetingInclude,
+    ...latestCallInclude,
 };
 function isLeadStatusKey(value) {
     return Object.values(client_1.LeadStatus).includes(value);
@@ -144,7 +158,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
         return this.toLeadResponse(updated);
     }
     async enrichSearchSessionFromMaps(user, sessionId) {
-        const { session, leads } = await this.leadSearchSessions.getSessionLeads(user.companyId, sessionId);
+        const { session, leads } = await this.leadSearchSessions.getSessionLeads(user.companyId, sessionId, { page: 1, pageSize: 100 });
         const targets = leads.filter((lead) => (0, maps_contact_merge_util_1.leadNeedsMapsContactEnrichment)(lead) &&
             !(0, maps_contact_merge_util_1.readCachedMapsEnrichment)(lead.rawData));
         if (targets.length === 0) {
@@ -1013,6 +1027,11 @@ let LeadsService = LeadsService_1 = class LeadsService {
         if (!title || !guestName) {
             throw new common_1.BadRequestException('Informe o nome da reunião e o participante.');
         }
+        const guestEmails = [
+            ...new Set((dto.guestEmails ?? [])
+                .map((email) => email.trim().toLowerCase())
+                .filter(Boolean)),
+        ];
         const description = `Reunião com ${guestName}\nLead: ${lead.name}`;
         const googleConnected = this.googleMeet.isConfigured();
         const meetUrl = googleConnected
@@ -1020,7 +1039,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 title,
                 description,
                 guestName,
-                guestEmail: lead.email ?? undefined,
+                guestEmails,
                 startAt,
                 endAt,
             })
@@ -1034,6 +1053,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 startAt,
                 endAt,
                 meetUrl,
+                guestEmails,
                 createdById: user.userId,
             },
         });
@@ -1095,7 +1115,11 @@ let LeadsService = LeadsService_1 = class LeadsService {
         await this.prisma.leadMeeting.delete({ where: { id: meetingId } });
         const lead = await this.prisma.lead.findUniqueOrThrow({
             where: { id: leadId },
-            include: { ...leadOwnerInclude, ...latestMeetingInclude },
+            include: {
+                ...leadOwnerInclude,
+                ...latestMeetingInclude,
+                ...latestCallInclude,
+            },
         });
         return this.toLeadResponse(lead);
     }
@@ -1130,6 +1154,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
             throw new common_1.NotFoundException('Empresa não encontrada no catálogo.');
         }
         const name = row.tradeName?.trim() || row.legalName;
+        const openedAtIso = row.openedAt?.toISOString() ?? null;
         return this.prisma.lead.create({
             data: {
                 companyId: tenantId,
@@ -1145,6 +1170,20 @@ let LeadsService = LeadsService_1 = class LeadsService {
                 aiScore: row.blendedScore,
                 aiNotes: row.notes,
                 kanbanTracked: false,
+                rawData: {
+                    cnpj: row.cnpj,
+                    legalName: row.legalName,
+                    tradeName: row.tradeName,
+                    primaryCnae: row.primaryCnae,
+                    primaryCnaeDescription: row.primaryCnaeDescription,
+                    secondaryCnaes: row.secondaryCnaes,
+                    shareCapital: row.shareCapital,
+                    companySize: row.companySize,
+                    isMei: row.isMei,
+                    isSimples: row.isSimples,
+                    openedAt: openedAtIso,
+                    data_inicio_atividade: openedAtIso?.slice(0, 10) ?? null,
+                },
             },
         });
     }
@@ -1365,6 +1404,7 @@ let LeadsService = LeadsService_1 = class LeadsService {
     }
     toLeadResponse(lead) {
         const meeting = lead.meetings?.[0];
+        const lastCall = lead.calls?.[0];
         return {
             id: lead.id,
             companyId: lead.companyId,
@@ -1412,6 +1452,14 @@ let LeadsService = LeadsService_1 = class LeadsService {
                     endAt: meeting.endAt.toISOString(),
                     meetUrl: meeting.meetUrl,
                     createdById: meeting.createdById,
+                }
+                : null,
+            lastCall: lastCall
+                ? {
+                    id: lastCall.id,
+                    outcome: lastCall.outcome,
+                    createdAt: lastCall.createdAt.toISOString(),
+                    user: lastCall.user,
                 }
                 : null,
             createdAt: lead.createdAt.toISOString(),

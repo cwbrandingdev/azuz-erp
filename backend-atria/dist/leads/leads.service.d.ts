@@ -86,6 +86,15 @@ export declare class LeadsService {
             meetUrl: string | null;
             createdById: string;
         } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -229,6 +238,15 @@ export declare class LeadsService {
             meetUrl: string | null;
             createdById: string;
         } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -284,6 +302,15 @@ export declare class LeadsService {
                     endAt: string;
                     meetUrl: string | null;
                     createdById: string;
+                } | null;
+                lastCall: {
+                    id: string;
+                    outcome: string;
+                    createdAt: string;
+                    user: {
+                        id: string;
+                        name: string;
+                    };
                 } | null;
                 createdAt: string;
                 updatedAt: string;
@@ -350,6 +377,15 @@ export declare class LeadsService {
                 endAt: string;
                 meetUrl: string | null;
                 createdById: string;
+            } | null;
+            lastCall: {
+                id: string;
+                outcome: string;
+                createdAt: string;
+                user: {
+                    id: string;
+                    name: string;
+                };
             } | null;
             createdAt: string;
             updatedAt: string;
@@ -418,6 +454,15 @@ export declare class LeadsService {
             meetUrl: string | null;
             createdById: string;
         } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -467,6 +512,15 @@ export declare class LeadsService {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -599,6 +653,15 @@ export declare class LeadsService {
             meetUrl: string | null;
             createdById: string;
         } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -652,6 +715,15 @@ export declare class LeadsService {
             meetUrl: string | null;
             createdById: string;
         } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -701,6 +773,15 @@ export declare class LeadsService {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -752,6 +833,15 @@ export declare class LeadsService {
             meetUrl: string | null;
             createdById: string;
         } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
+        } | null;
         createdAt: string;
         updatedAt: string;
     }>;
@@ -801,6 +891,15 @@ export declare class LeadsService {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;
@@ -890,6 +989,15 @@ export declare class LeadsService {
                 meetUrl: string | null;
                 createdById: string;
             } | null;
+            lastCall: {
+                id: string;
+                outcome: string;
+                createdAt: string;
+                user: {
+                    id: string;
+                    name: string;
+                };
+            } | null;
             createdAt: string;
             updatedAt: string;
         };
@@ -953,6 +1061,15 @@ export declare class LeadsService {
             endAt: string;
             meetUrl: string | null;
             createdById: string;
+        } | null;
+        lastCall: {
+            id: string;
+            outcome: string;
+            createdAt: string;
+            user: {
+                id: string;
+                name: string;
+            };
         } | null;
         createdAt: string;
         updatedAt: string;

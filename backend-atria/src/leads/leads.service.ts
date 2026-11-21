@@ -249,6 +249,7 @@ export class LeadsService {
     const { session, leads } = await this.leadSearchSessions.getSessionLeads(
       user.companyId,
       sessionId,
+      { page: 1, pageSize: 100 },
     );
 
     const targets = leads.filter(
@@ -1599,6 +1600,7 @@ export class LeadsService {
     }
 
     const name = row.tradeName?.trim() || row.legalName;
+    const openedAtIso = row.openedAt?.toISOString() ?? null;
     return this.prisma.lead.create({
       data: {
         companyId: tenantId,
@@ -1614,6 +1616,20 @@ export class LeadsService {
         aiScore: row.blendedScore,
         aiNotes: row.notes,
         kanbanTracked: false,
+        rawData: {
+          cnpj: row.cnpj,
+          legalName: row.legalName,
+          tradeName: row.tradeName,
+          primaryCnae: row.primaryCnae,
+          primaryCnaeDescription: row.primaryCnaeDescription,
+          secondaryCnaes: row.secondaryCnaes,
+          shareCapital: row.shareCapital,
+          companySize: row.companySize,
+          isMei: row.isMei,
+          isSimples: row.isSimples,
+          openedAt: openedAtIso,
+          data_inicio_atividade: openedAtIso?.slice(0, 10) ?? null,
+        } as Prisma.InputJsonValue,
       },
     });
   }
