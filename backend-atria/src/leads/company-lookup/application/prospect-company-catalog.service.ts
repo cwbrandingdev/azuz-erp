@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ProspectCompany, ProspectFitVerdict } from '@prisma/client';
+import { Prisma, ProspectCompany } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { DiscoveredCompanyCandidate } from '../domain/company-lookup.types';
 import { normalizeCatalogText } from '../domain/text-normalize';
@@ -154,7 +154,6 @@ export class ProspectCompanyCatalogService {
 
     return {
       uf: input.uf,
-      verdict: { not: ProspectFitVerdict.do_not_prioritize },
       ...(input.openedFrom || input.openedTo
         ? {
             openedAt: {
