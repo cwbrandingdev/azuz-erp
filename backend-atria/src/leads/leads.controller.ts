@@ -23,6 +23,7 @@ import {
   UpdateLeadCommentDto,
 } from './dto/lead-comment.dto';
 import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
+import { UpdateLeadMeetingDto } from './dto/update-lead-meeting.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { ProspectingLeadsQueryDto } from '../crm/dto/prospecting-leads-query.dto';
 import { CnaeResolverService } from './company-lookup/application/cnae-resolver.service';
@@ -141,6 +142,17 @@ export class LeadsController {
     @Body() dto: CreateLeadMeetingDto,
   ) {
     return this.leadsService.createMeeting(user, id, dto);
+  }
+
+  @Patch(':id/meetings/:meetingId')
+  updateMeeting(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('meetingId') meetingId: string,
+    @Body() dto: UpdateLeadMeetingDto,
+  ) {
+    return this.leadsService.updateMeeting(user, id, meetingId, dto);
+
   }
 
   @Delete(':id/meetings/:meetingId')

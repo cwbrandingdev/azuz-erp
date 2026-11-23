@@ -28,7 +28,9 @@ import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { addBusinessDays } from './business-days';
 import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
+import { UpdateLeadMeetingDto } from './dto/update-lead-meeting.dto';
 import { GoogleMeetService } from './google-meet.service';
+import { REMINDER_LEAD_TIME_MS } from './lead-meeting-reminder.service';
 import { CrmScopeService } from './crm-scope.service';
 import { LeadNotificationService } from './lead-notification.service';
 import { CreateCrmLeadDto } from '../crm/dto/create-crm-lead.dto';
@@ -73,6 +75,7 @@ import {
   isCatalogPreviewId,
   LeadSearchSessionService,
 } from './company-lookup/application/lead-search-session.service';
+import { boolean } from 'zod';
 
 const DEFAULT_SCRAPER_URL = 'https://leadminer-one.vercel.app/api/scraper';
 const SCRAPER_TIMEOUT_MS = 120_000;
@@ -97,6 +100,7 @@ const latestMeetingInclude = {
       startAt: true,
       endAt: true,
       meetUrl: true,
+      guestEmails: true,
       createdById: true,
     },
   },
@@ -118,6 +122,14 @@ const latestCallInclude = {
 } satisfies Prisma.LeadInclude;
 
 const MEETING_DURATION_MS = 60 * 60 * 1000;
+
+function normalizeGuestEmails(values: string[]) {
+  return [
+    ...new Set(
+      values.map((email) => email.trim().toLowerCase()).filter(boolean),
+    ),
+  ];
+}
 
 const KANBAN_PAGE_SIZE = 20;
 
@@ -1442,16 +1454,11 @@ export class LeadsService {
       );
     }
 
-    const guestEmails = [
-      ...new Set(
-        (dto.guestEmails ?? [])
-          .map((email) => email.trim().toLowerCase())
-          .filter(Boolean),
-      ),
-    ];
+    const guestEmails = normalizeGuestEmails(dto.guestEmails ?? []);
+
     const description = `Reunião com ${guestName}\nLead: ${lead.name}`;
     const googleConnected = this.googleMeet.isConfigured();
-    const meetUrl = googleConnected
+    const google = googleConnected
       ? await this.googleMeet.createMeeting({
           title,
           description,
@@ -1470,7 +1477,8 @@ export class LeadsService {
         guestName,
         startAt,
         endAt,
-        meetUrl,
+        meetUrl: google?.meetUrl ?? null,
+        googleEventId: google?.eventId ?? null,
         guestEmails,
         createdById: user.userId,
       },
@@ -1525,6 +1533,99 @@ export class LeadsService {
     };
   }
 
+  async updateMeeting(
+    user: AuthenticatedUser,
+    leadId: string,
+    meetingId: string,
+    dto: UpdateLeadMeetingDto,
+  ) {
+    const lead = await this.findLeadForUser(user, leadId);
+    const meeting = await this.prisma.leadMeeting.findFirst({
+      where: { id: meetingId, leadId }
+    });
+    if (!meeting) {
+      throw new NotFoundException('Reunião não encontrada.');    
+    }
+
+    const isCreator = meeting.createdById === user.userId;
+    if (!isCreator && !canModerateLeadMeetings(user.role)) {
+      throw new ForbiddenException(
+        'Você só pode editar reuniões que voce criou.',
+      );
+    }
+    if (meeting.startAt.getTime() <= Date.now()) {
+      throw new BadRequestException(
+        'Só é possível editar reuniões que ainda não começaram.',
+      );
+    }
+
+    const title = dto.title !== undefined ? dto.title.trim() : meeting.title;
+    const guestName =
+      dto.guestName !== undefined ? dto.guestName.trim() : meeting.guestName;
+    if (!title || !guestName) {
+      throw new BadRequestException(
+        'Informe o nome da reunião e o participante.',
+      );
+    }
+
+    const startAt =
+      dto.startAt !== undefined ? new Date(dto.startAt) : meeting.startAt;
+    if (Number.isNaN(startAt.getTime()) || startAt.getTime() <= Date.now()) {
+      throw new BadRequestException('Escolha uma data futura para a reunião')
+    }
+    const endAt = new Date(startAt.getTime() + MEETING_DURATION_MS);
+    const guestEmails =
+      dto.guestEmails !== undefined
+        ? normalizeGuestEmails(dto.guestEmails)
+        : meeting?.guestEmails;
+    const startChanged = startAt.getTime() !== meeting?.startAt.getTime();
+    const description = `Reunião com ${guestName}\nLead: ${lead.name} `;
+
+    let googleEventId = meeting?.googleEventId;
+    let googleSynced = false;
+    if (meeting?.meetUrl && this.googleMeet.isConfigured()) {
+      const result = await this.googleMeet.updateMeeting({
+        meetUrl: meeting?.meetUrl,
+        eventId: meeting?.googleEventId,
+        title,
+        description,
+        currentStartAt: meeting?.startAt,
+        startAt,
+        endAt,
+        previousEmails: meeting?.guestEmails,
+        guestEmails,
+      });
+      googleEventId = result.eventId;
+      googleSynced = result.eventId !== null;
+    }
+
+    let reminderSentAt = meeting?.reminderSentAt;
+    if (startChanged) {
+      reminderSentAt =
+        startAt.getTime() - Date.now() < REMINDER_LEAD_TIME_MS
+          ? new Date()
+          : null;
+    }
+
+    const updated = await this.prisma.leadMeeting.update({
+      where: { id: meetingId },
+      data: {
+        title,
+        guestName,
+        startAt,
+        endAt,
+        guestEmails,
+        googleEventId,
+        reminderSentAt,
+      },
+    });
+
+    return {
+      lead: this.toLeadResponse({ ...lead, meetings: [updated] }),
+      googleSynced,
+    };
+  }
+
   async deleteMeeting(
     user: AuthenticatedUser,
     leadId: string,
@@ -1533,7 +1634,13 @@ export class LeadsService {
     await this.findLeadForUser(user, leadId);
     const meeting = await this.prisma.leadMeeting.findFirst({
       where: { id: meetingId, leadId },
-      select: { id: true, createdById: true },
+      select: {
+        id: true,
+        createdById: true,
+        meetUrl: true,
+        googleEventId: true,
+        startAt: true,
+      },
     });
     if (!meeting) {
       throw new NotFoundException('Reunião não encontrada.');
@@ -1546,6 +1653,21 @@ export class LeadsService {
       );
     }
 
+    let googleCancelled: boolean | null = null;
+    if (
+      meeting.meetUrl &&
+      meeting.startAt.getTime() > Date.now() &&
+      this.googleMeet.isConfigured()
+    ) {
+      googleCancelled = await this.googleMeet
+        .cancelMeeting({
+          meetUrl: meeting.meetUrl,
+          eventId: meeting.googleEventId,
+          startAt: meeting.startAt,
+        })
+        .catch(() => false);
+    }
+
     await this.prisma.leadMeeting.delete({ where: { id: meetingId } });
 
     const lead = await this.prisma.lead.findUniqueOrThrow({
@@ -1556,7 +1678,7 @@ export class LeadsService {
         ...latestCallInclude,
       },
     });
-    return this.toLeadResponse(lead);
+    return { lead: this.toLeadResponse(lead), googleCancelled };
   }
 
   private async resolveLeadForUser(user: AuthenticatedUser, id: string) {
@@ -1931,6 +2053,7 @@ export class LeadsService {
         startAt: Date;
         endAt: Date;
         meetUrl: string | null;
+        guestEmails: string[];
         createdById: string;
       }[];
       calls?: {
@@ -1989,6 +2112,7 @@ export class LeadsService {
             startAt: meeting.startAt.toISOString(),
             endAt: meeting.endAt.toISOString(),
             meetUrl: meeting.meetUrl,
+            guestEmails: meeting.guestEmails,
             createdById: meeting.createdById,
           }
         : null,

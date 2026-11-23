@@ -6,6 +6,7 @@ import {
   Lock,
   MessageCircle,
   MessagesSquare,
+  Pencil,
   Trash2,
   Video,
 } from "lucide-react";
@@ -94,6 +95,11 @@ export function LeadKanbanCard({
     Boolean(lead.meeting) &&
     (lead.meeting?.createdById === user?.id || isMasterOrAdmin(user?.role));
   const [meetingOpen, setMeetingOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const canEditMeeting =
+    canDeleteMeeting &&
+    lead.meeting != null &&
+    new Date(lead.meeting.startAt) > new Date();
   const [collapsed, setCollapsed] = useState(() => isLeadCollapsed(lead));
   const [hovered, setHovered] = useState(false);
   const selectedColumnKey =
@@ -139,9 +145,13 @@ export function LeadKanbanCard({
   async function handleDeleteMeeting() {
     const meeting = lead.meeting;
     if (!meeting) return;
+    const willCancelGoogle =
+      Boolean(meeting.meetUrl) && new Date(meeting.startAt) > new Date();
     const confirmed = await confirm({
       title: "Apagar reunião",
-      description: `Apagar a reunião "${meeting.title}"? O evento no Google Agenda não é apagado.`,
+      description: willCancelGoogle
+        ? `Apagar a reunião "${meeting.title}"? O evento no Google Agenda também será cancelado e os convidados serão avisados.`
+        : `Apagar a reunião "${meeting.title}"?`,
       confirmLabel: "Apagar",
       destructive: true,
     });
@@ -149,9 +159,15 @@ export function LeadKanbanCard({
 
     setDeletingMeeting(true);
     try {
-      const updated = await leadsService.deleteLeadMeeting(lead.id, meeting.id);
-      onMeetingDeleted?.(updated);
-      toast.success("Reunião apagada.");
+      const result = await leadsService.deleteLeadMeeting(lead.id, meeting.id);
+      onMeetingDeleted?.(result.lead);
+      if (result.googleCancelled === false) {
+        toast.warning(
+          "Reunião apagada, mas não foi possível cancelar o evento no Google Agenda.",
+        );
+      } else {
+        toast.success("Reunião apagada.");
+      }
     } catch {
       // O erro já aparece em toast pela camada de API.
     } finally {
@@ -365,15 +381,27 @@ export function LeadKanbanCard({
                         {lead.meeting.title}
                       </p>
                       {canDeleteMeeting && (
-                        <button
-                          type="button"
-                          aria-label="Apagar reunião"
-                          disabled={deletingMeeting}
-                          onClick={() => void handleDeleteMeeting()}
-                          className="shrink-0 rounded p-0.5 text-[var(--atria-primary)]/45 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                        >
-                          <Trash2 className="size-3" />
-                        </button>
+                        <div className="flex shrink-0 items-center gap-0.5">
+                          {canEditMeeting && (
+                            <button
+                              type="button"
+                              aria-label="Editar reunião"
+                              onClick={() => setEditOpen(true)}
+                              className="rounded p-0.5 text-[var(--atria-primary)]/45 hover:bg-[var(--atria-primary)]/10 hover:text-[var(--atria-primary)]"
+                            >
+                              <Pencil className="size-3" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            aria-label="Apagar reunião"
+                            disabled={deletingMeeting}
+                            onClick={() => void handleDeleteMeeting()}
+                            className="rounded p-0.5 text-[var(--atria-primary)]/45 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          >
+                            <Trash2 className="size-3" />
+                          </button>
+                        </div>
                       )}
                     </div>
                     <p className="truncate">
@@ -409,6 +437,15 @@ export function LeadKanbanCard({
                   onOpenChange={setMeetingOpen}
                   onCreated={(updated) => onMeetingCreated?.(updated)}
                 />
+                {lead.meeting && (
+                  <LeadMeetingDialog
+                    lead={lead}
+                    meeting={lead.meeting}
+                    open={editOpen}
+                    onOpenChange={setEditOpen}
+                    onCreated={(updated) => onMeetingCreated?.(updated)}
+                  />
+                )}
               </>
             )}
 
