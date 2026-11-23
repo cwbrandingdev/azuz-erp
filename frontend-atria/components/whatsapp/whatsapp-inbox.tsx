@@ -976,7 +976,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                     )}
                   >
                     {agentName ? (
-                      <p className="mb-0.5 max-w-[80%] pr-1 text-right text-xs font-semibold text-slate-600 dark:text-muted-foreground">
+                      <p className="mb-0.5 max-w-[80%] pr-1 text-right text-xs font-bold text-slate-600 dark:text-muted-foreground">
                         {agentName}:
                       </p>
                     ) : null}
