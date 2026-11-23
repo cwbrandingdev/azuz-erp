@@ -140,9 +140,10 @@ export type ConversationPatch = {
 };
 
 export function formatAgentWhatsAppBody(agentName: string, text: string): string {
+  const label = `*${agentName}*:`;
   const trimmed = text.trim();
-  if (!trimmed) return `${agentName}:`;
-  return `${agentName}:\n\n${trimmed}`;
+  if (!trimmed) return label;
+  return `${label}\n\n${trimmed}`;
 }
 
 /** WAHA ack: 1 server, 2 device, 3 read, 4 played, -1 error. */
