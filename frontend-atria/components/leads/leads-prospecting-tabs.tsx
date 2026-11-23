@@ -19,7 +19,7 @@ export function LeadsProspectingTabs({
   onChange,
 }: LeadsProspectingTabsProps) {
   return (
-    <div className="flex gap-1 rounded-2xl border border-[var(--atria-primary)]/10 bg-white/60 p-1 backdrop-blur-md">
+    <div className="flex shrink-0 gap-1 rounded-2xl border border-[var(--atria-primary)]/10 bg-white/60 p-1 backdrop-blur-md">
       {TABS.map((tab) => (
         <button
           key={tab.id}

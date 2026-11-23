@@ -568,7 +568,7 @@ export function LeadsSearchPanel({ modeTabs }: LeadsSearchPanelProps) {
       : "Faça uma busca no formulário para ver as empresas aqui.";
 
   return (
-    <div className="grid h-full min-h-0 gap-6 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
+    <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
       <AddToKanbanOrganizationDialog
         open={kanbanModalOpen}
         onOpenChange={(open) => {
@@ -597,7 +597,7 @@ export function LeadsSearchPanel({ modeTabs }: LeadsSearchPanelProps) {
           onSubmit={() => void handleSearch()}
         />
 
-        <Card className="rounded-2xl border border-[var(--atria-primary)]/10">
+        <Card className="shrink-0 rounded-2xl border border-[var(--atria-primary)]/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Filtros</CardTitle>
           </CardHeader>

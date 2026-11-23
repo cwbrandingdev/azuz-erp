@@ -55,17 +55,17 @@ export function MapsSearchForm({
 
   return (
     <Card
-      className={`flex flex-col rounded-2xl border border-[var(--atria-primary)]/10 ${className ?? ""}`}
+      className={`flex shrink-0 flex-col overflow-visible rounded-2xl border border-[var(--atria-primary)]/10 ${className ?? ""}`}
     >
-      <CardContent className="flex flex-1 flex-col pt-5">
+      <CardContent className="flex flex-col pt-5">
         <form
           onSubmit={(event) => {
             event.preventDefault();
             onSubmit();
           }}
-          className="flex flex-1 flex-col gap-4"
+          className="flex flex-col gap-4"
         >
-          <FieldGroup className="flex-1">
+          <FieldGroup>
             <div className="grid gap-4">
               <Field>
                 <FieldLabel htmlFor="maps-category">Nicho</FieldLabel>
@@ -131,19 +131,21 @@ export function MapsSearchForm({
             </div>
           </FieldGroup>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {loadingLabel}
-              </>
-            ) : (
-              <>
-                <Search className="mr-2 h-4 w-4" />
-                Buscar empresas
-              </>
-            )}
-          </Button>
+          <div className="sticky bottom-0 z-10 bg-card pt-1">
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {loadingLabel}
+                </>
+              ) : (
+                <>
+                  <Search className="mr-2 h-4 w-4" />
+                  Buscar empresas
+                </>
+              )}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
