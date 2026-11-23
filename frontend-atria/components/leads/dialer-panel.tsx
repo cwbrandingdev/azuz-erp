@@ -16,8 +16,11 @@ import { Card } from "@/components/ui/card";
 import { DialerNativeSetupDialog } from "@/components/leads/dialer-native-setup-dialog";
 import { NativeTelButton } from "@/components/leads/native-tel-button";
 import { useDialer } from "@/contexts/dialer-context";
-import { toVivoDialString, toWhatsAppUrl } from "@/lib/lead-phone";
-import { detectNativeDialerPlatform } from "@/lib/native-dialer";
+import { toWhatsAppUrl } from "@/lib/lead-phone";
+import {
+  detectNativeDialerPlatform,
+  toNativeDialString,
+} from "@/lib/native-dialer";
 import { toast } from "@/lib/toast";
 import type { LeadCallOutcome } from "@/services/types";
 
@@ -139,14 +142,14 @@ export function DialerPanel() {
       {lead && !done && (
         <div className="mb-3 flex items-center justify-between gap-2">
           <p className="truncate text-sm text-[var(--atria-primary)]/70">
-            {toVivoDialString(lead.phone) ?? lead.phone}
+            {toNativeDialString(lead.phone) ?? lead.phone}
           </p>
           <Button
             type="button"
             variant="ghost"
             size="xs"
             onClick={() => {
-              const value = toVivoDialString(lead.phone) ?? lead.phone;
+              const value = toNativeDialString(lead.phone) ?? lead.phone;
               void navigator.clipboard.writeText(value).then(
                 () => toast.success("Número copiado"),
                 () => toast.error("Não foi possível copiar o número"),
