@@ -2,6 +2,11 @@ import { API_BASE_URL, apiRequest, apiRequestBlob, uploadFile } from "./api";
 
 export type WhatsAppMessageDirection = "INBOUND" | "OUTBOUND";
 export type WhatsAppMessageStatus = "SENT" | "DELIVERED" | "READ" | "FAILED";
+/** Client-only status while the send request is in flight. */
+export type WhatsAppMessageStatusUi = WhatsAppMessageStatus | "PENDING";
+export type WhatsAppInboxMessage = Omit<WhatsAppMessage, "status"> & {
+  status: WhatsAppMessageStatusUi;
+};
 export type WhatsAppInboxStatus = "OPEN" | "PENDING" | "RESOLVED" | "SNOOZED";
 export type WhatsAppInboxPriority = "NONE" | "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 export type WhatsAppMessageKind =
