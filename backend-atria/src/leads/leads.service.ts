@@ -30,6 +30,7 @@ import { addBusinessDays } from './business-days';
 import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
 import { GoogleMeetService } from './google-meet.service';
 import { CrmScopeService } from './crm-scope.service';
+import { CreateCrmReminderDto } from '../crm/dto/create-crm-reminder.dto';
 import { LeadNotificationService } from './lead-notification.service';
 import { CreateCrmLeadDto } from '../crm/dto/create-crm-lead.dto';
 import { UpdateCrmLeadDto } from '../crm/dto/update-crm-lead.dto';
@@ -1019,6 +1020,44 @@ export class LeadsService {
     });
 
     return this.toReminderResponse(updated);
+  }
+
+  async createReminder(
+    user: AuthenticatedUser,
+    leadId: string,
+    dto: CreateCrmReminderDto,
+  ) {
+    const lead = await this.findLeadForUser(user, leadId);
+    if (!lead) {
+      throw new NotFoundException('Lead não encontrado.');
+    }
+
+    const title = dto.title.trim();
+    if (!title) {
+      throw new BadRequestException('Informe o título do lembrete.');
+    }
+
+    const dueDate = new Date(dto.dueDate);
+    if (Number.isNaN(dueDate.getTime()) || dueDate <= new Date()) {
+      throw new BadRequestException('Escolha uma data e hora no futuro.');
+    }
+
+    const created = await this.prisma.crmReminderTask.create({
+      data: {
+        companyId: lead.companyId,
+        leadId: lead.id,
+        userId: user.userId,
+        title,
+        dueDate,
+      },
+      include: {
+        lead: {
+          select: { id: true, name: true, phone: true, email: true },
+        },
+      },
+    });
+
+    return this.toReminderResponse(created);
   }
 
   async addToKanban(user: AuthenticatedUser, dto: AddLeadToKanbanDto) {

@@ -3,6 +3,7 @@ import type {
   AddLeadToKanbanInput,
   CreateLeadStageInput,
   CrmBoardSettings,
+  CreateCrmReminderInput,
   CrmReminderBoard,
   CrmReminderTask,
   CrmReminderTaskStatus,
@@ -349,6 +350,16 @@ export async function updateReminderStatus(
   return apiRequest<CrmReminderTask>(`/crm/reminders/${id}`, {
     method: "PATCH",
     body: { status },
+  });
+}
+
+export async function createLeadReminder(
+  leadId: string,
+  data: CreateCrmReminderInput,
+): Promise<CrmReminderTask> {
+  return apiRequest<CrmReminderTask>(`/leads/${leadId}/reminders`, {
+    method: "POST",
+    body: data,
   });
 }
 
