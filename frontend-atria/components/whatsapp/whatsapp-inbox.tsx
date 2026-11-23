@@ -493,7 +493,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     }
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!selectedPhone) return;
     const text = draft.trim();
