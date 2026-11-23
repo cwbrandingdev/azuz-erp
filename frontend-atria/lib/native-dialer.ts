@@ -1,4 +1,4 @@
-import { toE164, toVivoDialString } from "@/lib/lead-phone";
+import { toE164, toVivoDialString, toWindowsDialString } from "@/lib/lead-phone";
 
 export type NativeDialerPlatform =
   | "windows"
@@ -28,11 +28,20 @@ export function markNativeDialerSetupSeen(): void {
   window.localStorage.setItem(SETUP_STORAGE_KEY, "1");
 }
 
+export function toNativeDialString(
+  phone: string | null | undefined,
+): string | null {
+  if (detectNativeDialerPlatform() === "windows") {
+    return toWindowsDialString(phone);
+  }
+  return toVivoDialString(phone);
+}
+
 export function toNativeCallHref(
   phone: string | null | undefined,
 ): string | null {
   const e164 = toE164(phone);
-  const dial = toVivoDialString(phone);
+  const dial = toNativeDialString(phone);
   if (!e164 || !dial) return null;
   // Phone Link only receives the number via tel:. ms-phone: opens the app empty.
   return `tel:${dial}`;

@@ -15,7 +15,8 @@ import {
 import { formatLeadOpenedAt } from "@/lib/lead-opened-at";
 import { formatLeadRating } from "@/lib/lead-map-utils";
 import { getLeadStatusLabel } from "@/lib/leads-kanban-utils";
-import { isDialablePhone, toVivoDialString, toWhatsAppUrl } from "@/lib/lead-phone";
+import { isDialablePhone, toWhatsAppUrl } from "@/lib/lead-phone";
+import { toNativeDialString } from "@/lib/native-dialer";
 import type { Lead } from "@/services/types";
 
 interface ProspectingLeadCardProps {
@@ -63,7 +64,7 @@ export function ProspectingLeadCard({
     .filter(Boolean)
     .join(" · ");
   const phoneCopyValue = lead.phone
-    ? (toVivoDialString(lead.phone) ?? lead.phone)
+    ? (toNativeDialString(lead.phone) ?? lead.phone)
     : null;
   const hasDialerCall = Boolean(dialer && isDialablePhone(lead.phone));
   const canNativeCall = Boolean(lead.phone && isDialablePhone(lead.phone));

@@ -2,10 +2,10 @@
 
 import { useEffect, useState, type ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
-import { toVivoDialString } from "@/lib/lead-phone";
 import {
   detectNativeDialerPlatform,
   toNativeCallHref,
+  toNativeDialString,
 } from "@/lib/native-dialer";
 
 type NativeTelButtonProps = ComponentProps<typeof Button> & {
@@ -33,7 +33,7 @@ export function NativeTelButton({
       render={href ? <a href={href} /> : undefined}
       onClick={(event) => {
         if (detectNativeDialerPlatform() === "windows") {
-          const dial = toVivoDialString(phone);
+          const dial = toNativeDialString(phone);
           if (dial) {
             void navigator.clipboard.writeText(dial).catch(() => undefined);
           }

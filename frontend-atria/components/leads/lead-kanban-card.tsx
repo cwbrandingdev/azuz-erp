@@ -43,11 +43,8 @@ import { toast } from "@/lib/toast";
 import { isMasterOrAdmin } from "@/lib/permissions";
 import { normalizeWhatsAppPhone } from "@/lib/whatsapp-phone";
 import { leadsService } from "@/services";
-import {
-  isDialablePhone,
-  toVivoDialString,
-  toWhatsAppUrl,
-} from "@/lib/lead-phone";
+import { isDialablePhone, toWhatsAppUrl } from "@/lib/lead-phone";
+import { toNativeDialString } from "@/lib/native-dialer";
 import type { Lead, LeadKanbanColumn } from "@/services/types";
 
 interface LeadKanbanCardProps {
@@ -284,7 +281,7 @@ export function LeadKanbanCard({
           <div className="mb-3 mt-2 min-w-0 space-y-1 pl-6 text-xs text-[var(--atria-primary)]/65">
             {lead.phone ? (
               <CopyableText
-                value={toVivoDialString(lead.phone) ?? lead.phone}
+                value={toNativeDialString(lead.phone) ?? lead.phone}
                 display={lead.phone}
                 copyLabel="Telefone"
               />
