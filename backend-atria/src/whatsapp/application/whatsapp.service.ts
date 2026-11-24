@@ -524,15 +524,32 @@ export class WhatsAppService {
     let mediaMimeType = parsed.mediaMimeType;
     let mediaFilename = parsed.mediaFilename;
     let transcription = parsed.transcription;
+    let kind = parsed.kind;
+    let body = parsed.body;
     let downloaded: { buffer: Buffer; mimeType: string } | null = null;
 
     if (parsed.mediaId) {
       try {
         const file = await this.graph.downloadMedia(parsed.mediaId);
-        const stored = this.media.save(file.buffer, file.filename, file.mimeType);
+        const fileMime = file.mimeType.split(';')[0].trim().toLowerCase();
+        if (
+          kind === WhatsAppMessageKind.IMAGE &&
+          fileMime === 'image/webp'
+        ) {
+          kind = WhatsAppMessageKind.STICKER;
+          if (!body || body === 'Imagem') body = 'Figurinha';
+        }
+        const stored =
+          kind === WhatsAppMessageKind.STICKER
+            ? await this.media.saveSticker(
+                file.buffer,
+                file.filename,
+                file.mimeType,
+              )
+            : this.media.save(file.buffer, file.filename, file.mimeType);
         mediaUrl = stored.url;
-        mediaMimeType = file.mimeType;
-        mediaFilename = parsed.mediaFilename || file.filename;
+        mediaMimeType = stored.mimeType ?? file.mimeType;
+        mediaFilename = parsed.mediaFilename || stored.filename;
         downloaded = { buffer: file.buffer, mimeType: file.mimeType };
       } catch (error) {
         this.logger.warn(
@@ -547,7 +564,7 @@ export class WhatsAppService {
     const conversation = await this.messages.upsertConversation({
       phone: from,
       name: input.contactName,
-      preview: parsed.body,
+      preview: body,
       inbound: true,
       reopen: true,
     });
@@ -558,8 +575,8 @@ export class WhatsAppService {
       whatsappMessageId: input.id,
       fromPhone: from,
       toPhone: businessPhone,
-      body: parsed.body,
-      kind: parsed.kind,
+      body,
+      kind,
       mediaUrl,
       mediaMimeType,
       mediaFilename,
@@ -607,7 +624,7 @@ export class WhatsAppService {
           companyId,
           phone: from,
           contactName: withLead.name ?? input.contactName,
-          preview: parsed.body.slice(0, 200),
+          preview: body.slice(0, 200),
         }),
       )
       .catch((error) =>
