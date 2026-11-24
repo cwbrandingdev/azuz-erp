@@ -595,6 +595,7 @@ export class WhatsAppCrmService {
     stage?: { name: string } | null;
     organizationId: string | null;
     organization?: { companyName: string } | null;
+    rawData?: unknown;
   }): WhatsAppCrmContact {
     return {
       id: lead.id,
@@ -602,7 +603,7 @@ export class WhatsAppCrmService {
       contactName: lead.contactName,
       phone: lead.phone,
       email: lead.email,
-      cnpj: lead.cnpj,
+      cnpj: lead.cnpj ?? this.cnpjFromRawData(lead.rawData),
       jobTitle: lead.jobTitle,
       source: lead.source,
       orcamento:
@@ -613,6 +614,15 @@ export class WhatsAppCrmService {
       organizationId: lead.organizationId,
       organizationName: lead.organization?.companyName ?? null,
     };
+  }
+
+  // Leads do catálogo da Receita guardam o CNPJ em rawData, não na coluna.
+  private cnpjFromRawData(rawData: unknown): string | null {
+    if (!rawData || typeof rawData !== 'object') return null;
+    const digits = String(
+      (rawData as Record<string, unknown>).cnpj ?? '',
+    ).replace(/\D/g, '');
+    return digits.length === 14 ? digits : null;
   }
 
   private varsFor(
