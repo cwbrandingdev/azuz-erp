@@ -23,8 +23,14 @@ import {
 } from "@/hooks/use-whatsapp";
 import { leadsService } from "@/services";
 
-export function WhatsappCrmPanel({ phone }: { phone: string }) {
-  const { data, isLoading } = useWhatsappCrm(phone);
+export function WhatsappCrmPanel({
+  phone,
+  leadId,
+}: {
+  phone: string;
+  leadId?: string;
+}) {
+  const { data, isLoading } = useWhatsappCrm(phone, leadId);
   const { updateCrmContact, deleteCrmContact, invalidate } =
     useWhatsappMutations();
   const [deleteContactOpen, setDeleteContactOpen] = useState(false);
@@ -60,7 +66,7 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
     source?: string;
   }) {
     try {
-      await updateCrmContact.mutateAsync({ phone, ...patch });
+      await updateCrmContact.mutateAsync({ phone, leadId, ...patch });
     } catch {
       toast.error("Não foi possível salvar o contato.");
     }
@@ -240,7 +246,7 @@ export function WhatsappCrmPanel({ phone }: { phone: string }) {
               disabled={deleteCrmContact.isPending}
               onClick={() => {
                 void deleteCrmContact
-                  .mutateAsync(phone)
+                  .mutateAsync({ phone, leadId })
                   .then(() => {
                     toast.success("Contato excluído.");
                     setDeleteContactOpen(false);

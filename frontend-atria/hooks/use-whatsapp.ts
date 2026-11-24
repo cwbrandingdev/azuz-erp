@@ -68,11 +68,11 @@ export function useWhatsappCannedResponses() {
   });
 }
 
-export function useWhatsappCrm(phone: string | null) {
+export function useWhatsappCrm(phone: string | null, leadId?: string) {
   const companyId = useCompanyId();
   return useQuery({
-    queryKey: [...whatsappKeys.root, companyId ?? "", "crm", phone ?? ""],
-    queryFn: () => whatsappService.getCrmContext(phone as string),
+    queryKey: [...whatsappKeys.root, companyId ?? "", "crm", phone ?? "", leadId ?? ""],
+    queryFn: () => whatsappService.getCrmContext(phone as string, leadId),
     enabled: Boolean(companyId && phone),
     refetchInterval: 8000,
   });
@@ -232,7 +232,8 @@ export function useWhatsappMutations() {
   });
 
   const deleteCrmContact = useMutation({
-    mutationFn: (phone: string) => whatsappService.deleteCrmContact(phone),
+    mutationFn: ({ phone, leadId }: { phone: string; leadId?: string }) =>
+      whatsappService.deleteCrmContact(phone, leadId),
     onSuccess: () => invalidate(),
   });
 

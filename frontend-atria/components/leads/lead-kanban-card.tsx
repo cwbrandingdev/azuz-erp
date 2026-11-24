@@ -498,7 +498,7 @@ export function LeadKanbanCard({
                     />
                   ) : (
                     <Link
-                      href={`/whatsapp?phone=${encodeURIComponent(normalizeWhatsAppPhone(lead.phone))}`}
+                      href={`/whatsapp?phone=${encodeURIComponent(normalizeWhatsAppPhone(lead.phone))}&leadId=${encodeURIComponent(lead.id)}`}
                     />
                   )
                 }
