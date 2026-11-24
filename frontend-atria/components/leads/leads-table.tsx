@@ -32,7 +32,8 @@ import {
   getLeadStatusLabel,
   LEAD_STATUS_LABELS,
 } from "@/lib/leads-kanban-utils";
-import { isDialablePhone, toVivoDialString, toWhatsAppUrl } from "@/lib/lead-phone";
+import { isDialablePhone, toWhatsAppUrl } from "@/lib/lead-phone";
+import { toNativeDialString } from "@/lib/native-dialer";
 import { toast } from "@/lib/toast";
 import { LeadCategoryText } from "@/components/leads/lead-category-text";
 import { LeadLocationText } from "@/components/leads/lead-location-text";
@@ -63,7 +64,7 @@ const STATUS_VARIANTS: Record<
 };
 
 function leadPhoneCopyValue(phone: string) {
-  return toVivoDialString(phone) ?? phone;
+  return toNativeDialString(phone) ?? phone;
 }
 
 function leadWebsiteHref(website: string) {

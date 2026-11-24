@@ -6,8 +6,10 @@ import {
   listLeadSearchSessions,
   searchCnaeClasses,
   searchCompanies,
+  searchCompaniesByOpenedAt,
   type B2bLeadSearchInput,
   type B2bLeadSearchResponse,
+  type LeadSearchSessionPageQuery,
 } from "@/services/company-search.service";
 
 const SESSIONS_KEY = ["lead-search-sessions"] as const;
@@ -28,11 +30,69 @@ export function useLeadSearchSessions() {
   });
 }
 
-export function useLeadSearchSessionLeads(sessionId: string | null) {
+export function useLeadSearchSessionLeads(
+  sessionId: string | null,
+  query: LeadSearchSessionPageQuery = {},
+  enabled = true,
+) {
+  const page = query.page ?? 1;
+  const pageSize = query.pageSize ?? 25;
+  const name = query.name?.trim() ?? "";
+  const openedFrom = query.openedFrom?.trim() ?? "";
+  const openedTo = query.openedTo?.trim() ?? "";
+
   return useQuery({
-    queryKey: ["lead-search-session", sessionId],
-    queryFn: () => getLeadSearchSessionLeads(sessionId!),
-    enabled: Boolean(sessionId),
+    queryKey: [
+      "lead-search-session",
+      sessionId,
+      page,
+      pageSize,
+      name,
+      openedFrom,
+      openedTo,
+    ],
+    queryFn: () =>
+      getLeadSearchSessionLeads(sessionId!, {
+        page,
+        pageSize,
+        name: name || undefined,
+        openedFrom: openedFrom || undefined,
+        openedTo: openedTo || undefined,
+      }),
+    enabled: Boolean(sessionId) && enabled,
+    ...LEAD_SEARCH_QUERY_OPTIONS,
+  });
+}
+
+export function useCompaniesByOpenedAt(
+  query: LeadSearchSessionPageQuery = {},
+  enabled = true,
+) {
+  const page = query.page ?? 1;
+  const pageSize = query.pageSize ?? 25;
+  const name = query.name?.trim() ?? "";
+  const openedFrom = query.openedFrom?.trim() ?? "";
+  const openedTo = query.openedTo?.trim() ?? "";
+  const active = enabled && Boolean(openedFrom || openedTo);
+
+  return useQuery({
+    queryKey: [
+      "companies-by-opened-at",
+      page,
+      pageSize,
+      name,
+      openedFrom,
+      openedTo,
+    ],
+    queryFn: () =>
+      searchCompaniesByOpenedAt({
+        page,
+        pageSize,
+        name: name || undefined,
+        openedFrom: openedFrom || undefined,
+        openedTo: openedTo || undefined,
+      }),
+    enabled: active,
     ...LEAD_SEARCH_QUERY_OPTIONS,
   });
 }
@@ -62,7 +122,15 @@ export function useCompanySearchMutation() {
     mutationFn: (input: B2bLeadSearchInput) => searchCompanies(input),
     onSuccess: (data: B2bLeadSearchResponse) => {
       queryClient.setQueryData(
-        ["lead-search-session", data.session.id],
+        [
+          "lead-search-session",
+          data.session.id,
+          data.page ?? 1,
+          data.pageSize ?? 25,
+          "",
+          "",
+          "",
+        ],
         data,
       );
       queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
@@ -76,8 +144,18 @@ export function useEnrichSessionMapsMutation() {
   return useMutation({
     mutationFn: (sessionId: string) => enrichLeadSearchSessionMaps(sessionId),
     onSuccess: (data) => {
-      queryClient.setQueryData(["lead-search-session", data.session.id], data);
-      queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
+      queryClient.setQueryData(
+        [
+          "lead-search-session",
+          data.session.id,
+          data.page ?? 1,
+          data.pageSize ?? 25,
+          "",
+          "",
+          "",
+        ],
+        data,
+      );
     },
   });
 }

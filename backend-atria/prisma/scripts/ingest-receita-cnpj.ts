@@ -9,20 +9,25 @@
  * Env:
  *   RECEITA_MONTH=2026-09     optional YYYY-MM folder
  *   RECEITA_UF=SP,PR          required; one UF at a time in memory
- *   RECEITA_PER_CNAE=100      max companies kept per CNAE per UF
+ *   RECEITA_PER_CNAE=1000     max companies kept per CNAE per UF
  *   RECEITA_INSERT_BATCH=100  createMany size
  *   RECEITA_INSERT_PAUSE_MS=500  pause after each insert batch
  *   RECEITA_LIMIT=5000        optional extra overall cap (smoke test)
- *   RECEITA_DATA_DIR=/tmp/rfb reuse already downloaded zips
+ *   RECEITA_DATA_DIR=/tmp/rfb reuse already downloaded zips (recommended)
  *   RECEITA_SKIP_DOWNLOAD=1   never hit the Receita HTTP host
+ *   RECEITA_DOWNLOAD_RETRIES=5  retries when the RFB socket drops mid-file
+ *
+ * Tip: Estabelecimentos*.zip are multi-GB and RFB often closes sockets.
+ * Prefer a durable folder so retries reuse partial/completed files:
+ *   RECEITA_DATA_DIR=$HOME/rfb-cnpj RECEITA_UF=SP npx ts-node prisma/scripts/ingest-receita-cnpj.ts
  */
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rename, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { Readable } from 'node:stream';
 import { Prisma, PrismaClient, ProspectFitVerdict } from '@prisma/client';
@@ -43,10 +48,11 @@ const RFB_USER_AGENT = 'atria-erp-cnpj-ingest/1.0';
 
 const SITUACAO_ATIVA = '02';
 const MATRIZ = '1';
-const PER_CNAE = positiveInt(process.env.RECEITA_PER_CNAE, 100);
+const PER_CNAE = positiveInt(process.env.RECEITA_PER_CNAE, 1000);
 const CREATE_BATCH = positiveInt(process.env.RECEITA_INSERT_BATCH, 100);
 const INSERT_PAUSE_MS = Math.max(0, Number(process.env.RECEITA_INSERT_PAUSE_MS ?? '500') || 0);
 const EXTRA_PAUSE_MS = Math.max(0, Number(process.env.RECEITA_EXTRA_PAUSE_MS ?? '3000') || 0);
+const DOWNLOAD_RETRIES = positiveInt(process.env.RECEITA_DOWNLOAD_RETRIES, 5);
 
 interface EstablishmentRow {
   cnpj: string;
@@ -65,6 +71,7 @@ interface EstablishmentRow {
   secondaryCnaes: string[];
   phone: string;
   email: string | null;
+  openedAt: Date | null;
 }
 
 interface CompanyRow {
@@ -88,7 +95,7 @@ async function main() {
   const log = makeLog('RFB');
 
   if (ufs.length === 0) {
-    throw new Error('Defina RECEITA_UF=SP,PR — um estado por vez, no máximo 100 empresas por CNAE.');
+    throw new Error('Defina RECEITA_UF=SP,PR — um estado por vez, no máximo 1000 empresas por CNAE.');
   }
 
   await mkdir(dataDir, { recursive: true });
@@ -324,10 +331,20 @@ async function ingestOneUf(params: {
   const lines = createInterface({ input: jsonlRead, crlfDelay: Infinity });
   for await (const line of lines) {
     if (!line.trim()) continue;
-    const establishment = JSON.parse(line) as EstablishmentRow;
+    const establishment = JSON.parse(line) as EstablishmentRow & {
+      openedAt?: string | Date | null;
+    };
     const company = companies.get(establishment.cnpjBasico);
     const tax = simples.get(establishment.cnpjBasico);
     const legalName = company?.legalName || establishment.tradeName || establishment.cnpj;
+    const openedAt =
+      establishment.openedAt instanceof Date
+        ? establishment.openedAt
+        : typeof establishment.openedAt === 'string' && establishment.openedAt
+          ? new Date(establishment.openedAt)
+          : null;
+    const openedAtSafe =
+      openedAt && !Number.isNaN(openedAt.getTime()) ? openedAt : null;
     const category =
       cnaes.get(establishment.primaryCnae) ?? establishment.primaryCnae;
     const qualification = qualifyRegistryCompany({
@@ -373,6 +390,7 @@ async function ingestOneUf(params: {
       qualified: qualification.qualified,
       notes: qualification.notes,
       source: 'receita',
+      openedAt: openedAtSafe,
       ingestedAt: new Date(),
     });
 
@@ -535,6 +553,7 @@ function mapEstablishment(
     .filter((code) => code.length >= 5);
 
   const email = normalizeEmail(cols[27]);
+  const openedAt = parseReceitaDate(cols[10]);
   const address = [
     street,
     number,
@@ -563,7 +582,40 @@ function mapEstablishment(
     secondaryCnaes,
     phone,
     email,
+    openedAt,
   };
+}
+
+/** Receita open-data dates are YYYYMMDD; invalid/empty becomes null. */
+function parseReceitaDate(value: string | undefined): Date | null {
+  const raw = (value ?? '').replace(/\D/g, '');
+  if (raw.length !== 8 || raw === '00000000') {
+    return null;
+  }
+  const year = Number(raw.slice(0, 4));
+  const month = Number(raw.slice(4, 6));
+  const day = Number(raw.slice(6, 8));
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day) ||
+    year < 1800 ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return null;
+  }
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return date;
 }
 
 function normalizeBrPhone(ddd: string | undefined, number: string | undefined): string | null {
@@ -697,28 +749,120 @@ async function downloadParts(
 }
 
 async function downloadFileIfMissing(url: string, dest: string) {
-  const { access } = await import('node:fs/promises');
   try {
-    await access(dest);
-    console.log(`Reusing ${dest}`);
-    return;
+    const info = await stat(dest);
+    if (info.size > 0) {
+      console.log(`Reusing ${dest}`);
+      return;
+    }
   } catch {
     /* download */
   }
 
-  console.log(`Downloading ${url}`);
-  const response = await fetch(url, { headers: rfbAuthHeaders() });
-  if (!response.ok || !response.body) {
-    throw new Error(`Download failed ${response.status}: ${url}`);
+  const partial = `${dest}.partial`;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= DOWNLOAD_RETRIES; attempt += 1) {
+    console.log(
+      `Downloading ${basename(dest)} (tentativa ${attempt}/${DOWNLOAD_RETRIES})`,
+    );
+    try {
+      // curl handles RFB multi-GB zips more reliably than Node fetch (socket drops).
+      await downloadWithCurl(url, partial);
+      await rename(partial, dest);
+      console.log(`OK ${basename(dest)}`);
+      return;
+    } catch (curlError) {
+      lastError = curlError;
+      console.warn(
+        `curl falhou em ${basename(dest)}: ${String(curlError)}. Tentando fetch...`,
+      );
+      try {
+        await downloadWithFetch(url, partial);
+        await rename(partial, dest);
+        console.log(`OK ${basename(dest)} (fetch)`);
+        return;
+      } catch (fetchError) {
+        lastError = fetchError;
+        console.warn(
+          `Download interrompido (${basename(dest)}): ${String(fetchError)}`,
+        );
+        await sleep(Math.min(30_000, 2_000 * attempt));
+      }
+    }
   }
 
-  const file = createWriteStream(dest);
+  await rm(partial, { force: true }).catch(() => undefined);
+  throw new Error(
+    `Falha ao baixar ${url} após ${DOWNLOAD_RETRIES} tentativas: ${String(lastError)}`,
+  );
+}
+
+async function downloadWithCurl(url: string, dest: string) {
+  const auth = `${RFB_SHARE_TOKEN}:`;
+  const args = [
+    '--fail',
+    '--location',
+    '--silent',
+    '--show-error',
+    '--retry',
+    '5',
+    '--retry-delay',
+    '3',
+    '--retry-all-errors',
+    '--continue-at',
+    '-',
+    '--user',
+    auth,
+    '--user-agent',
+    RFB_USER_AGENT,
+    '--output',
+    dest,
+    url,
+  ];
+
+  const proc = spawn('curl', args, { stdio: ['ignore', 'inherit', 'inherit'] });
+  const [code] = (await once(proc, 'close')) as [number | null];
+  if (code !== 0) {
+    throw new Error(`curl exit ${code}`);
+  }
+
+  const info = await stat(dest);
+  if (info.size <= 0) {
+    throw new Error('curl wrote empty file');
+  }
+}
+
+async function downloadWithFetch(url: string, dest: string) {
+  let startAt = 0;
+  try {
+    const info = await stat(dest);
+    startAt = info.size > 0 ? info.size : 0;
+  } catch {
+    startAt = 0;
+  }
+
+  const headers = rfbAuthHeaders(
+    startAt > 0 ? { Range: `bytes=${startAt}-` } : undefined,
+  );
+  const response = await fetch(url, { headers });
+  if (!response.ok || !response.body) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const append = startAt > 0 && response.status === 206;
+  const file = createWriteStream(dest, { flags: append ? 'a' : 'w' });
   await new Promise<void>((resolve, reject) => {
     Readable.fromWeb(response.body as never)
       .pipe(file)
       .on('finish', () => resolve())
       .on('error', reject);
   });
+
+  const info = await stat(dest);
+  if (info.size <= 0) {
+    throw new Error('fetch wrote empty file');
+  }
 }
 
 async function loadCodeTable(zipPath: string, _dataDir: string) {

@@ -21,6 +21,7 @@ const MAX_GUEST_EMAILS = 10;
 
 interface LeadMeetingDialogProps {
   lead: Lead;
+  meeting?: LeadMeeting | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: (lead: Lead) => void;
@@ -28,6 +29,7 @@ interface LeadMeetingDialogProps {
 
 export function LeadMeetingDialog({
   lead,
+  meeting,
   open,
   onOpenChange,
   onCreated,
@@ -61,15 +63,24 @@ export function LeadMeetingDialog({
 
   useEffect(() => {
     if (open && !wasOpen.current) {
-      setTitle("");
-      setGuestName(lead.contactName?.trim() || "");
-      setGuestEmails([lead.email?.trim() || ""]);
-      setStartAt(defaultMeetingStart());
+      if (meeting) {
+        setTitle(meeting.title);
+        setGuestName(meeting.guestName);
+        setGuestEmails(
+          meeting.guestEmails.length > 0 ? meeting.guestEmails : [""],
+        );
+        setStartAt(toDateTimeLocal(meeting.startAt));
+      } else {
+        setTitle("");
+        setGuestName(lead.contactName?.trim() || "");
+        setGuestEmails([lead.email?.trim() || ""]);
+        setStartAt(defaultMeetingStart());
+      }
       setCreated(null);
       setGoogleConnected(true);
     }
     wasOpen.current = open;
-  }, [open, lead.contactName, lead.email]);
+  }, [open, meeting, lead.contactName, lead.email]);
 
   function handleOpenChange(next: boolean) {
     onOpenChange(next);
@@ -86,6 +97,29 @@ export function LeadMeetingDialog({
 
     setSaving(true);
     try {
+      if (meeting) {
+        const result = await leadsService.updateLeadMeeting(
+          lead.id,
+          meeting.id,
+          {
+            title: trimmedTitle,
+            guestName: trimmedGuest,
+            guestEmails: filledEmails,
+            startAt: toSaoPauloIso(startAt),
+          },
+        );
+        onCreated(result.lead);
+        if (result.googleSynced) {
+          toast.success("Reunião atualizada.");
+        } else {
+          toast.warning(
+            "Reunião atualizada só no sistema. O evento no Google Agenda não foi encontrado.",
+          );
+        }
+        handleOpenChange(false);
+        return;
+      }
+
       const result = await leadsService.createLeadMeeting(lead.id, {
         title: trimmedTitle,
         guestName: trimmedGuest,
@@ -121,7 +155,7 @@ export function LeadMeetingDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="pr-6 text-[var(--atria-primary)]">
-            Criar reunião
+            {meeting ? "Editar reunião" : "Criar reunião"}
           </DialogTitle>
         </DialogHeader>
 
@@ -270,7 +304,7 @@ export function LeadMeetingDialog({
                 ) : (
                   <Video className="size-3.5" />
                 )}
-                Criar reunião
+                {meeting ? "Salvar alterações" : "Criar reunião"}
               </Button>
             </DialogFooter>
           </form>
@@ -292,4 +326,17 @@ function toSaoPauloIso(value: string) {
   const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(value);
   if (!match) return value;
   return `${match[1]}T${match[2]}:00-03:00`;
+}
+
+function toDateTimeLocal(iso: string) {
+  const formatted = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
+  return formatted.replace(" ", "T");
 }

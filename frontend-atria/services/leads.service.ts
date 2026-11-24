@@ -4,6 +4,9 @@ import type {
   CreateLeadStageInput,
   CrmBoardSettings,
   CreateCrmReminderInput,
+  DeleteLeadMeetingResult,
+  UpdateLeadMeetingInput,
+  UpdateLeadMeetingResult,
   CrmReminderBoard,
   CrmReminderTask,
   CrmReminderTaskStatus,
@@ -215,13 +218,25 @@ export async function createLeadMeeting(
   });
 }
 
+export async function updateLeadMeeting(
+  leadId: string,
+  meetingId: string,
+  data: UpdateLeadMeetingInput,
+): Promise<UpdateLeadMeetingResult> {
+  return apiRequest<UpdateLeadMeetingResult>(
+    `/leads/${leadId}/meetings/${meetingId}`,
+    { method: "PATCH", body: data },
+  );
+}
+
 export async function deleteLeadMeeting(
   leadId: string,
   meetingId: string,
-): Promise<Lead> {
-  return apiRequest<Lead>(`/leads/${leadId}/meetings/${meetingId}`, {
-    method: "DELETE",
-  });
+): Promise<DeleteLeadMeetingResult> {
+  return apiRequest<DeleteLeadMeetingResult>(
+    `/leads/${leadId}/meetings/${meetingId}`,
+    { method: "DELETE" },
+  );
 }
 
 export async function createLeadComment(

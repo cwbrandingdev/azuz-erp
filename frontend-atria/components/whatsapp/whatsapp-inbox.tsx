@@ -5,6 +5,7 @@ import {
   ArrowRightLeft,
   Check,
   CheckCheck,
+  Clock,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -76,6 +77,10 @@ import { whatsappKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import {
+  buildOptimisticOutboundMessage,
+  mergeServerMessages,
+} from "@/lib/whatsapp-inbox-messages";
+import {
   normalizeWhatsAppPhone,
   validateNormalizedWhatsAppPhone,
 } from "@/lib/whatsapp-phone";
@@ -87,7 +92,9 @@ import type {
   WhatsAppInboxPriority,
   WhatsAppInboxStatus,
   WhatsAppInboxTab,
+  WhatsAppInboxMessage,
   WhatsAppMessage,
+  WhatsAppMessageStatusUi,
 } from "@/services/whatsapp.service";
 import { whatsappMediaSrc } from "@/services/whatsapp.service";
 
@@ -148,7 +155,7 @@ function MessageBody({
   message,
   outbound,
 }: {
-  message: WhatsAppMessage;
+  message: WhatsAppInboxMessage;
   outbound: boolean;
 }) {
   const media = whatsappMediaSrc(message.mediaUrl);
@@ -248,8 +255,13 @@ function NoteBody({ body }: { body: string }) {
   );
 }
 
-function StatusTicks({ status }: { status: string }) {
-  if (status === "FAILED") return <span className="text-red-500 dark:text-red-400">!</span>;
+function StatusTicks({ status }: { status: WhatsAppMessageStatusUi }) {
+  if (status === "FAILED") {
+    return <span className="text-red-500 dark:text-red-400">!</span>;
+  }
+  if (status === "PENDING") {
+    return <Clock className="size-3.5 opacity-70" />;
+  }
   if (status === "READ") {
     return <CheckCheck className="size-3.5 text-sky-500 dark:text-sky-300" />;
   }
@@ -308,7 +320,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   );
   const [newOpen, setNewOpen] = useState(false);
   const [newPhone, setNewPhone] = useState("");
-  const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
+  const [messages, setMessages] = useState<WhatsAppInboxMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [labelDraft, setLabelDraft] = useState("");
@@ -329,9 +341,8 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const mutationSending =
-    sendMessage.isPending || sendMedia.isPending || addNote.isPending;
-  const isComposingSending = composeLocked || mutationSending;
+  const isComposingSending =
+    mode === "note" && (composeLocked || addNote.isPending);
 
   const { data: conversations = [], isLoading } = useWhatsappConversations({
     tab,
@@ -413,7 +424,11 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
         const history = await whatsappService.getMessages(
           selectedPhone as string,
         );
-        if (!cancelled) setMessages(history);
+        if (!cancelled) {
+          setMessages((current) =>
+            mergeServerMessages(history, current, selectedPhone as string),
+          );
+        }
       } catch {
         if (!cancelled) toast.error("Não foi possível carregar as mensagens.");
       }
@@ -421,7 +436,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     void load();
     const interval = window.setInterval(() => {
       void load();
-    }, 4000);
+    }, 2000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
@@ -480,7 +495,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!selectedPhone || composeSubmitLock.current) return;
+    if (!selectedPhone) return;
     const text = draft.trim();
     const file = attachFile;
 
@@ -505,31 +520,60 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     }
     if (!file && !text) return;
 
-    composeSubmitLock.current = true;
-    setComposeLocked(true);
     setDraft("");
-    if (file) setAttachFile(null);
+    const fileToSend = file;
+    if (fileToSend) setAttachFile(null);
 
-    try {
-      const created = file
-        ? await sendMedia.mutateAsync({
-            to: selectedPhone,
-            file,
-            caption: text || undefined,
-          })
-        : await sendMessage.mutateAsync({ to: selectedPhone, message: text });
-      const canonicalTo = created.toPhone?.trim();
-      if (canonicalTo && canonicalTo !== selectedPhone) {
-        setSelectedPhone(canonicalTo);
+    const storedBody = text || fileToSend?.name || "";
+    const optimistic = buildOptimisticOutboundMessage({
+      toPhone: selectedPhone,
+      body: storedBody,
+      user,
+      kind: fileToSend
+        ? fileToSend.type.startsWith("image/")
+          ? "IMAGE"
+          : fileToSend.type.startsWith("video/")
+            ? "VIDEO"
+            : fileToSend.type.startsWith("audio/")
+              ? "AUDIO"
+              : "DOCUMENT"
+        : "TEXT",
+      mediaFilename: fileToSend?.name ?? null,
+      mediaMimeType: fileToSend?.type ?? null,
+    });
+    const pendingId = optimistic.id;
+    const sendPhone = selectedPhone;
+    setMessages((current) => [...current, optimistic]);
+
+    void (async () => {
+      try {
+        const created = fileToSend
+          ? await sendMedia.mutateAsync({
+              to: sendPhone,
+              file: fileToSend,
+              caption: text || undefined,
+            })
+          : await sendMessage.mutateAsync({ to: sendPhone, message: text });
+        const canonicalTo = created.toPhone?.trim();
+        if (canonicalTo && canonicalTo !== sendPhone) {
+          setSelectedPhone(canonicalTo);
+        }
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === pendingId ? created : message,
+          ),
+        );
+      } catch {
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === pendingId
+              ? { ...message, status: "FAILED" }
+              : message,
+          ),
+        );
+        toast.error("Não foi possível enviar a mensagem.");
       }
-      setMessages((current) => [...current, created]);
-    } catch {
-      setDraft(text);
-      if (file) setAttachFile(file);
-    } finally {
-      composeSubmitLock.current = false;
-      setComposeLocked(false);
-    }
+    })();
   }
 
   async function handleSendLocation() {
@@ -539,14 +583,34 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     }
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        const label = `${position.coords.latitude}, ${position.coords.longitude}`;
+        const optimistic = buildOptimisticOutboundMessage({
+          toPhone: selectedPhone,
+          body: label,
+          user,
+          kind: "LOCATION",
+        });
+        const pendingId = optimistic.id;
+        setMessages((current) => [...current, optimistic]);
         try {
           const created = await sendLocation.mutateAsync({
             to: selectedPhone,
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           });
-          setMessages((current) => [...current, created]);
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === pendingId ? created : message,
+            ),
+          );
         } catch {
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === pendingId
+                ? { ...message, status: "FAILED" }
+                : message,
+            ),
+          );
           toast.error("Não foi possível enviar a localização.");
         }
       },
@@ -895,23 +959,38 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                   );
                 }
                 const outbound = message.direction === "OUTBOUND";
+                const agentName =
+                  outbound && !message.isPrivate && message.sentByName
+                    ? message.sentByName
+                    : null;
                 return (
                   <div
                     key={message.id}
                     className={cn(
-                      "mb-1.5 flex",
-                      outbound ? "justify-end" : "justify-start",
+                      "mb-1.5 flex flex-col",
+                      outbound ? "items-end" : "items-start",
                     )}
                   >
+                    {agentName ? (
+                      <p className="mb-0.5 max-w-[80%] pr-1 text-right text-xs font-bold text-slate-600 dark:text-muted-foreground">
+                        {agentName}:
+                      </p>
+                    ) : null}
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-base shadow-sm",
-                        outbound
-                          ? "rounded-br-md bg-[var(--atria-primary)] text-white"
-                          : "rounded-bl-md bg-white text-slate-800 dark:text-foreground",
+                        "mb-1.5 flex w-full",
+                        outbound ? "justify-end" : "justify-start",
                       )}
                     >
-                      <MessageBody message={message} outbound={outbound} />
+                      <div
+                        className={cn(
+                          "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-base shadow-sm",
+                          outbound
+                            ? "rounded-br-md bg-[var(--atria-primary)] text-white"
+                            : "rounded-bl-md bg-white text-slate-800 dark:text-foreground",
+                        )}
+                      >
+                        <MessageBody message={message} outbound={outbound} />
                       <span
                         className={cn(
                           "mt-1 flex items-center justify-end gap-1 text-[11px]",
@@ -923,6 +1002,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                           <StatusTicks status={message.status} />
                         ) : null}
                       </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -968,14 +1048,38 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                       type="button"
                       onClick={() => {
                         if (item.mediaUrl && selectedPhone) {
+                          const optimistic = buildOptimisticOutboundMessage({
+                            toPhone: selectedPhone,
+                            body: item.content || item.title,
+                            user,
+                            kind: item.kind,
+                            mediaFilename: item.mediaFilename,
+                            mediaMimeType: item.mediaMimeType,
+                          });
+                          const pendingId = optimistic.id;
+                          setDraft("");
+                          setMessages((current) => [...current, optimistic]);
                           void sendCanned
                             .mutateAsync({
                               to: selectedPhone,
                               cannedId: item.id,
                             })
                             .then((created) => {
-                              setMessages((current) => [...current, created]);
-                              setDraft("");
+                              setMessages((current) =>
+                                current.map((message) =>
+                                  message.id === pendingId ? created : message,
+                                ),
+                              );
+                            })
+                            .catch(() => {
+                              setMessages((current) =>
+                                current.map((message) =>
+                                  message.id === pendingId
+                                    ? { ...message, status: "FAILED" }
+                                    : message,
+                                ),
+                              );
+                              toast.error("Não foi possível enviar a resposta pronta.");
                             });
                           return;
                         }

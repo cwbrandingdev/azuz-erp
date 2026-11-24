@@ -18,6 +18,19 @@ export interface B2bLeadSearchInput {
   uf: string;
   address?: string;
   maxResults?: number;
+  page?: number;
+  pageSize?: number;
+  name?: string;
+  openedFrom?: string;
+  openedTo?: string;
+}
+
+export interface LeadSearchSessionPageQuery {
+  page?: number;
+  pageSize?: number;
+  name?: string;
+  openedFrom?: string;
+  openedTo?: string;
 }
 
 export interface CnaeClassOption {
@@ -52,7 +65,18 @@ export interface B2bLeadSearchResponse {
   session: LeadSearchSessionDetail;
   leads: Lead[];
   totalCount: number;
+  page?: number;
+  pageSize?: number;
 }
+
+export interface OpenedAtCompaniesResponse {
+  leads: Lead[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export const CATALOG_PAGE_SIZE = 25;
 
 async function companySearchRequest<T>(
   endpoint: string,
@@ -128,9 +152,16 @@ export async function searchCompanies(
       city: input.city.trim(),
       uf: input.uf.trim().toUpperCase(),
       address: input.address?.trim() || undefined,
+      page: input.page ?? 1,
+      pageSize: input.pageSize ?? CATALOG_PAGE_SIZE,
       ...(input.maxResults !== undefined
         ? { maxResults: input.maxResults }
         : {}),
+      ...(input.name?.trim() ? { name: input.name.trim() } : {}),
+      ...(input.openedFrom?.trim()
+        ? { openedFrom: input.openedFrom.trim() }
+        : {}),
+      ...(input.openedTo?.trim() ? { openedTo: input.openedTo.trim() } : {}),
     }),
   });
 }
@@ -157,11 +188,35 @@ export async function listLeadSearchSessions(): Promise<
   });
 }
 
+export async function searchCompaniesByOpenedAt(
+  query: LeadSearchSessionPageQuery = {},
+): Promise<OpenedAtCompaniesResponse> {
+  const params = new URLSearchParams();
+  params.set("page", String(query.page ?? 1));
+  params.set("pageSize", String(query.pageSize ?? CATALOG_PAGE_SIZE));
+  if (query.name?.trim()) params.set("name", query.name.trim());
+  if (query.openedFrom?.trim()) params.set("openedFrom", query.openedFrom.trim());
+  if (query.openedTo?.trim()) params.set("openedTo", query.openedTo.trim());
+
+  return companySearchRequest<OpenedAtCompaniesResponse>(
+    `/leads/by-opening-date?${params.toString()}`,
+    { method: "GET" },
+  );
+}
+
 export async function getLeadSearchSessionLeads(
   sessionId: string,
+  query: LeadSearchSessionPageQuery = {},
 ): Promise<B2bLeadSearchResponse> {
+  const params = new URLSearchParams();
+  params.set("page", String(query.page ?? 1));
+  params.set("pageSize", String(query.pageSize ?? CATALOG_PAGE_SIZE));
+  if (query.name?.trim()) params.set("name", query.name.trim());
+  if (query.openedFrom?.trim()) params.set("openedFrom", query.openedFrom.trim());
+  if (query.openedTo?.trim()) params.set("openedTo", query.openedTo.trim());
+
   return companySearchRequest<B2bLeadSearchResponse>(
-    `/leads/sessions/${encodeURIComponent(sessionId)}`,
+    `/leads/sessions/${encodeURIComponent(sessionId)}?${params.toString()}`,
     { method: "GET" },
   );
 }

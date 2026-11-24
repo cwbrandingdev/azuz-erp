@@ -24,11 +24,13 @@ import {
 } from './dto/lead-comment.dto';
 import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
 import { CreateCrmReminderDto } from '../crm/dto/create-crm-reminder.dto';
+import { UpdateLeadMeetingDto } from './dto/update-lead-meeting.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { ProspectingLeadsQueryDto } from '../crm/dto/prospecting-leads-query.dto';
 import { CnaeResolverService } from './company-lookup/application/cnae-resolver.service';
 import { B2bLeadSearchDto } from './company-lookup/dto/b2b-lead-search.dto';
 import { CnaeSearchQueryDto } from './company-lookup/dto/cnae-search-query.dto';
+import { LeadSearchSessionQueryDto } from './company-lookup/dto/lead-search-session-query.dto';
 import { LeadSearchSessionService } from './company-lookup/application/lead-search-session.service';
 import { LeadSearchDto } from './dto/lead-search.dto';
 import { LeadsService } from './leads.service';
@@ -71,6 +73,17 @@ export class LeadsController {
     return this.leadSearchSessionService.listSessions(user.companyId);
   }
 
+  @Get('by-opening-date')
+  searchByOpeningDate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: LeadSearchSessionQueryDto,
+  ) {
+    return this.leadSearchSessionService.searchByOpeningDate(
+      user.companyId,
+      query,
+    );
+  }
+
   @Post('sessions/:id/enrich-maps')
   enrichSearchSessionMaps(
     @CurrentUser() user: AuthenticatedUser,
@@ -83,8 +96,13 @@ export class LeadsController {
   getSearchSessionLeads(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
+    @Query() query: LeadSearchSessionQueryDto,
   ) {
-    return this.leadSearchSessionService.getSessionLeads(user.companyId, id);
+    return this.leadSearchSessionService.getSessionLeads(
+      user.companyId,
+      id,
+      query,
+    );
   }
 
   @Post('search')
@@ -136,6 +154,17 @@ export class LeadsController {
     @Body() dto: CreateLeadMeetingDto,
   ) {
     return this.leadsService.createMeeting(user, id, dto);
+  }
+
+  @Patch(':id/meetings/:meetingId')
+  updateMeeting(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('meetingId') meetingId: string,
+    @Body() dto: UpdateLeadMeetingDto,
+  ) {
+    return this.leadsService.updateMeeting(user, id, meetingId, dto);
+
   }
 
   @Delete(':id/meetings/:meetingId')

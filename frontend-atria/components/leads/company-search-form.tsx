@@ -3,7 +3,7 @@
 import { Loader2, Search } from "lucide-react";
 import { PROSPECT_CATALOG_STATES } from "@/lib/prospect-catalog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +28,7 @@ export interface CompanySearchFormValues {
 interface CompanySearchFormProps {
   values: CompanySearchFormValues;
   loading?: boolean;
+  searchProgress?: number | null;
   className?: string;
   onChange: (values: CompanySearchFormValues) => void;
   onSubmit: () => void;
@@ -36,40 +37,28 @@ interface CompanySearchFormProps {
 export function CompanySearchForm({
   values,
   loading,
+  searchProgress = null,
   className,
   onChange,
   onSubmit,
 }: CompanySearchFormProps) {
   return (
     <Card
-      className={`flex h-full flex-col rounded-2xl border border-[var(--atria-primary)]/10 ${className ?? ""}`}
+      className={`flex shrink-0 flex-col overflow-visible rounded-2xl border border-[var(--atria-primary)]/10 ${className ?? ""}`}
     >
-      <CardHeader className="space-y-4 pb-3 sm:pb-6">
-        <div className="space-y-1">
-          <CardTitle className="text-base">
-            O que você está procurando?
-          </CardTitle>
-          <p className="text-sm text-[var(--atria-primary)]/50">
-            Escolha o CNAE (incluindo subclasses, como estética), a cidade e
-            o estado. O catálogo cobre São Paulo e Paraná e retorna todas as
-            empresas que batem com o CNAE. Use &quot;Completar no Google&quot;
-            para site e Instagram quando faltar.
-          </p>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col">
+      <CardContent className="flex flex-col pt-5">
         <form
           onSubmit={(event) => {
             event.preventDefault();
             onSubmit();
           }}
-          className="flex flex-1 flex-col gap-4"
+          className="flex flex-col gap-4"
         >
-          <FieldGroup className="flex-1">
+          <FieldGroup>
             <div className="grid gap-4">
               <Field>
                 <FieldLabel htmlFor="company-query-value">
-                  Qual CNAE você quer buscar?
+                  Nicho ou CNAE
                 </FieldLabel>
                 <CnaeSearchSelect
                   id="company-query-value"
@@ -86,7 +75,7 @@ export function CompanySearchForm({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="company-uf">Em qual estado?</FieldLabel>
+                <FieldLabel htmlFor="company-uf">Estado</FieldLabel>
                 <Select
                   value={values.uf}
                   onValueChange={(uf) => {
@@ -106,7 +95,7 @@ export function CompanySearchForm({
                 </Select>
               </Field>
               <Field>
-                <FieldLabel htmlFor="company-city">Em qual cidade?</FieldLabel>
+                <FieldLabel htmlFor="company-city">Cidade</FieldLabel>
                 <Input
                   id="company-city"
                   value={values.city}
@@ -118,32 +107,38 @@ export function CompanySearchForm({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="company-address">Bairro</FieldLabel>
+                <FieldLabel htmlFor="company-address">
+                  Bairro (opcional)
+                </FieldLabel>
                 <Input
                   id="company-address"
                   value={values.address}
                   onChange={(event) =>
                     onChange({ ...values, address: event.target.value })
                   }
-                  placeholder="Ex.: Pinheiros (opcional)"
+                  placeholder="Ex.: Pinheiros"
                 />
               </Field>
             </div>
           </FieldGroup>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Procurando empresas...
-              </>
-            ) : (
-              <>
-                <Search className="mr-2 h-4 w-4" />
-                Buscar empresas
-              </>
-            )}
-          </Button>
+          <div className="sticky bottom-0 z-10 bg-card pt-1">
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {typeof searchProgress === "number"
+                    ? `Procurando… ${Math.round(searchProgress)}%`
+                    : "Procurando..."}
+                </>
+              ) : (
+                <>
+                  <Search className="mr-2 h-4 w-4" />
+                  Buscar empresas
+                </>
+              )}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

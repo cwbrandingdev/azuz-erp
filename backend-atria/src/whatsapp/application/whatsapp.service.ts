@@ -7,7 +7,9 @@ import {
 } from '@nestjs/common';
 import { readFileSync } from 'fs';
 import { AiService } from '../../ai/ai.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
+  formatAgentWhatsAppBody,
   mapWahaAck,
   kindFromMime,
   WhatsAppDirection,
@@ -60,6 +62,7 @@ export class WhatsAppService {
     @Inject(forwardRef(() => WhatsAppAutomationService))
     private readonly automation: WhatsAppAutomationService,
     private readonly notifications: NotificationsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   getSession(): Promise<WhatsAppSessionInfo> {
@@ -138,13 +141,15 @@ export class WhatsAppService {
     this.logger.log(
       `WhatsApp outbound send requested normalizedLen=${recipient.length}`,
     );
-    const result = await this.graph.sendText(recipient, message);
+    const attribution = await this.agentWireText(message, userId, agentReply);
+    const result = await this.graph.sendText(recipient, attribution.wireText);
     this.logger.log(
       `WhatsApp outbound send ok normalizedLen=${result.to.length} wamid=${result.whatsappMessageId ?? 'none'}`,
     );
     return this.persistOutbound({
       to: result.to,
-      body: message,
+      body: attribution.storedBody,
+      preview: attribution.preview,
       userId,
       whatsappMessageId: result.whatsappMessageId,
       agentReply,
@@ -193,13 +198,23 @@ export class WhatsAppService {
     const stored = this.media.save(buffer, filename, mimeType);
     const recipient = normalizeWhatsAppPhone(to);
     const mediaId = await this.graph.uploadMedia(buffer, mimeType, filename);
+    const captionTrimmed = caption?.trim() || '';
+    const attribution = await this.agentWireText(
+      captionTrimmed,
+      userId,
+      true,
+    );
+    const wireCaption = captionTrimmed ? attribution.wireText : undefined;
     const result = await this.graph.sendMedia(recipient, kind, mediaId, {
-      caption,
+      caption: wireCaption,
       filename,
     });
+    const storedBody = captionTrimmed || stored.filename;
+    const preview = captionTrimmed ? attribution.preview : stored.filename;
     return this.persistOutbound({
       to: result.to,
-      body: caption?.trim() || stored.filename,
+      body: storedBody,
+      preview,
       userId,
       whatsappMessageId: result.whatsappMessageId,
       agentReply: true,
@@ -415,9 +430,35 @@ export class WhatsAppService {
     return this.messages.deleteCannedResponse(id);
   }
 
+  private async resolveAgentName(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+    return user?.name?.trim() || null;
+  }
+
+  private async agentWireText(
+    body: string,
+    userId: string | undefined,
+    agentReply: boolean,
+  ): Promise<{ wireText: string; storedBody: string; preview: string }> {
+    const storedBody = body;
+    if (!userId || !agentReply || !body.trim()) {
+      return { wireText: body, storedBody, preview: body };
+    }
+    const agentName = await this.resolveAgentName(userId);
+    if (!agentName) {
+      return { wireText: body, storedBody, preview: body };
+    }
+    const wireText = formatAgentWhatsAppBody(agentName, body);
+    return { wireText, storedBody, preview: wireText };
+  }
+
   private async persistOutbound(input: {
     to: string;
     body: string;
+    preview?: string;
     userId?: string;
     whatsappMessageId: string | null;
     agentReply: boolean;
@@ -436,7 +477,7 @@ export class WhatsAppService {
     const businessPhone = await this.graph.getBusinessPhone();
     const conversation = await this.messages.upsertConversation({
       phone: input.to,
-      preview: input.body,
+      preview: input.preview ?? input.body,
       inbound: false,
       agentReply: input.agentReply,
     });

@@ -2525,6 +2525,7 @@ export interface LeadMeeting {
   startAt: string;
   endAt: string;
   meetUrl: string | null;
+  guestEmails: string[];
   createdById: string;
 }
 
@@ -2538,6 +2539,23 @@ export interface CreateLeadMeetingInput {
 export interface CreateLeadMeetingResult {
   lead: Lead;
   googleConnected: boolean;
+}
+
+export interface UpdateLeadMeetingInput {
+  title?: string;
+  guestName?: string;
+  startAt?: string;
+  guestEmails?: string[];
+}
+
+export interface UpdateLeadMeetingResult {
+  lead: Lead;
+  googleSynced: boolean;
+}
+
+export interface DeleteLeadMeetingResult {
+  lead: Lead;
+  googleCancelled: boolean | null;
 }
 
 export interface TodayLeadMeeting {

@@ -139,6 +139,13 @@ export type ConversationPatch = {
   lastCustomerMessageAt?: Date | null;
 };
 
+export function formatAgentWhatsAppBody(agentName: string, text: string): string {
+  const label = `*${agentName}*:`;
+  const trimmed = text.trim();
+  if (!trimmed) return label;
+  return `${label}\n\n${trimmed}`;
+}
+
 /** WAHA ack: 1 server, 2 device, 3 read, 4 played, -1 error. */
 export function mapWahaAck(ack: unknown): WhatsAppStatus | null {
   const value = typeof ack === 'number' ? ack : Number(ack);

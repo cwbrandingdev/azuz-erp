@@ -1,49 +1,43 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Kanban, Loader2, MapPin, Sparkles, Square } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { AddToKanbanOrganizationDialog } from "@/components/leads/add-to-kanban-organization-dialog";
 import {
   CompanySearchForm,
   type CompanySearchFormValues,
 } from "@/components/leads/company-search-form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { LeadsMapView } from "@/components/leads/leads-map-view";
-import { LeadsTable } from "@/components/leads/leads-table";
-import { SearchSessionFilter } from "@/components/leads/search-session-filter";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ProspectingLeadsList } from "@/components/leads/prospecting-leads-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import {
   PROSPECTING_LEADS_KEY,
+  useCompaniesByOpenedAt,
   useCompanySearchMutation,
-  useEnrichSessionMapsMutation,
   useLeadSearchSessionLeads,
   useLeadSearchSessions,
-  useProspectingLeads,
 } from "@/hooks/use-company-search";
-import { getAppQueryClient } from "@/lib/query-client";
+import { useSimulatedSearchProgress } from "@/hooks/use-simulated-search-progress";
 import {
   readPersistedB2bProspectingState,
   writePersistedB2bProspectingState,
 } from "@/lib/lead-prospecting-persistence";
-import type { B2bLeadSearchResponse } from "@/services/company-search.service";
+import {
+  CATALOG_PAGE_SIZE,
+  type B2bLeadSearchResponse,
+  type OpenedAtCompaniesResponse,
+} from "@/services/company-search.service";
 import { useCrmUsers } from "@/hooks/use-crm-users";
 import { useSdrAssignedOrganizations } from "@/hooks/use-sdr-assigned-organizations";
 import { buildAddToKanbanInput } from "@/lib/lead-external-utils";
-import { formatSearchSessionLabel } from "@/lib/lead-search-session";
 import { isMasterOrAdmin, normalizeAppRole } from "@/lib/permissions";
-import { readCommercialFit } from "@/lib/lead-qualification-utils";
-import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { leadsService } from "@/services";
 import type { Lead } from "@/services/types";
@@ -58,84 +52,15 @@ const DEFAULT_FORM_VALUES: CompanySearchFormValues = {
   address: "",
 };
 
-const ALL_CATEGORIES = "Todas as categorias";
-const ALL_NEIGHBORHOODS = "Todos os bairros";
-
-function normalizeFilterText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-function matchesLeadField(
-  lead: Lead,
-  query: string,
-  field: "category" | "neighborhood",
-) {
-  const normalized = normalizeFilterText(query);
-  if (!normalized) return true;
-  const value = normalizeFilterText(lead[field] ?? "");
-  return value.includes(normalized);
-}
-
-function collectDistinctValues(
-  leads: Lead[],
-  field: "category" | "neighborhood",
-) {
-  const values = new Set<string>();
-  for (const lead of leads) {
-    const value = lead[field]?.trim();
-    if (value) values.add(value);
-  }
-  return Array.from(values).sort((a, b) => a.localeCompare(b, "pt-BR"));
-}
-
 function isCrmRole(role: string | null | undefined) {
   return normalizeAppRole(role) === "crm";
 }
 
-function filterModeSectionClass(active: boolean) {
-  return cn(
-    "grid gap-4 rounded-xl border p-4 transition-all lg:grid-cols-2",
-    active
-      ? "border-[var(--atria-primary)]/40 bg-[var(--atria-primary)]/[0.05] shadow-sm ring-2 ring-[var(--atria-primary)]/10"
-      : "border-[var(--atria-primary)]/10 bg-white/50",
-  );
+interface CompanySearchPanelProps {
+  modeTabs?: ReactNode;
 }
 
-function matchesQuery(lead: Lead, query: string) {
-  const normalized = normalizeFilterText(query);
-  if (!normalized) return true;
-  const haystack = normalizeFilterText(
-    [
-      lead.name,
-      lead.city,
-      lead.neighborhood,
-      lead.category,
-      lead.phone,
-      lead.email,
-      lead.address,
-      lead.website,
-      lead.instagram,
-    ]
-      .filter(Boolean)
-      .join(" "),
-  );
-  return haystack.includes(normalized);
-}
-
-function readInitialActiveLeads(sessionId: string | null): Lead[] {
-  if (!sessionId) return [];
-  const cached = getAppQueryClient()?.getQueryData<B2bLeadSearchResponse>([
-    "lead-search-session",
-    sessionId,
-  ]);
-  return cached?.leads ?? [];
-}
-
-export function CompanySearchPanel() {
+export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
   const { user } = useAuth();
   const canAssignOwner = isMasterOrAdmin(user?.role);
   const { users: crmUsers } = useCrmUsers(canAssignOwner);
@@ -147,58 +72,65 @@ export function CompanySearchPanel() {
   const [formValues, setFormValues] = useState<CompanySearchFormValues>(
     () => persistedB2bState?.formValues ?? DEFAULT_FORM_VALUES,
   );
-  const [sessionFilterQuery, setSessionFilterQuery] = useState("");
-  const [sessionFilterCategory, setSessionFilterCategory] =
-    useState(ALL_CATEGORIES);
-  const [sessionFilterNeighborhood, setSessionFilterNeighborhood] =
-    useState(ALL_NEIGHBORHOODS);
-  const [globalCategoryFilter, setGlobalCategoryFilter] = useState("");
-  const [globalNeighborhoodFilter, setGlobalNeighborhoodFilter] = useState("");
-  const [globalFilterQuery, setGlobalFilterQuery] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [debouncedName, setDebouncedName] = useState("");
+  const [openedFrom, setOpenedFrom] = useState("");
+  const [openedTo, setOpenedTo] = useState("");
+  const [page, setPage] = useState(1);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     () => initialSessionId,
   );
   const [hasAutoSelectedSession, setHasAutoSelectedSession] = useState(() =>
     Boolean(initialSessionId),
   );
+  const [totalCount, setTotalCount] = useState(0);
   const queryClient = useQueryClient();
-  const [activeLeads, setActiveLeads] = useState<Lead[]>(() =>
-    readInitialActiveLeads(initialSessionId),
-  );
-  const [qualifyingId, setQualifyingId] = useState<string | null>(null);
+  const [activeLeads, setActiveLeads] = useState<Lead[]>([]);
   const [addingKanbanId, setAddingKanbanId] = useState<string | null>(null);
-  const [bulkAddingKanban, setBulkAddingKanban] = useState(false);
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
   const [pendingKanbanLeads, setPendingKanbanLeads] = useState<Lead[]>([]);
   const [confirmingKanban, setConfirmingKanban] = useState(false);
-  const [bulkQualifying, setBulkQualifying] = useState(false);
-  const [batchProgress, setBatchProgress] = useState<{
-    done: number;
-    total: number;
-    name: string;
-  } | null>(null);
-  const [onlyHighCommercialFit, setOnlyHighCommercialFit] = useState(false);
-  const [mapsEnrichedSessionId, setMapsEnrichedSessionId] = useState<
-    string | null
-  >(null);
-  const batchCancelRef = useRef(false);
+
+  const dateFilterActive = Boolean(openedFrom || openedTo);
 
   const sessionsQuery = useLeadSearchSessions();
-  const sessionLeadsQuery = useLeadSearchSessionLeads(selectedSessionId);
-  const prospectingLeadsQuery = useProspectingLeads();
+  const sessionLeadsQuery = useLeadSearchSessionLeads(
+    selectedSessionId,
+    {
+      page,
+      pageSize: CATALOG_PAGE_SIZE,
+      name: debouncedName || undefined,
+    },
+    !dateFilterActive,
+  );
+  const openedAtQuery = useCompaniesByOpenedAt(
+    {
+      page,
+      pageSize: CATALOG_PAGE_SIZE,
+      name: debouncedName || undefined,
+      openedFrom: openedFrom || undefined,
+      openedTo: openedTo || undefined,
+    },
+    dateFilterActive,
+  );
   const searchMutation = useCompanySearchMutation();
-  const enrichMapsMutation = useEnrichSessionMapsMutation();
 
   const sessions = sessionsQuery.data ?? [];
-  const allProspectedLeads = prospectingLeadsQuery.data ?? [];
   const loadingSessions = sessionsQuery.isLoading && !sessionsQuery.data;
   const loadingSessionLeads =
     Boolean(selectedSessionId) &&
-    sessionLeadsQuery.isLoading &&
+    (sessionLeadsQuery.isLoading || sessionLeadsQuery.isFetching) &&
     !sessionLeadsQuery.data;
-  const loadingAllLeads =
-    prospectingLeadsQuery.isLoading && !prospectingLeadsQuery.data;
   const searching = searchMutation.isPending;
+  const searchProgress = useSimulatedSearchProgress(searching);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedName(nameFilter.trim());
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [nameFilter]);
 
   useEffect(() => {
     writePersistedB2bProspectingState({
@@ -207,13 +139,12 @@ export function CompanySearchPanel() {
     });
   }, [formValues, selectedSessionId]);
 
-  const canShowMap = Boolean(formValues.city.trim() && formValues.uf.trim());
-
   const hasSearchContext = Boolean(
     selectedSessionId ||
-    searchMutation.data ||
-    activeLeads.length > 0 ||
-    sessions.length > 0,
+      searchMutation.data ||
+      activeLeads.length > 0 ||
+      totalCount > 0 ||
+      sessions.length > 0,
   );
 
   useEffect(() => {
@@ -227,133 +158,60 @@ export function CompanySearchPanel() {
     }
 
     setSelectedSessionId(sessions[0].id);
+    setPage(1);
     setHasAutoSelectedSession(true);
   }, [hasAutoSelectedSession, loadingSessions, selectedSessionId, sessions]);
 
   useEffect(() => {
+    if (!dateFilterActive || !openedAtQuery.isError) return;
+    setActiveLeads([]);
+    setTotalCount(0);
+    toast.error("Não foi possível buscar empresas por data de abertura.");
+  }, [dateFilterActive, openedAtQuery.isError, openedAtQuery.errorUpdatedAt]);
+
+  useEffect(() => {
+    if (dateFilterActive) {
+      if (openedAtQuery.isError) return;
+      if (openedAtQuery.data) {
+        setActiveLeads(openedAtQuery.data.leads);
+        setTotalCount(openedAtQuery.data.totalCount);
+      }
+      return;
+    }
+
     if (selectedSessionId && sessionLeadsQuery.data) {
       setActiveLeads(sessionLeadsQuery.data.leads);
+      setTotalCount(sessionLeadsQuery.data.totalCount);
       return;
     }
 
     if (!selectedSessionId && !searchMutation.data) {
       setActiveLeads([]);
+      setTotalCount(0);
     }
-  }, [selectedSessionId, sessionLeadsQuery.data, searchMutation.data]);
+  }, [
+    dateFilterActive,
+    openedAtQuery.data,
+    openedAtQuery.isError,
+    selectedSessionId,
+    sessionLeadsQuery.data,
+    searchMutation.data,
+  ]);
 
   useEffect(() => {
+    if (dateFilterActive) return;
     if (!selectedSessionId && searchMutation.data) {
       setActiveLeads(searchMutation.data.leads);
+      setTotalCount(searchMutation.data.totalCount);
     }
-  }, [searchMutation.data, selectedSessionId]);
+  }, [dateFilterActive, searchMutation.data, selectedSessionId]);
 
-  const categoryOptions = useMemo(
-    () => collectDistinctValues(activeLeads, "category"),
-    [activeLeads],
-  );
-
-  const neighborhoodOptions = useMemo(
-    () => collectDistinctValues(activeLeads, "neighborhood"),
-    [activeLeads],
-  );
-
-  const sessionFilteredLeads = useMemo(() => {
-    let filtered = activeLeads;
-
-    if (sessionFilterCategory !== ALL_CATEGORIES) {
-      filtered = filtered.filter(
-        (lead) =>
-          lead.category?.trim().toLowerCase() ===
-          sessionFilterCategory.trim().toLowerCase(),
-      );
-    }
-
-    if (sessionFilterNeighborhood !== ALL_NEIGHBORHOODS) {
-      filtered = filtered.filter(
-        (lead) =>
-          lead.neighborhood?.trim().toLowerCase() ===
-          sessionFilterNeighborhood.trim().toLowerCase(),
-      );
-    }
-
-    if (!sessionFilterQuery.trim()) {
-      return filtered;
-    }
-    return filtered.filter((lead) => matchesQuery(lead, sessionFilterQuery));
-  }, [
-    activeLeads,
-    sessionFilterCategory,
-    sessionFilterNeighborhood,
-    sessionFilterQuery,
-  ]);
-
-  const isGlobalFilterActive = Boolean(
-    globalCategoryFilter.trim() ||
-    globalNeighborhoodFilter.trim() ||
-    globalFilterQuery.trim(),
-  );
-
-  const globalFilteredLeads = useMemo(() => {
-    if (!isGlobalFilterActive) return [];
-
-    return allProspectedLeads.filter(
-      (lead) =>
-        matchesLeadField(lead, globalCategoryFilter, "category") &&
-        matchesLeadField(lead, globalNeighborhoodFilter, "neighborhood") &&
-        matchesQuery(lead, globalFilterQuery),
-    );
-  }, [
-    allProspectedLeads,
-    globalCategoryFilter,
-    globalFilterQuery,
-    globalNeighborhoodFilter,
-    isGlobalFilterActive,
-  ]);
-
-  const displayLeads = isGlobalFilterActive
-    ? globalFilteredLeads
-    : sessionFilteredLeads;
-
-  const leadsWithInstagramCount = useMemo(
-    () => displayLeads.filter((lead) => lead.instagram?.trim()).length,
-    [displayLeads],
-  );
-
-  const leadsNeedingMapsCount = useMemo(
-    () =>
-      displayLeads.filter(
-        (lead) =>
-          !lead.instagram?.trim() ||
-          !lead.website?.trim() ||
-          lead.rating == null,
-      ).length,
-    [displayLeads],
-  );
-
-  const tableLeads = useMemo(() => {
-    if (!onlyHighCommercialFit) {
-      return displayLeads;
-    }
-    return displayLeads.filter((lead) => {
-      const fit = readCommercialFit(lead.rawData);
-      return fit?.verdict === "high";
-    });
-  }, [displayLeads, onlyHighCommercialFit]);
-
-  useEffect(() => {
-    setSessionFilterCategory(ALL_CATEGORIES);
-    setSessionFilterNeighborhood(ALL_NEIGHBORHOODS);
-  }, [selectedSessionId]);
-
-  const pendingKanbanCount = useMemo(
-    () => displayLeads.filter((lead) => !lead.kanbanTracked).length,
-    [displayLeads],
-  );
-
-  const selectedSession = useMemo(
-    () => sessions.find((session) => session.id === selectedSessionId) ?? null,
-    [sessions, selectedSessionId],
-  );
+  const loadingResults =
+    searching ||
+    (dateFilterActive
+      ? openedAtQuery.isLoading || openedAtQuery.isFetching
+      : loadingSessionLeads ||
+        (Boolean(selectedSessionId) && sessionLeadsQuery.isFetching));
 
   const handleSearch = useCallback(() => {
     const queryValue = formValues.queryValue.trim();
@@ -371,13 +229,11 @@ export function CompanySearchPanel() {
       return;
     }
 
-    setGlobalCategoryFilter("");
-    setGlobalNeighborhoodFilter("");
-    setGlobalFilterQuery("");
-    setSessionFilterQuery("");
-    setSessionFilterCategory(ALL_CATEGORIES);
-    setSessionFilterNeighborhood(ALL_NEIGHBORHOODS);
-
+    setNameFilter("");
+    setDebouncedName("");
+    setOpenedFrom("");
+    setOpenedTo("");
+    setPage(1);
     setSelectedSessionId(null);
 
     void searchMutation
@@ -387,17 +243,19 @@ export function CompanySearchPanel() {
         city,
         uf,
         address: address || undefined,
+        page: 1,
+        pageSize: CATALOG_PAGE_SIZE,
       })
       .then((data) => {
         setActiveLeads(data.leads);
+        setTotalCount(data.totalCount);
         setSelectedSessionId(data.session.id);
         setHasAutoSelectedSession(true);
         void queryClient.invalidateQueries({ queryKey: PROSPECTING_LEADS_KEY });
 
-        if (data.leads.length > 0) {
-          const total = data.totalCount ?? data.leads.length;
+        if (data.totalCount > 0) {
           toast.success(
-            `Encontramos ${total} empresa(s) em ${city} para este CNAE.`,
+            `Encontramos ${data.totalCount} empresa(s) em ${city} para este CNAE.`,
           );
         } else {
           toast.info(
@@ -433,9 +291,37 @@ export function CompanySearchPanel() {
       current.map((item) => (matches(item) ? updated : item)),
     );
 
-    if (selectedSessionId) {
+    if (dateFilterActive) {
+      queryClient.setQueryData<OpenedAtCompaniesResponse>(
+        [
+          "companies-by-opened-at",
+          page,
+          CATALOG_PAGE_SIZE,
+          debouncedName,
+          openedFrom,
+          openedTo,
+        ],
+        (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            leads: current.leads.map((item) =>
+              matches(item) ? updated : item,
+            ),
+          };
+        },
+      );
+    } else if (selectedSessionId) {
       queryClient.setQueryData<B2bLeadSearchResponse>(
-        ["lead-search-session", selectedSessionId],
+        [
+          "lead-search-session",
+          selectedSessionId,
+          page,
+          CATALOG_PAGE_SIZE,
+          debouncedName,
+          "",
+          "",
+        ],
         (current) => {
           if (!current) return current;
           return {
@@ -461,8 +347,6 @@ export function CompanySearchPanel() {
   ) {
     if (leadsToAdd.length === 1) {
       setAddingKanbanId(leadsToAdd[0].id);
-    } else {
-      setBulkAddingKanban(true);
     }
 
     let added = 0;
@@ -479,7 +363,9 @@ export function CompanySearchPanel() {
           );
           added += 1;
           replaceLeadInLists(updated, lead);
-        } catch {}
+        } catch {
+          /* continue */
+        }
       }
 
       if (added > 0) {
@@ -493,7 +379,6 @@ export function CompanySearchPanel() {
       }
     } finally {
       setAddingKanbanId(null);
-      setBulkAddingKanban(false);
     }
   }
 
@@ -532,106 +417,26 @@ export function CompanySearchPanel() {
     }
   }
 
-  function applyLeadUpdate(updated: Lead, previous?: Lead) {
-    replaceLeadInLists(updated, previous);
-  }
+  const emptyMessage = dateFilterActive
+    ? "Nenhuma empresa encontrada com essa data de abertura."
+    : !hasSearchContext
+      ? "Faça uma busca no formulário para ver as empresas aqui."
+      : "Nenhuma empresa encontrada para esta busca ou filtros.";
 
-  async function runPreQualifyForLead(lead: Lead, silentToast = false) {
-    setQualifyingId(lead.id);
-    try {
-      const updated = await leadsService.preQualifyLead(lead.id);
-      applyLeadUpdate(updated, lead);
-      if (!silentToast) {
-        toast.success("Qualificação concluída.");
-      }
-    } catch {
-    } finally {
-      setQualifyingId(null);
-    }
-  }
-
-  async function handleBatchQualify() {
-    const targets = displayLeads.filter((lead) => lead.instagram?.trim());
-    if (targets.length === 0) {
-      toast.error("Nenhuma empresa com Instagram na lista atual.");
-      return;
-    }
-
-    batchCancelRef.current = false;
-    setBulkQualifying(true);
-    setBatchProgress({ done: 0, total: targets.length, name: "" });
-
-    let done = 0;
-    for (const lead of targets) {
-      if (batchCancelRef.current) {
-        break;
-      }
-      setBatchProgress({
-        done,
-        total: targets.length,
-        name: lead.name,
-      });
-      await runPreQualifyForLead(lead, true);
-      done += 1;
-      setBatchProgress({
-        done,
-        total: targets.length,
-        name: lead.name,
-      });
-    }
-
-    setBulkQualifying(false);
-    setBatchProgress(null);
-    toast.success("Qualificação concluída.");
-  }
-
-  async function handleEnrichMaps() {
-    if (!selectedSessionId) {
-      toast.error("Selecione uma busca para completar no Google.");
-      return;
-    }
-
-    try {
-      const data = await enrichMapsMutation.mutateAsync(selectedSessionId);
-      setActiveLeads(data.leads);
-      setMapsEnrichedSessionId(selectedSessionId);
-      queryClient.setQueryData<Lead[]>(PROSPECTING_LEADS_KEY, (current) => {
-        if (!current) return current;
-        const byId = new Map(data.leads.map((lead) => [lead.id, lead]));
-        return current.map((lead) => byId.get(lead.id) ?? lead);
-      });
-
-      if (data.updated > 0) {
-        toast.success(
-          data.updated === 1
-            ? "Completamos Instagram/site de 1 empresa no Google."
-            : `Completamos Instagram/site de ${data.updated} empresas no Google.`,
-        );
-      } else {
-        toast.info(
-          "Não encontramos Instagram ou site correspondente no Google para essa lista.",
-        );
-      }
-    } catch {
-      toast.error(
-        "Não foi possível completar os contatos no Google. Tente novamente.",
-      );
-    }
-  }
-
-  function handleCancelBatchQualify() {
-    batchCancelRef.current = true;
-  }
-
-  const enrichingMaps = enrichMapsMutation.isPending;
-
-  const loadingResults =
-    searching ||
-    loadingSessionLeads ||
-    (isGlobalFilterActive && loadingAllLeads);
+  const pageSize = useMemo(
+    () =>
+      (dateFilterActive
+        ? openedAtQuery.data?.pageSize
+        : sessionLeadsQuery.data?.pageSize) ?? CATALOG_PAGE_SIZE,
+    [
+      dateFilterActive,
+      openedAtQuery.data?.pageSize,
+      sessionLeadsQuery.data?.pageSize,
+    ],
+  );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
       <AddToKanbanOrganizationDialog
         open={kanbanModalOpen}
         onOpenChange={(open) => {
@@ -647,480 +452,90 @@ export function CompanySearchPanel() {
         onConfirm={handleConfirmKanbanOrganization}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start lg:gap-6">
+      <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+        {modeTabs}
+
         <CompanySearchForm
           values={formValues}
           loading={searching}
+          searchProgress={searching ? searchProgress : null}
           onChange={setFormValues}
           onSubmit={handleSearch}
         />
 
-        <Card className="flex flex-col rounded-2xl border border-[var(--atria-primary)]/10">
+        <Card className="shrink-0 rounded-2xl border border-[var(--atria-primary)]/10">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MapPin className="size-4 text-[var(--atria-primary)]" />
-              Mapa das empresas
-            </CardTitle>
-            <p className="text-sm text-[var(--atria-primary)]/50">
-              {canShowMap
-                ? "O mapa mostra a região da busca e os pinos das empresas encontradas."
-                : "Informe a cidade e o estado para visualizar o mapa."}
-            </p>
+            <CardTitle className="text-base">Filtros</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            {canShowMap ? (
-              <LeadsMapView
-                leads={displayLeads}
-                searchLocation={{
-                  city: formValues.city,
-                  uf: formValues.uf,
-                  address: formValues.address,
-                }}
-                addingKanbanId={addingKanbanId}
-                onAddToLeads={(lead) => {
-                  if (lead.kanbanTracked) return;
-                  requestAddToKanban([lead]);
-                }}
+          <CardContent className="flex flex-col gap-4">
+            <Field>
+              <FieldLabel htmlFor="company-name-filter">Por nome</FieldLabel>
+              <Input
+                id="company-name-filter"
+                value={nameFilter}
+                onChange={(event) => setNameFilter(event.target.value)}
+                placeholder="Filtrar por nome..."
               />
-            ) : (
-              <div className="flex items-center justify-center rounded-xl border border-dashed border-[var(--atria-primary)]/15 bg-[var(--atria-primary)]/[0.02] px-6 py-16 text-center text-sm text-[var(--atria-primary)]/50">
-                Preencha a cidade e o estado no formulário ao lado para ver o
-                mapa.
-              </div>
-            )}
+            </Field>
+
+            <div className="grid gap-3">
+              <Field>
+                <FieldLabel htmlFor="company-opened-from">
+                  Data de abertura (de)
+                </FieldLabel>
+                <Input
+                  id="company-opened-from"
+                  type="date"
+                  value={openedFrom}
+                  onChange={(event) => {
+                    setOpenedFrom(event.target.value);
+                    setPage(1);
+                  }}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="company-opened-to">
+                  Data de abertura (até)
+                </FieldLabel>
+                <Input
+                  id="company-opened-to"
+                  type="date"
+                  value={openedTo}
+                  min={openedFrom || undefined}
+                  onChange={(event) => {
+                    setOpenedTo(event.target.value);
+                    setPage(1);
+                  }}
+                />
+                <p className="mt-1.5 text-xs text-[var(--atria-primary)]/50">
+                  Busca só pela data de abertura, sem CNAE ou cidade. Se
+                  preencher só &quot;de&quot;, mostra daquela data até hoje.
+                </p>
+              </Field>
+            </div>
           </CardContent>
         </Card>
-      </div>
+      </aside>
 
-      <Card className="rounded-2xl border border-[var(--atria-primary)]/10">
-        <CardHeader className="space-y-3 pb-2">
-          <CardTitle className="text-base">Filtrar resultados</CardTitle>
-          <p className="text-sm text-[var(--atria-primary)]/50">
-            Escolha se quer refinar uma busca específica ou pesquisar em todas
-            as empresas que você já encontrou antes.
-          </p>
-          <div
-            className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.02] p-2"
-            role="status"
-            aria-live="polite"
-          >
-            <span className="px-1 text-xs font-medium text-[var(--atria-primary)]/60">
-              Modo ativo:
-            </span>
-            <Badge
-              variant={!isGlobalFilterActive ? "default" : "outline"}
-              className="gap-1"
-            >
-              {!isGlobalFilterActive ? (
-                <Check className="size-3" aria-hidden />
-              ) : null}
-              Busca selecionada
-            </Badge>
-            <Badge
-              variant={isGlobalFilterActive ? "default" : "outline"}
-              className="gap-1"
-            >
-              {isGlobalFilterActive ? (
-                <Check className="size-3" aria-hidden />
-              ) : null}
-              Histórico completo
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          <div className={filterModeSectionClass(!isGlobalFilterActive)}>
-            <div className="lg:col-span-2 flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-[var(--atria-primary)]">
-                  Busca selecionada
-                </p>
-                <p className="mt-1 text-xs text-[var(--atria-primary)]/50">
-                  Filtra somente os leads da pesquisa escolhida em &quot;Buscas
-                  recentes&quot;.
-                </p>
-              </div>
-              {!isGlobalFilterActive ? (
-                <Badge variant="secondary" className="shrink-0">
-                  Em uso
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="shrink-0 opacity-70">
-                  Inativo
-                </Badge>
-              )}
-            </div>
-            <SearchSessionFilter
-              sessions={sessions}
-              selectedSessionId={selectedSessionId}
-              loading={loadingSessions}
-              description="Escolha qual busca recente deseja ver e filtrar."
-              onChange={(sessionId) => {
-                setGlobalCategoryFilter("");
-                setGlobalNeighborhoodFilter("");
-                setGlobalFilterQuery("");
-                const nextSessionId = sessionId ?? sessions[0]?.id ?? null;
-                setSelectedSessionId(nextSessionId);
-                setSessionFilterQuery("");
-                if (!nextSessionId) {
-                  setActiveLeads(searchMutation.data?.leads ?? []);
-                  return;
-                }
-                const session = sessions.find(
-                  (item) => item.id === nextSessionId,
-                );
-                if (session) {
-                  setFormValues((current) => ({
-                    ...current,
-                    queryType: "CNAE",
-                    queryValue: session.queryValue,
-                    cnaeLabel:
-                      session.queryType === "CNAE" ? session.queryValue : "",
-                    city: session.city,
-                    uf: session.uf,
-                    address: "",
-                  }));
-                }
-              }}
-            />
-            <Field>
-              <FieldLabel htmlFor="company-session-lead-filter">
-                Texto livre (busca selecionada)
-              </FieldLabel>
-              <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
-                Nome, telefone ou endereço dentro desta busca apenas.
-              </p>
-              <Input
-                id="company-session-lead-filter"
-                value={sessionFilterQuery}
-                disabled={isGlobalFilterActive}
-                onChange={(event) => setSessionFilterQuery(event.target.value)}
-                placeholder="Nome, telefone ou endereço..."
-              />
-            </Field>
-            {categoryOptions.length > 0 && (
-              <Field>
-                <FieldLabel htmlFor="company-session-category-filter">
-                  Categoria na busca selecionada
-                </FieldLabel>
-                <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
-                  Categorias que apareceram nesta pesquisa.
-                </p>
-                <Select
-                  value={sessionFilterCategory}
-                  disabled={isGlobalFilterActive}
-                  onValueChange={(value) => {
-                    if (value) setSessionFilterCategory(value);
-                  }}
-                >
-                  <SelectTrigger id="company-session-category-filter">
-                    <SelectValue placeholder={ALL_CATEGORIES} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL_CATEGORIES}>
-                      {ALL_CATEGORIES}
-                    </SelectItem>
-                    {categoryOptions.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-            {neighborhoodOptions.length > 0 && (
-              <Field>
-                <FieldLabel htmlFor="company-session-neighborhood-filter">
-                  Bairro na busca selecionada
-                </FieldLabel>
-                <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
-                  Bairros que apareceram nesta pesquisa.
-                </p>
-                <Select
-                  value={sessionFilterNeighborhood}
-                  disabled={isGlobalFilterActive}
-                  onValueChange={(value) => {
-                    if (value) setSessionFilterNeighborhood(value);
-                  }}
-                >
-                  <SelectTrigger id="company-session-neighborhood-filter">
-                    <SelectValue placeholder={ALL_NEIGHBORHOODS} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL_NEIGHBORHOODS}>
-                      {ALL_NEIGHBORHOODS}
-                    </SelectItem>
-                    {neighborhoodOptions.map((neighborhood) => (
-                      <SelectItem key={neighborhood} value={neighborhood}>
-                        {neighborhood}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-          </div>
-
-          <div className={filterModeSectionClass(isGlobalFilterActive)}>
-            <div className="lg:col-span-2 flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-[var(--atria-primary)]">
-                  Histórico completo
-                </p>
-                <p className="mt-1 text-xs text-[var(--atria-primary)]/50">
-                  Pesquisa em todas as empresas já salvas das buscas anteriores.
-                  Limpe os campos abaixo para voltar à busca selecionada.
-                </p>
-              </div>
-              {isGlobalFilterActive ? (
-                <Badge variant="secondary" className="shrink-0">
-                  Em uso
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="shrink-0 opacity-70">
-                  Inativo
-                </Badge>
-              )}
-            </div>
-            <Field className="lg:col-span-2">
-              <FieldLabel htmlFor="company-global-lead-filter">
-                Buscar em todos os leads
-              </FieldLabel>
-              <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
-                Nome, telefone, e-mail, endereço ou site em todo o histórico de
-                prospecção.
-              </p>
-              <Input
-                id="company-global-lead-filter"
-                value={globalFilterQuery}
-                onChange={(event) => {
-                  setGlobalFilterQuery(event.target.value);
-                  setSessionFilterQuery("");
-                  setSessionFilterCategory(ALL_CATEGORIES);
-                  setSessionFilterNeighborhood(ALL_NEIGHBORHOODS);
-                }}
-                placeholder="Nome, telefone, endereço..."
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="company-global-category-filter">
-                Categoria no histórico
-              </FieldLabel>
-              <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
-                Busca parcial em todas as categorias já prospectadas.
-              </p>
-              <Input
-                id="company-global-category-filter"
-                value={globalCategoryFilter}
-                onChange={(event) => {
-                  setGlobalCategoryFilter(event.target.value);
-                  setSessionFilterQuery("");
-                  setSessionFilterCategory(ALL_CATEGORIES);
-                  setSessionFilterNeighborhood(ALL_NEIGHBORHOODS);
-                }}
-                placeholder="Ex.: restaurante, clínica..."
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="company-global-neighborhood-filter">
-                Bairro no histórico
-              </FieldLabel>
-              <p className="mb-2 text-xs text-[var(--atria-primary)]/50">
-                Busca parcial em bairros de todas as buscas anteriores.
-              </p>
-              <Input
-                id="company-global-neighborhood-filter"
-                value={globalNeighborhoodFilter}
-                onChange={(event) => {
-                  setGlobalNeighborhoodFilter(event.target.value);
-                  setSessionFilterQuery("");
-                  setSessionFilterCategory(ALL_CATEGORIES);
-                  setSessionFilterNeighborhood(ALL_NEIGHBORHOODS);
-                }}
-                placeholder="Ex.: Centro, Pinheiros..."
-              />
-            </Field>
-          </div>
-        </CardContent>
-      </Card>
-
-      {selectedSession && !isGlobalFilterActive && (
-        <div className="rounded-xl border border-[var(--atria-primary)]/10 bg-[var(--atria-primary)]/[0.03] px-4 py-3 text-sm text-[var(--atria-primary)]/80">
-          Mostrando resultados de:{" "}
-          <span className="font-medium text-[var(--atria-primary)]">
-            {formatSearchSessionLabel(selectedSession)}
-          </span>
-        </div>
-      )}
-
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-base font-semibold text-[var(--atria-primary)]">
-            Empresas encontradas
-            {displayLeads.length > 0 ? ` (${displayLeads.length})` : ""}
-            {displayLeads.some((lead) => lead.aiScore != null) ? (
-              <span className="ml-2 text-sm font-normal text-[var(--atria-primary)]/50">
-                ordenadas por score
-              </span>
-            ) : null}
-          </h2>
-          <div className="flex flex-wrap items-center gap-2">
-            {displayLeads.length > 0 &&
-              selectedSession &&
-              !isGlobalFilterActive &&
-              mapsEnrichedSessionId !== selectedSession.id &&
-              leadsNeedingMapsCount > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={
-                    enrichingMaps ||
-                    bulkQualifying ||
-                    loadingResults ||
-                    qualifyingId != null
-                  }
-                  onClick={() => void handleEnrichMaps()}
-                  className="gap-2"
-                >
-                  {enrichingMaps ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <MapPin className="size-4" />
-                  )}
-                  {enrichingMaps
-                    ? "Buscando no Google..."
-                    : `Completar Instagram e site (${leadsNeedingMapsCount})`}
-                </Button>
-              )}
-            {displayLeads.length > 0 && leadsWithInstagramCount > 0 && (
-              <Button
-                type="button"
-                variant="default"
-                disabled={
-                  bulkQualifying ||
-                  enrichingMaps ||
-                  loadingResults ||
-                  qualifyingId != null
-                }
-                onClick={() => void handleBatchQualify()}
-                className="gap-2"
-              >
-                {bulkQualifying ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Sparkles className="size-4" />
-                )}
-                Qualificar com Instagram ({leadsWithInstagramCount})
-              </Button>
-            )}
-            {bulkQualifying && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleCancelBatchQualify}
-                className="gap-1"
-              >
-                <Square className="size-3.5" />
-                Parar
-              </Button>
-            )}
-            {displayLeads.length > 0 && pendingKanbanCount > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={bulkAddingKanban || loadingResults || bulkQualifying}
-                onClick={() =>
-                  requestAddToKanban(
-                    displayLeads.filter((lead) => !lead.kanbanTracked),
-                  )
-                }
-                className="gap-2"
-              >
-                {bulkAddingKanban ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Kanban className="size-4" />
-                )}
-                Adicionar todas aos leads
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {batchProgress && (
-          <p className="text-sm text-[var(--atria-primary)]/60">
-            Qualificando {Math.min(batchProgress.done + 1, batchProgress.total)}{" "}
-            de {batchProgress.total}
-            {batchProgress.name ? ` — ${batchProgress.name}` : ""}
-          </p>
-        )}
-
-        {displayLeads.some((lead) => lead.aiScore != null) && (
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--atria-primary)]/70">
-            <input
-              type="checkbox"
-              checked={onlyHighCommercialFit}
-              onChange={(event) =>
-                setOnlyHighCommercialFit(event.target.checked)
-              }
-              className="size-4 rounded border-[var(--atria-primary)]/30"
-            />
-            Mostrar só fit comercial alto
-          </label>
-        )}
-
-        {loadingResults && (
-          <div className="flex min-h-40 items-center justify-center rounded-2xl border border-[var(--atria-primary)]/10 bg-white/50">
-            <div className="flex items-center gap-3 text-sm text-[var(--atria-primary)]/60">
-              <Loader2 className="size-5 animate-spin" />
-              Buscando empresas...
-            </div>
-          </div>
-        )}
-
-        {!loadingResults && displayLeads.length > 0 && (
-          <LeadsTable
-            leads={tableLeads}
-            qualifyingId={qualifyingId}
-            addingKanbanId={addingKanbanId}
-            onQualify={(lead) => void runPreQualifyForLead(lead)}
-            onAddToKanban={(lead) => {
-              if (lead.kanbanTracked) return;
-              requestAddToKanban([lead]);
-            }}
-            organizationLabel="a empresa atual"
-          />
-        )}
-
-        {!loadingResults &&
-          isGlobalFilterActive &&
-          displayLeads.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
-              Nenhuma empresa no histórico corresponde aos filtros. Ajuste a
-              busca ou limpe os campos para ver a pesquisa selecionada.
-            </div>
-          )}
-
-        {!loadingResults &&
-          !isGlobalFilterActive &&
-          hasSearchContext &&
-          displayLeads.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
-              Nenhuma empresa encontrada para esta busca. Tente outro CNAE ou
-              cidade.
-            </div>
-          )}
-
-        {!loadingResults &&
-          !isGlobalFilterActive &&
-          !hasSearchContext &&
-          displayLeads.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-[var(--atria-primary)]/15 px-6 py-12 text-center text-sm text-[var(--atria-primary)]/50">
-              Faça uma busca no formulário acima para ver as empresas aqui.
-            </div>
-          )}
-      </div>
+      <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--atria-primary)]/10 bg-white/50">
+        <ProspectingLeadsList
+          leads={activeLeads}
+          loading={loadingResults}
+          searchProgress={searching ? searchProgress : null}
+          emptyMessage={emptyMessage}
+          addingKanbanId={addingKanbanId}
+          showOpenedAt
+          paginationMode="server"
+          page={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onPageChange={setPage}
+          onAddToKanban={(lead) => {
+            if (lead.kanbanTracked) return;
+            requestAddToKanban([lead]);
+          }}
+        />
+      </section>
     </div>
   );
 }

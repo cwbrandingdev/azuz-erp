@@ -88,8 +88,37 @@ function nationalDigits(phone: string | null | undefined): string {
   return digits;
 }
 
-export function toVivoDialString(phone: string | null | undefined): string | null {
+/** Old mobiles are 8 digits starting with 6–9. Landlines (2–5) stay 8 digits. */
+function withNinthDigit(subscriber: string): string {
+  if (subscriber.length === 8 && /^[6-9]/.test(subscriber)) {
+    return `9${subscriber}`;
+  }
+  return subscriber;
+}
+
+/**
+ * DDD + subscriber, with the mobile 9th digit filled in.
+ * Service numbers and anything we cannot classify are returned unchanged.
+ */
+function brazilNational(phone: string | null | undefined): string | null {
   const digits = nationalDigits(phone);
+  if (!digits) return null;
+  if (SERVICE_PREFIXES.some((prefix) => digits.startsWith(prefix))) {
+    return digits;
+  }
+  if (digits.length === 8 || digits.length === 9) {
+    return withNinthDigit(digits);
+  }
+  if (digits.length !== 10 && digits.length !== 11) {
+    return digits;
+  }
+  const ddd = digits.slice(0, 2);
+  if (!BRAZIL_DDD.has(ddd)) return digits;
+  return `${ddd}${withNinthDigit(digits.slice(2))}`;
+}
+
+export function toVivoDialString(phone: string | null | undefined): string | null {
+  const digits = brazilNational(phone);
   if (!digits) return null;
   if (SERVICE_PREFIXES.some((prefix) => digits.startsWith(prefix))) {
     return digits;
@@ -104,6 +133,31 @@ export function toVivoDialString(phone: string | null | undefined): string | nul
   if (!BRAZIL_DDD.has(ddd)) return digits;
   if (ddd === HOME_DDD) return digits.slice(2);
   return `${VIVO_PREFIX}${digits}`;
+}
+
+/**
+ * Number Phone Link should receive.
+ * CNAE landlines are 8 digits. Phone Link treats a bare 8-digit string as an
+ * old mobile: it inserts a 9 and drops the last digits. The Vivo carrier
+ * prefix `015` is worse — after the leading 0 is removed, `15` is read as
+ * DDD 15 and the rest of the number is chopped. A full `+55` landline is
+ * left alone. Mobiles that already have 9 digits keep the Vivo dial plan,
+ * which Phone Link already accepts.
+ */
+export function toWindowsDialString(
+  phone: string | null | undefined,
+): string | null {
+  const national = brazilNational(phone);
+  const vivo = toVivoDialString(phone);
+  if (!national || !vivo) return null;
+  if (
+    national.length === 10 &&
+    BRAZIL_DDD.has(national.slice(0, 2)) &&
+    national.slice(2).length === 8
+  ) {
+    return `+55${national}`;
+  }
+  return vivo;
 }
 
 export function toE164(phone: string | null | undefined): string | null {
