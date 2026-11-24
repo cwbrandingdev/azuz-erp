@@ -130,6 +130,41 @@ function formatPhone(phone: string) {
   return phone;
 }
 
+function formatClock(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function messageDayKey(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function startOfLocalDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function formatConversationDay(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  const diffDays = Math.round(
+    (startOfLocalDay(now) - startOfLocalDay(date)) / 86_400_000,
+  );
+  if (diffDays === 0) return "Hoje";
+  if (diffDays === 1) return "Ontem";
+  return date.toLocaleDateString("pt-BR", {
+    day: "numeric",
+    month: "long",
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
+  });
+}
+
 function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -138,12 +173,7 @@ function formatTime(value: string) {
     date.getDate() === now.getDate() &&
     date.getMonth() === now.getMonth() &&
     date.getFullYear() === now.getFullYear();
-  if (sameDay) {
-    return date.toLocaleTimeString("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
+  if (sameDay) return formatClock(value);
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
@@ -942,19 +972,31 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 lg:px-8">
-              {messages.map((message) => {
+              {messages.map((message, index) => {
+                const previous = messages[index - 1];
+                const showDay =
+                  !previous ||
+                  messageDayKey(previous.createdAt) !==
+                    messageDayKey(message.createdAt);
+                const dayStrip = showDay ? (
+                  <div className="my-3 flex justify-center">
+                    <span className="rounded-lg bg-white px-3 py-1 text-xs font-medium text-slate-500 shadow-sm dark:bg-white/10 dark:text-white/70">
+                      {formatConversationDay(message.createdAt)}
+                    </span>
+                  </div>
+                ) : null;
                 if (message.isPrivate) {
                   return (
-                    <div
-                      key={message.id}
-                      className="mx-auto mb-2 max-w-xl rounded-lg border border-amber-200 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100"
-                    >
-                      <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                        <StickyNote className="size-3" />
-                        Nota privada
-                        {message.sentByName ? ` · ${message.sentByName}` : ""}
-                      </p>
-                      <NoteBody body={message.body} />
+                    <div key={message.id}>
+                      {dayStrip}
+                      <div className="mx-auto mb-2 max-w-xl rounded-lg border border-amber-200 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+                        <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                          <StickyNote className="size-3" />
+                          Nota privada
+                          {message.sentByName ? ` · ${message.sentByName}` : ""}
+                        </p>
+                        <NoteBody body={message.body} />
+                      </div>
                     </div>
                   );
                 }
@@ -964,44 +1006,48 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                     ? message.sentByName
                     : null;
                 return (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "mb-1.5 flex flex-col",
-                      outbound ? "items-end" : "items-start",
-                    )}
-                  >
-                    {agentName ? (
-                      <p className="mb-0.5 max-w-[80%] pr-1 text-right text-xs font-bold text-slate-600 dark:text-muted-foreground">
-                        {agentName}:
-                      </p>
-                    ) : null}
+                  <div key={message.id}>
+                    {dayStrip}
                     <div
                       className={cn(
-                        "mb-1.5 flex w-full",
-                        outbound ? "justify-end" : "justify-start",
+                        "mb-1.5 flex flex-col",
+                        outbound ? "items-end" : "items-start",
                       )}
                     >
+                      {agentName ? (
+                        <p className="mb-0.5 max-w-[80%] pr-1 text-right text-xs font-bold text-slate-600 dark:text-muted-foreground">
+                          {agentName}:
+                        </p>
+                      ) : null}
                       <div
                         className={cn(
-                          "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-base shadow-sm",
-                          outbound
-                            ? "rounded-br-md bg-[var(--atria-primary)] text-white"
-                            : "rounded-bl-md bg-white text-slate-800 dark:text-foreground",
+                          "mb-1.5 flex w-full",
+                          outbound ? "justify-end" : "justify-start",
                         )}
                       >
-                        <MessageBody message={message} outbound={outbound} />
-                      <span
-                        className={cn(
-                          "mt-1 flex items-center justify-end gap-1 text-[11px]",
-                          outbound ? "text-white/70" : "text-slate-400 dark:text-white/40",
-                        )}
-                      >
-                        {formatTime(message.createdAt)}
-                        {outbound ? (
-                          <StatusTicks status={message.status} />
-                        ) : null}
-                      </span>
+                        <div
+                          className={cn(
+                            "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-base shadow-sm",
+                            outbound
+                              ? "rounded-br-md bg-[var(--atria-primary)] text-white"
+                              : "rounded-bl-md bg-white text-slate-800 dark:text-foreground",
+                          )}
+                        >
+                          <MessageBody message={message} outbound={outbound} />
+                          <span
+                            className={cn(
+                              "mt-1 flex items-center justify-end gap-1 text-[11px]",
+                              outbound
+                                ? "text-white/70"
+                                : "text-slate-400 dark:text-white/40",
+                            )}
+                          >
+                            {formatClock(message.createdAt)}
+                            {outbound ? (
+                              <StatusTicks status={message.status} />
+                            ) : null}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
