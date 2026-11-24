@@ -13,7 +13,11 @@ import {
   toCnpjaOfficeUrl,
 } from "@/lib/lead-cnpj";
 import { formatLeadOpenedAt } from "@/lib/lead-opened-at";
-import { formatLeadRating } from "@/lib/lead-map-utils";
+import {
+  formatInstagramHandle,
+  formatLeadRating,
+  leadInstagramUrl,
+} from "@/lib/lead-map-utils";
 import { getLeadStatusLabel } from "@/lib/leads-kanban-utils";
 import { isDialablePhone, toWhatsAppUrl } from "@/lib/lead-phone";
 import { toNativeDialString } from "@/lib/native-dialer";
@@ -66,6 +70,8 @@ export function ProspectingLeadCard({
   const phoneCopyValue = lead.phone
     ? (toNativeDialString(lead.phone) ?? lead.phone)
     : null;
+  const instagramUrl = leadInstagramUrl(lead);
+  const instagramHandle = formatInstagramHandle(instagramUrl);
   const hasDialerCall = Boolean(dialer && isDialablePhone(lead.phone));
   const canNativeCall = Boolean(lead.phone && isDialablePhone(lead.phone));
 
@@ -118,6 +124,19 @@ export function ProspectingLeadCard({
                 <CopyableText value={lead.email} copyLabel="E-mail" />
               ) : null}
             </div>
+          ) : (
+            <p>Não informado</p>
+          )}
+        </FieldBlock>
+
+        <FieldBlock label="Instagram">
+          {instagramUrl && instagramHandle ? (
+            <CopyableText
+              value={instagramUrl}
+              display={instagramHandle}
+              href={instagramUrl}
+              copyLabel="Instagram"
+            />
           ) : (
             <p>Não informado</p>
           )}

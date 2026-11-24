@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import {
   PROSPECTING_LEADS_KEY,
+  useCompaniesByOpenedAt,
   useCompanySearchMutation,
   useLeadSearchSessionLeads,
   useLeadSearchSessions,
@@ -31,6 +32,7 @@ import {
 import {
   CATALOG_PAGE_SIZE,
   type B2bLeadSearchResponse,
+  type OpenedAtCompaniesResponse,
 } from "@/services/company-search.service";
 import { useCrmUsers } from "@/hooks/use-crm-users";
 import { useSdrAssignedOrganizations } from "@/hooks/use-sdr-assigned-organizations";
@@ -89,14 +91,28 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
   const [pendingKanbanLeads, setPendingKanbanLeads] = useState<Lead[]>([]);
   const [confirmingKanban, setConfirmingKanban] = useState(false);
 
+  const dateFilterActive = Boolean(openedFrom || openedTo);
+
   const sessionsQuery = useLeadSearchSessions();
-  const sessionLeadsQuery = useLeadSearchSessionLeads(selectedSessionId, {
-    page,
-    pageSize: CATALOG_PAGE_SIZE,
-    name: debouncedName || undefined,
-    openedFrom: openedFrom || undefined,
-    openedTo: openedTo || undefined,
-  });
+  const sessionLeadsQuery = useLeadSearchSessionLeads(
+    selectedSessionId,
+    {
+      page,
+      pageSize: CATALOG_PAGE_SIZE,
+      name: debouncedName || undefined,
+    },
+    !dateFilterActive,
+  );
+  const openedAtQuery = useCompaniesByOpenedAt(
+    {
+      page,
+      pageSize: CATALOG_PAGE_SIZE,
+      name: debouncedName || undefined,
+      openedFrom: openedFrom || undefined,
+      openedTo: openedTo || undefined,
+    },
+    dateFilterActive,
+  );
   const searchMutation = useCompanySearchMutation();
 
   const sessions = sessionsQuery.data ?? [];
@@ -147,6 +163,22 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
   }, [hasAutoSelectedSession, loadingSessions, selectedSessionId, sessions]);
 
   useEffect(() => {
+    if (!dateFilterActive || !openedAtQuery.isError) return;
+    setActiveLeads([]);
+    setTotalCount(0);
+    toast.error("Não foi possível buscar empresas por data de abertura.");
+  }, [dateFilterActive, openedAtQuery.isError, openedAtQuery.errorUpdatedAt]);
+
+  useEffect(() => {
+    if (dateFilterActive) {
+      if (openedAtQuery.isError) return;
+      if (openedAtQuery.data) {
+        setActiveLeads(openedAtQuery.data.leads);
+        setTotalCount(openedAtQuery.data.totalCount);
+      }
+      return;
+    }
+
     if (selectedSessionId && sessionLeadsQuery.data) {
       setActiveLeads(sessionLeadsQuery.data.leads);
       setTotalCount(sessionLeadsQuery.data.totalCount);
@@ -157,19 +189,29 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
       setActiveLeads([]);
       setTotalCount(0);
     }
-  }, [selectedSessionId, sessionLeadsQuery.data, searchMutation.data]);
+  }, [
+    dateFilterActive,
+    openedAtQuery.data,
+    openedAtQuery.isError,
+    selectedSessionId,
+    sessionLeadsQuery.data,
+    searchMutation.data,
+  ]);
 
   useEffect(() => {
+    if (dateFilterActive) return;
     if (!selectedSessionId && searchMutation.data) {
       setActiveLeads(searchMutation.data.leads);
       setTotalCount(searchMutation.data.totalCount);
     }
-  }, [searchMutation.data, selectedSessionId]);
+  }, [dateFilterActive, searchMutation.data, selectedSessionId]);
 
   const loadingResults =
     searching ||
-    loadingSessionLeads ||
-    (Boolean(selectedSessionId) && sessionLeadsQuery.isFetching);
+    (dateFilterActive
+      ? openedAtQuery.isLoading || openedAtQuery.isFetching
+      : loadingSessionLeads ||
+        (Boolean(selectedSessionId) && sessionLeadsQuery.isFetching));
 
   const handleSearch = useCallback(() => {
     const queryValue = formValues.queryValue.trim();
@@ -249,7 +291,27 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
       current.map((item) => (matches(item) ? updated : item)),
     );
 
-    if (selectedSessionId) {
+    if (dateFilterActive) {
+      queryClient.setQueryData<OpenedAtCompaniesResponse>(
+        [
+          "companies-by-opened-at",
+          page,
+          CATALOG_PAGE_SIZE,
+          debouncedName,
+          openedFrom,
+          openedTo,
+        ],
+        (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            leads: current.leads.map((item) =>
+              matches(item) ? updated : item,
+            ),
+          };
+        },
+      );
+    } else if (selectedSessionId) {
       queryClient.setQueryData<B2bLeadSearchResponse>(
         [
           "lead-search-session",
@@ -257,8 +319,8 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
           page,
           CATALOG_PAGE_SIZE,
           debouncedName,
-          openedFrom,
-          openedTo,
+          "",
+          "",
         ],
         (current) => {
           if (!current) return current;
@@ -355,13 +417,22 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
     }
   }
 
-  const emptyMessage = !hasSearchContext
-    ? "Faça uma busca no formulário para ver as empresas aqui."
-    : "Nenhuma empresa encontrada para esta busca ou filtros.";
+  const emptyMessage = dateFilterActive
+    ? "Nenhuma empresa encontrada com essa data de abertura."
+    : !hasSearchContext
+      ? "Faça uma busca no formulário para ver as empresas aqui."
+      : "Nenhuma empresa encontrada para esta busca ou filtros.";
 
   const pageSize = useMemo(
-    () => sessionLeadsQuery.data?.pageSize ?? CATALOG_PAGE_SIZE,
-    [sessionLeadsQuery.data?.pageSize],
+    () =>
+      (dateFilterActive
+        ? openedAtQuery.data?.pageSize
+        : sessionLeadsQuery.data?.pageSize) ?? CATALOG_PAGE_SIZE,
+    [
+      dateFilterActive,
+      openedAtQuery.data?.pageSize,
+      sessionLeadsQuery.data?.pageSize,
+    ],
   );
 
   return (
@@ -437,7 +508,8 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
                   }}
                 />
                 <p className="mt-1.5 text-xs text-[var(--atria-primary)]/50">
-                  Se preencher só &quot;de&quot;, mostra daquela data até hoje.
+                  Busca só pela data de abertura, sem CNAE ou cidade. Se
+                  preencher só &quot;de&quot;, mostra daquela data até hoje.
                 </p>
               </Field>
             </div>

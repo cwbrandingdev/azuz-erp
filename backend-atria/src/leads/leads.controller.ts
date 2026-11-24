@@ -72,6 +72,17 @@ export class LeadsController {
     return this.leadSearchSessionService.listSessions(user.companyId);
   }
 
+  @Get('by-opening-date')
+  searchByOpeningDate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: LeadSearchSessionQueryDto,
+  ) {
+    return this.leadSearchSessionService.searchByOpeningDate(
+      user.companyId,
+      query,
+    );
+  }
+
   @Post('sessions/:id/enrich-maps')
   enrichSearchSessionMaps(
     @CurrentUser() user: AuthenticatedUser,

@@ -98,6 +98,41 @@ export class LeadSearchSessionService {
     };
   }
 
+  async searchByOpeningDate(
+    tenantId: string | null | undefined,
+    query: LeadSearchSessionQueryDto = {},
+  ) {
+    const resolvedTenantId = tenantId?.trim() || DEFAULT_COMPANY_ID;
+    const openedFrom = query.openedFrom?.trim();
+    const openedTo = query.openedTo?.trim();
+
+    if (!openedFrom && !openedTo) {
+      throw new BadRequestException('Informe a data de abertura.');
+    }
+
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? CATALOG_DEFAULT_PAGE_SIZE;
+    const discovered = await this.prospectCatalog.searchByOpenedAt({
+      name: query.name,
+      openedFrom,
+      openedTo,
+      page,
+      pageSize,
+    });
+    const leads = await this.hydrateCandidates(
+      resolvedTenantId,
+      'opened-at',
+      discovered.items,
+    );
+
+    return {
+      leads,
+      totalCount: discovered.totalCount,
+      page: discovered.page,
+      pageSize: discovered.pageSize,
+    };
+  }
+
   async listSessions(tenantId: string | null | undefined) {
     const resolvedTenantId = tenantId?.trim() || DEFAULT_COMPANY_ID;
 
