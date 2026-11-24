@@ -2715,6 +2715,11 @@ export interface CrmReminderBoard {
   total: number;
 }
 
+export interface CreateCrmReminderInput {
+  title: string;
+  dueDate: string;
+}
+
 export interface FetchMapsLeadsInput {
   city: string;
   category: string;

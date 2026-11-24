@@ -1069,6 +1069,9 @@ export function LeadsKanbanBoard({
                                       onMeetingDeleted={(updated) =>
                                         updateLeadInColumns(updated.id, updated)
                                       }
+                                      onReminderCreated={() =>
+                                        void loadReminders()
+                                      }
                                       onRemove={
                                         portalClientView
                                           ? undefined

@@ -23,6 +23,7 @@ import {
   UpdateLeadCommentDto,
 } from './dto/lead-comment.dto';
 import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
+import { CreateCrmReminderDto } from '../crm/dto/create-crm-reminder.dto';
 import { UpdateLeadMeetingDto } from './dto/update-lead-meeting.dto';
 import { AddLeadToKanbanDto, UpdateLeadStatusDto } from './dto/lead-kanban.dto';
 import { ProspectingLeadsQueryDto } from '../crm/dto/prospecting-leads-query.dto';
@@ -173,6 +174,15 @@ export class LeadsController {
     @Param('meetingId') meetingId: string,
   ) {
     return this.leadsService.deleteMeeting(user, id, meetingId);
+  }
+
+  @Post(':id/reminders')
+  createReminder(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: CreateCrmReminderDto,
+  ) {
+    return this.leadsService.createReminder(user, id, dto);
   }
 
   @Post(':id/comments')

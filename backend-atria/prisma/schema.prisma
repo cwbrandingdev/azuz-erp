@@ -143,6 +143,7 @@ model User {
   appUpdatesCreated            AppUpdate[]
   leadCalls                    LeadCall[]
   leadMeetingsCreated          LeadMeeting[]              @relation("LeadMeetingCreator")
+  createdCrmReminders          CrmReminderTask[]          @relation("CrmReminderCreator")
   whatsappAssignedConversations WhatsAppConversation[]
   whatsappMessagesSent          WhatsAppMessage[]
   whatsappCrmEvents             WhatsAppCrmEvent[]
@@ -1186,12 +1187,16 @@ model CrmReminderTask {
   dueDate     DateTime              @map("due_date")
   status      CrmReminderTaskStatus @default(PENDING)
   completedAt DateTime?             @map("completed_at")
+  userId      String?               @map("user_id")
+  notifiedAt  DateTime?             @map("notified_at")
   createdAt   DateTime              @default(now()) @map("created_at")
   updatedAt   DateTime              @updatedAt @map("updated_at")
   company     Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
   lead        Lead                  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user        User?                 @relation("CrmReminderCreator", fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([companyId, status, dueDate])
+  @@index([status, notifiedAt, dueDate])
   @@index([leadId])
   @@map("crm_reminder_tasks")
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BellPlus,
   ChevronDown,
   ChevronUp,
   Lock,
@@ -26,6 +27,7 @@ import { LeadCallButton } from "@/components/leads/lead-call-button";
 import { LeadLastCallLine } from "@/components/leads/lead-last-call-line";
 import { DragHandleStrip } from "@/components/kanban/drag-handle-strip";
 import { LeadMeetingDialog } from "@/components/leads/lead-meeting-dialog";
+import { LeadReminderDialog } from "@/components/leads/lead-reminder-dialog";
 import { LeadOrcamentoInput } from "@/components/leads/lead-orcamento-input";
 import { formatEventDateTime } from "@/lib/calendar-utils";
 import {
@@ -60,6 +62,7 @@ interface LeadKanbanCardProps {
   onOpenDetails: (lead: Lead) => void;
   onMeetingCreated?: (lead: Lead) => void;
   onMeetingDeleted?: (lead: Lead) => void;
+  onReminderCreated?: () => void;
   onRemove?: (leadId: string) => void;
   showOrcamento?: boolean;
   showOwner?: boolean;
@@ -79,6 +82,7 @@ export function LeadKanbanCard({
   onOpenDetails,
   onMeetingCreated,
   onMeetingDeleted,
+  onReminderCreated,
   onRemove,
   showOrcamento = false,
   showOwner = false,
@@ -92,6 +96,7 @@ export function LeadKanbanCard({
     Boolean(lead.meeting) &&
     (lead.meeting?.createdById === user?.id || isMasterOrAdmin(user?.role));
   const [meetingOpen, setMeetingOpen] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const canEditMeeting =
     canDeleteMeeting &&
@@ -456,6 +461,27 @@ export function LeadKanbanCard({
               <MessagesSquare className="size-3.5" />
               Comentários
             </Button>
+
+            {!portalClientView && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setReminderOpen(true)}
+                >
+                  <BellPlus className="size-3.5" />
+                  Lembrete
+                </Button>
+                <LeadReminderDialog
+                  lead={lead}
+                  open={reminderOpen}
+                  onOpenChange={setReminderOpen}
+                  onCreated={onReminderCreated}
+                />
+              </>
+            )}
 
             {lead.phone ? (
               <Button
