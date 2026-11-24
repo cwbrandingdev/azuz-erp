@@ -6,6 +6,7 @@ import {
   listLeadSearchSessions,
   searchCnaeClasses,
   searchCompanies,
+  searchCompaniesByOpenedAt,
   type B2bLeadSearchInput,
   type B2bLeadSearchResponse,
   type LeadSearchSessionPageQuery,
@@ -32,6 +33,7 @@ export function useLeadSearchSessions() {
 export function useLeadSearchSessionLeads(
   sessionId: string | null,
   query: LeadSearchSessionPageQuery = {},
+  enabled = true,
 ) {
   const page = query.page ?? 1;
   const pageSize = query.pageSize ?? 25;
@@ -57,7 +59,40 @@ export function useLeadSearchSessionLeads(
         openedFrom: openedFrom || undefined,
         openedTo: openedTo || undefined,
       }),
-    enabled: Boolean(sessionId),
+    enabled: Boolean(sessionId) && enabled,
+    ...LEAD_SEARCH_QUERY_OPTIONS,
+  });
+}
+
+export function useCompaniesByOpenedAt(
+  query: LeadSearchSessionPageQuery = {},
+  enabled = true,
+) {
+  const page = query.page ?? 1;
+  const pageSize = query.pageSize ?? 25;
+  const name = query.name?.trim() ?? "";
+  const openedFrom = query.openedFrom?.trim() ?? "";
+  const openedTo = query.openedTo?.trim() ?? "";
+  const active = enabled && Boolean(openedFrom || openedTo);
+
+  return useQuery({
+    queryKey: [
+      "companies-by-opened-at",
+      page,
+      pageSize,
+      name,
+      openedFrom,
+      openedTo,
+    ],
+    queryFn: () =>
+      searchCompaniesByOpenedAt({
+        page,
+        pageSize,
+        name: name || undefined,
+        openedFrom: openedFrom || undefined,
+        openedTo: openedTo || undefined,
+      }),
+    enabled: active,
     ...LEAD_SEARCH_QUERY_OPTIONS,
   });
 }

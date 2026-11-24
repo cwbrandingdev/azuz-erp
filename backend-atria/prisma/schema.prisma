@@ -1258,6 +1258,8 @@ model ProspectCompany {
   @@index([uf, cityNormalized, neighborhoodNormalized], map: "prospect_companies_search_city_neighborhood_idx")
   /// City + opening date without relying on CNAE first
   @@index([uf, cityNormalized, openedAt], map: "prospect_companies_search_city_opened_idx")
+  /// Opening-date-only prospecting: range filter + score order
+  @@index([openedAt, blendedScore(sort: Desc), cnpj], map: "prospect_companies_opened_at_score_idx")
   @@map("prospect_companies")
 }
 

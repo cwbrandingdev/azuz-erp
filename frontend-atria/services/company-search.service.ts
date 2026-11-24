@@ -69,6 +69,13 @@ export interface B2bLeadSearchResponse {
   pageSize?: number;
 }
 
+export interface OpenedAtCompaniesResponse {
+  leads: Lead[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 export const CATALOG_PAGE_SIZE = 25;
 
 async function companySearchRequest<T>(
@@ -179,6 +186,22 @@ export async function listLeadSearchSessions(): Promise<
   return companySearchRequest<LeadSearchSessionSummary[]>("/leads/sessions", {
     method: "GET",
   });
+}
+
+export async function searchCompaniesByOpenedAt(
+  query: LeadSearchSessionPageQuery = {},
+): Promise<OpenedAtCompaniesResponse> {
+  const params = new URLSearchParams();
+  params.set("page", String(query.page ?? 1));
+  params.set("pageSize", String(query.pageSize ?? CATALOG_PAGE_SIZE));
+  if (query.name?.trim()) params.set("name", query.name.trim());
+  if (query.openedFrom?.trim()) params.set("openedFrom", query.openedFrom.trim());
+  if (query.openedTo?.trim()) params.set("openedTo", query.openedTo.trim());
+
+  return companySearchRequest<OpenedAtCompaniesResponse>(
+    `/leads/by-opening-date?${params.toString()}`,
+    { method: "GET" },
+  );
 }
 
 export async function getLeadSearchSessionLeads(

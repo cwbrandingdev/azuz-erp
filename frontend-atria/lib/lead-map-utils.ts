@@ -82,6 +82,22 @@ export function getLeadCnaeLabel(lead: Lead): string | undefined {
   return code ?? description;
 }
 
+export function leadInstagramUrl(lead: {
+  instagram?: string | null;
+  website?: string | null;
+}): string | null {
+  const direct = lead.instagram?.trim();
+  if (direct) {
+    if (/instagram\.com/i.test(direct)) return direct;
+    const handle = direct.replace(/^@/, "").replace(/^\/+|\/+$/g, "");
+    return handle ? `https://www.instagram.com/${handle}/` : null;
+  }
+
+  const website = lead.website?.trim();
+  if (website && /instagram\.com/i.test(website)) return website;
+  return null;
+}
+
 export function formatInstagramHandle(
   instagram: string | null | undefined,
 ): string | null {

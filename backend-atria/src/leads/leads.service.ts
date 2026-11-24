@@ -446,7 +446,7 @@ export class LeadsService {
           where: { placeId: place.placeId, deletedAt: null },
         });
         if (existing) {
-          created.push(existing);
+          created.push(await this.applyPlaceContact(existing, place));
           continue;
         }
       }
@@ -476,6 +476,33 @@ export class LeadsService {
 
     const responses = created.map((lead) => this.toLeadResponse(lead));
     return responses;
+  }
+
+  private async applyPlaceContact(lead: Lead, place: MappedPlace): Promise<Lead> {
+    const updates = contactGapsFromPlace(lead, place);
+    const data: Prisma.LeadUpdateInput = { ...updates };
+    const instagram =
+      updates.instagram ??
+      instagramUrlFromValue(lead.instagram) ??
+      instagramUrlFromValue(lead.website);
+    if (lead.website && /instagram\.com/i.test(lead.website) && instagram) {
+      const replacement =
+        place.website && !/instagram\.com/i.test(place.website)
+          ? place.website
+          : null;
+      if (lead.website !== replacement) {
+        data.website = replacement;
+      }
+    }
+
+    if (Object.keys(data).length === 0) {
+      return lead;
+    }
+
+    return this.prisma.lead.update({
+      where: { id: lead.id },
+      data,
+    });
   }
 
   async findAll(

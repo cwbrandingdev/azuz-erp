@@ -139,6 +139,61 @@ export class ProspectCompanyCatalogService {
     };
   }
 
+  /** Catalog search that uses only the company opening date (and an optional name). */
+  async searchByOpenedAt(params: {
+    name?: string;
+    openedFrom?: string;
+    openedTo?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<CatalogSearchPageResult> {
+    const page = Math.max(1, Math.round(params.page ?? 1));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Math.round(params.pageSize ?? CATALOG_DEFAULT_PAGE_SIZE)),
+    );
+    const openedFrom = this.parseDayStart(params.openedFrom);
+    const openedTo = this.parseDayEnd(params.openedTo, params.openedFrom);
+    const name = params.name?.trim() ?? '';
+
+    if (!openedFrom && !openedTo) {
+      return { items: [], totalCount: 0, page, pageSize };
+    }
+
+    const where: Prisma.ProspectCompanyWhereInput = {
+      openedAt: {
+        ...(openedFrom ? { gte: openedFrom } : {}),
+        ...(openedTo ? { lte: openedTo } : {}),
+      },
+      ...(name
+        ? {
+            OR: [
+              { legalName: { contains: name, mode: 'insensitive' } },
+              { tradeName: { contains: name, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const skip = (page - 1) * pageSize;
+    const [totalCount, rows] = await Promise.all([
+      this.prisma.prospectCompany.count({ where }),
+      this.prisma.prospectCompany.findMany({
+        where,
+        orderBy: [{ blendedScore: 'desc' }, { cnpj: 'asc' }],
+        skip,
+        take: pageSize,
+      }),
+    ]);
+
+    return {
+      items: rows.map((row) => this.toCandidate(row)),
+      totalCount,
+      page,
+      pageSize,
+    };
+  }
+
   private buildWhere(input: {
     uf: string;
     cityNormalized: string;
