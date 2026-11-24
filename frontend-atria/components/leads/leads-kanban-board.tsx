@@ -242,51 +242,58 @@ export function LeadsKanbanBoard({
     [filteredColumns],
   );
 
-  const loadBoard = useCallback(async () => {
-    if (!portalClientView && crmDisabled) {
-      setLoading(false);
-      setRefreshing(false);
-      return;
-    }
-
-    // A 1ª carga troca a tela inteira. Nas buscas seguintes o quadro permanece
-    // e a rodinha aparece por cima, para a caixa de busca não perder o foco.
-    if (hasLoadedRef.current) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const board = portalClientView
-        ? await clientPortalService.getCrmKanbanBoard()
-        : await leadsService.getKanbanBoard(kanbanFilters);
-      setColumns(board.columns.length > 0 ? board.columns : emptyColumns());
-      setTotal(board.total);
-      setCategoryOptions(board.categories ?? []);
-      setCrmMoveZone(portalClientView ? "all" : (board.crmMoveZone ?? "all"));
-      setShowOrcamento(board.showOrcamento !== false);
-      setCrmDisabled(false);
-      hasLoadedRef.current = true;
-
-      if (portalClientView) {
-        const lastSeenAt = getPortalCrmLastSeenAt(user?.id);
-        setNewSdrLeadCount(countNewPortalSdrLeads(board.columns, lastSeenAt));
-        setSdrBannerDismissed(false);
-      }
-    } catch (error) {
-      if (!portalClientView && isCrmDisabledApiError(error)) {
-        setCrmDisabled(true);
-        setColumns(emptyColumns());
-        setTotal(0);
+  const loadBoard = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!portalClientView && crmDisabled) {
+        setLoading(false);
+        setRefreshing(false);
         return;
       }
 
-      setColumns(emptyColumns());
-      setTotal(0);
-      setCrmMoveZone("all");
-      setNewSdrLeadCount(0);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [crmDisabled, kanbanFilters, portalClientView, user?.id]);
+      // A 1ª carga troca a tela inteira. Nas buscas seguintes o quadro permanece
+      // e a rodinha aparece por cima, para a caixa de busca não perder o foco.
+      // Recarga silenciosa (ex.: ligação registrada) não cobre o quadro.
+      if (hasLoadedRef.current) {
+        if (!silent) setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      try {
+        const board = portalClientView
+          ? await clientPortalService.getCrmKanbanBoard()
+          : await leadsService.getKanbanBoard(kanbanFilters);
+        setColumns(board.columns.length > 0 ? board.columns : emptyColumns());
+        setTotal(board.total);
+        setCategoryOptions(board.categories ?? []);
+        setCrmMoveZone(portalClientView ? "all" : (board.crmMoveZone ?? "all"));
+        setShowOrcamento(board.showOrcamento !== false);
+        setCrmDisabled(false);
+        hasLoadedRef.current = true;
+
+        if (portalClientView) {
+          const lastSeenAt = getPortalCrmLastSeenAt(user?.id);
+          setNewSdrLeadCount(countNewPortalSdrLeads(board.columns, lastSeenAt));
+          setSdrBannerDismissed(false);
+        }
+      } catch (error) {
+        if (!portalClientView && isCrmDisabledApiError(error)) {
+          setCrmDisabled(true);
+          setColumns(emptyColumns());
+          setTotal(0);
+          return;
+        }
+
+        setColumns(emptyColumns());
+        setTotal(0);
+        setCrmMoveZone("all");
+        setNewSdrLeadCount(0);
+      } finally {
+        setLoading(false);
+        if (!silent) setRefreshing(false);
+      }
+    },
+    [crmDisabled, kanbanFilters, portalClientView, user?.id],
+  );
 
   const loadReminders = useCallback(async () => {
     if (portalClientView) return;
@@ -304,7 +311,10 @@ export function LeadsKanbanBoard({
     void loadBoard();
     void loadReminders();
   }, [loadBoard, loadReminders]);
-  useEffect(() => onLeadCallLogged(() => void loadBoard()), [loadBoard]);
+  useEffect(
+    () => onLeadCallLogged(() => void loadBoard({ silent: true })),
+    [loadBoard],
+  );
 
   useEffect(() => {
     if (portalClientView || !initialOrganizationId) {
