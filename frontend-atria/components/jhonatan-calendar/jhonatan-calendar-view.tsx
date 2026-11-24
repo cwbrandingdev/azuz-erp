@@ -36,6 +36,15 @@ const VIEW_OPTIONS: { id: CalendarMode; label: string }[] = [
   { id: "month", label: "Mês" },
 ];
 
+// Cores da grade nos dois temas. Não usar o verde fixo #004949: no escuro ele
+// some contra o fundo.
+const TODAY_HEAD_BG =
+  "bg-linear-to-b from-emerald-500/15 to-transparent dark:from-emerald-400/15";
+const TODAY_PILL =
+  "inline-block rounded-full bg-emerald-500 px-2.5 text-white dark:text-black";
+const EVENT_BLOCK =
+  "bg-emerald-600 text-white shadow-[0_2px_10px_rgba(16,185,129,0.35)] dark:shadow-[0_0_12px_rgba(16,185,129,0.35)]";
+
 export function JhonatanCalendarView() {
   const [anchor, setAnchor] = useState(() => saoPauloToday());
   const [view, setView] = useState<CalendarMode>("week");
@@ -115,7 +124,7 @@ export function JhonatanCalendarView() {
             <Plus />
             Nova reunião
           </Button>
-          <div className="flex rounded-lg border border-[#004949]/15 bg-white p-0.5">
+          <div className="flex rounded-lg border border-emerald-500/25 bg-white p-0.5 dark:border-emerald-400/20">
             {VIEW_OPTIONS.map((option) => (
               <button
                 key={option.id}
@@ -171,7 +180,7 @@ export function JhonatanCalendarView() {
         </div>
       </div>
 
-      <div className="max-h-[calc(100dvh-11rem)] min-h-[28rem] overflow-auto rounded-2xl border border-[#004949]/15 bg-white">
+      <div className="max-h-[calc(100dvh-11rem)] min-h-[28rem] overflow-auto rounded-2xl border border-emerald-500/25 bg-white dark:border-emerald-400/20">
         {loading ? (
           <div className="flex h-64 items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--atria-primary)] border-t-transparent" />
@@ -187,7 +196,7 @@ export function JhonatanCalendarView() {
           />
         ) : (
           <div className="min-w-[880px]">
-            <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-[#004949]/10">
+            <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-black/[0.06] dark:border-white/[0.06]">
               <div />
               {weekDays.map((day) => {
                 const key = localYmd(day);
@@ -200,18 +209,18 @@ export function JhonatanCalendarView() {
                   <div
                     key={key}
                     className={cn(
-                      "border-l border-[#004949]/10 px-2 py-2",
-                      key === todayKey && "bg-[#004949]/5",
+                      "border-l border-black/[0.06] dark:border-white/[0.06] px-2 py-2",
+                      key === todayKey && TODAY_HEAD_BG,
                     )}
                   >
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#004949]/55">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700/80 dark:text-emerald-300/70">
                       {CALENDAR_WEEKDAY_SHORT[day.getDay()]}
                     </p>
                     <p
                       className={cn(
                         "text-lg font-bold",
                         key === todayKey
-                          ? "text-[#004949]"
+                          ? TODAY_PILL
                           : "text-[var(--atria-primary)]",
                       )}
                     >
@@ -222,7 +231,10 @@ export function JhonatanCalendarView() {
                         key={appointment.id}
                         type="button"
                         onClick={() => openAppointment(appointment)}
-                        className="mt-1 w-full truncate rounded-md bg-[#004949] px-1.5 py-1 text-left text-[11px] font-medium text-white"
+                        className={cn(
+                          "mt-1 w-full truncate rounded-md px-1.5 py-1 text-left text-[11px] font-medium",
+                          EVENT_BLOCK,
+                        )}
                       >
                         {formatSaoPauloTime(appointment.startAt)}{" "}
                         {appointment.title}
@@ -238,7 +250,7 @@ export function JhonatanCalendarView() {
                 {GRID_HOURS.map((hour) => (
                   <div
                     key={hour}
-                    className="absolute right-2 text-[11px] leading-none text-[#004949]/45"
+                    className="absolute right-2 text-[11px] leading-none text-black/35 dark:text-white/35"
                     style={{ top: (hour - GRID_HOURS[0]) * HOUR_PX + 6 }}
                   >
                     {padHour(hour)}
@@ -262,8 +274,8 @@ export function JhonatanCalendarView() {
                   <div
                     key={key}
                     className={cn(
-                      "relative border-l border-[#004949]/10",
-                      key === todayKey && "bg-[#004949]/[0.03]",
+                      "relative border-l border-black/[0.06] dark:border-white/[0.06]",
+                      key === todayKey && "bg-emerald-500/[0.05] dark:bg-emerald-400/[0.05]",
                     )}
                     style={{ height: GRID_HOURS.length * HOUR_PX }}
                   >
@@ -272,7 +284,7 @@ export function JhonatanCalendarView() {
                         key={hour}
                         type="button"
                         aria-label={`Marcar ${day.toLocaleDateString("pt-BR")} às ${padHour(hour)}`}
-                        className="absolute inset-x-0 border-t border-[#004949]/10 hover:bg-[#004949]/5"
+                        className="absolute inset-x-0 border-t border-black/[0.06] dark:border-white/[0.06] hover:bg-emerald-500/10 dark:hover:bg-emerald-400/10"
                         style={{
                           top: (hour - GRID_HOURS[0]) * HOUR_PX,
                           height: HOUR_PX,
@@ -285,14 +297,17 @@ export function JhonatanCalendarView() {
                         key={appointment.id}
                         type="button"
                         onClick={() => openAppointment(appointment)}
-                        className="absolute inset-x-1 z-10 overflow-hidden rounded-md bg-[#004949] px-1.5 py-1 text-left text-white shadow-sm"
+                        className={cn(
+                          "absolute inset-x-1 z-10 overflow-hidden rounded-md px-1.5 py-1 text-left",
+                          EVENT_BLOCK,
+                        )}
                         style={{ top: placement.top, height: placement.height }}
                       >
                         <span className="block truncate text-[11px] font-semibold">
                           {formatSaoPauloTime(appointment.startAt)}{" "}
                           {appointment.title}
                         </span>
-                        <span className="block truncate text-[10px] text-white/80">
+                        <span className="block truncate text-[10px] text-emerald-50/85">
                           {appointment.contactName}
                         </span>
                       </button>
@@ -347,11 +362,11 @@ function MonthGrid({
 }) {
   return (
     <div className="min-w-[720px]">
-      <div className="grid grid-cols-7 border-b border-[#004949]/10">
+      <div className="grid grid-cols-7 border-b border-black/[0.06] dark:border-white/[0.06]">
         {MONDAY_FIRST_WEEKDAYS.map((label) => (
           <div
             key={label}
-            className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-[#004949]/55"
+            className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-emerald-700/80 dark:text-emerald-300/70"
           >
             {label}
           </div>
@@ -371,15 +386,15 @@ function MonthGrid({
             <div
               key={key}
               className={cn(
-                "relative min-h-28 border-t border-l border-[#004949]/10",
-                key === todayKey && "bg-[#004949]/5",
-                !inMonth && "bg-[#004949]/[0.02]",
+                "relative min-h-28 border-t border-l border-black/[0.06] dark:border-white/[0.06]",
+                key === todayKey && TODAY_HEAD_BG,
+                !inMonth && "bg-black/[0.02] dark:bg-white/[0.02]",
               )}
             >
               <button
                 type="button"
                 aria-label={`Marcar ${day.toLocaleDateString("pt-BR")} às 10:00`}
-                className="absolute inset-0 hover:bg-[#004949]/5"
+                className="absolute inset-0 hover:bg-emerald-500/10 dark:hover:bg-emerald-400/10"
                 onClick={() => onBook(day, 10)}
               />
               <div className="pointer-events-none relative z-10 flex flex-col gap-1 p-1.5">
@@ -387,7 +402,7 @@ function MonthGrid({
                   className={cn(
                     "px-1 text-sm font-semibold",
                     key === todayKey
-                      ? "text-[#004949]"
+                      ? TODAY_PILL
                       : inMonth
                         ? "text-[var(--atria-primary)]"
                         : "text-[var(--atria-primary)]/35",
@@ -400,7 +415,10 @@ function MonthGrid({
                     key={appointment.id}
                     type="button"
                     onClick={() => onOpen(appointment)}
-                    className="pointer-events-auto truncate rounded-md bg-[#004949] px-1.5 py-1 text-left text-[11px] font-medium text-white"
+                    className={cn(
+                      "pointer-events-auto truncate rounded-md px-1.5 py-1 text-left text-[11px] font-medium",
+                      EVENT_BLOCK,
+                    )}
                   >
                     {formatSaoPauloTime(appointment.startAt)} {appointment.title}
                   </button>
