@@ -6,7 +6,12 @@ import { WhatsappInbox } from "@/components/whatsapp/whatsapp-inbox";
 
 function WhatsappInboxFromQuery() {
   const params = useSearchParams();
-  return <WhatsappInbox initialPhone={params.get("phone") ?? undefined} />;
+  return (
+    <WhatsappInbox
+      initialPhone={params.get("phone") ?? undefined}
+      initialLeadId={params.get("leadId") ?? undefined}
+    />
+  );
 }
 
 export default function WhatsappPage() {

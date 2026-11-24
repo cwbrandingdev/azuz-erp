@@ -352,10 +352,12 @@ export class WhatsAppController {
   getCrmContext(
     @CurrentUser() user: AuthenticatedUser,
     @Param('phone') phone: string,
+    @Query('leadId') leadId?: string,
   ) {
     return this.crm.getContext(
       phone,
       user.companyId ?? '00000000-0000-4000-8000-000000000001',
+      leadId,
     );
   }
 
@@ -365,11 +367,13 @@ export class WhatsAppController {
     @Param('phone') phone: string,
     @Body() dto: UpdateCrmContactDto,
   ) {
+    const { leadId, ...patch } = dto;
     return this.crm.updateContact(
       phone,
       user.companyId ?? '00000000-0000-4000-8000-000000000001',
-      dto,
+      patch,
       user.userId,
+      leadId,
     );
   }
 
@@ -377,11 +381,13 @@ export class WhatsAppController {
   deleteCrmContact(
     @CurrentUser() user: AuthenticatedUser,
     @Param('phone') phone: string,
+    @Query('leadId') leadId?: string,
   ) {
     return this.crm.deleteContact(
       phone,
       user.companyId ?? '00000000-0000-4000-8000-000000000001',
       user.userId,
+      leadId,
     );
   }
 

@@ -45,4 +45,9 @@ export class UpdateCrmContactDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   orcamento?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  leadId?: string;
 }

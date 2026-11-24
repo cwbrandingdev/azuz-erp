@@ -326,9 +326,13 @@ export interface WhatsAppStageMessage {
   templateLanguage: string | null;
 }
 
-export async function getCrmContext(phone: string): Promise<WhatsAppCrmContext> {
+export async function getCrmContext(
+  phone: string,
+  leadId?: string,
+): Promise<WhatsAppCrmContext> {
+  const query = leadId ? `?leadId=${encodeURIComponent(leadId)}` : "";
   return apiRequest<WhatsAppCrmContext>(
-    `/whatsapp/conversations/${encodeURIComponent(phone)}/crm`,
+    `/whatsapp/conversations/${encodeURIComponent(phone)}/crm${query}`,
   );
 }
 
@@ -345,7 +349,7 @@ export async function updateCrmContact(
       | "source"
       | "orcamento"
     >
-  >,
+  > & { leadId?: string },
 ): Promise<WhatsAppCrmContact> {
   return apiRequest<WhatsAppCrmContact>(
     `/whatsapp/conversations/${encodeURIComponent(phone)}/crm`,
@@ -444,9 +448,11 @@ export async function deleteConversation(
 
 export async function deleteCrmContact(
   phone: string,
+  leadId?: string,
 ): Promise<{ success: true }> {
+  const query = leadId ? `?leadId=${encodeURIComponent(leadId)}` : "";
   return apiRequest<{ success: true }>(
-    `/whatsapp/conversations/${encodeURIComponent(phone)}/crm`,
+    `/whatsapp/conversations/${encodeURIComponent(phone)}/crm${query}`,
     { method: "DELETE" },
   );
 }

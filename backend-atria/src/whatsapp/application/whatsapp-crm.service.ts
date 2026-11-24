@@ -66,9 +66,13 @@ export class WhatsAppCrmService {
     private readonly whatsApp: WhatsAppService,
   ) {}
 
-  async getContext(phone: string, companyId = DEFAULT_COMPANY) {
+  async getContext(
+    phone: string,
+    companyId = DEFAULT_COMPANY,
+    leadId?: string,
+  ) {
     const normalized = normalizeWhatsAppPhone(phone);
-    const lead = await this.findLeadByPhone(normalized, companyId);
+    const lead = await this.findLeadForContext(normalized, companyId, leadId);
     const [deals, timeline] = await Promise.all([
       this.loadOpenDeals(lead, companyId),
       this.loadTimeline(normalized, lead?.id ?? null, companyId),
@@ -93,9 +97,10 @@ export class WhatsAppCrmService {
       orcamento?: number | null;
     },
     actorUserId?: string,
+    leadId?: string,
   ) {
     const normalized = normalizeWhatsAppPhone(phone);
-    let lead = await this.findLeadByPhone(normalized, companyId);
+    let lead = await this.findLeadForContext(normalized, companyId, leadId);
     if (!lead) {
       lead = await this.prisma.lead.create({
         data: {
@@ -176,9 +181,10 @@ export class WhatsAppCrmService {
     phone: string,
     companyId: string,
     actorUserId?: string,
+    leadId?: string,
   ): Promise<{ success: true }> {
     const normalized = normalizeWhatsAppPhone(phone);
-    const lead = await this.findLeadByPhone(normalized, companyId);
+    const lead = await this.findLeadForContext(normalized, companyId, leadId);
     if (!lead) {
       throw new NotFoundException('Contato não encontrado para este número.');
     }
@@ -324,14 +330,43 @@ export class WhatsAppCrmService {
     }
   }
 
+  // Prefere o lead de onde o usuário veio (card do kanban). Só vale se for da
+  // empresa e tiver o mesmo número; senão cai na busca pelo telefone.
+  private async findLeadForContext(
+    phone: string,
+    companyId: string,
+    leadId?: string,
+  ) {
+    if (leadId) {
+      const lead = await this.prisma.lead.findFirst({
+        where: { id: leadId, companyId, deletedAt: null },
+        include: {
+          stage: { select: { name: true } },
+          organization: { select: { companyName: true } },
+        },
+      });
+      if (lead && normalizeWhatsAppPhone(lead.phone ?? '') === phone) {
+        return lead;
+      }
+    }
+    return this.findLeadByPhone(phone, companyId);
+  }
+
   private async findLeadByPhone(phone: string, companyId: string) {
+    // O telefone do lead é guardado como foi digitado, com pontuação
+    // ("(41) 3088-3282"). Por isso a comparação é só pelos dígitos.
     const needle = phone.slice(-8);
+    const candidates = await this.prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM leads
+      WHERE "companyId" = ${companyId}
+        AND deleted_at IS NULL
+        AND regexp_replace(phone, '\\D', '', 'g') LIKE ${'%' + needle}
+      ORDER BY updated_at DESC
+      LIMIT 25`;
+    if (candidates.length === 0) return null;
+
     const rows = await this.prisma.lead.findMany({
-      where: {
-        companyId,
-        deletedAt: null,
-        phone: { contains: needle },
-      },
+      where: { id: { in: candidates.map((candidate) => candidate.id) } },
       include: {
         stage: { select: { name: true } },
         organization: { select: { companyName: true } },

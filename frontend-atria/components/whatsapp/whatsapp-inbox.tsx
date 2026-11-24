@@ -67,6 +67,7 @@ import { WhatsappTransferDialog } from "@/components/whatsapp/whatsapp-transfer-
 import {
   useWhatsappCannedResponses,
   useWhatsappConversations,
+  useWhatsappCrm,
   useWhatsappInboxCounts,
   useWhatsappMutations,
   useWhatsappSession,
@@ -264,7 +265,13 @@ function contactAvatarStyle(color: string | null | undefined) {
   return { backgroundColor: color, color: "#ffffff" };
 }
 
-export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
+export function WhatsappInbox({
+  initialPhone,
+  initialLeadId,
+}: {
+  initialPhone?: string;
+  initialLeadId?: string;
+}) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const {
@@ -346,6 +353,12 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const selected =
     conversations.find((item) => item.phone === selectedPhone) ?? null;
 
+  // O lead de onde o usuário veio (card do kanban) só vale para a conversa aberta pelo link.
+  const leadHint = selectedPhone === initialPhone ? initialLeadId : undefined;
+  const crmContext = useWhatsappCrm(selectedPhone, leadHint);
+  // Conversa nova ainda não tem nome: usa o do lead vinculado.
+  const defaultName = selected?.name ?? crmContext.data?.contact?.name ?? "";
+
   useReportOpenWhatsappConversation(selectedPhone);
 
   useEffect(() => {
@@ -399,8 +412,8 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   }
 
   useEffect(() => {
-    setNameDraft(selected?.name ?? "");
-  }, [selected?.phone, selected?.name]);
+    setNameDraft(defaultName);
+  }, [selected?.phone, defaultName]);
 
   useEffect(() => {
     if (!selectedPhone) {
@@ -1125,7 +1138,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
                 value={nameDraft}
                 onChange={(event) => setNameDraft(event.target.value)}
                 onBlur={() => {
-                  if (nameDraft !== (selected?.name ?? "")) {
+                  if (nameDraft !== defaultName) {
                     void updateConversation.mutateAsync({
                       phone: selectedPhone,
                       name: nameDraft,
@@ -1242,7 +1255,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
               Atendente: {selected.assignedUser.name}
             </p>
           ) : null}
-          <WhatsappCrmPanel phone={selectedPhone} />
+          <WhatsappCrmPanel phone={selectedPhone} leadId={leadHint} />
           </div>
         </aside>
       ) : null}
