@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
+import sharp from 'sharp';
 
 const MIME_EXT: Record<string, string> = {
   'image/jpeg': '.jpg',
@@ -23,6 +24,29 @@ export class WhatsAppMediaStore {
   constructor() {
     if (!existsSync(this.dir)) {
       mkdirSync(this.dir, { recursive: true });
+    }
+  }
+
+  /** WhatsApp stickers arrive as webp, sometimes animated. Normalize them so the inbox can render the image. */
+  async saveSticker(
+    buffer: Buffer,
+    filename?: string | null,
+    mimeType?: string | null,
+  ) {
+    try {
+      const output = await sharp(buffer, { animated: true })
+        .rotate()
+        .resize({
+          width: 512,
+          height: 512,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 80, effort: 3 })
+        .toBuffer();
+      return this.save(output, 'sticker.webp', 'image/webp');
+    } catch {
+      return this.save(buffer, filename, mimeType);
     }
   }
 

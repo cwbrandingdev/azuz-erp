@@ -20,6 +20,7 @@ export type WahaInboundMessage = {
   fromMe?: boolean;
   body?: string;
   hasMedia?: boolean;
+  type?: string;
   pushName?: string;
   notifyName?: string;
   media?: {
@@ -39,8 +40,13 @@ export type WahaInboundMessage = {
     pushName?: string;
     Info?: {
       PushName?: string;
+      Type?: string;
+      MediaType?: string;
       Sender?: string | WahaJid;
       SenderAlt?: string | WahaJid;
+    };
+    Message?: {
+      stickerMessage?: unknown;
     };
   };
 };
@@ -132,14 +138,18 @@ export function parseWahaInbound(
   if (message.hasMedia || mediaUrl) {
     const mimeType = message.media?.mimetype?.trim() || null;
     const filename = message.media?.filename?.trim() || null;
-    const kind = mimeType
-      ? kindFromMime(mimeType)
-      : WhatsAppMessageKind.DOCUMENT;
+    const sticker = isWahaSticker(message, mimeType);
+    const kind = sticker
+      ? WhatsAppMessageKind.STICKER
+      : mimeType
+        ? kindFromMime(mimeType)
+        : WhatsAppMessageKind.DOCUMENT;
     const caption = message.body?.trim() || '';
     return base({
       kind,
       body:
         caption ||
+        (sticker ? 'Figurinha' : '') ||
         filename ||
         (kind === WhatsAppMessageKind.IMAGE
           ? 'Imagem'
@@ -158,6 +168,21 @@ export function parseWahaInbound(
   const body = message.body?.trim() ?? '';
   if (!body) return null;
   return base({ kind: WhatsAppMessageKind.TEXT, body });
+}
+
+function isWahaSticker(
+  message: WahaInboundMessage,
+  mimeType: string | null,
+): boolean {
+  const type = message.type?.trim().toLowerCase();
+  const infoType = message._data?.Info?.Type?.trim().toLowerCase();
+  const mediaType = message._data?.Info?.MediaType?.trim().toLowerCase();
+  if (type === 'sticker' || infoType === 'sticker' || mediaType === 'sticker') {
+    return true;
+  }
+  if (message._data?.Message?.stickerMessage) return true;
+  const mime = mimeType?.split(';')[0].trim().toLowerCase() ?? '';
+  return mime === 'image/webp';
 }
 
 function numberOrNull(value: number | string | undefined): number | null {

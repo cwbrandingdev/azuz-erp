@@ -14,6 +14,8 @@ import {
   Paperclip,
   PanelRightClose,
   PanelRightOpen,
+  Pause,
+  Play,
   Plus,
   Search,
   Send,
@@ -182,6 +184,174 @@ function displayName(conversation: WhatsAppConversation) {
   return conversation.name?.trim() || formatPhone(conversation.phone);
 }
 
+function formatAudioTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const total = Math.floor(seconds);
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  return `${minutes}:${rest.toString().padStart(2, "0")}`;
+}
+
+function VoiceNotePlayer({
+  src,
+  messageId,
+  outbound,
+}: {
+  src: string;
+  messageId: string;
+  outbound: boolean;
+}) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    function onOther(event: Event) {
+      const otherId = (event as CustomEvent<string>).detail;
+      if (otherId !== messageId) audioRef.current?.pause();
+    }
+    window.addEventListener("whatsapp-voice-play", onOther);
+    return () => window.removeEventListener("whatsapp-voice-play", onOther);
+  }, [messageId]);
+
+  function rememberDuration(audio: HTMLAudioElement) {
+    if (Number.isFinite(audio.duration) && audio.duration > 0) {
+      setDuration(audio.duration);
+    }
+  }
+
+  function toggle() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      window.dispatchEvent(
+        new CustomEvent("whatsapp-voice-play", { detail: messageId }),
+      );
+      void audio.play().catch(() => setFailed(true));
+      return;
+    }
+    audio.pause();
+  }
+
+  function seek(clientX: number, width: number, left: number) {
+    const audio = audioRef.current;
+    if (!audio || !duration || width <= 0) return;
+    const ratio = Math.min(1, Math.max(0, (clientX - left) / width));
+    audio.currentTime = ratio * duration;
+    setCurrent(audio.currentTime);
+  }
+
+  const progress = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
+  const shown = current > 0 || playing ? current : duration;
+
+  if (failed) {
+    return (
+      <a href={src} target="_blank" rel="noreferrer" className="underline">
+        Abrir áudio
+      </a>
+    );
+  }
+
+  return (
+    <div className="flex w-64 max-w-full items-center gap-2.5">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={playing ? "Pausar áudio" : "Reproduzir áudio"}
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-full",
+          outbound
+            ? "bg-white/20 text-white hover:bg-white/30"
+            : "bg-[var(--atria-primary)] text-white hover:opacity-90",
+        )}
+      >
+        {playing ? (
+          <Pause className="size-4 fill-current" />
+        ) : (
+          <Play className="size-4 translate-x-px fill-current" />
+        )}
+      </button>
+      <div className="min-w-0 flex-1">
+        <div
+          role="slider"
+          aria-label="Posição do áudio"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(duration) || 0}
+          aria-valuenow={Math.round(current)}
+          tabIndex={0}
+          onClick={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            seek(event.clientX, rect.width, rect.left);
+          }}
+          onKeyDown={(event) => {
+            const audio = audioRef.current;
+            if (!audio || !duration) return;
+            if (event.key === "ArrowRight") {
+              audio.currentTime = Math.min(duration, audio.currentTime + 5);
+            }
+            if (event.key === "ArrowLeft") {
+              audio.currentTime = Math.max(0, audio.currentTime - 5);
+            }
+          }}
+          className={cn(
+            "relative h-1.5 cursor-pointer rounded-full",
+            outbound ? "bg-white/30" : "bg-slate-200 dark:bg-white/15",
+          )}
+        >
+          <span
+            className={cn(
+              "absolute inset-y-0 left-0 rounded-full",
+              outbound ? "bg-white" : "bg-[var(--atria-primary)]",
+            )}
+            style={{ width: `${progress}%` }}
+          >
+            <span
+              className={cn(
+                "absolute top-1/2 right-0 size-2.5 -translate-y-1/2 translate-x-1/2 rounded-full",
+                outbound ? "bg-white" : "bg-[var(--atria-primary)]",
+              )}
+            />
+          </span>
+        </div>
+        <p
+          className={cn(
+            "mt-1 text-[11px] tabular-nums",
+            outbound
+              ? "text-white/75"
+              : "text-slate-500 dark:text-muted-foreground",
+          )}
+        >
+          {formatAudioTime(shown)}
+        </p>
+      </div>
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="metadata"
+        className="hidden"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => {
+          setPlaying(false);
+          setCurrent(0);
+        }}
+        onTimeUpdate={(event) => setCurrent(event.currentTarget.currentTime)}
+        onLoadedMetadata={(event) => rememberDuration(event.currentTarget)}
+        onDurationChange={(event) => rememberDuration(event.currentTarget)}
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
+
+function isStickerMessage(message: WhatsAppInboxMessage) {
+  if (message.kind === "STICKER") return true;
+  const mime = message.mediaMimeType?.split(";")[0]?.trim().toLowerCase() ?? "";
+  return message.kind === "IMAGE" && mime === "image/webp";
+}
+
 function MessageBody({
   message,
   outbound,
@@ -202,7 +372,24 @@ function MessageBody({
           Visualização única
         </p>
       ) : null}
-      {message.kind === "IMAGE" || message.kind === "STICKER" ? (
+      {isStickerMessage(message) ? (
+        media ? (
+          <figure className="w-32">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={media}
+              alt="Figurinha"
+              className="h-32 w-32 object-contain"
+            />
+            <figcaption className="mt-0.5 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-white/45">
+              Figurinha
+            </figcaption>
+          </figure>
+        ) : (
+          <p className="text-sm">Figurinha indisponível</p>
+        )
+      ) : null}
+      {message.kind === "IMAGE" && !isStickerMessage(message) ? (
         media ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -217,8 +404,16 @@ function MessageBody({
       {message.kind === "VIDEO" && media ? (
         <video src={media} controls className="mb-1 max-h-64 rounded-lg" />
       ) : null}
-      {message.kind === "AUDIO" && media ? (
-        <audio src={media} controls className="mb-1 w-full" />
+      {message.kind === "AUDIO" ? (
+        media ? (
+          <VoiceNotePlayer
+            src={media}
+            messageId={message.id}
+            outbound={outbound}
+          />
+        ) : (
+          <p>Áudio indisponível</p>
+        )
       ) : null}
       {message.kind === "DOCUMENT" && media ? (
         <a
@@ -250,7 +445,7 @@ function MessageBody({
       {message.body &&
       message.kind !== "LOCATION" &&
       message.kind !== "AUDIO" &&
-      message.kind !== "STICKER" ? (
+      !isStickerMessage(message) ? (
         <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
           {message.body}
         </p>
@@ -1014,6 +1209,7 @@ export function WhatsappInbox({
                   );
                 }
                 const outbound = message.direction === "OUTBOUND";
+                const sticker = isStickerMessage(message);
                 const agentName =
                   outbound && !message.isPrivate && message.sentByName
                     ? message.sentByName
@@ -1040,19 +1236,22 @@ export function WhatsappInbox({
                       >
                         <div
                           className={cn(
-                            "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-base shadow-sm",
-                            outbound
-                              ? "rounded-br-md bg-[var(--atria-primary)] text-white"
-                              : "rounded-bl-md bg-white text-slate-800 dark:text-foreground",
+                            sticker
+                              ? "w-fit bg-transparent p-0 text-slate-800 shadow-none dark:text-foreground"
+                              : "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-base shadow-sm",
+                            !sticker &&
+                              (outbound
+                                ? "rounded-br-md bg-[var(--atria-primary)] text-white"
+                                : "rounded-bl-md bg-white text-slate-800 dark:text-foreground"),
                           )}
                         >
                           <MessageBody message={message} outbound={outbound} />
                           <span
                             className={cn(
                               "mt-1 flex items-center justify-end gap-1 text-[11px]",
-                              outbound
-                                ? "text-white/70"
-                                : "text-slate-400 dark:text-white/40",
+                              sticker || !outbound
+                                ? "text-slate-400 dark:text-white/40"
+                                : "text-white/70",
                             )}
                           >
                             {formatClock(message.createdAt)}
