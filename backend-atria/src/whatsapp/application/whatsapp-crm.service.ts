@@ -595,6 +595,7 @@ export class WhatsAppCrmService {
     stage?: { name: string } | null;
     organizationId: string | null;
     organization?: { companyName: string } | null;
+    placeId?: string | null;
     rawData?: unknown;
   }): WhatsAppCrmContact {
     return {
@@ -603,7 +604,7 @@ export class WhatsAppCrmService {
       contactName: lead.contactName,
       phone: lead.phone,
       email: lead.email,
-      cnpj: lead.cnpj ?? this.cnpjFromRawData(lead.rawData),
+      cnpj: lead.cnpj ?? this.cnpjFromLead(lead),
       jobTitle: lead.jobTitle,
       source: lead.source,
       orcamento:
@@ -616,13 +617,44 @@ export class WhatsAppCrmService {
     };
   }
 
-  // Leads do catálogo da Receita guardam o CNPJ em rawData, não na coluna.
-  private cnpjFromRawData(rawData: unknown): string | null {
-    if (!rawData || typeof rawData !== 'object') return null;
-    const digits = String(
-      (rawData as Record<string, unknown>).cnpj ?? '',
-    ).replace(/\D/g, '');
-    return digits.length === 14 ? digits : null;
+  // Leads do catálogo da Receita deixam a coluna vazia e guardam o CNPJ em
+  // outros lugares. Mesma ordem de busca do card (frontend lib/lead-cnpj.ts).
+  private cnpjFromLead(lead: {
+    placeId?: string | null;
+    rawData?: unknown;
+  }): string | null {
+    const toDigits = (value: unknown): string | null => {
+      if (value == null) return null;
+      const digits = String(value).replace(/\D/g, '');
+      return digits.length === 14 ? digits : null;
+    };
+    const readKeys = (source: unknown): string | null => {
+      if (!source || typeof source !== 'object' || Array.isArray(source)) {
+        return null;
+      }
+      const record = source as Record<string, unknown>;
+      for (const key of ['cnpj', 'CNPJ', 'document', 'cnpj_cpf']) {
+        const digits = toDigits(record[key]);
+        if (digits) return digits;
+      }
+      return null;
+    };
+
+    if (lead.placeId?.startsWith('cnpj:')) {
+      const fromPlace = toDigits(lead.placeId.slice(5));
+      if (fromPlace) return fromPlace;
+    }
+
+    const raw = lead.rawData;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const record = raw as Record<string, unknown>;
+    return (
+      readKeys(record) ??
+      readKeys(record.registry) ??
+      toDigits(
+        (record.registrySnapshot as { cnpj?: unknown } | undefined)?.cnpj,
+      )
+    );
   }
 
   private varsFor(
