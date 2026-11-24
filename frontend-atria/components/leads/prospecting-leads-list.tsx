@@ -106,7 +106,7 @@ export function ProspectingLeadsList({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-[var(--atria-primary)]/10 bg-white/90 px-4 py-4 backdrop-blur-md">
+      <div className="shrink-0 border-b border-[var(--atria-primary)]/10 bg-white/90 px-4 py-4 backdrop-blur-md dark:border-white/10 dark:bg-[var(--card)]">
         <div className="flex flex-col gap-3">
           <p className="text-sm text-[var(--atria-primary)]/65">
             {totalCount === 0
