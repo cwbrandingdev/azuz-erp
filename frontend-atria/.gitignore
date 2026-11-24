@@ -47,3 +47,6 @@ next-env.d.ts
 /public/pdf.worker.min.mjs
 
 certificates
+
+# Ferramentas só da máquina de desenvolvimento (seletor de layouts). Não sobem para o git.
+/components/dev/
