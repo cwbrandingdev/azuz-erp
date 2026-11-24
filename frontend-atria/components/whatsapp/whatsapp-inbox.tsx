@@ -341,9 +341,8 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const mutationSending =
-    sendMessage.isPending || sendMedia.isPending || addNote.isPending;
-  const isComposingSending = composeLocked || mutationSending;
+  const isComposingSending =
+    mode === "note" && (composeLocked || addNote.isPending);
 
   const { data: conversations = [], isLoading } = useWhatsappConversations({
     tab,
@@ -496,7 +495,7 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!selectedPhone || composeSubmitLock.current) return;
+    if (!selectedPhone) return;
     const text = draft.trim();
     const file = attachFile;
 
@@ -521,63 +520,60 @@ export function WhatsappInbox({ initialPhone }: { initialPhone?: string }) {
     }
     if (!file && !text) return;
 
-    composeSubmitLock.current = true;
-    setComposeLocked(true);
     setDraft("");
-    if (file) setAttachFile(null);
+    const fileToSend = file;
+    if (fileToSend) setAttachFile(null);
 
-    const storedBody = text || file?.name || "";
+    const storedBody = text || fileToSend?.name || "";
     const optimistic = buildOptimisticOutboundMessage({
       toPhone: selectedPhone,
       body: storedBody,
       user,
-      kind: file
-        ? file.type.startsWith("image/")
+      kind: fileToSend
+        ? fileToSend.type.startsWith("image/")
           ? "IMAGE"
-          : file.type.startsWith("video/")
+          : fileToSend.type.startsWith("video/")
             ? "VIDEO"
-            : file.type.startsWith("audio/")
+            : fileToSend.type.startsWith("audio/")
               ? "AUDIO"
               : "DOCUMENT"
         : "TEXT",
-      mediaFilename: file?.name ?? null,
-      mediaMimeType: file?.type ?? null,
+      mediaFilename: fileToSend?.name ?? null,
+      mediaMimeType: fileToSend?.type ?? null,
     });
     const pendingId = optimistic.id;
     const sendPhone = selectedPhone;
     setMessages((current) => [...current, optimistic]);
 
-    try {
-      const created = file
-        ? await sendMedia.mutateAsync({
-            to: sendPhone,
-            file,
-            caption: text || undefined,
-          })
-        : await sendMessage.mutateAsync({ to: sendPhone, message: text });
-      const canonicalTo = created.toPhone?.trim();
-      if (canonicalTo && canonicalTo !== sendPhone) {
-        setSelectedPhone(canonicalTo);
+    void (async () => {
+      try {
+        const created = fileToSend
+          ? await sendMedia.mutateAsync({
+              to: sendPhone,
+              file: fileToSend,
+              caption: text || undefined,
+            })
+          : await sendMessage.mutateAsync({ to: sendPhone, message: text });
+        const canonicalTo = created.toPhone?.trim();
+        if (canonicalTo && canonicalTo !== sendPhone) {
+          setSelectedPhone(canonicalTo);
+        }
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === pendingId ? created : message,
+          ),
+        );
+      } catch {
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === pendingId
+              ? { ...message, status: "FAILED" }
+              : message,
+          ),
+        );
+        toast.error("Não foi possível enviar a mensagem.");
       }
-      setMessages((current) =>
-        current.map((message) =>
-          message.id === pendingId ? created : message,
-        ),
-      );
-    } catch {
-      setMessages((current) =>
-        current.map((message) =>
-          message.id === pendingId
-            ? { ...message, status: "FAILED" }
-            : message,
-        ),
-      );
-      setDraft(text);
-      if (file) setAttachFile(file);
-    } finally {
-      composeSubmitLock.current = false;
-      setComposeLocked(false);
-    }
+    })();
   }
 
   async function handleSendLocation() {
