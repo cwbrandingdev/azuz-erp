@@ -43,6 +43,7 @@ export const navSections: NavSection[] = [
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { name: "Meta Insights", href: "/insights", icon: BarChart2 },
+      { name: "Meta Ads", href: "/ads", icon: Megaphone },
     ],
   },
   {

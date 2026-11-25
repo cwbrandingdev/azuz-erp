@@ -60,6 +60,24 @@ export class MetaAnalyticsController {
     });
   }
 
+  @Get('insights/client/:clientId/report')
+  getAccountReport(
+    @Param('clientId') clientId: string,
+    @Query() query: QueryMetaAnalyticsDto,
+  ) {
+    const accountId =
+      clientId?.trim() ||
+      query.clientId?.trim() ||
+      query.adAccountId?.trim() ||
+      undefined;
+
+    return this.metaAnalyticsService.getAccountReport(accountId, {
+      datePreset: query.datePreset ?? 'last_30d',
+      month: query.month,
+      year: query.year,
+    });
+  }
+
   @Get('insights/client/:clientId/campaigns')
   getClientCampaigns(
     @Param('clientId') clientId: string,

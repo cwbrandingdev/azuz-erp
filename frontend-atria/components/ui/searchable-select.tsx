@@ -9,6 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 export interface SearchableSelectOption {
   value: string;
   label: string;
+  description?: string;
+  /** Extra text included when filtering (e.g. account id). */
+  searchText?: string;
   group?: string;
   disabled?: boolean;
 }
@@ -48,26 +51,40 @@ export function SearchableSelect({
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const selectedOption = useMemo(
+    () => options.find((option) => option.value === value),
+    [options, value],
+  );
+
   const selectedLabel = useMemo(() => {
     if (loading) return loadingLabel;
     if (!value) return allowEmpty ? emptyOptionLabel : placeholder;
-    return options.find((option) => option.value === value)?.label ?? placeholder;
+    return selectedOption?.label ?? placeholder;
   }, [
     allowEmpty,
     emptyOptionLabel,
     loading,
     loadingLabel,
-    options,
     placeholder,
+    selectedOption?.label,
     value,
   ]);
 
   const filteredOptions = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return options;
-    return options.filter((option) =>
-      option.label.toLowerCase().includes(query),
-    );
+    return options.filter((option) => {
+      const haystack = [
+        option.label,
+        option.description,
+        option.searchText,
+        option.value,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
   }, [options, search]);
 
   useEffect(() => {
@@ -102,12 +119,23 @@ export function SearchableSelect({
         disabled={disabled || loading}
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex h-10 w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 text-left text-sm",
+          "flex h-10 w-full min-h-10 items-center justify-between gap-2 rounded-lg border border-input bg-transparent px-3 text-left text-sm",
+          selectedOption?.description && "h-auto min-h-11 py-2",
           (disabled || loading) && "cursor-not-allowed opacity-50",
         )}
       >
-        <span className={cn((!value || loading) && "text-muted-foreground")}>
-          {selectedLabel}
+        <span
+          className={cn(
+            "flex min-w-0 flex-col",
+            (!value || loading) && "text-muted-foreground",
+          )}
+        >
+          <span className="truncate font-medium">{selectedLabel}</span>
+          {selectedOption?.description ? (
+            <span className="truncate text-[10px] font-normal opacity-60">
+              {selectedOption.description}
+            </span>
+          ) : null}
         </span>
         {loading ? (
           <Loader2 className="size-4 shrink-0 animate-spin opacity-60" />
@@ -181,8 +209,17 @@ export function SearchableSelect({
                         setSearch("");
                       }}
                     >
-                      <span>{option.label}</span>
-                      {value === option.value && <Check className="size-4" />}
+                      <span className="min-w-0">
+                        <span className="block truncate">{option.label}</span>
+                        {option.description ? (
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {option.description}
+                          </span>
+                        ) : null}
+                      </span>
+                      {value === option.value && (
+                        <Check className="size-4 shrink-0" />
+                      )}
                     </button>
                   </li>
                 );
