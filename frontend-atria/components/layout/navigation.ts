@@ -42,8 +42,8 @@ export const navSections: NavSection[] = [
     label: "VISÃO GERAL",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Meta Insights", href: "/insights", icon: BarChart2 },
-      { name: "Meta Ads", href: "/ads", icon: Megaphone },
+      // { name: "Meta Insights", href: "/insights", icon: BarChart2 },
+      // { name: "Meta Ads", href: "/ads", icon: Megaphone },
     ],
   },
   {
@@ -68,8 +68,8 @@ export const navSections: NavSection[] = [
         href: "/financial",
         icon: Wallet,
       },
-      { name: "Contratos", href: "/contracts", icon: FileSignature },
-      { name: "Propostas", href: "/proposals", icon: FileText },
+      // { name: "Contratos", href: "/contracts", icon: FileSignature },
+      // { name: "Propostas", href: "/proposals", icon: FileText },
       { name: "Central de Leads", href: "/leads-central", icon: UserCheckIcon },
     ],
   },
@@ -95,11 +95,11 @@ export const navSections: NavSection[] = [
         href: "/suggestions",
         icon: MessageSquarePlus,
       },
-      {
-        name: "Atualizações",
-        href: "/app-updates",
-        icon: Megaphone,
-      },
+      // {
+      //   name: "Atualizações",
+      //   href: "/app-updates",
+      //   icon: Megaphone,
+      // },
       {
         name: "Configurações",
         href: "/settings/navigation",
