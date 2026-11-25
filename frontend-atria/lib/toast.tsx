@@ -1,3 +1,4 @@
+import { describeApiError, type FriendlyApiError } from "@/lib/api-error";
 import type { ReactNode } from "react";
 import { toast as sonnerToast } from "sonner";
 import {
@@ -88,31 +89,68 @@ export function shouldShowApiErrorToast(
     return false;
   }
 
-  return status >= 400;
+  return status === 0 || status >= 400;
+}
+
+const REPLACEABLE_KINDS = new Set<FriendlyApiError["kind"]>([
+  "network",
+  "timeout",
+  "rate-limit",
+  "server",
+]);
+
+function copyReference(reference: string) {
+  void navigator.clipboard.writeText(reference).then(
+    () => toast.success("Código copiado"),
+    () => toast.error("Não foi possível copiar o código"),
+  );
+}
+
+function ErrorDescription({ friendly }: { friendly: FriendlyApiError }) {
+  return (
+    <>
+      {friendly.description ? (
+        <span className="block">{friendly.description}</span>
+      ) : null}
+      {friendly.details?.length ? (
+        <ul className="mt-1 list-disc space-y-0.5 pl-4">
+          {friendly.details.map((detail) => (
+            <li key={detail}>{detail}</li>
+          ))}
+        </ul>
+      ) : null}
+      {friendly.reference ? (
+        <span className="mt-1 block font-mono text-xs">
+          Código: {friendly.reference}
+        </span>
+      ) : null}
+    </>
+  );
 }
 
 export function showApiError(error: ApiError, endpoint?: string) {
-  if (endpoint?.startsWith("/auth/login")) {
-    toast.error("E-mail ou senha inválidos");
-    return;
-  }
+  const friendly = describeApiError(error, endpoint);
+  const reference = friendly.reference;
+  const hasDescription = Boolean(
+    friendly.description || friendly.details?.length || reference,
+  );
 
-  const payload = error.data as
-    | { errors?: string[]; message?: string | string[] }
-    | undefined;
-  const validationDetail =
-    payload?.errors?.[0] ??
-    (Array.isArray(payload?.message) ? payload.message[0] : undefined);
-
-  const message =
-    error.message === "Validation failed" && validationDetail
-      ? validationDetail
-      : error.message || "Ocorreu um erro inesperado. Tente novamente.";
-
-  toast.error(message);
+  toast.error(friendly.title, {
+    id: REPLACEABLE_KINDS.has(friendly.kind)
+      ? `api-error-${friendly.kind}`
+      : undefined,
+    description: hasDescription ? (
+      <ErrorDescription friendly={friendly} />
+    ) : undefined,
+    action: reference
+      ? { label: "Copiar código", onClick: () => copyReference(reference) }
+      : undefined,
+    duration: reference ? 12_000 : undefined,
+  });
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof ApiError) return error.message;
-  return fallback;
+  if (!(error instanceof ApiError)) return fallback;
+  const friendly = describeApiError(error);
+  return friendly.details?.[0] ?? friendly.description ?? friendly.title;
 }
