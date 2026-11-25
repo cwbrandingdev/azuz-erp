@@ -7,6 +7,7 @@
  *   npx ts-node prisma/scripts/ingest-receita-cnpj.ts
  *
  * Env:
+ *   CATALOG_DATABASE_URL      required (Neon prospect catalog)
  *   RECEITA_MONTH=2026-09     optional YYYY-MM folder
  *   RECEITA_UF=SP,PR          required; one UF at a time in memory
  *   RECEITA_PER_CNAE=1000     max companies kept per CNAE per UF
@@ -30,11 +31,22 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { Readable } from 'node:stream';
-import { Prisma, PrismaClient, ProspectFitVerdict } from '@prisma/client';
+import {
+  Prisma,
+  PrismaClient,
+  ProspectFitVerdict,
+} from '@prisma/catalog-client';
 import { normalizeCatalogText } from '../../src/leads/company-lookup/domain/text-normalize';
 import { qualifyRegistryCompany } from '../../src/leads/qualification/registry-company-qualifier';
 
-const prisma = new PrismaClient();
+const catalogUrl = process.env.CATALOG_DATABASE_URL?.trim();
+if (!catalogUrl) {
+  throw new Error('CATALOG_DATABASE_URL is required for ingest:cnpj');
+}
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: catalogUrl } },
+});
 
 const RFB_SHARE_TOKEN =
   process.env.RECEITA_SHARE_TOKEN?.trim() || 'YggdBLfdninEJX9';

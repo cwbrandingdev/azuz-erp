@@ -25,6 +25,7 @@ import {
 import { AiService } from '../ai/ai.service';
 import { CompanySettingsService } from '../company-settings/company-settings.service';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
+import { CatalogPrismaService } from '../prisma/catalog-prisma.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { addBusinessDays } from './business-days';
 import { CreateLeadMeetingDto } from './dto/create-lead-meeting.dto';
@@ -218,6 +219,7 @@ export class LeadsService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly catalogPrisma: CatalogPrismaService,
     private readonly aiService: AiService,
     private readonly companySettings: CompanySettingsService,
     private readonly leadStages: LeadStagesService,
@@ -1780,7 +1782,7 @@ export class LeadsService {
       return existing;
     }
 
-    const row = await this.prisma.prospectCompany.findUnique({
+    const row = await this.catalogPrisma.prospectCompany.findUnique({
       where: { cnpj },
     });
     if (!row) {

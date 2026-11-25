@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { CatalogPrismaService } from '../../../prisma/catalog-prisma.service';
 import { IbgeCnaeClient } from '../infrastructure/ibge-cnae.client';
 import { normalizeCatalogText } from '../domain/text-normalize';
 import type {
@@ -20,7 +20,7 @@ const CNAE_SUBCLASS_DESCRIPTIONS: Record<string, string> = {
 @Injectable()
 export class CnaeResolverService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly catalogPrisma: CatalogPrismaService,
     private readonly ibgeCnaeClient: IbgeCnaeClient,
   ) {}
 
@@ -109,7 +109,7 @@ export class CnaeResolverService {
   }
 
   private async loadCatalog(): Promise<CnaeClassInfo[]> {
-    const rows = await this.prisma.prospectCnae.findMany({
+    const rows = await this.catalogPrisma.prospectCnae.findMany({
       orderBy: { code: 'asc' },
     });
 

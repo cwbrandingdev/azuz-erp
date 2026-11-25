@@ -2,6 +2,8 @@
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
+# Prospect catalog (Neon): fly secrets set CATALOG_DATABASE_URL='...'
+#
 
 app = 'atria-backend-broken-night-9242'
 primary_region = 'gru'
