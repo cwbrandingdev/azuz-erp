@@ -1802,6 +1802,12 @@ export interface MetaAnalyticsSummary {
   ctr: number;
   clicks: number;
   impressions: number;
+  reach: number;
+  frequency: number;
+  purchases: number;
+  leads: number;
+  addsToCart: number;
+  landingPageViews: number;
   messagingConversations: number;
   linkClicks: number;
   postEngagement: number;
@@ -1884,6 +1890,121 @@ export interface MetaAgencyAccountRow {
 export interface MetaAgencyOverviewResponse {
   accounts: MetaAgencyAccountRow[];
   totals: MetaAnalyticsSummary;
+  source: "meta";
+  empty: boolean;
+}
+
+export interface MetaAdsKpis {
+  spend: number;
+  revenue: number;
+  roas: number;
+  impressions: number;
+  reach: number;
+  frequency: number;
+  clicks: number;
+  linkClicks: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  landingPageViews: number;
+  addsToCart: number;
+  checkouts: number;
+  purchases: number;
+  leads: number;
+  costPerPurchase: number;
+  costPerLead: number;
+  messagingConversations: number;
+  postEngagement: number;
+  videoP25: number;
+  videoP50: number;
+  videoP75: number;
+  videoP100: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+}
+
+export interface MetaAdsDailyPoint {
+  date: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  linkClicks: number;
+  revenue: number;
+  purchases: number;
+  leads: number;
+}
+
+export interface MetaAdsEntityRow {
+  id: string;
+  name: string;
+  parentName: string | null;
+  objective: string | null;
+  objectiveLabel: string | null;
+  status: MetaCampaignStatus | null;
+  budget: number;
+  budgetType: "daily" | "lifetime" | null;
+  spend: number;
+  impressions: number;
+  reach: number;
+  frequency: number;
+  clicks: number;
+  linkClicks: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  purchases: number;
+  leads: number;
+  revenue: number;
+  roas: number;
+  costPerPurchase: number;
+  landingPageViews: number;
+}
+
+export interface MetaAdsCreativeRow extends MetaAdsEntityRow {
+  thumbnailUrl: string | null;
+  headline: string | null;
+  primaryText: string | null;
+}
+
+export interface MetaAdsBreakdownRow {
+  key: string;
+  label: string;
+  detail: string | null;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  purchases: number;
+  leads: number;
+  revenue: number;
+  roas: number;
+}
+
+export interface MetaAdsFunnelStep {
+  key: string;
+  label: string;
+  value: number;
+  rateFromPrevious: number | null;
+  rateFromStart: number | null;
+}
+
+export interface MetaAdsReport {
+  client: MetaAdAccountClient;
+  overview: MetaAdsKpis;
+  previous: MetaAdsKpis | null;
+  performance: MetaAdsDailyPoint[];
+  campaigns: MetaAdsEntityRow[];
+  adSets: MetaAdsEntityRow[];
+  ads: MetaAdsCreativeRow[];
+  platforms: MetaAdsBreakdownRow[];
+  placements: MetaAdsBreakdownRow[];
+  demographics: MetaAdsBreakdownRow[];
+  countries: MetaAdsBreakdownRow[];
+  devices: MetaAdsBreakdownRow[];
+  objectives: MetaAdsBreakdownRow[];
+  funnel: MetaAdsFunnelStep[];
   source: "meta";
   empty: boolean;
 }

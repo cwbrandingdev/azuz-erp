@@ -18,6 +18,12 @@ export interface MetaAnalyticsSummary {
   ctr: number;
   clicks: number;
   impressions: number;
+  reach: number;
+  frequency: number;
+  purchases: number;
+  leads: number;
+  addsToCart: number;
+  landingPageViews: number;
   messagingConversations: number;
   linkClicks: number;
   postEngagement: number;
@@ -111,6 +117,121 @@ export interface MetaAgencyOverviewResponse {
   empty: boolean;
 }
 
+export interface MetaAdsKpis {
+  spend: number;
+  revenue: number;
+  roas: number;
+  impressions: number;
+  reach: number;
+  frequency: number;
+  clicks: number;
+  linkClicks: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  landingPageViews: number;
+  addsToCart: number;
+  checkouts: number;
+  purchases: number;
+  leads: number;
+  costPerPurchase: number;
+  costPerLead: number;
+  messagingConversations: number;
+  postEngagement: number;
+  videoP25: number;
+  videoP50: number;
+  videoP75: number;
+  videoP100: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+}
+
+export interface MetaAdsDailyPoint {
+  date: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  linkClicks: number;
+  revenue: number;
+  purchases: number;
+  leads: number;
+}
+
+export interface MetaAdsEntityRow {
+  id: string;
+  name: string;
+  parentName: string | null;
+  objective: string | null;
+  objectiveLabel: string | null;
+  status: MetaCampaignStatus | null;
+  budget: number;
+  budgetType: 'daily' | 'lifetime' | null;
+  spend: number;
+  impressions: number;
+  reach: number;
+  frequency: number;
+  clicks: number;
+  linkClicks: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  purchases: number;
+  leads: number;
+  revenue: number;
+  roas: number;
+  costPerPurchase: number;
+  landingPageViews: number;
+}
+
+export interface MetaAdsCreativeRow extends MetaAdsEntityRow {
+  thumbnailUrl: string | null;
+  headline: string | null;
+  primaryText: string | null;
+}
+
+export interface MetaAdsBreakdownRow {
+  key: string;
+  label: string;
+  detail: string | null;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  purchases: number;
+  leads: number;
+  revenue: number;
+  roas: number;
+}
+
+export interface MetaAdsFunnelStep {
+  key: string;
+  label: string;
+  value: number;
+  rateFromPrevious: number | null;
+  rateFromStart: number | null;
+}
+
+export interface MetaAdsReport {
+  client: MetaAdAccountClient;
+  overview: MetaAdsKpis;
+  previous: MetaAdsKpis | null;
+  performance: MetaAdsDailyPoint[];
+  campaigns: MetaAdsEntityRow[];
+  adSets: MetaAdsEntityRow[];
+  ads: MetaAdsCreativeRow[];
+  platforms: MetaAdsBreakdownRow[];
+  placements: MetaAdsBreakdownRow[];
+  demographics: MetaAdsBreakdownRow[];
+  countries: MetaAdsBreakdownRow[];
+  devices: MetaAdsBreakdownRow[];
+  objectives: MetaAdsBreakdownRow[];
+  funnel: MetaAdsFunnelStep[];
+  source: 'meta';
+  empty: boolean;
+}
+
 interface MetaInsightsRow {
   campaign_id?: string;
   campaign_name?: string;
@@ -126,6 +247,20 @@ interface MetaInsightsRow {
   date_stop?: string;
   actions?: Array<{ action_type: string; value: string }>;
   action_values?: Array<{ action_type: string; value: string }>;
+  video_p25_watched_actions?: Array<{ action_type: string; value: string }>;
+  video_p50_watched_actions?: Array<{ action_type: string; value: string }>;
+  video_p75_watched_actions?: Array<{ action_type: string; value: string }>;
+  video_p100_watched_actions?: Array<{ action_type: string; value: string }>;
+  publisher_platform?: string;
+  platform_position?: string;
+  age?: string;
+  gender?: string;
+  country?: string;
+  device_platform?: string;
+  ad_id?: string;
+  ad_name?: string;
+  adset_id?: string;
+  adset_name?: string;
 }
 
 interface MetaInsightsResponse {
@@ -139,6 +274,7 @@ interface MetaCampaignRow {
   name: string;
   status?: string;
   effective_status?: string;
+  objective?: string;
   daily_budget?: string;
   lifetime_budget?: string;
   start_time?: string;
@@ -190,7 +326,90 @@ const DAILY_INSIGHT_FIELDS =
 const CAMPAIGN_INSIGHT_FIELDS =
   'campaign_id,campaign_name,spend,reach,frequency,impressions,clicks,cpc,cpm,ctr,actions,action_values,date_start,date_stop';
 const CAMPAIGN_FIELDS =
-  'id,name,status,effective_status,daily_budget,lifetime_budget,start_time,stop_time';
+  'id,name,objective,status,effective_status,daily_budget,lifetime_budget,start_time,stop_time';
+const REPORT_FIELDS =
+  'spend,reach,frequency,impressions,clicks,cpc,cpm,ctr,actions,action_values,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions';
+const BREAKDOWN_FIELDS =
+  'spend,impressions,clicks,cpc,cpm,ctr,actions,action_values';
+const PURCHASE_ACTION_TYPES = [
+  'omni_purchase',
+  'purchase',
+  'offsite_conversion.fb_pixel_purchase',
+  'onsite_conversion.purchase',
+];
+const LEAD_ACTION_TYPES = [
+  'lead',
+  'offsite_conversion.fb_pixel_lead',
+  'onsite_conversion.lead_grouped',
+  'complete_registration',
+];
+const ADD_TO_CART_ACTION_TYPES = [
+  'omni_add_to_cart',
+  'add_to_cart',
+  'offsite_conversion.fb_pixel_add_to_cart',
+];
+const CHECKOUT_ACTION_TYPES = [
+  'omni_initiated_checkout',
+  'initiate_checkout',
+  'offsite_conversion.fb_pixel_initiate_checkout',
+];
+const LANDING_PAGE_ACTION_TYPES = [
+  'omni_landing_page_view',
+  'landing_page_view',
+];
+const OBJECTIVE_LABELS: Record<string, string> = {
+  OUTCOME_AWARENESS: 'Reconhecimento',
+  OUTCOME_TRAFFIC: 'Tráfego',
+  OUTCOME_ENGAGEMENT: 'Engajamento',
+  OUTCOME_LEADS: 'Cadastros',
+  OUTCOME_APP_PROMOTION: 'Aplicativo',
+  OUTCOME_SALES: 'Vendas',
+  REACH: 'Alcance',
+  BRAND_AWARENESS: 'Reconhecimento',
+  LINK_CLICKS: 'Cliques no link',
+  POST_ENGAGEMENT: 'Engajamento',
+  VIDEO_VIEWS: 'Visualizações de vídeo',
+  LEAD_GENERATION: 'Cadastros',
+  MESSAGES: 'Mensagens',
+  CONVERSIONS: 'Vendas',
+  APP_INSTALLS: 'Instalações',
+  PRODUCT_CATALOG_SALES: 'Catálogo',
+};
+const PLATFORM_LABELS: Record<string, string> = {
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  audience_network: 'Audience Network',
+  messenger: 'Messenger',
+  threads: 'Threads',
+  unknown: 'Não informado',
+};
+const POSITION_LABELS: Record<string, string> = {
+  feed: 'Feed',
+  facebook_reels: 'Reels',
+  instagram_reels: 'Reels',
+  facebook_stories: 'Stories',
+  instagram_stories: 'Stories',
+  instagram_explore: 'Explorar',
+  instagram_explore_grid_home: 'Explorar',
+  marketplace: 'Marketplace',
+  video_feeds: 'Vídeos',
+  search: 'Pesquisa',
+  right_hand_column: 'Coluna direita',
+  an_classic: 'Clássico',
+  rewarded_video: 'Vídeo recompensado',
+  biz_disco_feed: 'Descobrir',
+};
+const DEVICE_LABELS: Record<string, string> = {
+  mobile_app: 'App no celular',
+  mobile_web: 'Navegador no celular',
+  desktop: 'Computador',
+  unknown: 'Não informado',
+};
+const GENDER_LABELS: Record<string, string> = {
+  female: 'Feminino',
+  male: 'Masculino',
+  unknown: 'Não informado',
+};
 const AD_ACCOUNT_FIELDS =
   'id,name,account_id,account_status,currency,amount_spent';
 const DEFAULT_AD_ACCOUNT_ID = 'act_781471881330330';
@@ -322,6 +541,620 @@ export class MetaAnalyticsService {
       source: 'meta',
       empty: accounts.every((item) => item.empty),
     };
+  }
+
+  async getAccountReport(
+    clientId: string | undefined,
+    period: MetaPeriodFilter = {},
+  ): Promise<MetaAdsReport> {
+    const accessToken = await this.resolveAccessToken();
+    const accountId = await this.resolveAccountId(clientId);
+    const ranges = this.resolveRanges(period);
+    const currentRange: { since: string; until: string } | 'maximum' =
+      ranges.useMaximum || !ranges.current ? 'maximum' : ranges.current;
+
+    const [
+      account,
+      overviewResult,
+      previousResult,
+      dailyResult,
+      campaignResult,
+      campaignMeta,
+      adSetResult,
+      adResult,
+      platformResult,
+      placementResult,
+      demographicResult,
+      countryResult,
+      deviceResult,
+    ] = await Promise.all([
+      this.fetchAdAccountDetail(accountId, accessToken),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: REPORT_FIELDS,
+      }),
+      ranges.previous
+        ? this.fetchInsightRows(accountId, accessToken, ranges.previous, {
+            fields: REPORT_FIELDS,
+          })
+        : Promise.resolve({ rows: [], failed: false }),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: REPORT_FIELDS,
+        timeIncrement: '1',
+        limit: '100',
+      }),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: `campaign_id,campaign_name,${REPORT_FIELDS}`,
+        level: 'campaign',
+        limit: '100',
+      }),
+      this.fetchAllCampaignMeta(accountId, accessToken),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: `adset_id,adset_name,campaign_name,${REPORT_FIELDS}`,
+        level: 'adset',
+        limit: '100',
+      }),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: `ad_id,ad_name,adset_name,campaign_name,${REPORT_FIELDS}`,
+        level: 'ad',
+        limit: '50',
+      }),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: BREAKDOWN_FIELDS,
+        breakdowns: 'publisher_platform',
+        limit: '25',
+      }),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: BREAKDOWN_FIELDS,
+        breakdowns: 'publisher_platform,platform_position',
+        limit: '100',
+      }),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: BREAKDOWN_FIELDS,
+        breakdowns: 'age,gender',
+        limit: '100',
+      }),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: BREAKDOWN_FIELDS,
+        breakdowns: 'country',
+        limit: '50',
+      }),
+      this.fetchInsightRows(accountId, accessToken, currentRange, {
+        fields: BREAKDOWN_FIELDS,
+        breakdowns: 'device_platform',
+        limit: '20',
+      }),
+    ]);
+
+    const metaById = new Map(
+      campaignMeta.map((campaign) => [campaign.id, campaign]),
+    );
+    const overview = this.buildKpis(
+      overviewResult.rows[0],
+      ranges.current,
+    );
+    const previous =
+      ranges.previous && !previousResult.failed
+        ? this.buildKpis(previousResult.rows[0], ranges.previous)
+        : null;
+
+    const campaigns = campaignResult.rows
+      .filter((row) => row.campaign_id)
+      .map((row) => {
+        const meta = metaById.get(row.campaign_id!);
+        const budget = this.resolveCampaignBudget(meta);
+        return this.mapInsightEntity(row, {
+          id: row.campaign_id!,
+          name: row.campaign_name ?? meta?.name ?? 'Campanha',
+          parentName: null,
+          objective: meta?.objective ?? null,
+          status: meta
+            ? this.mapCampaignStatus(
+                meta.effective_status ?? meta.status ?? 'UNKNOWN',
+              )
+            : null,
+          budget: budget.budget,
+          budgetType: budget.budgetType,
+        });
+      })
+      .sort((a, b) => b.spend - a.spend);
+
+    const adSets = adSetResult.rows
+      .filter((row) => row.adset_id)
+      .map((row) =>
+        this.mapInsightEntity(row, {
+          id: row.adset_id!,
+          name: row.adset_name ?? 'Conjunto',
+          parentName: row.campaign_name ?? null,
+          objective: null,
+          status: null,
+          budget: 0,
+          budgetType: null,
+        }),
+      )
+      .sort((a, b) => b.spend - a.spend);
+
+    const topAds = adResult.rows
+      .filter((row) => row.ad_id)
+      .map((row) => row)
+      .sort(
+        (a, b) => this.parseNumber(b.spend) - this.parseNumber(a.spend),
+      )
+      .slice(0, 25);
+    const creatives = await this.fetchAdCreatives(
+      topAds.map((row) => row.ad_id!),
+      accessToken,
+    );
+    const ads: MetaAdsCreativeRow[] = topAds.map((row) => {
+      const creative = creatives.get(row.ad_id!);
+      const parent = [row.campaign_name, row.adset_name]
+        .filter(Boolean)
+        .join(' · ');
+      return {
+        ...this.mapInsightEntity(row, {
+          id: row.ad_id!,
+          name: row.ad_name ?? creative?.headline ?? 'Anúncio',
+          parentName: parent || null,
+          objective: null,
+          status: null,
+          budget: 0,
+          budgetType: null,
+        }),
+        thumbnailUrl: creative?.thumbnailUrl ?? null,
+        headline: creative?.headline ?? null,
+        primaryText: creative?.primaryText ?? null,
+      };
+    });
+
+    const client = this.mapAdAccountRow(
+      account ?? this.buildFallbackClient(accountId),
+    );
+
+    return {
+      client,
+      overview,
+      previous,
+      performance: dailyResult.rows
+        .map((row) => ({
+          date: row.date_start ?? row.date_stop ?? '',
+          spend: this.parseNumber(row.spend),
+          impressions: this.parseNumber(row.impressions),
+          clicks: this.parseNumber(row.clicks),
+          linkClicks: this.pickAction(row.actions, ['link_click']),
+          revenue: this.pickAction(row.action_values, PURCHASE_ACTION_TYPES),
+          purchases: this.pickAction(row.actions, PURCHASE_ACTION_TYPES),
+          leads: this.pickAction(row.actions, LEAD_ACTION_TYPES),
+        }))
+        .filter((point) => point.date),
+      campaigns,
+      adSets,
+      ads,
+      platforms: this.mapBreakdowns(platformResult.rows, (row) => {
+        const key = row.publisher_platform ?? 'unknown';
+        return {
+          key,
+          label: PLATFORM_LABELS[key] ?? this.humanizeKey(key),
+          detail: null,
+        };
+      }),
+      placements: this.mapBreakdowns(placementResult.rows, (row) => {
+        const platform = row.publisher_platform ?? 'unknown';
+        const position = row.platform_position ?? 'unknown';
+        return {
+          key: `${platform}:${position}`,
+          label: `${PLATFORM_LABELS[platform] ?? this.humanizeKey(platform)} · ${POSITION_LABELS[position] ?? this.humanizeKey(position)}`,
+          detail: null,
+        };
+      }).slice(0, 12),
+      demographics: this.mapBreakdowns(demographicResult.rows, (row) => {
+        const age = row.age ?? 'Não informado';
+        const gender = row.gender ?? 'unknown';
+        return {
+          key: `${age}:${gender}`,
+          label: age,
+          detail: GENDER_LABELS[gender] ?? this.humanizeKey(gender),
+        };
+      }),
+      countries: this.mapBreakdowns(countryResult.rows, (row) => {
+        const code = row.country ?? 'unknown';
+        return {
+          key: code,
+          label: this.countryLabel(code),
+          detail: code === 'unknown' ? null : code,
+        };
+      }).slice(0, 12),
+      devices: this.mapBreakdowns(deviceResult.rows, (row) => {
+        const key = row.device_platform ?? 'unknown';
+        return {
+          key,
+          label: DEVICE_LABELS[key] ?? this.humanizeKey(key),
+          detail: null,
+        };
+      }),
+      objectives: this.aggregateObjectives(campaignResult.rows, metaById),
+      funnel: this.buildFunnel(overview),
+      source: 'meta',
+      empty:
+        overview.spend === 0 &&
+        overview.impressions === 0 &&
+        campaigns.length === 0,
+    };
+  }
+
+  private async fetchInsightRows(
+    accountId: string,
+    accessToken: string,
+    range: { since: string; until: string } | 'maximum',
+    options: {
+      fields: string;
+      level?: string;
+      breakdowns?: string;
+      timeIncrement?: string;
+      limit?: string;
+    },
+  ): Promise<{ rows: MetaInsightsRow[]; failed: boolean }> {
+    const rows: MetaInsightsRow[] = [];
+    const url = new URL(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${accountId}/insights`,
+    );
+    url.searchParams.set('fields', options.fields);
+    url.searchParams.set('access_token', accessToken);
+    url.searchParams.set('limit', options.limit ?? '100');
+    if (options.level) url.searchParams.set('level', options.level);
+    if (options.breakdowns) url.searchParams.set('breakdowns', options.breakdowns);
+    if (options.timeIncrement) {
+      url.searchParams.set('time_increment', options.timeIncrement);
+    }
+    if (range === 'maximum') {
+      url.searchParams.set('date_preset', 'maximum');
+    } else {
+      url.searchParams.set('time_range', JSON.stringify(range));
+    }
+
+    let nextUrl: string | null = url.toString();
+    let pages = 0;
+
+    while (nextUrl && pages < 4) {
+      const payload = await this.fetchJson<MetaInsightsResponse>(nextUrl);
+      if (payload.error) {
+        this.logger.warn(
+          `Meta report insights (${options.level ?? 'account'} ${options.breakdowns ?? ''}): ${payload.error.message}`,
+        );
+        return { rows, failed: rows.length === 0 };
+      }
+      rows.push(...(payload.data ?? []));
+      nextUrl = payload.paging?.next ?? null;
+      pages += 1;
+    }
+
+    return { rows, failed: false };
+  }
+
+  private async fetchAdCreatives(
+    adIds: string[],
+    accessToken: string,
+  ): Promise<
+    Map<string, { thumbnailUrl: string | null; headline: string | null; primaryText: string | null }>
+  > {
+    const creatives = new Map<
+      string,
+      { thumbnailUrl: string | null; headline: string | null; primaryText: string | null }
+    >();
+    if (adIds.length === 0) return creatives;
+
+    const url = new URL(`https://graph.facebook.com/${GRAPH_API_VERSION}/`);
+    url.searchParams.set('ids', adIds.join(','));
+    url.searchParams.set('fields', 'creative{thumbnail_url,image_url,title,body}');
+    url.searchParams.set('access_token', accessToken);
+
+    const payload = await this.fetchJson<
+      Record<string, { creative?: { thumbnail_url?: string; image_url?: string; title?: string; body?: string }; error?: { message: string } } | { message: string }>
+    >(url.toString());
+
+    if ('error' in payload && payload.error && !Array.isArray(payload)) {
+      const message =
+        typeof payload.error === 'object' && payload.error && 'message' in payload.error
+          ? String(payload.error.message)
+          : 'creative lookup failed';
+      this.logger.warn(`Meta ad creatives: ${message}`);
+      return creatives;
+    }
+
+    for (const id of adIds) {
+      const node = payload[id];
+      if (!node || !('creative' in node)) continue;
+      const creative = node.creative;
+      creatives.set(id, {
+        thumbnailUrl: creative?.thumbnail_url ?? creative?.image_url ?? null,
+        headline: creative?.title ?? null,
+        primaryText: creative?.body ?? null,
+      });
+    }
+
+    return creatives;
+  }
+
+  private resolveRanges(period: MetaPeriodFilter): {
+    current: { since: string; until: string } | null;
+    previous: { since: string; until: string } | null;
+    useMaximum: boolean;
+  } {
+    if (period.month && period.year) {
+      const since = new Date(Date.UTC(period.year, period.month - 1, 1));
+      const until = new Date(Date.UTC(period.year, period.month, 0));
+      return {
+        current: { since: this.formatUtc(since), until: this.formatUtc(until) },
+        previous: this.previousWindow(since, until),
+        useMaximum: false,
+      };
+    }
+
+    const preset = period.datePreset ?? 'last_90d';
+    if (preset === 'maximum') {
+      return { current: null, previous: null, useMaximum: true };
+    }
+
+    const today = new Date();
+    const utcToday = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    );
+    let since = utcToday;
+    let until = utcToday;
+
+    if (preset === 'yesterday') {
+      since = this.addUtcDays(utcToday, -1);
+      until = since;
+    } else if (preset === 'last_7d') {
+      since = this.addUtcDays(utcToday, -6);
+    } else if (preset === 'last_14d') {
+      since = this.addUtcDays(utcToday, -13);
+    } else if (preset === 'last_28d') {
+      since = this.addUtcDays(utcToday, -27);
+    } else if (preset === 'last_30d') {
+      since = this.addUtcDays(utcToday, -29);
+    } else if (preset === 'last_90d') {
+      since = this.addUtcDays(utcToday, -89);
+    } else if (preset === 'this_month') {
+      since = new Date(Date.UTC(utcToday.getUTCFullYear(), utcToday.getUTCMonth(), 1));
+    } else if (preset === 'last_month') {
+      since = new Date(Date.UTC(utcToday.getUTCFullYear(), utcToday.getUTCMonth() - 1, 1));
+      until = new Date(Date.UTC(utcToday.getUTCFullYear(), utcToday.getUTCMonth(), 0));
+    } else if (preset === 'this_quarter') {
+      const quarterStart = Math.floor(utcToday.getUTCMonth() / 3) * 3;
+      since = new Date(Date.UTC(utcToday.getUTCFullYear(), quarterStart, 1));
+    } else if (preset === 'this_year') {
+      since = new Date(Date.UTC(utcToday.getUTCFullYear(), 0, 1));
+    } else if (preset === 'last_year') {
+      since = new Date(Date.UTC(utcToday.getUTCFullYear() - 1, 0, 1));
+      until = new Date(Date.UTC(utcToday.getUTCFullYear() - 1, 11, 31));
+    }
+
+    return {
+      current: { since: this.formatUtc(since), until: this.formatUtc(until) },
+      previous: this.previousWindow(since, until),
+      useMaximum: false,
+    };
+  }
+
+  private previousWindow(since: Date, until: Date) {
+    const length =
+      Math.round((until.getTime() - since.getTime()) / 86_400_000) + 1;
+    const prevUntil = this.addUtcDays(since, -1);
+    const prevSince = this.addUtcDays(prevUntil, -(length - 1));
+    return {
+      since: this.formatUtc(prevSince),
+      until: this.formatUtc(prevUntil),
+    };
+  }
+
+  private addUtcDays(date: Date, days: number) {
+    const next = new Date(date);
+    next.setUTCDate(next.getUTCDate() + days);
+    return next;
+  }
+
+  private formatUtc(date: Date) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  private buildKpis(
+    row: MetaInsightsRow | undefined,
+    range: { since: string; until: string } | null,
+  ): MetaAdsKpis {
+    const spend = this.parseNumber(row?.spend);
+    const revenue = this.pickAction(row?.action_values, PURCHASE_ACTION_TYPES);
+    const purchases = this.pickAction(row?.actions, PURCHASE_ACTION_TYPES);
+    const leads = this.pickAction(row?.actions, LEAD_ACTION_TYPES);
+    const impressions = this.parseNumber(row?.impressions);
+    const clicks = this.parseNumber(row?.clicks);
+
+    return {
+      spend,
+      revenue,
+      roas: spend > 0 ? revenue / spend : 0,
+      impressions,
+      reach: this.parseNumber(row?.reach),
+      frequency: this.parseNumber(row?.frequency),
+      clicks,
+      linkClicks: this.pickAction(row?.actions, ['link_click']),
+      ctr: this.parseNumber(row?.ctr) || (impressions > 0 ? (clicks / impressions) * 100 : 0),
+      cpc: this.parseNumber(row?.cpc) || (clicks > 0 ? spend / clicks : 0),
+      cpm: this.parseNumber(row?.cpm) || (impressions > 0 ? (spend / impressions) * 1000 : 0),
+      landingPageViews: this.pickAction(row?.actions, LANDING_PAGE_ACTION_TYPES),
+      addsToCart: this.pickAction(row?.actions, ADD_TO_CART_ACTION_TYPES),
+      checkouts: this.pickAction(row?.actions, CHECKOUT_ACTION_TYPES),
+      purchases,
+      leads,
+      costPerPurchase: purchases > 0 ? spend / purchases : 0,
+      costPerLead: leads > 0 ? spend / leads : 0,
+      messagingConversations: this.pickAction(row?.actions, [
+        'onsite_conversion.messaging_conversation_started_7d',
+      ]),
+      postEngagement: this.pickAction(row?.actions, ['post_engagement']),
+      videoP25: this.sumActionList(row?.video_p25_watched_actions),
+      videoP50: this.sumActionList(row?.video_p50_watched_actions),
+      videoP75: this.sumActionList(row?.video_p75_watched_actions),
+      videoP100: this.sumActionList(row?.video_p100_watched_actions),
+      periodStart: row?.date_start ?? range?.since ?? null,
+      periodEnd: row?.date_stop ?? range?.until ?? null,
+    };
+  }
+
+  private mapInsightEntity(
+    row: MetaInsightsRow,
+    identity: {
+      id: string;
+      name: string;
+      parentName: string | null;
+      objective: string | null;
+      status: MetaCampaignStatus | null;
+      budget: number;
+      budgetType: 'daily' | 'lifetime' | null;
+    },
+  ): MetaAdsEntityRow {
+    const spend = this.parseNumber(row.spend);
+    const purchases = this.pickAction(row.actions, PURCHASE_ACTION_TYPES);
+    const revenue = this.pickAction(row.action_values, PURCHASE_ACTION_TYPES);
+    const impressions = this.parseNumber(row.impressions);
+    const clicks = this.parseNumber(row.clicks);
+
+    return {
+      ...identity,
+      objectiveLabel: identity.objective
+        ? OBJECTIVE_LABELS[identity.objective] ?? this.humanizeKey(identity.objective)
+        : null,
+      spend,
+      impressions,
+      reach: this.parseNumber(row.reach),
+      frequency: this.parseNumber(row.frequency),
+      clicks,
+      linkClicks: this.pickAction(row.actions, ['link_click']),
+      ctr: this.parseNumber(row.ctr) || (impressions > 0 ? (clicks / impressions) * 100 : 0),
+      cpc: this.parseNumber(row.cpc) || (clicks > 0 ? spend / clicks : 0),
+      cpm: this.parseNumber(row.cpm) || (impressions > 0 ? (spend / impressions) * 1000 : 0),
+      purchases,
+      leads: this.pickAction(row.actions, LEAD_ACTION_TYPES),
+      revenue,
+      roas: spend > 0 ? revenue / spend : 0,
+      costPerPurchase: purchases > 0 ? spend / purchases : 0,
+      landingPageViews: this.pickAction(row.actions, LANDING_PAGE_ACTION_TYPES),
+    };
+  }
+
+  private mapBreakdowns(
+    rows: MetaInsightsRow[],
+    identify: (row: MetaInsightsRow) => { key: string; label: string; detail: string | null },
+  ): MetaAdsBreakdownRow[] {
+    const grouped = new Map<string, MetaAdsBreakdownRow>();
+
+    for (const row of rows) {
+      const identity = identify(row);
+      const spend = this.parseNumber(row.spend);
+      const impressions = this.parseNumber(row.impressions);
+      const clicks = this.parseNumber(row.clicks);
+      const purchases = this.pickAction(row.actions, PURCHASE_ACTION_TYPES);
+      const leads = this.pickAction(row.actions, LEAD_ACTION_TYPES);
+      const revenue = this.pickAction(row.action_values, PURCHASE_ACTION_TYPES);
+      const current = grouped.get(identity.key) ?? {
+        ...identity,
+        spend: 0,
+        impressions: 0,
+        clicks: 0,
+        ctr: 0,
+        cpc: 0,
+        cpm: 0,
+        purchases: 0,
+        leads: 0,
+        revenue: 0,
+        roas: 0,
+      };
+      current.spend += spend;
+      current.impressions += impressions;
+      current.clicks += clicks;
+      current.purchases += purchases;
+      current.leads += leads;
+      current.revenue += revenue;
+      grouped.set(identity.key, current);
+    }
+
+    return [...grouped.values()]
+      .map((row) => ({
+        ...row,
+        spend: Number(row.spend.toFixed(2)),
+        revenue: Number(row.revenue.toFixed(2)),
+        ctr: row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0,
+        cpc: row.clicks > 0 ? row.spend / row.clicks : 0,
+        cpm: row.impressions > 0 ? (row.spend / row.impressions) * 1000 : 0,
+        roas: row.spend > 0 ? row.revenue / row.spend : 0,
+      }))
+      .sort((a, b) => b.spend - a.spend);
+  }
+
+  private aggregateObjectives(
+    rows: MetaInsightsRow[],
+    metaById: Map<string, MetaCampaignRow>,
+  ): MetaAdsBreakdownRow[] {
+    return this.mapBreakdowns(rows, (row) => {
+      const objective = metaById.get(row.campaign_id ?? '')?.objective ?? 'UNKNOWN';
+      return {
+        key: objective,
+        label: OBJECTIVE_LABELS[objective] ?? 'Sem objetivo',
+        detail: null,
+      };
+    });
+  }
+
+  private buildFunnel(kpis: MetaAdsKpis): MetaAdsFunnelStep[] {
+    const steps: Array<{ key: string; label: string; value: number }> = [
+      { key: 'impressions', label: 'Impressões', value: kpis.impressions },
+      { key: 'link_clicks', label: 'Cliques no link', value: kpis.linkClicks },
+      { key: 'landing', label: 'Visualizações da página', value: kpis.landingPageViews },
+      { key: 'cart', label: 'Adições ao carrinho', value: kpis.addsToCart },
+      { key: 'checkout', label: 'Checkouts iniciados', value: kpis.checkouts },
+      { key: 'purchase', label: 'Compras', value: kpis.purchases },
+    ];
+
+    return steps.map((step, index) => {
+      const previous = index === 0 ? null : steps[index - 1].value;
+      const start = steps[0].value;
+      return {
+        ...step,
+        rateFromPrevious:
+          previous && previous > 0 ? step.value / previous : null,
+        rateFromStart: start > 0 ? step.value / start : null,
+      };
+    });
+  }
+
+  private pickAction(
+    actions: Array<{ action_type: string; value: string }> | undefined,
+    types: string[],
+  ) {
+    if (!actions?.length) return 0;
+    for (const type of types) {
+      const match = actions.find((action) => action.action_type === type);
+      if (match) return this.parseNumber(match.value);
+    }
+    return 0;
+  }
+
+  private sumActionList(actions?: Array<{ value: string }>) {
+    if (!actions?.length) return 0;
+    return actions.reduce((sum, action) => sum + this.parseNumber(action.value), 0);
+  }
+
+  private humanizeKey(value: string) {
+    return value
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private countryLabel(code: string) {
+    if (!code || code === 'unknown') return 'Não informado';
+    try {
+      return new Intl.DisplayNames(['pt-BR'], { type: 'region' }).of(code) ?? code;
+    } catch {
+      return code;
+    }
   }
 
   private async fetchAllAdAccounts(
@@ -733,6 +1566,11 @@ export class MetaAnalyticsService {
   }
 
   private async resolveAccessToken() {
+    const envToken = this.config.get<string>('META_ACCESS_TOKEN')?.trim();
+    if (envToken) {
+      return envToken;
+    }
+
     try {
       const credentials =
         await this.companySettings.getIntegrationCredentialsForCurrentTenant();
@@ -743,19 +1581,20 @@ export class MetaAnalyticsService {
     } catch {
     }
 
-    const token = this.config.get<string>('META_ACCESS_TOKEN')?.trim();
-    if (!token) {
-      throw new BadRequestException(
-        'Token de acesso Meta não configurado para esta empresa',
-      );
-    }
-    return token;
+    throw new BadRequestException(
+      'Token de acesso Meta não configurado (META_ACCESS_TOKEN no .env ou Integrações)',
+    );
   }
 
   private async resolveAccountId(clientId?: string, adAccountId?: string) {
     const candidate = clientId?.trim() || adAccountId?.trim();
     if (candidate) {
       return this.normalizeAccountId(candidate);
+    }
+
+    const envAccountId = this.config.get<string>('META_AD_ACCOUNT_ID')?.trim();
+    if (envAccountId) {
+      return this.normalizeAccountId(envAccountId);
     }
 
     try {
@@ -766,11 +1605,6 @@ export class MetaAnalyticsService {
         return this.normalizeAccountId(tenantAccountId);
       }
     } catch {
-    }
-
-    const envAccountId = this.config.get<string>('META_AD_ACCOUNT_ID')?.trim();
-    if (envAccountId) {
-      return this.normalizeAccountId(envAccountId);
     }
 
     return DEFAULT_AD_ACCOUNT_ID;
@@ -838,6 +1672,12 @@ export class MetaAnalyticsService {
     const totalRevenue = this.extractRevenue(row.action_values);
     const netProfit = totalRevenue - totalSpend;
     const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+    const reach = this.parseNumber(row.reach);
+    const frequency = this.parseNumber(row.frequency);
+    const purchases = this.pickAction(row.actions, PURCHASE_ACTION_TYPES);
+    const leads = this.pickAction(row.actions, LEAD_ACTION_TYPES);
+    const addsToCart = this.pickAction(row.actions, ADD_TO_CART_ACTION_TYPES);
+    const landingPageViews = this.pickAction(row.actions, LANDING_PAGE_ACTION_TYPES);
     const messagingConversations = this.extractActionValue(
       row.actions,
       'onsite_conversion.messaging_conversation_started_7d',
@@ -858,6 +1698,12 @@ export class MetaAnalyticsService {
       ctr,
       clicks,
       impressions,
+      reach,
+      frequency,
+      purchases,
+      leads,
+      addsToCart,
+      landingPageViews,
       messagingConversations,
       linkClicks,
       postEngagement,
@@ -873,17 +1719,7 @@ export class MetaAnalyticsService {
   ) {
     if (!actionValues?.length) return 0;
 
-    const revenueTypes = new Set([
-      'purchase',
-      'omni_purchase',
-      'offsite_conversion.fb_pixel_purchase',
-      'onsite_conversion.purchase',
-    ]);
-
-    return actionValues.reduce((sum, action) => {
-      if (!revenueTypes.has(action.action_type)) return sum;
-      return sum + this.parseNumber(action.value);
-    }, 0);
+    return this.pickAction(actionValues, PURCHASE_ACTION_TYPES);
   }
 
   private extractActionValue(
@@ -927,6 +1763,12 @@ export class MetaAnalyticsService {
       ctr: 0,
       clicks: 0,
       impressions: 0,
+      reach: 0,
+      frequency: 0,
+      purchases: 0,
+      leads: 0,
+      addsToCart: 0,
+      landingPageViews: 0,
       messagingConversations: 0,
       linkClicks: 0,
       postEngagement: 0,
@@ -948,6 +1790,11 @@ export class MetaAnalyticsService {
       totals.totalRevenue += item.totalRevenue;
       totals.clicks += item.clicks;
       totals.impressions += item.impressions;
+      totals.reach += item.reach;
+      totals.purchases += item.purchases;
+      totals.leads += item.leads;
+      totals.addsToCart += item.addsToCart;
+      totals.landingPageViews += item.landingPageViews;
       totals.messagingConversations += item.messagingConversations;
       totals.linkClicks += item.linkClicks;
       totals.postEngagement += item.postEngagement;

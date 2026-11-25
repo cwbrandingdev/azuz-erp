@@ -16,6 +16,7 @@ import {
 const ADMIN_ONLY_ROUTES = new Set([
   "/dashboard/tv",
   "/insights",
+  "/ads",
   "/leads-central",
 ]);
 const PRODUCTIVITY_ROLES = new Set([
@@ -56,6 +57,9 @@ function resolveAccessRouteKey(href: string): string {
   }
   if (href === "/insights" || href.startsWith("/insights/")) {
     return "/insights";
+  }
+  if (href === "/ads" || href.startsWith("/ads/")) {
+    return "/ads";
   }
   if (
     href === "/internal-approvals" ||

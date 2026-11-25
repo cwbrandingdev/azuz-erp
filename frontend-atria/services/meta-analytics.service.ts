@@ -1,6 +1,7 @@
 import { apiRequest } from "./api";
 import type {
   MetaAdAccountsResponse,
+  MetaAdsReport,
   MetaAgencyOverviewResponse,
   MetaAnalyticsQuery,
   MetaAnalyticsSummary,
@@ -41,6 +42,16 @@ export async function getMetaClientInsights(
 ) {
   return apiRequest<MetaClientInsightsResponse>(
     `/insights/client/${encodeURIComponent(clientId)}${buildQuery(params)}`,
+  );
+}
+
+export async function getMetaAdsReport(
+  clientId: string,
+  params: MetaAnalyticsQuery = {},
+) {
+  return apiRequest<MetaAdsReport>(
+    `/insights/client/${encodeURIComponent(clientId)}/report${buildQuery(params)}`,
+    { timeoutMs: 60_000 },
   );
 }
 

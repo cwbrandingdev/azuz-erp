@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  getMetaAdsReport,
   getMetaAgencyOverview,
   getMetaClientInsights,
   getMetaClients,
@@ -29,6 +30,24 @@ export function useMetaAnalytics(
         year,
       }),
     enabled: Boolean(clientId),
+  });
+}
+
+export function useMetaAdsReport(
+  clientId: string | null | undefined,
+  params: MetaAnalyticsQuery,
+) {
+  return useQuery({
+    queryKey: [
+      "meta-ads-report",
+      clientId,
+      params.datePreset ?? "last_90d",
+      params.month ?? null,
+      params.year ?? null,
+    ],
+    queryFn: () => getMetaAdsReport(clientId!, params),
+    enabled: Boolean(clientId),
+    staleTime: 60_000,
   });
 }
 
