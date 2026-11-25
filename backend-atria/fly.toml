@@ -4,6 +4,8 @@
 #
 # Meta Ads: fly secrets set META_ACCESS_TOKEN='...' META_AD_ACCOUNT_ID='act_...'
 # (optional: META_API_VERSION, META_APP_ID, META_APP_SECRET)
+# Prospect catalog (Neon): fly secrets set CATALOG_DATABASE_URL='...'
+#
 
 app = 'atria-backend-broken-night-9242'
 primary_region = 'gru'

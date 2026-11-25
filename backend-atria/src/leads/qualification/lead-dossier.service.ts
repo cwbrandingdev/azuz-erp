@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Lead, Prisma, ProspectCompany } from '@prisma/client';
+import { Lead, Prisma } from '@prisma/client';
+import { ProspectCompany } from '@prisma/catalog-client';
+import { CatalogPrismaService } from '../../prisma/catalog-prisma.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CompanyLookupService } from '../company-lookup/application/company-lookup.service';
 import { normalizeCatalogText } from '../company-lookup/domain/text-normalize';
@@ -60,6 +62,7 @@ export class LeadDossierService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly catalogPrisma: CatalogPrismaService,
     private readonly mapsScraper: MapsScraperService,
     private readonly companyLookup: CompanyLookupService,
     private readonly instagramEnricher: InstagramApifyEnricher,
@@ -282,7 +285,7 @@ export class LeadDossierService {
   ): Promise<RegistrySnapshot | null> {
     const national = nationalPhone(lead.phone);
     if (!national) return null;
-    const rows = await this.prisma.prospectCompany.findMany({
+    const rows = await this.catalogPrisma.prospectCompany.findMany({
       where: { phone: { contains: national.slice(-8) } },
       take: 30,
     });
@@ -305,7 +308,7 @@ export class LeadDossierService {
     const token = tokens.find((item) => item.length >= 4) ?? tokens[0];
     if (!token) return null;
 
-    const rows = await this.prisma.prospectCompany.findMany({
+    const rows = await this.catalogPrisma.prospectCompany.findMany({
       where: {
         cityNormalized: normalizeCatalogText(lead.city),
         OR: [
