@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { QuickDateTimePicker } from "@/components/ui/quick-datetime-picker";
 import { formatEventDateTime } from "@/lib/calendar-utils";
 import { toast } from "@/lib/toast";
 import { leadsService } from "@/services";
@@ -273,12 +274,10 @@ export function LeadMeetingDialog({
                 <FieldLabel htmlFor={`meeting-start-${lead.id}`}>
                   Data e hora
                 </FieldLabel>
-                <Input
+                <QuickDateTimePicker
                   id={`meeting-start-${lead.id}`}
-                  type="datetime-local"
                   value={startAt}
-                  onChange={(event) => setStartAt(event.target.value)}
-                  required
+                  onChange={setStartAt}
                 />
               </Field>
               <p className="text-xs text-[var(--atria-primary)]/55">
