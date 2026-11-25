@@ -39,6 +39,7 @@ import { MetaInsightsModule } from './meta-insights/meta-insights.module';
 import { MessageModule } from './message/message.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PushModule } from './push/push.module';
+import { CatalogPrismaModule } from './prisma/catalog-prisma.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProposalsModule } from './proposals/proposals.module';
 import { ReportsModule } from './reports/reports.module';
@@ -70,6 +71,7 @@ import { JhonatanCalendarModule } from './jhonatan-calendar/jhonatan-calendar.mo
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    CatalogPrismaModule,
     SupabaseModule,
     MediaModule,
     HealthModule,

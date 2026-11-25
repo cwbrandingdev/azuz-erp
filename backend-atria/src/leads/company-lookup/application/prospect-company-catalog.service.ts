@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ProspectCompany } from '@prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { Prisma, ProspectCompany } from '@prisma/catalog-client';
+import { CatalogPrismaService } from '../../../prisma/catalog-prisma.service';
 import type { DiscoveredCompanyCandidate } from '../domain/company-lookup.types';
 import { normalizeCatalogText } from '../domain/text-normalize';
 import { qualifyRegistryCompany } from '../../qualification/registry-company-qualifier';
@@ -38,7 +38,7 @@ type CnaeMode = 'exact' | 'prefix';
 
 @Injectable()
 export class ProspectCompanyCatalogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly catalogPrisma: CatalogPrismaService) {}
 
   async searchPage(params: CatalogSearchParams): Promise<CatalogSearchPageResult> {
     const page = Math.max(1, Math.round(params.page ?? 1));
@@ -102,7 +102,7 @@ export class ProspectCompanyCatalogService {
         openedTo,
       });
 
-      const totalCount = await this.prisma.prospectCompany.count({ where });
+      const totalCount = await this.catalogPrisma.prospectCompany.count({ where });
       if (totalCount === 0) {
         continue;
       }
@@ -113,7 +113,7 @@ export class ProspectCompanyCatalogService {
           : pageSize;
       const skip = (page - 1) * effectivePageSize;
 
-      const rows = await this.prisma.prospectCompany.findMany({
+      const rows = await this.catalogPrisma.prospectCompany.findMany({
         where,
         orderBy: [{ blendedScore: 'desc' }, { cnpj: 'asc' }],
         skip,
@@ -177,8 +177,8 @@ export class ProspectCompanyCatalogService {
 
     const skip = (page - 1) * pageSize;
     const [totalCount, rows] = await Promise.all([
-      this.prisma.prospectCompany.count({ where }),
-      this.prisma.prospectCompany.findMany({
+      this.catalogPrisma.prospectCompany.count({ where }),
+      this.catalogPrisma.prospectCompany.findMany({
         where,
         orderBy: [{ blendedScore: 'desc' }, { cnpj: 'asc' }],
         skip,

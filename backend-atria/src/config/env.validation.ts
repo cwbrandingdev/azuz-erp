@@ -8,6 +8,8 @@ const envSchema = z
     PORT: z.coerce.number().int().positive().default(3001),
     DATABASE_URL: z.string().min(1),
     DIRECT_URL: z.string().min(1).optional(),
+    CATALOG_DATABASE_URL: z.string().min(1),
+    CATALOG_DIRECT_URL: z.string().min(1).optional(),
     SUPABASE_URL: z.string().url().optional().or(z.literal('')),
     SUPABASE_ANON_KEY: z.string().optional().or(z.literal('')),
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional().or(z.literal('')),

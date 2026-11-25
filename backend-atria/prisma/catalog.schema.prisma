@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/catalog-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("CATALOG_DATABASE_URL")
+}
+
+enum ProspectFitVerdict {
+  high
+  medium
+  low
+  do_not_prioritize
+}
+
+model ProspectCompany {
+  id                     String             @id @default(uuid())
+  cnpj                   String             @unique
+  legalName              String             @map("legal_name")
+  tradeName              String?            @map("trade_name")
+  phone                  String
+  email                  String?
+  street                 String?
+  number                 String?
+  neighborhood           String?
+  neighborhoodNormalized String?            @map("neighborhood_normalized")
+  city                   String
+  cityNormalized         String             @map("city_normalized")
+  uf                     String
+  postalCode             String?            @map("postal_code")
+  municipalityCode       String?            @map("municipality_code")
+  address                String?
+  primaryCnae            String             @map("primary_cnae")
+  primaryCnaeDescription String?            @map("primary_cnae_description")
+  secondaryCnaes         String[]           @default([]) @map("secondary_cnaes")
+  shareCapital           Float?             @map("share_capital")
+  companySize            String?            @map("company_size")
+  isMei                  Boolean            @default(false) @map("is_mei")
+  isSimples              Boolean            @default(false) @map("is_simples")
+  registryScore          Int                @map("registry_score")
+  commercialScore        Int                @map("commercial_score")
+  blendedScore           Int                @map("blended_score")
+  verdict                ProspectFitVerdict
+  qualified              Boolean            @default(false)
+  notes                  String?
+  source                 String             @default("receita")
+  openedAt               DateTime?          @map("opened_at")
+  ingestedAt             DateTime           @default(now()) @map("ingested_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  @@index([uf, cityNormalized, primaryCnae])
+  @@index([uf, primaryCnae, blendedScore(sort: Desc)])
+  @@index([qualified, blendedScore(sort: Desc)])
+  @@index([uf, primaryCnae, openedAt])
+  @@index([uf, cityNormalized, primaryCnae, blendedScore(sort: Desc), cnpj], map: "prospect_companies_search_city_cnae_score_idx")
+  @@index([uf, primaryCnae, openedAt, blendedScore(sort: Desc)], map: "prospect_companies_search_cnae_opened_score_idx")
+  @@index([uf, cityNormalized, neighborhoodNormalized], map: "prospect_companies_search_city_neighborhood_idx")
+  @@index([uf, cityNormalized, openedAt], map: "prospect_companies_search_city_opened_idx")
+  @@index([openedAt, blendedScore(sort: Desc), cnpj], map: "prospect_companies_opened_at_score_idx")
+  @@map("prospect_companies")
+}
+
+model ProspectCnae {
+  code                  String @id
+  description           String
+  descriptionNormalized String @map("description_normalized")
+
+  @@index([descriptionNormalized])
+  @@map("prospect_cnaes")
+}
