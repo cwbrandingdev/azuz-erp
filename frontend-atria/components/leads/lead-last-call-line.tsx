@@ -1,7 +1,11 @@
 "use client";
 
 import { PhoneCall } from "lucide-react";
-import { describeCallOutcome, type LeadCallTone } from "@/lib/lead-last-call";
+import {
+  describeCallOutcome,
+  describeProspectingLastCall,
+  type LeadCallTone,
+} from "@/lib/lead-last-call";
 import { cn } from "@/lib/utils";
 import type { LeadLastCall } from "@/services/types";
 
@@ -20,21 +24,34 @@ function formatCallDate(value: string) {
   });
 }
 
-export function LeadLastCallLine({ call }: { call?: LeadLastCall | null }) {
+export function LeadLastCallLine({
+  call,
+  variant = "kanban",
+}: {
+  call?: LeadLastCall | null;
+  variant?: "kanban" | "prospecting";
+}) {
   if (!call) return null;
 
-  const { label, tone } = describeCallOutcome(call.outcome);
+  const prospecting =
+    variant === "prospecting" ? describeProspectingLastCall(call) : null;
+  const { label, tone } = prospecting
+    ? { label: prospecting.text, tone: prospecting.tone }
+    : describeCallOutcome(call.outcome);
 
   return (
     <p
       className={cn(
-        "mt-2 flex min-w-0 items-center gap-1.5 pl-6 text-[11px] font-medium",
+        "flex min-w-0 items-center gap-1.5 text-[11px] font-medium",
+        variant === "kanban" ? "mt-2 pl-6" : "mt-1",
         TONE_CLASS[tone],
       )}
     >
       <PhoneCall className="size-3 shrink-0" />
       <span className="truncate">
-        {label} · {call.user?.name ?? "—"} · {formatCallDate(call.createdAt)}
+        {prospecting
+          ? prospecting.text
+          : `${label} · ${call.user?.name ?? "—"} · ${formatCallDate(call.createdAt)}`}
       </span>
     </p>
   );

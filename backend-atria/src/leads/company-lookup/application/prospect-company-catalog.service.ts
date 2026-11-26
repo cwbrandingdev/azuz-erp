@@ -40,7 +40,9 @@ type CnaeMode = 'exact' | 'prefix';
 export class ProspectCompanyCatalogService {
   constructor(private readonly catalogPrisma: CatalogPrismaService) {}
 
-  async searchPage(params: CatalogSearchParams): Promise<CatalogSearchPageResult> {
+  async searchPage(
+    params: CatalogSearchParams,
+  ): Promise<CatalogSearchPageResult> {
     const page = Math.max(1, Math.round(params.page ?? 1));
     const pageSize = Math.min(
       100,
@@ -102,7 +104,9 @@ export class ProspectCompanyCatalogService {
         openedTo,
       });
 
-      const totalCount = await this.catalogPrisma.prospectCompany.count({ where });
+      const totalCount = await this.catalogPrisma.prospectCompany.count({
+        where,
+      });
       if (totalCount === 0) {
         continue;
       }

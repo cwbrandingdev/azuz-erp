@@ -9,7 +9,7 @@ import type { LeadCall } from '@prisma/client';
 import type { Request } from 'express';
 import twilio from 'twilio';
 import { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
-import { CrmScopeService } from '../leads/crm-scope.service';
+import { LeadsService } from '../leads/leads.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { maskPhone, toE164 } from './phone.util';
 import { LOCKED_AGENT_OUTCOMES } from './voice.constants';
@@ -36,7 +36,7 @@ export class VoiceService {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
-    private readonly crmScope: CrmScopeService,
+    private readonly leadsService: LeadsService,
   ) {}
 
   getPublicConfig() {
@@ -85,7 +85,7 @@ export class VoiceService {
     if (this.resolveDialerMode() === 'twilio') {
       this.requireConfig();
     }
-    const lead = await this.findLeadForUser(user, leadId);
+    const lead = await this.leadsService.resolveLeadForCall(user, leadId);
     const phone = toE164(lead.phone);
     if (!phone) {
       throw new BadRequestException(
@@ -112,7 +112,7 @@ export class VoiceService {
   }
 
   async listCalls(user: AuthenticatedUser, leadId: string) {
-    await this.findLeadForUser(user, leadId);
+    await this.leadsService.resolveLeadForCall(user, leadId);
     const calls = await this.prisma.leadCall.findMany({
       where: { leadId },
       include: {
@@ -277,17 +277,6 @@ export class VoiceService {
           : (twilioOutcome ?? call.outcome),
       },
     });
-  }
-
-  private async findLeadForUser(user: AuthenticatedUser, id: string) {
-    const orgFilter = await this.crmScope.buildLeadOrganizationFilter(user);
-    const lead = await this.prisma.lead.findFirst({
-      where: { id, deletedAt: null, ...orgFilter },
-    });
-    if (!lead) {
-      throw new NotFoundException('Lead não encontrado.');
-    }
-    return lead;
   }
 
   private requireConfig(): TwilioVoiceConfig {

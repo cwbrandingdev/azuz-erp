@@ -151,9 +151,7 @@ export function LeadsSearchPanel({ modeTabs }: LeadsSearchPanelProps) {
   );
   const selectedRecord =
     orderedRecords.find((record) => record.id === selectedSearchId) ??
-    (!loading &&
-    externalPreviewLeads.length === 0 &&
-    !activeSearchEmpty
+    (!loading && externalPreviewLeads.length === 0 && !activeSearchEmpty
       ? orderedRecords[0]
       : undefined);
   const historyLeads = useMemo(

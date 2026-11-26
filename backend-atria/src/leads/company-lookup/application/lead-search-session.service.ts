@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Lead, LeadSearchQueryType } from '@prisma/client';
+import { Lead, LeadSearchQueryType, Prisma } from '@prisma/client';
 import { DEFAULT_COMPANY_ID } from '../../../company/company.constants';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { DiscoveredCompanyCandidate } from '../domain/company-lookup.types';
@@ -20,6 +20,11 @@ import {
   materializeRegistrySnapshotFromRawData,
 } from '../../qualification/registry-signals.util';
 import { CATALOG_DEFAULT_PAGE_SIZE } from './prospect-company-catalog.service';
+import {
+  latestCallInclude,
+  type LeadWithLatestCall,
+  mapLeadLastCall,
+} from '../../lead-call.include';
 
 export const CATALOG_PREVIEW_ID_PREFIX = 'external:cnpj:';
 
@@ -193,6 +198,7 @@ export class LeadSearchSessionService {
           companyId: resolvedTenantId,
           deletedAt: null,
         },
+        include: latestCallInclude,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -266,47 +272,118 @@ export class LeadSearchSessionService {
     });
   }
 
+  private normalizeCnpjDigits(value: string | null | undefined) {
+    const digits = value?.replace(/\D/g, '') ?? '';
+    return digits.length === 14 ? digits : null;
+  }
+
+  private candidatePlaceIds(candidate: CatalogCandidate) {
+    const ids = new Set<string>();
+    if (candidate.placeId?.trim()) {
+      ids.add(candidate.placeId.trim());
+    }
+    const cnpj = this.normalizeCnpjDigits(candidate.cnpj);
+    if (cnpj) {
+      ids.add(`cnpj:${cnpj}`);
+    }
+    return [...ids];
+  }
+
+  private preferLead(
+    current: LeadWithLatestCall | undefined,
+    candidate: LeadWithLatestCall,
+  ) {
+    if (!current) return candidate;
+    if (candidate.kanbanTracked && !current.kanbanTracked) return candidate;
+    if (current.kanbanTracked && !candidate.kanbanTracked) return current;
+    const currentCalls = current.calls?.length ?? 0;
+    const candidateCalls = candidate.calls?.length ?? 0;
+    if (candidateCalls > currentCalls) return candidate;
+    return current;
+  }
+
   private async hydrateCandidates(
     tenantId: string,
     sessionId: string,
     candidates: CatalogCandidate[],
   ) {
-    const placeIds = candidates
-      .map((candidate) => candidate.placeId)
-      .filter((placeId): placeId is string => Boolean(placeId));
-
-    const existing: Lead[] = [];
-    const PLACE_ID_CHUNK = 400;
-    for (let offset = 0; offset < placeIds.length; offset += PLACE_ID_CHUNK) {
-      const chunk = placeIds.slice(offset, offset + PLACE_ID_CHUNK);
-      if (chunk.length === 0) continue;
-      const batch = await this.prisma.lead.findMany({
-        where: {
-          companyId: tenantId,
-          deletedAt: null,
-          placeId: { in: chunk },
-        },
-      });
-      existing.push(...batch);
+    const placeIdKeys = new Set<string>();
+    const cnpjDigits = new Set<string>();
+    for (const candidate of candidates) {
+      for (const placeId of this.candidatePlaceIds(candidate)) {
+        placeIdKeys.add(placeId);
+      }
+      const cnpj = this.normalizeCnpjDigits(candidate.cnpj);
+      if (cnpj) {
+        cnpjDigits.add(cnpj);
+      }
     }
 
-    const byPlaceId = new Map<string, Lead>();
+    const orFilters: Prisma.LeadWhereInput[] = [];
+    if (placeIdKeys.size > 0) {
+      orFilters.push({ placeId: { in: [...placeIdKeys] } });
+    }
+    if (cnpjDigits.size > 0) {
+      orFilters.push({ cnpj: { in: [...cnpjDigits] } });
+    }
+
+    if (orFilters.length === 0) {
+      return candidates.map((candidate) =>
+        this.toPreviewLeadResponse(tenantId, sessionId, candidate),
+      );
+    }
+
+    const existing = await this.prisma.lead.findMany({
+      where: {
+        companyId: tenantId,
+        deletedAt: null,
+        OR: orFilters,
+      },
+      include: latestCallInclude,
+    });
+
+    const byPlaceId = new Map<string, LeadWithLatestCall>();
+    const byCnpj = new Map<string, LeadWithLatestCall>();
     for (const lead of existing) {
-      if (!lead.placeId) continue;
-      const current = byPlaceId.get(lead.placeId);
-      if (!current || (lead.kanbanTracked && !current.kanbanTracked)) {
-        byPlaceId.set(lead.placeId, lead);
+      if (lead.placeId) {
+        byPlaceId.set(
+          lead.placeId,
+          this.preferLead(byPlaceId.get(lead.placeId), lead),
+        );
+      }
+      const cnpj = this.normalizeCnpjDigits(lead.cnpj ?? extractCnpjFromLead(lead));
+      if (cnpj) {
+        byCnpj.set(cnpj, this.preferLead(byCnpj.get(cnpj), lead));
       }
     }
 
     return candidates.map((candidate) => {
-      const persisted = candidate.placeId
-        ? byPlaceId.get(candidate.placeId)
-        : undefined;
+      let persisted: LeadWithLatestCall | undefined;
+      for (const placeId of this.candidatePlaceIds(candidate)) {
+        const found = byPlaceId.get(placeId);
+        if (found) {
+          persisted = found;
+          break;
+        }
+      }
+      if (!persisted) {
+        const cnpj = this.normalizeCnpjDigits(candidate.cnpj);
+        if (cnpj) {
+          persisted = byCnpj.get(cnpj);
+        }
+      }
+
       if (persisted) {
         return this.toLeadResponse(persisted);
       }
-      return this.toPreviewLeadResponse(tenantId, sessionId, candidate);
+
+      const cnpj = this.normalizeCnpjDigits(candidate.cnpj);
+      const sibling = cnpj ? byCnpj.get(cnpj) : undefined;
+      const preview = this.toPreviewLeadResponse(tenantId, sessionId, candidate);
+      if (sibling) {
+        return { ...preview, lastCall: mapLeadLastCall(sibling) };
+      }
+      return preview;
     });
   }
 
@@ -397,7 +474,7 @@ export class LeadSearchSessionService {
     };
   }
 
-  private toLeadResponse(lead: Lead) {
+  private toLeadResponse(lead: LeadWithLatestCall) {
     return {
       id: lead.id,
       companyId: lead.companyId,
@@ -431,6 +508,7 @@ export class LeadSearchSessionService {
       aiNotes: lead.aiNotes,
       source: lead.source,
       rawData: lead.rawData,
+      lastCall: mapLeadLastCall(lead),
       createdAt: lead.createdAt.toISOString(),
       updatedAt: lead.updatedAt.toISOString(),
     };
