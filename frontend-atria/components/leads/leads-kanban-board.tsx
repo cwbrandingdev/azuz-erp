@@ -1055,7 +1055,7 @@ export function LeadsKanbanBoard({
                                         showPersonFilter && personFilter === "all"
                                       }
                                       dragHandleProps={
-                                        dragProvided.dragHandleProps as React.HTMLAttributes<HTMLButtonElement>
+                                        dragProvided.dragHandleProps as React.HTMLAttributes<HTMLDivElement>
                                       }
                                       onStatusChange={(id, nextColumnKey) =>
                                         void handleStatusChange(
