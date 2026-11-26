@@ -15,7 +15,7 @@ import { getHomePathForRole } from "@/lib/roles";
 import { getSafeNextPath } from "@/lib/auth-redirect";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { ApiError } from "@/services";
+import { describeApiError } from "@/lib/api-error";
 
 export type LoginFormTone = "light" | "dark";
 
@@ -196,11 +196,8 @@ export function LoginForm({
       router.push(getSafeNextPath() ?? getHomePathForRole(loggedUser?.role ?? user?.role));
     } catch (err) {
       triggerShake();
-      if (err instanceof ApiError) {
-        toast.error("E-mail ou senha inválidos");
-      } else {
-        toast.error("Não foi possível fazer login. Tente novamente.");
-      }
+      const friendly = describeApiError(err, "/auth/login");
+      toast.error(friendly.title, { description: friendly.description });
     } finally {
       setSubmitting(false);
     }

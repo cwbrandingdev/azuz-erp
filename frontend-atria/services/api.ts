@@ -30,6 +30,8 @@ async function fetchWithTimeout(
     if (error instanceof Error && error.name === "AbortError") {
       throw new ApiError("Request timed out", 408);
     }
+    // Sem rede, servidor fora do ar ou bloqueio de CORS: o fetch só lança TypeError.
+    if (error instanceof TypeError) throw new ApiError("Network error", 0);
     throw error;
   } finally {
     clearTimeout(timeoutId);
@@ -60,6 +62,19 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+}
+
+// Rede fora do ar ou tempo esgotado: não existe resposta do servidor, então o
+// aviso sai daqui. Respostas com erro (4xx/5xx) são avisadas mais abaixo.
+function notifyTransportError(
+  error: unknown,
+  endpoint: string,
+  skipToast?: boolean,
+): void {
+  if (skipToast || !(error instanceof ApiError)) return;
+  if (error.message === "Upload cancelled") return;
+  if (!shouldShowApiErrorToast(error.status, endpoint, error.message)) return;
+  showApiError(error, endpoint);
 }
 
 type RequestOptions = Omit<RequestInit, "body"> & {
@@ -120,20 +135,25 @@ export async function apiRequest<T>(
   const { body, headers, skipAuth, skipToast, timeoutMs, ...rest } = options;
 
   const makeRequest = async (token: string | null) => {
-    return fetchWithTimeout(
-      resolveRequestUrl(endpoint),
-      {
-        ...rest,
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && !skipAuth ? { Authorization: `Bearer ${token}` } : {}),
-          ...headers,
+    try {
+      return await fetchWithTimeout(
+        resolveRequestUrl(endpoint),
+        {
+          ...rest,
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && !skipAuth ? { Authorization: `Bearer ${token}` } : {}),
+            ...headers,
+          },
+          body: body !== undefined ? JSON.stringify(body) : undefined,
         },
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-      },
-      timeoutMs,
-    );
+        timeoutMs,
+      );
+    } catch (error) {
+      notifyTransportError(error, endpoint, skipToast);
+      throw error;
+    }
   };
 
   let token = skipAuth ? null : getAccessToken();
@@ -244,14 +264,20 @@ export async function apiRequestBlob(
   const { headers, skipAuth, skipToast, ...rest } = options;
 
   const makeRequest = async (token: string | null) => {
-    return fetch(`${API_BASE_URL}${endpoint}`, {
-      ...rest,
-      credentials: "include",
-      headers: {
-        ...(token && !skipAuth ? { Authorization: `Bearer ${token}` } : {}),
-        ...headers,
-      },
-    });
+    try {
+      return await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...rest,
+        credentials: "include",
+        headers: {
+          ...(token && !skipAuth ? { Authorization: `Bearer ${token}` } : {}),
+          ...headers,
+        },
+      });
+    } catch {
+      const error = new ApiError("Network error", 0);
+      notifyTransportError(error, endpoint, skipToast);
+      throw error;
+    }
   };
 
   let token = skipAuth ? null : getAccessToken();
@@ -343,8 +369,14 @@ export async function uploadFile<T>(
   } = {},
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  const makeRequest = (token: string | null) =>
-    sendFormData(url, formData, token, options.onProgress);
+  const makeRequest = async (token: string | null) => {
+    try {
+      return await sendFormData(url, formData, token, options.onProgress);
+    } catch (error) {
+      notifyTransportError(error, endpoint, options.skipToast);
+      throw error;
+    }
+  };
 
   let token = options.skipAuth ? null : getAccessToken();
   let result = await makeRequest(token);
