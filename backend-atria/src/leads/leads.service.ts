@@ -78,6 +78,7 @@ import {
   LeadSearchSessionService,
 } from './company-lookup/application/lead-search-session.service';
 import { boolean } from 'zod';
+import { latestCallInclude } from './lead-call.include';
 
 const DEFAULT_SCRAPER_URL = 'https://leadminer-one.vercel.app/api/scraper';
 const SCRAPER_TIMEOUT_MS = 120_000;
@@ -104,21 +105,6 @@ const latestMeetingInclude = {
       meetUrl: true,
       guestEmails: true,
       createdById: true,
-    },
-  },
-} satisfies Prisma.LeadInclude;
-
-const latestCallInclude = {
-  calls: {
-    // "Pular" só passa para o próximo lead da fila, não é uma ligação feita.
-    where: { outcome: { not: 'SKIPPED' } },
-    orderBy: { createdAt: 'desc' as const },
-    take: 1,
-    select: {
-      id: true,
-      outcome: true,
-      createdAt: true,
-      user: { select: { id: true, name: true } },
     },
   },
 } satisfies Prisma.LeadInclude;
@@ -477,8 +463,19 @@ export class LeadsService {
       created.push(lead);
     }
 
-    const responses = created.map((lead) => this.toLeadResponse(lead));
-    return responses;
+    if (created.length === 0) {
+      return [];
+    }
+
+    const hydrated = await this.prisma.lead.findMany({
+      where: { id: { in: created.map((lead) => lead.id) } },
+      include: latestCallInclude,
+    });
+    const byId = new Map(hydrated.map((lead) => [lead.id, lead]));
+
+    return created.map((lead) =>
+      this.toLeadResponse(byId.get(lead.id) ?? lead),
+    );
   }
 
   private async applyPlaceContact(
@@ -567,11 +564,18 @@ export class LeadsService {
 
     const leads = await this.prisma.lead.findMany({
       where,
-      include: leadOwnerInclude,
+      include: {
+        ...leadOwnerInclude,
+        ...latestCallInclude,
+      },
       orderBy: { createdAt: 'desc' },
     });
 
     return leads.map((lead) => this.toCrmLeadResponse(lead));
+  }
+
+  async resolveLeadForCall(user: AuthenticatedUser, leadId: string) {
+    return this.resolveLeadForUser(user, leadId.trim());
   }
 
   async toggleLeadCollapse(
@@ -1797,6 +1801,7 @@ export class LeadsService {
     return this.prisma.lead.create({
       data: {
         companyId: tenantId,
+        cnpj: row.cnpj,
         name,
         phone: row.phone,
         email: row.email,

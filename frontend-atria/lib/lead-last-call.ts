@@ -19,3 +19,13 @@ export function describeCallOutcome(outcome: string): {
     return { label: "Não atendeu", tone: "missed" };
   return { label: "Sem resultado", tone: "pending" };
 }
+
+export function describeProspectingLastCall(call: {
+  outcome: string;
+  user?: { name: string } | null;
+}): { text: string; tone: LeadCallTone } {
+  const { label, tone } = describeCallOutcome(call.outcome);
+  const name = call.user?.name?.trim() || "SDR";
+  const outcomeLabel = label.charAt(0).toLowerCase() + label.slice(1);
+  return { text: `Já ligado — ${name} (${outcomeLabel})`, tone };
+}

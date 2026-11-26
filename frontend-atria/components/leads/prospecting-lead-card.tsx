@@ -3,6 +3,7 @@
 import { ExternalLink, Kanban, Loader2, Phone } from "lucide-react";
 import { WhatsAppNavIcon } from "@/components/layout/whatsapp-nav-icon";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
+import { LeadLastCallLine } from "@/components/leads/lead-last-call-line";
 import { NativeTelButton } from "@/components/leads/native-tel-button";
 import { Button } from "@/components/ui/button";
 import { CopyableText } from "@/components/ui/copyable-text";
@@ -176,6 +177,7 @@ export function ProspectingLeadCard({
                 : "text-[var(--atria-primary)]/55"
             }
           />
+          <LeadLastCallLine call={lead.lastCall} variant="prospecting" />
         </FieldBlock>
       </div>
 

@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { ProspectingLeadCard } from "@/components/leads/prospecting-lead-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PROSPECTING_LEADS_KEY } from "@/hooks/use-company-search";
+import { onLeadCallLogged } from "@/lib/lead-call-events";
 import type { Lead } from "@/services/types";
 
 const CLIENT_PAGE_SIZE = 25;
@@ -44,9 +47,18 @@ export function ProspectingLeadsList({
   onPageChange,
   onAddToKanban,
 }: ProspectingLeadsListProps) {
+  const queryClient = useQueryClient();
   const isServer = paginationMode === "server";
   const [clientPage, setClientPage] = useState(1);
   const [pageDraft, setPageDraft] = useState("1");
+
+  useEffect(() => {
+    return onLeadCallLogged(() => {
+      void queryClient.invalidateQueries({ queryKey: PROSPECTING_LEADS_KEY });
+      void queryClient.invalidateQueries({ queryKey: ["lead-search-session"] });
+      void queryClient.invalidateQueries({ queryKey: ["companies-by-opened-at"] });
+    });
+  }, [queryClient]);
 
   const pageSize = isServer
     ? (controlledPageSize ?? CLIENT_PAGE_SIZE)
