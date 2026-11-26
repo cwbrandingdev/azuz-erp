@@ -24,6 +24,7 @@ import {
   WhatsAppMessageKind,
 } from '../domain/whatsapp-message';
 import { WhatsAppMessageRepository } from '../domain/whatsapp-message.repository';
+import { whatsAppPhoneVariants } from '../domain/whatsapp-phone';
 
 const assignedUserSelect = {
   id: true,
@@ -87,9 +88,10 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
   }
 
   async findConversation(phone: string): Promise<WhatsAppMessageRecord[]> {
+    const variants = whatsAppPhoneVariants(phone);
     const rows = await this.prisma.whatsAppMessage.findMany({
       where: {
-        OR: [{ fromPhone: phone }, { toPhone: phone }],
+        OR: [{ fromPhone: { in: variants } }, { toPhone: { in: variants } }],
       },
       include: { sentBy: { select: { name: true } } },
       orderBy: { createdAt: 'asc' },
@@ -162,9 +164,10 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
     phone: string,
     slaMinutes = 5,
   ): Promise<WhatsAppConversationSummary | null> {
-    const row = await this.prisma.whatsAppConversation.findUnique({
-      where: { phone },
+    const row = await this.prisma.whatsAppConversation.findFirst({
+      where: { phone: { in: whatsAppPhoneVariants(phone) } },
       include: { assignedUser: { select: assignedUserSelect } },
+      orderBy: { lastMessageAt: 'desc' },
     });
     return row ? this.toConversation(row, slaMinutes) : null;
   }
@@ -326,7 +329,7 @@ export class PrismaWhatsAppMessageRepository extends WhatsAppMessageRepository {
 
   async markConversationRead(phone: string): Promise<void> {
     await this.prisma.whatsAppConversation.updateMany({
-      where: { phone },
+      where: { phone: { in: whatsAppPhoneVariants(phone) } },
       data: { unreadCount: 0 },
     });
   }
