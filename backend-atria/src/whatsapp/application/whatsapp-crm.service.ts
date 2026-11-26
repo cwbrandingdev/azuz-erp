@@ -7,7 +7,11 @@ import {
   WhatsAppCrmEventType,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { normalizeWhatsAppPhone } from '../domain/whatsapp-phone';
+import {
+  isSameWhatsAppPhone,
+  normalizeWhatsAppPhone,
+  whatsAppPhoneVariants,
+} from '../domain/whatsapp-phone';
 import { WhatsAppService } from './whatsapp.service';
 
 const DEFAULT_COMPANY = '00000000-0000-4000-8000-000000000001';
@@ -345,7 +349,7 @@ export class WhatsAppCrmService {
           organization: { select: { companyName: true } },
         },
       });
-      if (lead && normalizeWhatsAppPhone(lead.phone ?? '') === phone) {
+      if (lead && isSameWhatsAppPhone(lead.phone ?? '', phone)) {
         return lead;
       }
     }
@@ -374,10 +378,11 @@ export class WhatsAppCrmService {
       take: 25,
       orderBy: { updatedAt: 'desc' },
     });
+    // O número idêntico tem prioridade; depois vale o mesmo número com ou sem o 9.
     return (
-      rows.find(
-        (row) => normalizeWhatsAppPhone(row.phone ?? '') === phone,
-      ) ?? null
+      rows.find((row) => normalizeWhatsAppPhone(row.phone ?? '') === phone) ??
+      rows.find((row) => isSameWhatsAppPhone(row.phone ?? '', phone)) ??
+      null
     );
   }
 
@@ -478,10 +483,11 @@ export class WhatsAppCrmService {
     companyId: string,
   ): Promise<WhatsAppCrmTimelineItem[]> {
     const items: WhatsAppCrmTimelineItem[] = [];
+    const variants = whatsAppPhoneVariants(phone);
 
     const messages = await this.prisma.whatsAppMessage.findMany({
       where: {
-        OR: [{ fromPhone: phone }, { toPhone: phone }],
+        OR: [{ fromPhone: { in: variants } }, { toPhone: { in: variants } }],
         isPrivate: false,
       },
       include: { sentBy: { select: { name: true } } },
@@ -515,7 +521,7 @@ export class WhatsAppCrmService {
           take: 20,
         }),
         this.prisma.whatsAppCrmEvent.findMany({
-          where: { companyId, OR: [{ leadId }, { phone }] },
+          where: { companyId, OR: [{ leadId }, { phone: { in: variants } }] },
           include: { actor: { select: { name: true } } },
           orderBy: { createdAt: 'desc' },
           take: 40,

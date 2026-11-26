@@ -25,3 +25,14 @@ export function validateNormalizedWhatsAppPhone(input: string): string | null {
   }
   return null;
 }
+
+function whatsAppPhoneKey(input: string): string {
+  const digits = normalizeWhatsAppPhone(input);
+  const hasNinthDigit =
+    digits.length === 13 && digits.startsWith("55") && digits[4] === "9";
+  return hasNinthDigit ? digits.slice(0, 4) + digits.slice(5) : digits;
+}
+
+export function isSameWhatsAppPhone(left: string, right: string): boolean {
+  return whatsAppPhoneKey(left) === whatsAppPhoneKey(right);
+}

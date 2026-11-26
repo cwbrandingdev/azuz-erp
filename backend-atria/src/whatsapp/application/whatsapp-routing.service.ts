@@ -6,7 +6,7 @@ import {
   WhatsAppRoutingMode as PrismaRoutingMode,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { normalizeWhatsAppPhone } from '../domain/whatsapp-phone';
+import { whatsAppPhoneKey } from '../domain/whatsapp-phone';
 import {
   WhatsAppRoutingMode,
   type WhatsAppInboxCounts,
@@ -183,7 +183,7 @@ export class WhatsAppRoutingService {
     });
     const byPhone = new Map<string, LinkedLead>();
     for (const lead of leads) {
-      const phone = normalizeWhatsAppPhone(lead.phone ?? '');
+      const phone = whatsAppPhoneKey(lead.phone ?? '');
       if (!phone || byPhone.has(phone)) continue;
       byPhone.set(phone, {
         id: lead.id,
@@ -196,7 +196,7 @@ export class WhatsAppRoutingService {
     }
     return conversations.map((item) => ({
       ...item,
-      lead: byPhone.get(normalizeWhatsAppPhone(item.phone)) ?? null,
+      lead: byPhone.get(whatsAppPhoneKey(item.phone)) ?? null,
     }));
   }
 
