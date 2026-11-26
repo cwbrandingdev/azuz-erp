@@ -481,7 +481,10 @@ export class LeadsService {
     return responses;
   }
 
-  private async applyPlaceContact(lead: Lead, place: MappedPlace): Promise<Lead> {
+  private async applyPlaceContact(
+    lead: Lead,
+    place: MappedPlace,
+  ): Promise<Lead> {
     const updates = contactGapsFromPlace(lead, place);
     const data: Prisma.LeadUpdateInput = { ...updates };
     const instagram =
@@ -1609,10 +1612,10 @@ export class LeadsService {
   ) {
     const lead = await this.findLeadForUser(user, leadId);
     const meeting = await this.prisma.leadMeeting.findFirst({
-      where: { id: meetingId, leadId }
+      where: { id: meetingId, leadId },
     });
     if (!meeting) {
-      throw new NotFoundException('Reunião não encontrada.');    
+      throw new NotFoundException('Reunião não encontrada.');
     }
 
     const isCreator = meeting.createdById === user.userId;
@@ -1639,7 +1642,7 @@ export class LeadsService {
     const startAt =
       dto.startAt !== undefined ? new Date(dto.startAt) : meeting.startAt;
     if (Number.isNaN(startAt.getTime()) || startAt.getTime() <= Date.now()) {
-      throw new BadRequestException('Escolha uma data futura para a reunião')
+      throw new BadRequestException('Escolha uma data futura para a reunião');
     }
     const endAt = new Date(startAt.getTime() + MEETING_DURATION_MS);
     const guestEmails =

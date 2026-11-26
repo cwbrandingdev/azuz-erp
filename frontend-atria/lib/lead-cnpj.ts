@@ -43,7 +43,11 @@ export function extractCnpjFromLead(
     if (fromPlace) return fromPlace;
   }
 
-  if (!lead.rawData || typeof lead.rawData !== "object" || Array.isArray(lead.rawData)) {
+  if (
+    !lead.rawData ||
+    typeof lead.rawData !== "object" ||
+    Array.isArray(lead.rawData)
+  ) {
     return null;
   }
 
@@ -53,7 +57,9 @@ export function extractCnpjFromLead(
 
   const registry = record.registry;
   if (registry && typeof registry === "object" && !Array.isArray(registry)) {
-    const fromRegistry = readCnpjFromObject(registry as Record<string, unknown>);
+    const fromRegistry = readCnpjFromObject(
+      registry as Record<string, unknown>,
+    );
     if (fromRegistry) return fromRegistry;
   }
 
@@ -79,5 +85,5 @@ export function getLeadCnpjLabel(
 export function toCnpjaOfficeUrl(cnpj: string): string | null {
   const digits = normalizeCnpjDigits(cnpj);
   if (!digits) return null;
-  return `https://cnpja.com/en/office/${digits}`;
+  return `https://cnpja.com/office/${digits}`;
 }

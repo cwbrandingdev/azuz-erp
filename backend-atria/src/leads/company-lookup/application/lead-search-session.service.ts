@@ -332,7 +332,9 @@ export class LeadSearchSessionService {
       candidate.placeId ??
       (candidate.cnpj ? `cnpj:${candidate.cnpj}` : undefined);
     return {
-      id: candidate.cnpj ? catalogPreviewId(candidate.cnpj) : `external:${sessionId}:${candidate.name}`,
+      id: candidate.cnpj
+        ? catalogPreviewId(candidate.cnpj)
+        : `external:${sessionId}:${candidate.name}`,
       companyId: tenantId,
       tenantId,
       searchSessionId: sessionId,
