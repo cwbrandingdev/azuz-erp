@@ -27,6 +27,7 @@ export * as assetsService from "./assets.service";
 export * as notificationsService from "./notifications.service";
 export * as settingsService from "./settings.service";
 export * as companySettingsService from "./company-settings.service";
+export * as googleCalendarService from "./google-calendar.service";
 export * as slaService from "./sla.service";
 export * as usersService from "./users.service";
 export * as voiceService from "./voice.service";

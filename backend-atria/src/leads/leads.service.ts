@@ -1532,7 +1532,7 @@ export class LeadsService {
     const guestEmails = normalizeGuestEmails(dto.guestEmails ?? []);
 
     const description = `Reunião com ${guestName}\nLead: ${lead.name}`;
-    const googleConnected = this.googleMeet.isConfigured();
+    const googleConnected = await this.googleMeet.isConfigured();
     const google = googleConnected
       ? await this.googleMeet.createMeeting({
           title,
@@ -1658,7 +1658,7 @@ export class LeadsService {
 
     let googleEventId = meeting?.googleEventId;
     let googleSynced = false;
-    if (meeting?.meetUrl && this.googleMeet.isConfigured()) {
+    if (meeting?.meetUrl && (await this.googleMeet.isConfigured())) {
       const result = await this.googleMeet.updateMeeting({
         meetUrl: meeting?.meetUrl,
         eventId: meeting?.googleEventId,
@@ -1732,7 +1732,7 @@ export class LeadsService {
     if (
       meeting.meetUrl &&
       meeting.startAt.getTime() > Date.now() &&
-      this.googleMeet.isConfigured()
+      (await this.googleMeet.isConfigured())
     ) {
       googleCancelled = await this.googleMeet
         .cancelMeeting({
