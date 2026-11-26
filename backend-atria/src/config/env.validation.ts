@@ -70,6 +70,7 @@ const envSchema = z
     GOOGLE_CLIENT_SECRET: z.string().optional().or(z.literal('')),
     GOOGLE_REFRESH_TOKEN: z.string().optional().or(z.literal('')),
     GOOGLE_CALENDAR_ID: z.string().optional().or(z.literal('')),
+    GOOGLE_REDIRECT_URI: z.string().optional().or(z.literal('')),
     CWBRANDING_API_KEY: z.string().optional().or(z.literal('')),
   })
   .superRefine((data, ctx) => {
