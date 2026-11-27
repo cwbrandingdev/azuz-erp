@@ -20,6 +20,7 @@ import {
   extractStorageLocation,
   publicObjectUrl,
   r2ObjectKey,
+  rewriteLegacyStorageUrl,
 } from './storage-url';
 import { SupabaseService } from './supabase.service';
 
@@ -197,6 +198,15 @@ export class SupabaseStorageService {
     path: string;
   } | null {
     return extractStorageLocation(mediaUrl, this.r2PublicBaseUrl);
+  }
+
+  get rewritesLegacyUrls(): boolean {
+    return this.storageProvider === 'r2' && Boolean(this.r2PublicBaseUrl);
+  }
+
+  rewritePublicUrl(mediaUrl: string): string {
+    if (!this.rewritesLegacyUrls || !this.r2PublicBaseUrl) return mediaUrl;
+    return rewriteLegacyStorageUrl(mediaUrl, this.r2PublicBaseUrl);
   }
 
   async createSignedDownloadUrl(input: {
