@@ -11,6 +11,7 @@ import {
   canAccessStaffDashboard,
   isClientRole,
   isCrmRole,
+  isDesignerRole,
 } from "./roles";
 
 const ADMIN_ONLY_ROUTES = new Set([
@@ -76,6 +77,12 @@ function resolveAccessRouteKey(href: string): string {
   if (href === "/produtividade" || href.startsWith("/produtividade/")) {
     return "/produtividade";
   }
+  if (href === "/studio" || href.startsWith("/studio/")) {
+    return "/studio";
+  }
+  if (href === "/whatsapp" || href.startsWith("/whatsapp/")) {
+    return "/whatsapp";
+  }
   return href;
 }
 
@@ -113,6 +120,14 @@ export function canAccessRoute(
   if (routeKey === "/produtividade") {
     const normalized = normalizeAppRole(role);
     return normalized != null && PRODUCTIVITY_ROLES.has(normalized);
+  }
+
+  if (routeKey === "/studio") {
+    return isDesignerRole(role);
+  }
+
+  if (routeKey === "/whatsapp") {
+    return !isDesignerRole(role);
   }
 
   const required = ROUTE_PERMISSIONS[routeKey];

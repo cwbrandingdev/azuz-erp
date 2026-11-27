@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAppSession } from "@/hooks/use-app-session";
 import { useCompanyId } from "@/hooks/use-company-id";
 import { appUpdateKeys } from "@/lib/query-keys";
 import { appUpdatesService } from "@/services";
@@ -8,15 +9,12 @@ import type {
 } from "@/services/types";
 
 export function useAppUpdatesAccess() {
-  const companyId = useCompanyId();
+  const session = useAppSession();
 
-  return useQuery({
-    queryKey: appUpdateKeys.access(companyId ?? ""),
-    queryFn: () => appUpdatesService.getAccess(),
-    enabled: Boolean(companyId),
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-  });
+  return {
+    ...session,
+    data: session.data?.appUpdatesAccess,
+  };
 }
 
 export function useMarkAppUpdatesAsRead() {

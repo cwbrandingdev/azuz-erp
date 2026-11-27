@@ -83,5 +83,8 @@ export function getHomePathForRole(
   if (normalized === "master" || normalized === "admin") {
     return "/dashboard";
   }
+  if (isDesignerRole(role)) {
+    return "/studio";
+  }
   return "/kanban";
 }

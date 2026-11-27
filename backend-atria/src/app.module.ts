@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AgendaModule } from './agenda/agenda.module';
 import { AiModule } from './ai/ai.module';
+import { AppSessionModule } from './app-session/app-session.module';
 import { AppUpdatesModule } from './app-updates/app-updates.module';
 import { ArtTypePricingModule } from './art-type-pricing/art-type-pricing.module';
 import { AssetsModule } from './assets/assets.module';
@@ -46,6 +47,7 @@ import { ReportsModule } from './reports/reports.module';
 import { SettingsModule } from './settings/settings.module';
 import { SiteLeadsModule } from './site-leads/site-leads.module';
 import { SlaModule } from './sla/sla.module';
+import { StudioModule } from './studio/studio.module';
 import { SuggestionsModule } from './suggestions/suggestions.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { UserGroupsModule } from './user-groups/user-groups.module';
@@ -77,6 +79,7 @@ import { JhonatanCalendarModule } from './jhonatan-calendar/jhonatan-calendar.mo
     HealthModule,
     AgendaModule,
     AiModule,
+    AppSessionModule,
     AppUpdatesModule,
     ArtTypePricingModule,
     AuthModule,
@@ -115,6 +118,7 @@ import { JhonatanCalendarModule } from './jhonatan-calendar/jhonatan-calendar.mo
     ReportsModule,
     SettingsModule,
     SiteLeadsModule,
+    StudioModule,
     SuggestionsModule,
     UserGroupsModule,
     UsersModule,

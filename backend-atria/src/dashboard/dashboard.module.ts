@@ -9,5 +9,6 @@ import { DashboardService } from './dashboard.service';
   imports: [FinanceModule, CalendarModule, MetaInsightsModule],
   controllers: [DashboardController],
   providers: [DashboardService],
+  exports: [DashboardService],
 })
 export class DashboardModule {}

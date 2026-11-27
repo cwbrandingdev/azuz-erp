@@ -13,6 +13,7 @@ import {
   DEFAULT_BRANDING,
   type AgencyBranding,
 } from "@/lib/branding-utils";
+import { getAccessToken } from "@/lib/auth-storage";
 import { companiesService, settingsService } from "@/services";
 import type { TenantCompany } from "@/services/types";
 
@@ -22,6 +23,8 @@ export interface CompanyState {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  hydrate: (company: TenantCompany, branding: AgencyBranding) => void;
+  release: () => void;
 }
 
 const CompanyContext = createContext<CompanyState | null>(null);
@@ -54,7 +57,22 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const release = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
+  const hydrate = useCallback(
+    (nextCompany: TenantCompany, nextBranding: AgencyBranding) => {
+      setCompany(nextCompany);
+      setBranding(nextBranding);
+      setError(null);
+      setIsLoading(false);
+    },
+    [],
+  );
+
   useEffect(() => {
+    if (getAccessToken()) return;
     void refresh();
   }, [refresh]);
 
@@ -65,8 +83,10 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       isLoading,
       error,
       refresh,
+      hydrate,
+      release,
     }),
-    [company, branding, isLoading, error, refresh],
+    [company, branding, isLoading, error, refresh, hydrate, release],
   );
 
   return (

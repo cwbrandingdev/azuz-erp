@@ -16,8 +16,11 @@ import {
   resetAppearanceToDefaults,
   type AppearanceSettings,
 } from "@/lib/theme-utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAppSession } from "@/hooks/use-app-session";
 import { settingsService } from "@/services";
 import { useAuth } from "@/contexts/auth-context";
+import { useCompany } from "@/contexts/company-context";
 
 interface AppearanceContextValue {
   appearance: AppearanceSettings;
@@ -38,6 +41,9 @@ function normalizeAppearance(data: AppearanceSettings): AppearanceSettings {
 
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const session = useAppSession();
+  const queryClient = useQueryClient();
+  const { hydrate, release } = useCompany();
   const [appearance, setAppearance] =
     useState<AppearanceSettings>(DEFAULT_APPEARANCE);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +67,8 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     const saved = normalizeAppearance(await settingsService.updateAppearance(settings));
     setAppearance(saved);
     applyAppearanceToDocument(saved, { force: true });
-  }, []);
+    await queryClient.invalidateQueries({ queryKey: ["app-session"] });
+  }, [queryClient]);
 
   const setDraftAppearance = useCallback((settings: AppearanceSettings) => {
     setAppearance(settings);
@@ -73,17 +80,32 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   useEffect(() => {
+    if (session.isError) release();
+  }, [release, session.isError]);
+
+  useEffect(() => {
+    if (!session.data) return;
+    hydrate(session.data.company, session.data.branding);
+  }, [hydrate, session.data]);
+
+  useEffect(() => {
     if (authLoading) return;
 
-    if (isAuthenticated) {
-      void loadAppearance();
-    } else {
+    if (!isAuthenticated) {
       setAppearance(DEFAULT_APPEARANCE);
       resetAppearanceToDefaults();
       applyUiTheme(readStoredUiTheme());
       setIsLoading(false);
+      return;
     }
-  }, [isAuthenticated, authLoading, loadAppearance]);
+
+    if (!session.data?.appearance) return;
+    const data = normalizeAppearance(session.data.appearance);
+    setAppearance(data);
+    applyAppearanceToDocument(data);
+    applyUiTheme(readStoredUiTheme());
+    setIsLoading(false);
+  }, [authLoading, isAuthenticated, session.data?.appearance]);
 
   const value = useMemo(
     () => ({
