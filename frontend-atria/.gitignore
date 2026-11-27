@@ -50,3 +50,4 @@ certificates
 
 # Ferramentas só da máquina de desenvolvimento (seletor de layouts). Não sobem para o git.
 /components/dev/
+/app/toast-teste/

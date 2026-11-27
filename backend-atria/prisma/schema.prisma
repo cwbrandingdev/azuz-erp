@@ -70,6 +70,7 @@ model Company {
   whatsappBroadcasts         WhatsAppBroadcast[]
   whatsappTriggers           WhatsAppTrigger[]
   jhonatanCalendar           JhonatanCalendar[]
+  googleCalendarConnection   GoogleCalendarConnection?
 }
 
 model Role {
@@ -148,6 +149,7 @@ model User {
   whatsappMessagesSent          WhatsAppMessage[]
   whatsappCrmEvents             WhatsAppCrmEvent[]
   jhonatanCalendarsCreated     JhonatanCalendar[]      @relation("JhonatanCalendarCreator")
+  googleCalendarConnections    GoogleCalendarConnection[]
 
   @@unique([companyId, email])
   @@index([clientId])
@@ -2157,4 +2159,17 @@ model JhonatanCalendar {
   @@index([companyId, startAt])
   @@index([leadId])
   @@map("jhonatan_calendar")
+}
+
+model GoogleCalendarConnection {
+  id            String   @id @default(uuid())
+  companyId     String   @unique @map("company_id")
+  refreshToken  String   @map("refresh_token")
+  accountEmail  String?  @map("account_email")
+  connectedById String?  @map("connected_by_id")
+  connectedAt   DateTime @default(now()) @map("connected_at")
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  connectedBy   User?    @relation(fields: [connectedById], references: [id], onDelete: SetNull)
+
+  @@map("google_calendar_connections")
 }

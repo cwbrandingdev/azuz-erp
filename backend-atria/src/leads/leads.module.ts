@@ -15,6 +15,9 @@ import { LeadsService } from './leads.service';
 import { LeadMeetingReminderService } from './lead-meeting-reminder.service';
 import { CrmReminderPushService } from './crm-reminder-push.service';
 import { PushModule } from '../push/push.module';
+import { GoogleConnectionMonitorService } from './google-connection-monitor.service';
+import { GoogleConnectionService } from './google-connection.service';
+import { GoogleConnectionController } from './google-connection.controller';
 
 @Module({
   imports: [
@@ -27,7 +30,7 @@ import { PushModule } from '../push/push.module';
     MailModule,
     PushModule,
   ],
-  controllers: [LeadsController],
+  controllers: [LeadsController, GoogleConnectionController],
   providers: [
     LeadsService,
     GoogleMeetService,
@@ -36,6 +39,8 @@ import { PushModule } from '../push/push.module';
     LeadNotificationService,
     LeadMeetingReminderService,
     CrmReminderPushService,
+    GoogleConnectionMonitorService,
+    GoogleConnectionService,
   ],
   exports: [LeadsService, LeadStagesService, CrmScopeService],
 })

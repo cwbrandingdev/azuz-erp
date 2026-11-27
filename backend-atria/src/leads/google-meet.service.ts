@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { GoogleConnectionService } from './google-connection.service';
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const CALENDAR_EVENTS_URL =
@@ -12,6 +13,12 @@ const CALENDAR_EVENTS_URL =
 const MEET_SPACES_URL = 'https://meet.googleapis.com/v2/spaces';
 const MEET_API_URL = 'https://meet.googleapis.com/v2';
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+export type GoogleConnectionStatus =
+  | 'connected'
+  | 'revoked'
+  | 'unavailable'
+  | 'not_configured';
 
 export interface GoogleMeetInput {
   title: string;
@@ -51,14 +58,38 @@ export class GoogleMeetService {
   private accessToken: string | null = null;
   private accessTokenExpiresAt = 0;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly connection: GoogleConnectionService,
+  ) {}
 
-  isConfigured() {
+  async isConfigured() {
     return Boolean(
       this.read('GOOGLE_CLIENT_ID') &&
         this.read('GOOGLE_CLIENT_SECRET') &&
-        this.read('GOOGLE_REFRESH_TOKEN'),
+        (await this.connection.getRefreshToken()),
     );
+  }
+
+  // Depois de reconectar, o acesso guardado ainda é o da autorização antiga.
+  resetAccessToken() {
+    this.accessToken = null;
+    this.accessTokenExpiresAt = 0;
+  }
+
+  // Pede um token novo, sem usar o guardado, para saber se o Google ainda aceita a autorização.
+  async checkConnection(): Promise<GoogleConnectionStatus> {
+    if (!(await this.isConfigured())) return 'not_configured';
+
+    try {
+      await this.requestAccessToken();
+      return 'connected';
+    } catch (error) {
+      this.logger.warn(
+        `Verificação do Google Calendar falhou: ${readGoogleError(error)}`,
+      );
+      return isAuthorizationRejected(error) ? 'revoked' : 'unavailable';
+    }
   }
 
   async createMeeting(input: GoogleMeetInput): Promise<GoogleMeetResult> {
@@ -395,47 +426,16 @@ export class GoogleMeetService {
       return this.accessToken;
     }
 
-    const clientId = this.read('GOOGLE_CLIENT_ID');
-    const clientSecret = this.read('GOOGLE_CLIENT_SECRET');
-    const refreshToken = this.read('GOOGLE_REFRESH_TOKEN');
-    if (!clientId || !clientSecret || !refreshToken) {
-      throw new BadGatewayException(
-        'O Google Calendar não está conectado.',
-      );
+    if (!(await this.isConfigured())) {
+      throw new BadGatewayException('O Google Calendar não está conectado.');
     }
 
     try {
-      const response = await axios.post(
-        TOKEN_URL,
-        new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          refresh_token: refreshToken,
-          grant_type: 'refresh_token',
-        }),
-        {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          timeout: 15_000,
-        },
-      );
-      const data = response.data as {
-        access_token?: string;
-        expires_in?: number;
-      };
-      if (!data.access_token) {
-        throw new BadGatewayException(
-          'O Google não devolveu um token de acesso.',
-        );
-      }
-      this.accessToken = data.access_token;
-      const expiresIn = data.expires_in ?? 3600;
-      this.accessTokenExpiresAt = Date.now() + Math.max(expiresIn - 60, 30) * 1000;
-      return data.access_token;
+      return await this.requestAccessToken();
     } catch (error) {
       if (error instanceof BadGatewayException) throw error;
-      const googleError = readGoogleError(error);
       this.logger.warn(
-        `Falha ao autenticar no Google Calendar: ${googleError}`,
+        `Falha ao autenticar no Google Calendar: ${readGoogleError(error)}`,
       );
       throw new BadGatewayException(
         'Não foi possível autenticar no Google Calendar. Confira as credenciais.',
@@ -443,11 +443,47 @@ export class GoogleMeetService {
     }
   }
 
+  private async requestAccessToken() {
+    const response = await axios.post(
+      TOKEN_URL,
+      new URLSearchParams({
+        client_id: this.read('GOOGLE_CLIENT_ID') ?? '',
+        client_secret: this.read('GOOGLE_CLIENT_SECRET') ?? '',
+        refresh_token: (await this.connection.getRefreshToken()) ?? '',
+        grant_type: 'refresh_token',
+      }),
+      {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 15_000,
+      },
+    );
+    const data = response.data as {
+      access_token?: string;
+      expires_in?: number;
+    };
+    if (!data.access_token) {
+      throw new BadGatewayException('O Google não devolveu um token de acesso.');
+    }
+    this.accessToken = data.access_token;
+    const expiresIn = data.expires_in ?? 3600;
+    this.accessTokenExpiresAt =
+      Date.now() + Math.max(expiresIn - 60, 30) * 1000;
+    return data.access_token;
+  }
+
   private read(key: string) {
     const value = this.configService.get<string>(key) ?? process.env[key];
     const trimmed = value?.trim();
     return trimmed ? trimmed : undefined;
   }
+}
+
+// invalid_grant: autorização revogada ou expirada. invalid_client: ID ou secret errado.
+// Nos dois casos só uma pessoa resolve.
+function isAuthorizationRejected(error: unknown) {
+  if (!axios.isAxiosError(error)) return false;
+  const data = error.response?.data as { error?: unknown } | undefined;
+  return data?.error === 'invalid_grant' || data?.error === 'invalid_client';
 }
 
 function isMissingMeetPermission(message: string) {
