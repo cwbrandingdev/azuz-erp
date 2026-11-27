@@ -7,5 +7,6 @@ import { AppUpdatesService } from './app-updates.service';
   imports: [NotificationsModule],
   controllers: [AppUpdatesController],
   providers: [AppUpdatesService],
+  exports: [AppUpdatesService],
 })
 export class AppUpdatesModule {}

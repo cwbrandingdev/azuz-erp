@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { FinanceDueToast } from "@/components/financial/finance-due-toast";
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/contexts/auth-context";
-import { useDueTodayAlerts } from "@/hooks/use-finance";
+import { useAppSession } from "@/hooks/use-app-session";
 
 const SESSION_KEY = "atria_finance_due_toast_date";
 const TOAST_ID = "finance-due-alert";
@@ -43,7 +43,8 @@ export function FinanceDueAlertsWatcher() {
     user?.role !== "client" &&
     Boolean(onDashboardOrFinance);
 
-  const { data: alerts } = useDueTodayAlerts({ enabled });
+  const session = useAppSession();
+  const alerts = enabled ? (session.data?.financeDueToday ?? undefined) : undefined;
 
   useEffect(() => {
     if (!enabled || !alerts || firedRef.current) return;

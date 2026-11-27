@@ -17,14 +17,12 @@ import { useAuth } from "@/contexts/auth-context";
 import { useNotifications } from "@/contexts/notifications-context";
 import { useMarkNotificationAsRead } from "@/hooks/use-mark-notification-as-read";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
-import { useDueTodayAlerts } from "@/hooks/use-finance";
+import { useAppSession } from "@/hooks/use-app-session";
 import { formatCurrency } from "@/lib/financial-utils";
 import { isMasterOrAdmin } from "@/lib/permissions";
 import { getNotificationHref } from "@/lib/notification-utils";
 import type { AppNotification } from "@/services/types";
 import { cn } from "@/lib/utils";
-
-const FINANCE_POLL_MS = 60_000;
 
 interface NotificationCenterProps {
   tone?: "light" | "dark";
@@ -39,11 +37,10 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
   const markNotificationAsRead = useMarkNotificationAsRead();
   const [open, setOpen] = useState(false);
   const desktop = usePushNotifications();
-  const { data: financeAlerts = null, refetch: refetchFinanceAlerts } =
-    useDueTodayAlerts({
-      enabled: showFinanceAlerts,
-      refetchInterval: showFinanceAlerts ? FINANCE_POLL_MS : false,
-    });
+  const session = useAppSession();
+  const financeAlerts = showFinanceAlerts
+    ? (session.data?.financeDueToday ?? null)
+    : null;
 
   const financeDueCount = showFinanceAlerts
     ? (financeAlerts?.totals.dueTodayCount ?? 0) +
@@ -67,7 +64,6 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
         setOpen(next);
         if (next) {
           void refresh();
-          if (showFinanceAlerts) void refetchFinanceAlerts();
         }
       }}
     >

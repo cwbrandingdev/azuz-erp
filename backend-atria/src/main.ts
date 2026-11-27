@@ -7,6 +7,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { translateValidationErrors } from './common/validation/validation-messages';
+import { requestQueryCount } from './prisma/prisma.service';
 
 if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
   process.env.DIRECT_URL = process.env.DATABASE_URL;
@@ -29,6 +30,26 @@ async function bootstrap() {
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
   app.use(cookieParser());
+
+  // Load-test only: one source IP would otherwise share a single throttle bucket.
+  // Production leaves this unset, so Fly's proxy address stays the tracker.
+  if (process.env.LOAD_TEST_TRUST_PROXY === '1') {
+    app.set('trust proxy', 1);
+  }
+
+  if (process.env.TRACE_REQUESTS === '1') {
+    app.use((req, res, next) => {
+      const store = { count: 0 };
+      const started = Date.now();
+      res.on('finish', () => {
+        const path = (req.originalUrl ?? req.url ?? '').split('?')[0];
+        console.log(
+          `TRACE ${req.method} ${path} status=${res.statusCode} queries=${store.count} ms=${Date.now() - started}`,
+        );
+      });
+      requestQueryCount.run(store, () => next());
+    });
+  }
 
   const configuredOrigins = (configService.get<string>('CORS_ORIGIN') ?? '')
     .split(',')

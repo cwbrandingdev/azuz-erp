@@ -1,15 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import { useCompanyId } from "@/hooks/use-company-id";
-import { dashboardKeys } from "@/lib/query-keys";
-import { dashboardService } from "@/services";
+import { useAppSession } from "@/hooks/use-app-session";
 
 export function useDashboardOverview() {
-  const companyId = useCompanyId();
+  const session = useAppSession();
 
-  return useQuery({
-    queryKey: dashboardKeys.overview(companyId ?? ""),
-    queryFn: () => dashboardService.getDashboardOverview(),
-    enabled: Boolean(companyId),
-    staleTime: 45_000,
-  });
+  return {
+    ...session,
+    data: session.data?.dashboard ?? undefined,
+  };
 }

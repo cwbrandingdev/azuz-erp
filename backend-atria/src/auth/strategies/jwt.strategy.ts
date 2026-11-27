@@ -3,7 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
-import { resolvePermissions } from '../constants/permissions';
+import {
+  normalizeRoleName,
+  resolvePermissions,
+} from '../constants/permissions';
 import { AuthenticatedUser } from '../decorators/current-user.decorator';
 
 export interface JwtPayload {
@@ -29,6 +32,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
+    const trusted = this.userFromClaims(payload);
+    if (trusted) return trusted;
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
@@ -64,6 +70,34 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       companyId: user.companyId,
       permissions: resolvePermissions(user.role.name),
       isActive: user.isActive,
+    };
+  }
+
+  // A deactivated or deleted account keeps access until this token expires.
+  private userFromClaims(payload: JwtPayload): AuthenticatedUser | null {
+    const role = normalizeRoleName(payload.role ?? '');
+    const email = payload.email?.trim() ?? '';
+    const userId = payload.sub?.trim() ?? '';
+    if (!userId || !role || !/^[^\s@]+@[^\s@]+$/.test(email)) return null;
+    if (payload.category !== 'MEMBER' && payload.category !== 'CLIENT') {
+      return null;
+    }
+    if (typeof payload.companyId !== 'string' || payload.companyId.length === 0) {
+      return null;
+    }
+    if (payload.clientId != null && typeof payload.clientId !== 'string') {
+      return null;
+    }
+
+    return {
+      userId,
+      email,
+      role,
+      category: payload.category,
+      clientId: payload.clientId ?? null,
+      companyId: payload.companyId,
+      permissions: resolvePermissions(role),
+      isActive: true,
     };
   }
 }

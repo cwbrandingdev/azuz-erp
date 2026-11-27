@@ -9,11 +9,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAppSession } from "@/hooks/use-app-session";
 import { getNotificationHref } from "@/lib/notification-utils";
 import { notificationsService } from "@/services";
 import type { AppNotification } from "@/services/types";
-
-const POLL_INTERVAL_MS = 60_000;
 
 interface NotificationsContextValue {
   notifications: AppNotification[];
@@ -77,44 +77,26 @@ export function NotificationsProvider({
   const notificationsRef = useRef(notifications);
   notificationsRef.current = notifications;
   const knownIdsRef = useRef<Set<string> | null>(null);
+  const queryClient = useQueryClient();
+  const session = useAppSession();
 
   const refresh = useCallback(async () => {
-    try {
-      const [list, count] = await Promise.all([
-        notificationsService.getNotifications(),
-        notificationsService.getUnreadCount(),
-      ]);
-      showInboundToasts(list, knownIdsRef.current);
-      knownIdsRef.current = new Set(list.map((item) => item.id));
-      setNotifications(list);
-      setUnreadCount(normalizeCount(count));
-    } catch {
-      setNotifications([]);
-      setUnreadCount(0);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await queryClient.invalidateQueries({ queryKey: ["app-session"] });
+  }, [queryClient]);
 
   useEffect(() => {
-    void refresh();
-    const interval = window.setInterval(() => {
-      void refresh();
-    }, POLL_INTERVAL_MS);
-
-    function onVisibility() {
-      if (document.visibilityState === "visible") {
-        void refresh();
-      }
+    if (!session.data) {
+      if (session.isError || session.isFetched) setLoading(false);
+      return;
     }
 
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [refresh]);
+    const list = session.data.notifications;
+    showInboundToasts(list, knownIdsRef.current);
+    knownIdsRef.current = new Set(list.map((item) => item.id));
+    setNotifications(list);
+    setUnreadCount(normalizeCount(session.data.unreadCount));
+    setLoading(false);
+  }, [session.data, session.isError, session.isFetched]);
 
   const markAsRead = useCallback(async (id: string) => {
     const target = notificationsRef.current.find((item) => item.id === id);
@@ -130,14 +112,9 @@ export function NotificationsProvider({
     try {
       await notificationsService.markAsRead(id);
     } catch {
-      const [list, count] = await Promise.all([
-        notificationsService.getNotifications(),
-        notificationsService.getUnreadCount(),
-      ]);
-      setNotifications(list);
-      setUnreadCount(normalizeCount(count));
+      await queryClient.invalidateQueries({ queryKey: ["app-session"] });
     }
-  }, []);
+  }, [queryClient]);
 
   const markAllAsRead = useCallback(async () => {
     setNotifications((current) =>
@@ -148,14 +125,9 @@ export function NotificationsProvider({
     try {
       await notificationsService.markAllAsRead();
     } catch {
-      const [list, count] = await Promise.all([
-        notificationsService.getNotifications(),
-        notificationsService.getUnreadCount(),
-      ]);
-      setNotifications(list);
-      setUnreadCount(normalizeCount(count));
+      await queryClient.invalidateQueries({ queryKey: ["app-session"] });
     }
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({
