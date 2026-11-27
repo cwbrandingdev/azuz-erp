@@ -61,12 +61,13 @@ export function AgencyLogo({
             className={cn(
               "font-black tracking-tighter text-[var(--atria-primary)]",
               dimensions.text,
+              variant === "login" && "dark:text-[#003535]",
             )}
           >
             {branding.agencyName.charAt(0).toUpperCase()}
           </span>
           {variant === "login" && (
-            <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--atria-primary)] bg-emerald-400" />
+            <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--atria-primary)] bg-emerald-400 dark:border-[#001a1a]" />
           )}
         </div>
       )}
