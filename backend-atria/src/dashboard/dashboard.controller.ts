@@ -15,12 +15,7 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('overview')
-  @Roles(
-    RoleName.MASTER,
-    RoleName.ADMIN,
-    RoleName.DESIGNER_MASTER,
-    RoleName.DESIGNER_JUNIOR,
-  )
+  @Roles(RoleName.MASTER, RoleName.ADMIN)
   getOverview(@CurrentUser() user: AuthenticatedUser) {
     return this.dashboardService.getOverview(user.userId, user.role);
   }

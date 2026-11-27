@@ -141,7 +141,7 @@ export function StudioHome() {
 
   async function handleOpenNotification(notification: AppNotification) {
     await markNotificationAsRead(notification);
-    router.push(getNotificationHref(notification));
+    router.push(getNotificationHref(notification, user?.role));
   }
 
   const userName = user?.name?.split(" ")[0] ?? "designer";

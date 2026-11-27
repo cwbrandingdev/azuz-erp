@@ -37,12 +37,7 @@ export function canAccessStaffDashboard(
   role: string | null | undefined,
 ): boolean {
   const normalized = normalizeAppRole(role);
-  return (
-    normalized === "master" ||
-    normalized === "admin" ||
-    normalized === "designer_master" ||
-    normalized === "designer_junior"
-  );
+  return normalized === "master" || normalized === "admin";
 }
 
 export function canAccessClientDirectory(

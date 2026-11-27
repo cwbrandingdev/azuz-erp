@@ -1,4 +1,9 @@
+import { isDesignerRole } from "@/lib/roles";
 import type { AppNotification, NotificationType } from "@/services/types";
+
+function notificationInboxHref(role?: string | null) {
+  return isDesignerRole(role) ? "/studio" : "/dashboard?tab=notifications";
+}
 
 export type NotificationCategory =
   | "due_date"
@@ -43,7 +48,10 @@ export function getNotificationCategory(
   return "status_update";
 }
 
-export function getNotificationHref(notification: AppNotification): string {
+export function getNotificationHref(
+  notification: AppNotification,
+  role?: string | null,
+): string {
   const taskId = notification.taskId?.trim();
 
   switch (notification.type) {
@@ -71,9 +79,9 @@ export function getNotificationHref(notification: AppNotification): string {
       }
       return taskId
         ? `/kanban?taskId=${encodeURIComponent(taskId)}`
-        : "/dashboard?tab=notifications";
+        : notificationInboxHref(role);
     default:
-      return "/dashboard?tab=notifications";
+      return notificationInboxHref(role);
   }
 }
 

@@ -20,6 +20,7 @@ import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useAppSession } from "@/hooks/use-app-session";
 import { formatCurrency } from "@/lib/financial-utils";
 import { isMasterOrAdmin } from "@/lib/permissions";
+import { isDesignerRole } from "@/lib/roles";
 import { getNotificationHref } from "@/lib/notification-utils";
 import type { AppNotification } from "@/services/types";
 import { cn } from "@/lib/utils";
@@ -54,7 +55,7 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
     if (!notification.isRead) {
       await markNotificationAsRead(notification);
     }
-    router.push(getNotificationHref(notification));
+    router.push(getNotificationHref(notification, user?.role));
   }
 
   return (
@@ -217,7 +218,15 @@ export function NotificationCenter({ tone = "light" }: NotificationCenterProps) 
             variant="ghost"
             size="sm"
             className="w-full justify-center text-[var(--atria-primary)]"
-            render={<Link href="/dashboard?tab=notifications" />}
+            render={
+              <Link
+                href={
+                  isDesignerRole(user?.role)
+                    ? "/studio"
+                    : "/dashboard?tab=notifications"
+                }
+              />
+            }
             onClick={() => setOpen(false)}
           >
             Ver todas as notificações
