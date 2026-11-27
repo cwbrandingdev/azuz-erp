@@ -5,7 +5,7 @@ import {
   companySettingsKeys,
   dashboardKeys,
   financeKeys,
-  taskKeys,
+  kanbanBoardKeys,
 } from "@/lib/query-keys";
 import {
   clientRequestsService,
@@ -96,9 +96,9 @@ export function prefetchNavRoute(
 
   if (href === "/kanban" || href.startsWith("/kanban?")) {
     void queryClient.prefetchQuery({
-      queryKey: taskKeys.all(companyId),
-      queryFn: () => kanbanService.getTasks(),
-      staleTime: 10_000,
+      queryKey: kanbanBoardKeys.page(companyId),
+      queryFn: () => kanbanService.getBoard(),
+      staleTime: 15_000,
     });
   }
 }

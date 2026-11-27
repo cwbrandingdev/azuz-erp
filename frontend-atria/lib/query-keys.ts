@@ -3,6 +3,12 @@ export const taskKeys = {
   root: ["tasks"] as const,
 };
 
+export const kanbanBoardKeys = {
+  root: ["kanban-board"] as const,
+  page: (companyId: string, filtersKey = "default") =>
+    [...kanbanBoardKeys.root, companyId, filtersKey] as const,
+};
+
 export const tvMonitoringKeys = {
   all: (companyId: string) => ["tv-monitoring", companyId] as const,
   root: ["tv-monitoring"] as const,

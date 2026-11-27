@@ -155,6 +155,9 @@ const PRIORITY_LABELS: Record<KanbanTaskPriority, string> = {
 
 @Injectable()
 export class KanbanService {
+  private statusColumnsReady = false;
+  private ensureStatusColumnsInFlight: Promise<void> | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
@@ -166,7 +169,7 @@ export class KanbanService {
   ) {}
 
   async getColumns() {
-    await this.ensureStatusColumns();
+    await this.ensureStatusColumnsForRead();
 
     const columns = await this.prisma.kanbanColumn.findMany({
       where: { statusKey: { not: null } },
@@ -262,7 +265,7 @@ export class KanbanService {
   }
 
   async getBoard(query: QueryKanbanBoardDto) {
-    await this.ensureStatusColumns();
+    await this.ensureStatusColumnsForRead();
 
     const columns = await this.prisma.kanbanColumn.findMany({
       where: { statusKey: { not: null } },
@@ -1600,20 +1603,42 @@ export class KanbanService {
     }));
   }
 
+  private async ensureStatusColumnsForRead(): Promise<void> {
+    if (this.statusColumnsReady) {
+      return;
+    }
+    if (!this.ensureStatusColumnsInFlight) {
+      this.ensureStatusColumnsInFlight = this.ensureStatusColumns()
+        .then(() => {
+          this.statusColumnsReady = true;
+        })
+        .finally(() => {
+          this.ensureStatusColumnsInFlight = null;
+        });
+    }
+    await this.ensureStatusColumnsInFlight;
+  }
+
   private async ensureStatusColumns() {
     const existing = await this.prisma.kanbanColumn.findMany();
 
     for (const def of KANBAN_STATUS_DEFINITIONS) {
       const match = existing.find((column) => column.statusKey === def.status);
       if (match) {
-        await this.prisma.kanbanColumn.update({
-          where: { id: match.id },
-          data: {
-            title: def.title,
-            color: def.color,
-            order: def.order,
-          },
-        });
+        if (
+          match.title !== def.title ||
+          match.color !== def.color ||
+          match.order !== def.order
+        ) {
+          await this.prisma.kanbanColumn.update({
+            where: { id: match.id },
+            data: {
+              title: def.title,
+              color: def.color,
+              order: def.order,
+            },
+          });
+        }
       } else {
         await this.prisma.kanbanColumn.create({
           data: {
@@ -1669,6 +1694,9 @@ export class KanbanService {
     }
 
     const legacyColumns = existing.filter((column) => !column.statusKey);
+    const needsTaskStatusRepair =
+      deprecatedColumns.length > 0 || legacyColumns.length > 0;
+
     if (legacyColumns.length > 0) {
       const typeToStatus: Partial<Record<KanbanColumnType, KanbanTaskStatus>> = {
         [KanbanColumnType.TO_DO]: KanbanTaskStatus.PRODUCAO,
@@ -1697,21 +1725,36 @@ export class KanbanService {
       }
     }
 
+    if (!needsTaskStatusRepair) {
+      return;
+    }
+
     const tasks = await this.prisma.kanbanTask.findMany({
-      include: { column: true },
+      where: { deletedAt: null },
+      select: {
+        id: true,
+        status: true,
+        column: { select: { statusKey: true } },
+      },
     });
 
-    for (const task of tasks) {
-      if (
-        task.column.statusKey &&
-        task.status !== task.column.statusKey
-      ) {
-        await this.prisma.kanbanTask.update({
-          where: { id: task.id },
-          data: { status: task.column.statusKey },
-        });
-      }
+    const mismatched = tasks.filter(
+      (task) =>
+        task.column.statusKey && task.status !== task.column.statusKey,
+    );
+
+    if (mismatched.length === 0) {
+      return;
     }
+
+    await this.prisma.$transaction(
+      mismatched.map((task) =>
+        this.prisma.kanbanTask.update({
+          where: { id: task.id },
+          data: { status: task.column.statusKey! },
+        }),
+      ),
+    );
   }
 
   private async resolveColumnForStatus(status: KanbanTaskStatus) {
