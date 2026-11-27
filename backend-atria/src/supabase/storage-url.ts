@@ -59,6 +59,27 @@ export function extractStorageLocation(
   return null;
 }
 
+/** Point a stored Supabase public or signed URL at the R2 object with the same key. */
+export function rewriteLegacyStorageUrl(
+  mediaUrl: string,
+  r2PublicBaseUrl?: string | null,
+): string {
+  if (!r2PublicBaseUrl?.trim()) return mediaUrl;
+
+  const location = extractStorageLocation(mediaUrl, r2PublicBaseUrl);
+  if (!location) return mediaUrl;
+
+  try {
+    const url = new URL(mediaUrl);
+    const base = new URL(normalizePublicBaseUrl(r2PublicBaseUrl));
+    if (url.origin === base.origin) return mediaUrl;
+  } catch {
+    return mediaUrl;
+  }
+
+  return publicObjectUrl(r2PublicBaseUrl, location.bucket, location.path);
+}
+
 export function extractObjectPathFromPublicUrl(
   publicUrl: string,
   bucket: string,

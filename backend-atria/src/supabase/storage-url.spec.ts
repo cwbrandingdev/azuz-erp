@@ -3,6 +3,7 @@ import {
   extractStorageLocation,
   publicObjectUrl,
   r2ObjectKey,
+  rewriteLegacyStorageUrl,
 } from './storage-url';
 
 const R2_BASE = 'https://pub-1b35d92415fc4e6fbfe0af7fbd5a7ea4.r2.dev';
@@ -43,6 +44,20 @@ describe('storage urls', () => {
     expect(
       extractObjectPathFromPublicUrl(mediaUrl, 'deliverables', R2_BASE),
     ).toBe(null);
+  });
+
+  it('rewrites a Supabase public url onto the R2 public base', () => {
+    const mediaUrl =
+      'https://sktjeijgyvulpzuzbmff.supabase.co/storage/v1/object/public/deliverables/35d28ed3-6371-436e-9b7e-986b3377d334/4bccca58-543d-4ce4-a017-b35f774548ac/49d13ad5-ca86-4441-8e06-e767cc1259c0.mp4';
+
+    expect(rewriteLegacyStorageUrl(mediaUrl, R2_BASE)).toBe(
+      `${R2_BASE}/deliverables/35d28ed3-6371-436e-9b7e-986b3377d334/4bccca58-543d-4ce4-a017-b35f774548ac/49d13ad5-ca86-4441-8e06-e767cc1259c0.mp4`,
+    );
+  });
+
+  it('leaves an R2 url unchanged', () => {
+    const mediaUrl = `${R2_BASE}/avatars/users/photo%20a.png`;
+    expect(rewriteLegacyStorageUrl(mediaUrl, `${R2_BASE}/`)).toBe(mediaUrl);
   });
 
   it('ignores urls from another host', () => {
