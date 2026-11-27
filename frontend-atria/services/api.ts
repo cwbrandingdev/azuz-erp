@@ -133,6 +133,9 @@ export async function apiRequest<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { body, headers, skipAuth, skipToast, timeoutMs, ...rest } = options;
+  // Consultas costumam rodar sozinhas, em segundo plano. Falha de rede ou tempo
+  // esgotado nelas não deve interromper quem está usando a tela.
+  const isRead = (rest.method ?? "GET").toUpperCase() === "GET";
 
   const makeRequest = async (token: string | null) => {
     try {
@@ -151,7 +154,7 @@ export async function apiRequest<T>(
         timeoutMs,
       );
     } catch (error) {
-      notifyTransportError(error, endpoint, skipToast);
+      notifyTransportError(error, endpoint, skipToast || isRead);
       throw error;
     }
   };
