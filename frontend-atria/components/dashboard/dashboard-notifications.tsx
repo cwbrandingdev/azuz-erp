@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, ChevronDown } from "lucide-react";
 import { NotificationItem } from "@/components/notifications/notification-item";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/contexts/notifications-context";
 import { useMarkNotificationAsRead } from "@/hooks/use-mark-notification-as-read";
+import { useCollapsedNotificationSections } from "@/hooks/use-collapsed-notification-sections";
 import {
   getNotificationHref,
   groupNotificationsByCategory,
@@ -22,6 +23,7 @@ export function DashboardNotifications() {
     useNotifications();
   const markNotificationAsRead = useMarkNotificationAsRead();
   const [filter, setFilter] = useState<ReadFilter>("all");
+  const { isCollapsed, toggle } = useCollapsedNotificationSections();
 
   const visible = useMemo(
     () =>
@@ -108,34 +110,64 @@ export function DashboardNotifications() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          {groups.map((group) => (
-            <div key={group.category} className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xs font-semibold tracking-[0.14em] text-[var(--atria-primary)]/45 uppercase">
-                  {group.label}
+          {groups.map((group) => {
+            const collapsed = isCollapsed(group.category);
+            const unread = group.items.filter((item) => !item.isRead).length;
+            const listId = `notification-section-${group.category}`;
+
+            return (
+              <div key={group.category} className="flex flex-col gap-2">
+                <h2>
+                  <button
+                    type="button"
+                    onClick={() => toggle(group.category)}
+                    aria-expanded={!collapsed}
+                    aria-controls={listId}
+                    className="flex w-full items-center justify-between gap-3 rounded-lg px-1 py-2 text-left transition-colors hover:bg-[var(--atria-primary)]/5"
+                  >
+                    <span className="flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-[var(--atria-primary)]/45 uppercase">
+                      <ChevronDown
+                        className={cn(
+                          "size-4 transition-transform",
+                          collapsed && "-rotate-90",
+                        )}
+                        aria-hidden
+                      />
+                      {group.label}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[11px] font-bold",
+                        "bg-[var(--atria-primary)]/8 text-[var(--atria-primary)]/70",
+                      )}
+                    >
+                      {group.items.length}
+                      {unread > 0
+                        ? ` · ${unread} não ${unread === 1 ? "lida" : "lidas"}`
+                        : ""}
+                    </span>
+                  </button>
                 </h2>
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[11px] font-bold",
-                    "bg-[var(--atria-primary)]/8 text-[var(--atria-primary)]/70",
-                  )}
+                <ul
+                  id={listId}
+                  hidden={collapsed}
+                  className="flex flex-col gap-1.5 rounded-2xl border border-[var(--atria-primary)]/10 bg-white/70 p-2 dark:bg-card/50"
                 >
-                  {group.items.length}
-                </span>
+                  {group.items.map((notification) => (
+                    <li key={notification.id}>
+                      <NotificationItem
+                        notification={notification}
+                        onOpen={(item) => void handleOpen(item)}
+                        onMarkAsRead={(item) =>
+                          void markNotificationAsRead(item)
+                        }
+                      />
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="flex flex-col gap-1.5 rounded-2xl border border-[var(--atria-primary)]/10 bg-white/70 p-2 dark:bg-card/50">
-                {group.items.map((notification) => (
-                  <li key={notification.id}>
-                    <NotificationItem
-                      notification={notification}
-                      onOpen={(item) => void handleOpen(item)}
-                      onMarkAsRead={(item) => void markNotificationAsRead(item)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
