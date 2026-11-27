@@ -4,6 +4,7 @@ import {
   BellPlus,
   ChevronDown,
   ChevronUp,
+  GripVertical,
   Lock,
   MessageCircle,
   MessagesSquare,
@@ -25,7 +26,7 @@ import {
 } from "@/lib/lead-cnpj";
 import { LeadCallButton } from "@/components/leads/lead-call-button";
 import { LeadLastCallLine } from "@/components/leads/lead-last-call-line";
-import { DragHandleStrip } from "@/components/kanban/drag-handle-strip";
+import { cn } from "@/lib/utils";
 import { LeadMeetingDialog } from "@/components/leads/lead-meeting-dialog";
 import { LeadReminderDialog } from "@/components/leads/lead-reminder-dialog";
 import { LeadOrcamentoInput } from "@/components/leads/lead-orcamento-input";
@@ -56,7 +57,7 @@ interface LeadKanbanCardProps {
   crmMoveZone?: CrmMoveZone;
   columnLocked?: boolean;
   portalClientView?: boolean;
-  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
   onStatusChange: (leadId: string, columnKey: string) => void;
   onCollapseChange: (leadId: string, isMinimized: boolean) => void;
   onOpenDetails: (lead: Lead) => void;
@@ -179,7 +180,11 @@ export function LeadKanbanCard({
 
   return (
     <div
-      className="group relative rounded-xl border bg-white p-3 pl-9 shadow-sm"
+      {...dragHandleProps}
+      className={cn(
+        "group relative rounded-xl border bg-white p-3 pl-9 shadow-sm",
+        !columnLocked && "cursor-grab active:cursor-grabbing",
+      )}
       style={{ borderLeftWidth: 3, borderLeftColor: color }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -192,11 +197,12 @@ export function LeadKanbanCard({
           <Lock className="size-4" />
         </span>
       ) : (
-        <DragHandleStrip
-          label="Arrastar lead"
-          className="absolute inset-y-0 left-0 w-7 rounded-l-xl rounded-r-none"
-          {...dragHandleProps}
-        />
+        <span
+          className="absolute inset-y-0 left-0 flex w-7 items-center justify-center text-[var(--atria-primary)]/35 group-hover:text-[var(--atria-primary)]/70"
+          aria-hidden
+        >
+          <GripVertical className="size-4" />
+        </span>
       )}
 
       {columnLocked && hovered && (
@@ -212,12 +218,19 @@ export function LeadKanbanCard({
             value={lead.name}
             copyLabel="Nome"
             className="mb-0.5"
-            textClassName="truncate text-sm font-semibold text-[var(--atria-primary)]"
+            textClassName="flex-initial truncate text-sm font-semibold text-[var(--atria-primary)]"
           />
-          <button
-            type="button"
-            className="w-full text-left"
+          <div
+            role="button"
+            tabIndex={0}
+            className="w-full cursor-pointer text-left"
             onClick={() => onOpenDetails(lead)}
+            onKeyDown={(event) => {
+              // Só Enter: o espaço é a tecla que a biblioteca usa para arrastar.
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              onOpenDetails(lead);
+            }}
           >
             {lead.contactName?.trim() && (
               <p className="mt-0.5 truncate text-xs text-[var(--atria-primary)]/60">
@@ -254,7 +267,7 @@ export function LeadKanbanCard({
               {statusLabel}
             </p>
           )}
-        </button>
+          </div>
         </div>
         <Button
           type="button"
@@ -289,6 +302,7 @@ export function LeadKanbanCard({
                 value={toNativeDialString(lead.phone) ?? lead.phone}
                 display={lead.phone}
                 copyLabel="Telefone"
+                textClassName="flex-initial"
               />
             ) : (
               <span>Sem telefone</span>
@@ -302,16 +316,29 @@ export function LeadKanbanCard({
                     : extractCnpjFromLead(lead)!
                 }
                 copyLabel="CNPJ"
+                textClassName="flex-initial"
               />
             ) : null}
             {lead.email ? (
-              <CopyableText value={lead.email} copyLabel="E-mail" />
+              <CopyableText
+                value={lead.email}
+                copyLabel="E-mail"
+                textClassName="flex-initial"
+              />
             ) : null}
             {lead.website ? (
-              <CopyableText value={lead.website} copyLabel="Website" />
+              <CopyableText
+                value={lead.website}
+                copyLabel="Website"
+                textClassName="flex-initial"
+              />
             ) : null}
             {lead.instagram ? (
-              <CopyableText value={lead.instagram} copyLabel="Instagram" />
+              <CopyableText
+                value={lead.instagram}
+                copyLabel="Instagram"
+                textClassName="flex-initial"
+              />
             ) : null}
             {(lead.neighborhood || lead.city || lead.address) && (
               <LeadLocationText

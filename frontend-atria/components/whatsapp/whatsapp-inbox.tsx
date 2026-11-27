@@ -84,6 +84,7 @@ import {
   mergeServerMessages,
 } from "@/lib/whatsapp-inbox-messages";
 import {
+  isSameWhatsAppPhone,
   normalizeWhatsAppPhone,
   validateNormalizedWhatsAppPhone,
 } from "@/lib/whatsapp-phone";
@@ -587,10 +588,28 @@ export function WhatsappInbox({
   });
 
   const selected =
-    conversations.find((item) => item.phone === selectedPhone) ?? null;
+    conversations.find((item) => item.phone === selectedPhone) ??
+    conversations.find(
+      (item) =>
+        selectedPhone && isSameWhatsAppPhone(item.phone, selectedPhone),
+    ) ??
+    null;
 
   // O lead de onde o usuário veio (card do kanban) só vale para a conversa aberta pelo link.
-  const leadHint = selectedPhone === initialPhone ? initialLeadId : undefined;
+  const leadHint = 
+    selectedPhone &&
+    initialPhone &&
+    isSameWhatsAppPhone(selectedPhone, initialPhone)
+      ? initialLeadId
+      : undefined;
+
+  // Passa a usar o número gravado na conversa, que pode estar sem o 9.
+  const storedPhone = selected?.phone;
+  useEffect(() => {
+    if (storedPhone && storedPhone !== selectedPhone) {
+      setSelectedPhone(storedPhone);
+    }
+  }, [storedPhone, selectedPhone]);
   const crmContext = useWhatsappCrm(selectedPhone, leadHint);
   // Conversa nova ainda não tem nome: usa o do lead vinculado.
   const defaultName = selected?.name ?? crmContext.data?.contact?.name ?? "";

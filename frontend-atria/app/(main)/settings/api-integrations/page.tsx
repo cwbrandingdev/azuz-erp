@@ -1,6 +1,7 @@
 "use client";
 
 import { ApiIntegrationsCustomizer } from "@/components/settings/api-integrations-customizer";
+import { GoogleCalendarCard } from "@/components/settings/google-calendar-card";
 
 export default function SettingsApiIntegrationsPage() {
   return (
@@ -14,6 +15,7 @@ export default function SettingsApiIntegrationsPage() {
           empresa
         </p>
       </div>
+      <GoogleCalendarCard />
       <ApiIntegrationsCustomizer />
     </div>
   );
