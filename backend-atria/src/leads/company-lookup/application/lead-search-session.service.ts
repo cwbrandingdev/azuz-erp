@@ -121,6 +121,8 @@ export class LeadSearchSessionService {
       name: query.name,
       openedFrom,
       openedTo,
+      city: query.city?.trim(),
+      uf: query.uf?.trim(),
       page,
       pageSize,
     });

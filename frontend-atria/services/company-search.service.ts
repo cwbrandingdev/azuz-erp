@@ -31,6 +31,8 @@ export interface LeadSearchSessionPageQuery {
   name?: string;
   openedFrom?: string;
   openedTo?: string;
+  city?: string;
+  uf?: string;
 }
 
 export interface CnaeClassOption {
@@ -197,6 +199,8 @@ export async function searchCompaniesByOpenedAt(
   if (query.name?.trim()) params.set("name", query.name.trim());
   if (query.openedFrom?.trim()) params.set("openedFrom", query.openedFrom.trim());
   if (query.openedTo?.trim()) params.set("openedTo", query.openedTo.trim());
+  if (query.city?.trim()) params.set("city", query.city.trim());
+  if (query.uf?.trim()) params.set("uf", query.uf.trim().toUpperCase());
 
   return companySearchRequest<OpenedAtCompaniesResponse>(
     `/leads/by-opening-date?${params.toString()}`,

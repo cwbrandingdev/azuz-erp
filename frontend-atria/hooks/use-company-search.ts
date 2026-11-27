@@ -73,6 +73,8 @@ export function useCompaniesByOpenedAt(
   const name = query.name?.trim() ?? "";
   const openedFrom = query.openedFrom?.trim() ?? "";
   const openedTo = query.openedTo?.trim() ?? "";
+  const city = query.city?.trim() ?? "";
+  const uf = query.uf?.trim().toUpperCase() ?? "";
   const active = enabled && Boolean(openedFrom || openedTo);
 
   return useQuery({
@@ -83,6 +85,8 @@ export function useCompaniesByOpenedAt(
       name,
       openedFrom,
       openedTo,
+      city,
+      uf,
     ],
     queryFn: () =>
       searchCompaniesByOpenedAt({
@@ -91,6 +95,8 @@ export function useCompaniesByOpenedAt(
         name: name || undefined,
         openedFrom: openedFrom || undefined,
         openedTo: openedTo || undefined,
+        ...(city ? { city } : {}),
+        ...(uf ? { uf } : {}),
       }),
     enabled: active,
     ...LEAD_SEARCH_QUERY_OPTIONS,

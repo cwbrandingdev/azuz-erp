@@ -148,6 +148,8 @@ export class ProspectCompanyCatalogService {
     name?: string;
     openedFrom?: string;
     openedTo?: string;
+    city?: string;
+    uf?: string;
     page?: number;
     pageSize?: number;
   }): Promise<CatalogSearchPageResult> {
@@ -159,12 +161,25 @@ export class ProspectCompanyCatalogService {
     const openedFrom = this.parseDayStart(params.openedFrom);
     const openedTo = this.parseDayEnd(params.openedTo, params.openedFrom);
     const name = params.name?.trim() ?? '';
+    const uf = params.uf?.trim().toUpperCase() ?? '';
+    const cityNormalized = params.city?.trim()
+      ? normalizeCatalogText(params.city)
+      : '';
 
     if (!openedFrom && !openedTo) {
       return { items: [], totalCount: 0, page, pageSize };
     }
 
     const where: Prisma.ProspectCompanyWhereInput = {
+      ...(uf ? { uf } : {}),
+      ...(cityNormalized
+        ? {
+            OR: [
+              { cityNormalized },
+              { cityNormalized: { contains: cityNormalized } },
+            ],
+          }
+        : {}),
       openedAt: {
         ...(openedFrom ? { gte: openedFrom } : {}),
         ...(openedTo ? { lte: openedTo } : {}),

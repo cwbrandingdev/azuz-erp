@@ -37,4 +37,14 @@ export class LeadSearchSessionQueryDto {
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   openedTo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  uf?: string;
 }

@@ -14,7 +14,7 @@ import {
 } from "@/components/leads/company-search-form";
 import { ProspectingLeadsList } from "@/components/leads/prospecting-leads-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel, FieldSet, FieldLegend } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -56,6 +56,17 @@ function isCrmRole(role: string | null | undefined) {
   return normalizeAppRole(role) === "crm";
 }
 
+type OpeningDateFilterScope = "lastSearch" | "city" | "all";
+
+const OPENING_DATE_SCOPE_OPTIONS: {
+  id: OpeningDateFilterScope;
+  label: string;
+}[] = [
+  { id: "lastSearch", label: "Última busca CNAE" },
+  { id: "city", label: "Cidade preenchida no formulário" },
+  { id: "all", label: "Todo o catálogo" },
+];
+
 interface CompanySearchPanelProps {
   modeTabs?: ReactNode;
 }
@@ -90,8 +101,49 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
   const [pendingKanbanLeads, setPendingKanbanLeads] = useState<Lead[]>([]);
   const [confirmingKanban, setConfirmingKanban] = useState(false);
+  const [openingDateScope, setOpeningDateScope] =
+    useState<OpeningDateFilterScope>("lastSearch");
 
   const dateFilterActive = Boolean(openedFrom || openedTo);
+  const formCityFilled = Boolean(
+    formValues.city.trim() && formValues.uf.trim(),
+  );
+  const useSessionScopedDateFilter =
+    dateFilterActive &&
+    openingDateScope === "lastSearch" &&
+    Boolean(selectedSessionId);
+  const useOpenedAtCatalogFilter =
+    dateFilterActive &&
+    (openingDateScope === "all" ||
+      (openingDateScope === "city" && formCityFilled));
+  const sessionLeadsQueryEnabled =
+    Boolean(selectedSessionId) &&
+    (!dateFilterActive || useSessionScopedDateFilter);
+  const openedAtCatalogQuery = useMemo(
+    () => ({
+      page,
+      pageSize: CATALOG_PAGE_SIZE,
+      name: debouncedName || undefined,
+      openedFrom: openedFrom || undefined,
+      openedTo: openedTo || undefined,
+      ...(openingDateScope === "city" && formCityFilled
+        ? {
+            city: formValues.city.trim(),
+            uf: formValues.uf.trim().toUpperCase(),
+          }
+        : {}),
+    }),
+    [
+      page,
+      debouncedName,
+      openedFrom,
+      openedTo,
+      openingDateScope,
+      formCityFilled,
+      formValues.city,
+      formValues.uf,
+    ],
+  );
 
   const sessionsQuery = useLeadSearchSessions();
   const sessionLeadsQuery = useLeadSearchSessionLeads(
@@ -100,18 +152,18 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
       page,
       pageSize: CATALOG_PAGE_SIZE,
       name: debouncedName || undefined,
+      ...(useSessionScopedDateFilter
+        ? {
+            openedFrom: openedFrom || undefined,
+            openedTo: openedTo || undefined,
+          }
+        : {}),
     },
-    !dateFilterActive,
+    sessionLeadsQueryEnabled,
   );
   const openedAtQuery = useCompaniesByOpenedAt(
-    {
-      page,
-      pageSize: CATALOG_PAGE_SIZE,
-      name: debouncedName || undefined,
-      openedFrom: openedFrom || undefined,
-      openedTo: openedTo || undefined,
-    },
-    dateFilterActive,
+    openedAtCatalogQuery,
+    useOpenedAtCatalogFilter,
   );
   const searchMutation = useCompanySearchMutation();
 
@@ -163,19 +215,48 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
   }, [hasAutoSelectedSession, loadingSessions, selectedSessionId, sessions]);
 
   useEffect(() => {
-    if (!dateFilterActive || !openedAtQuery.isError) return;
+    if (!useOpenedAtCatalogFilter || !openedAtQuery.isError) return;
     setActiveLeads([]);
     setTotalCount(0);
     toast.error("Não foi possível buscar empresas por data de abertura.");
-  }, [dateFilterActive, openedAtQuery.isError, openedAtQuery.errorUpdatedAt]);
+  }, [
+    useOpenedAtCatalogFilter,
+    openedAtQuery.isError,
+    openedAtQuery.errorUpdatedAt,
+  ]);
 
   useEffect(() => {
-    if (dateFilterActive) {
+    if (useSessionScopedDateFilter) {
+      if (sessionLeadsQuery.isError) return;
+      if (sessionLeadsQuery.data) {
+        setActiveLeads(sessionLeadsQuery.data.leads);
+        setTotalCount(sessionLeadsQuery.data.totalCount);
+      }
+      return;
+    }
+
+    if (useOpenedAtCatalogFilter) {
       if (openedAtQuery.isError) return;
       if (openedAtQuery.data) {
         setActiveLeads(openedAtQuery.data.leads);
         setTotalCount(openedAtQuery.data.totalCount);
       }
+      return;
+    }
+
+    if (
+      dateFilterActive &&
+      openingDateScope === "lastSearch" &&
+      !selectedSessionId
+    ) {
+      setActiveLeads([]);
+      setTotalCount(0);
+      return;
+    }
+
+    if (dateFilterActive && openingDateScope === "city" && !formCityFilled) {
+      setActiveLeads([]);
+      setTotalCount(0);
       return;
     }
 
@@ -191,10 +272,15 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
     }
   }, [
     dateFilterActive,
+    formCityFilled,
+    openingDateScope,
+    useSessionScopedDateFilter,
+    useOpenedAtCatalogFilter,
     openedAtQuery.data,
     openedAtQuery.isError,
-    selectedSessionId,
     sessionLeadsQuery.data,
+    sessionLeadsQuery.isError,
+    selectedSessionId,
     searchMutation.data,
   ]);
 
@@ -208,10 +294,12 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
 
   const loadingResults =
     searching ||
-    (dateFilterActive
+    (useOpenedAtCatalogFilter
       ? openedAtQuery.isLoading || openedAtQuery.isFetching
-      : loadingSessionLeads ||
-        (Boolean(selectedSessionId) && sessionLeadsQuery.isFetching));
+      : useSessionScopedDateFilter
+        ? sessionLeadsQuery.isLoading || sessionLeadsQuery.isFetching
+        : loadingSessionLeads ||
+          (Boolean(selectedSessionId) && sessionLeadsQuery.isFetching));
 
   const handleSearch = useCallback(() => {
     const queryValue = formValues.queryValue.trim();
@@ -250,6 +338,7 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
         setActiveLeads(data.leads);
         setTotalCount(data.totalCount);
         setSelectedSessionId(data.session.id);
+        setOpeningDateScope("lastSearch");
         setHasAutoSelectedSession(true);
         void queryClient.invalidateQueries({ queryKey: PROSPECTING_LEADS_KEY });
 
@@ -291,7 +380,13 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
       current.map((item) => (matches(item) ? updated : item)),
     );
 
-    if (dateFilterActive) {
+    if (useOpenedAtCatalogFilter) {
+      const catalogCity =
+        openingDateScope === "city" ? formValues.city.trim() : "";
+      const catalogUf =
+        openingDateScope === "city"
+          ? formValues.uf.trim().toUpperCase()
+          : "";
       queryClient.setQueryData<OpenedAtCompaniesResponse>(
         [
           "companies-by-opened-at",
@@ -300,6 +395,8 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
           debouncedName,
           openedFrom,
           openedTo,
+          catalogCity,
+          catalogUf,
         ],
         (current) => {
           if (!current) return current;
@@ -319,8 +416,8 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
           page,
           CATALOG_PAGE_SIZE,
           debouncedName,
-          "",
-          "",
+          useSessionScopedDateFilter ? openedFrom : "",
+          useSessionScopedDateFilter ? openedTo : "",
         ],
         (current) => {
           if (!current) return current;
@@ -417,19 +514,27 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
     }
   }
 
-  const emptyMessage = dateFilterActive
-    ? "Nenhuma empresa encontrada com essa data de abertura."
-    : !hasSearchContext
-      ? "Faça uma busca no formulário para ver as empresas aqui."
-      : "Nenhuma empresa encontrada para esta busca ou filtros.";
+  const emptyMessage = useSessionScopedDateFilter
+    ? "Nenhuma empresa nesta busca com essa data de abertura."
+    : useOpenedAtCatalogFilter
+      ? openingDateScope === "city"
+        ? "Nenhuma empresa nessa cidade com essa data de abertura."
+        : "Nenhuma empresa encontrada com essa data de abertura."
+      : dateFilterActive && openingDateScope === "lastSearch" && !selectedSessionId
+        ? "Nenhuma busca CNAE anterior. Faça uma busca ou escolha outro escopo."
+        : dateFilterActive && openingDateScope === "city" && !formCityFilled
+          ? "Preencha cidade e estado no formulário para filtrar por cidade."
+          : !hasSearchContext
+            ? "Faça uma busca no formulário para ver as empresas aqui."
+            : "Nenhuma empresa encontrada para esta busca ou filtros.";
 
   const pageSize = useMemo(
     () =>
-      (dateFilterActive
+      (useOpenedAtCatalogFilter
         ? openedAtQuery.data?.pageSize
         : sessionLeadsQuery.data?.pageSize) ?? CATALOG_PAGE_SIZE,
     [
-      dateFilterActive,
+      useOpenedAtCatalogFilter,
       openedAtQuery.data?.pageSize,
       sessionLeadsQuery.data?.pageSize,
     ],
@@ -507,11 +612,42 @@ export function CompanySearchPanel({ modeTabs }: CompanySearchPanelProps) {
                     setPage(1);
                   }}
                 />
-                <p className="mt-1.5 text-xs text-[var(--atria-primary)]/50">
-                  Busca só pela data de abertura, sem CNAE ou cidade. Se
-                  preencher só &quot;de&quot;, mostra daquela data até hoje.
-                </p>
               </Field>
+
+              <FieldSet>
+                <FieldLegend variant="label">
+                  Escopo da data de abertura
+                </FieldLegend>
+                <div data-slot="radio-group" className="flex flex-col gap-2.5">
+                  {OPENING_DATE_SCOPE_OPTIONS.map((option) => {
+                    const inputId = `opening-date-scope-${option.id}`;
+                    return (
+                      <label
+                        key={option.id}
+                        htmlFor={inputId}
+                        className="flex cursor-pointer items-center gap-2.5 text-sm"
+                      >
+                        <input
+                          id={inputId}
+                          name="opening-date-scope"
+                          type="radio"
+                          checked={openingDateScope === option.id}
+                          onChange={() => {
+                            setOpeningDateScope(option.id);
+                            setPage(1);
+                          }}
+                          className="size-4 accent-[var(--atria-primary)]"
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-[var(--atria-primary)]/50">
+                  Padrão: última busca CNAE. O escopo vale ao preencher a data.
+                  Só &quot;de&quot; na data vai até hoje.
+                </p>
+              </FieldSet>
             </div>
           </CardContent>
         </Card>
