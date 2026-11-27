@@ -1,5 +1,6 @@
 export function isRouteActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
+  if (href === "/studio") return pathname === "/studio";
   if (href === "/leads") return pathname === "/leads";
   if (href === "/creation") {
     return pathname === "/creation" || pathname.startsWith("/content/");
