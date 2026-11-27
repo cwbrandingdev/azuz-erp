@@ -66,16 +66,26 @@ export function KanbanBoard() {
   loadingMoreRef.current = loadingMore;
   refreshingRef.current = refreshing;
 
+  const KANBAN_PAGE_SIZE = 20;
+
   const loadBoardMeta = useCallback(async () => {
     try {
-      const [team, clientList] = await Promise.all([
-        calendarService.getTeamMembers().catch(() => [] as TeamMember[]),
-        clientsService.getClients().catch(() => [] as Client[]),
-      ]);
+      const team = await calendarService
+        .getTeamMembers()
+        .catch(() => [] as TeamMember[]);
       setMembers(team);
-      setClients(clientList);
     } catch {
       setMembers([]);
+    }
+  }, []);
+
+  const loadClientOptions = useCallback(async () => {
+    try {
+      const clientList = await clientsService
+        .getClients()
+        .catch(() => [] as Client[]);
+      setClients(clientList);
+    } catch {
       setClients([]);
     }
   }, []);
@@ -83,6 +93,26 @@ export function KanbanBoard() {
   useEffect(() => {
     void loadBoardMeta();
   }, [loadBoardMeta]);
+
+  useEffect(() => {
+    const schedule =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback.bind(window)
+        : (cb: () => void) => window.setTimeout(cb, 300);
+
+    const cancel =
+      typeof window.cancelIdleCallback === "function"
+        ? window.cancelIdleCallback.bind(window)
+        : window.clearTimeout.bind(window);
+
+    const id = schedule(() => {
+      void loadClientOptions();
+    });
+
+    return () => {
+      cancel(id);
+    };
+  }, [loadClientOptions]);
 
   useEffect(() => {
     const timer = window.setTimeout(
@@ -161,9 +191,10 @@ export function KanbanBoard() {
     }
     const loaded = columnsRef.current.reduce(
       (max, column) => Math.max(max, column.tasks.length),
-      20,
+      KANBAN_PAGE_SIZE,
     );
-    return loadBoard({ silent: true, limit: Math.min(loaded, 200) });
+    const refreshLimit = Math.min(loaded, KANBAN_PAGE_SIZE * 3);
+    return loadBoard({ silent: true, limit: refreshLimit });
   }, [loadBoard]);
 
   useEffect(() => {
